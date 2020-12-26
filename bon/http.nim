@@ -1,8 +1,10 @@
-import bon, httpclient, json as _, uri
+import ./support, sugar, httpclient, json as _, uri
 
 let default_timeout_sec = 30
 
 # parse_result -------------------------------------------------------------------------------------
+# Parses JSON `data` into Nim type `R`, unless JSON is `{ is_error: true, error: "..." } then it
+# rises the error
 proc parse_result[R](data: string): R =
   let json = data.parse_json
   if json.kind == JObject and "is_error" in json:

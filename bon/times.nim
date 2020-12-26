@@ -24,7 +24,7 @@ type
     epoch*: int64 # Could be negative
 
 
-# Epoch
+# Epoch --------------------------------------------------------------------------------------------
 proc epoch_day(y: int, m: int, d: int): int64 =
   var y = y
   if m <= 2: y.dec
@@ -43,6 +43,7 @@ proc epoch_sec*(year: int, month: int, day: int, hour: int, min: int, sec: int):
   seconds.inc min * 60
   seconds.inc sec
   seconds
+
 
 # Time ---------------------------------------------------------------------------------------------
 proc now*(_: typedesc[Time]): Time = Time.init nt.utc(nt.now())
