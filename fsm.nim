@@ -1,4 +1,4 @@
-import ./support, os, options
+import ./supportm, os, options
 
 proc read_file*(path: string): string =
   var file: File

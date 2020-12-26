@@ -1,4 +1,4 @@
-import ./support, re
+import ./supportm, re
 
 # string.trim --------------------------------------------------------------------------------------
 func trim*(s: string): string =

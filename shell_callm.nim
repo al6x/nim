@@ -1,6 +1,4 @@
-import ./support, bon/log as _, osproc, json, strformat
-
-let log = Log(component: "shell")
+import ./supportm, osproc, json, strformat
 
 type ShellArg[B, I, A] = object
   before: B

@@ -1,4 +1,4 @@
-import ./support, parsecsv
+import ./supportm, parsecsv
 
 proc map_csv*[T](
   csv_file_path: string,

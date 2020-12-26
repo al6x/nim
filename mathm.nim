@@ -1,4 +1,4 @@
-import ./support, algorithm, std/math, sequtils
+import ./supportm, algorithm, std/math, sequtils
 
 # quantile -------------------------------------------------------------------------------
 proc pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
