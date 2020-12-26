@@ -4,7 +4,7 @@ from std/times as nt import nil
 
 
 # Test -----------------------------------------------------------------------------------
-let test_enabled = get_env("test", "true").to_lower
+let test_enabled = get_env("test", "false").to_lower
 template test*(name: string, body) =
   if test_enabled == "true" or test_enabled == name:
     try:
