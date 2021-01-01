@@ -1,7 +1,7 @@
 import ./supportm, sugar, json, os, options, fsm as fs, ./timem, json
 
 
-proc read_from*[T](t: typedesc[T], path: string): Option[T] =
+proc read_from*[T](t: type[T], path: string): Option[T] =
   try:
     let json = fs.read_file path
     json.parse_json.to(T).some
@@ -9,7 +9,7 @@ proc read_from*[T](t: typedesc[T], path: string): Option[T] =
     T.none
 
 
-proc read_from*[T](t: typedesc[T], path: string, default: () -> T): T =
+proc read_from*[T](t: type[T], path: string, default: () -> T): T =
   let v = read_from(t, path)
   if v.is_some: v.get else: default()
 

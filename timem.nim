@@ -46,20 +46,20 @@ proc epoch_sec*(year: int, month: int, day: int, hour: int, min: int, sec: int):
 
 
 # Time ---------------------------------------------------------------------------------------------
-proc now*(_: typedesc[Time]): Time = Time.init nt.utc(nt.now())
+proc now*(_: type[Time]): Time = Time.init nt.utc(nt.now())
 
-proc init*(_: typedesc[Time], year: int, month: int, day: int, hour: int, min: int, sec: int): Time =
+proc init*(_: type[Time], year: int, month: int, day: int, hour: int, min: int, sec: int): Time =
   let epoch = epoch_sec(year, month, day, hour, min, sec)
   Time(year: year, month: month, day: day, hour: hour, min: min, sec: sec, epoch: epoch)
 
-proc init*(_: typedesc[Time], t: nt.DateTime): Time =
+proc init*(_: type[Time], t: nt.DateTime): Time =
   Time.init(t.year, t.month.ord, t.monthday, t.hour, t.minute, t.second)
 
-proc init*(_: typedesc[Time], epoch_sec: int64): Time =
+proc init*(_: type[Time], epoch_sec: int64): Time =
   Time.init nt.utc(nt.fromUnix(epoch_sec))
 
 let time_format = nt.init_time_format "yyyy-MM-dd HH:mm:ss"
-proc init*(_: typedesc[Time], time: string): Time =
+proc init*(_: type[Time], time: string): Time =
   Time.init nt.parse(time, time_format, nt.utc())
 
 
@@ -70,60 +70,59 @@ proc `$`*(t: Time): string =
 
 
 proc `%`*(time: Time): JsonNode = %($time)
-proc init_from_json*(dst: var Time, json: JsonNode, jsonPath: string) =
+proc init_from_json*(dst: var Time, json: JsonNode, json_path: string) =
   dst = Time.init(json.get_str)
 
 
 # TimeD --------------------------------------------------------------------------------------------
-proc init*(_: typedesc[TimeD], year: int, month: int, day: int): TimeD =
+proc init*(_: type[TimeD], year: int, month: int, day: int): TimeD =
   let epoch = epoch_sec(year, month, day, 0, 0, 1)
   TimeD(year: year, month: month, day: day, epoch: epoch)
 
-proc init*(_: typedesc[TimeD], t: nt.DateTime): TimeD =
+proc init*(_: type[TimeD], t: nt.DateTime): TimeD =
   TimeD.init(t.year, t.month.ord, t.monthday)
 
-proc init*(_: typedesc[TimeD], t: Time): TimeD =
+proc init*(_: type[TimeD], t: Time): TimeD =
   TimeD.init(t.year, t.month.ord, t.day)
 
-
-proc to*(t: Time, _: typedesc[TimeD]): TimeD = TimeD.init t
-
-
-proc now*(_: typedesc[TimeD]): TimeD = Time.now.to TimeD
-
-
 let time_d_format = nt.init_time_format "yyyy-MM-dd"
-proc init*(_: typedesc[TimeD], time: string): TimeD =
+proc init*(_: type[TimeD], time: string): TimeD =
   let t = nt.parse(time, time_d_format, nt.utc())
   let epoch = epoch_sec(t.year, t.month.ord, t.monthday, 0, 0, 1)
   TimeD(year: t.year, month: t.month.ord, day: t.monthday, epoch: epoch)
+
+
+proc to*(t: Time, _: type[TimeD]): TimeD = TimeD.init t
+
+
+proc now*(_: type[TimeD]): TimeD = Time.now.to TimeD
 
 
 proc `$`*(t: TimeD): string = t.year.align(4) & "-" & t.month.align(2) & "-" & t.day.align(2)
 
 
 proc `%`*(time: TimeD): JsonNode = %($time)
-proc init_from_json*(dst: var TimeD, json: JsonNode, jsonPath: string) =
+proc init_from_json*(dst: var TimeD, json: JsonNode, json_path: string) =
   dst = TimeD.init(json.get_str)
 
 
 # TimeM --------------------------------------------------------------------------------------------
-proc init*(_: typedesc[TimeM], year: int, month: int): TimeM =
+proc init*(_: type[TimeM], year: int, month: int): TimeM =
   let epoch = epoch_sec(year, month, 1, 0, 0, 1)
   TimeM(year: year, month: month, epoch: epoch)
 
-proc init*(_: typedesc[TimeM], t: Time | TimeD): TimeM = TimeM.init(t.year, t.month)
+proc init*(_: type[TimeM], t: Time | TimeD): TimeM = TimeM.init(t.year, t.month)
 
 
-proc to*(t: Time, _: typedesc[TimeM]): TimeM = TimeM.init t
-proc to*(t: TimeD, _: typedesc[TimeM]): TimeM = TimeM.init t
+proc to*(t: Time, _: type[TimeM]): TimeM = TimeM.init t
+proc to*(t: TimeD, _: type[TimeM]): TimeM = TimeM.init t
 
 
-proc now*(_: typedesc[TimeM]): TimeM = Time.now.to TimeM
+proc now*(_: type[TimeM]): TimeM = Time.now.to TimeM
 
 
 let time_m_format = nt.init_time_format "yyyy-MM"
-proc init*(_: typedesc[TimeM], time: string): TimeM =
+proc init*(_: type[TimeM], time: string): TimeM =
   let t = nt.parse(time, time_m_format, nt.utc())
   let epoch = epoch_sec(t.year, t.month.ord, 1, 0, 0, 1)
   TimeM(year: t.year, month: t.month.ord, epoch: epoch)
@@ -133,7 +132,7 @@ proc `$`*(t: TimeM): string = t.year.align(4) & "-" & t.month.align(2)
 
 
 proc `%`*(time: TimeM): JsonNode = %($time)
-proc init_from_json*(dst: var TimeM, json: JsonNode, jsonPath: string) =
+proc init_from_json*(dst: var TimeM, json: JsonNode, json_path: string) =
   dst = TimeM.init(json.get_str)
 
 

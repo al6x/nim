@@ -231,7 +231,7 @@ type Errorneous*[T] = object
 func get*[T](e: Errorneous[T]): T =
   if e.is_error: throw(e.error) else: e.value
 
-func failure*(T: typedesc, error: string): Errorneous[T] = Errorneous[T](is_error: true, error: error)
+func failure*(T: type, error: string): Errorneous[T] = Errorneous[T](is_error: true, error: error)
 func success*[T](value: T): Errorneous[T] = Errorneous[T](is_error: false, value: value)
 
 # string.error_type --------------------------------------------------------------------------------
@@ -246,7 +246,12 @@ test "error_type":
 
 
 # T.to_json ----------------------------------------------------------------------------------------
-proc to_json*[T](v: T): string = (%v).pretty
+proc to_json*[T](v: T, pretty = true): string =
+  if pretty: (%v).pretty else: $(%v)
+
+
+# T.from_json ----------------------------------------------------------------------------------------
+proc from_json*[T](v: type[T], json: string): T = json.parse_json.to(T)
 
 
 # timer_sec ----------------------------------------------------------------------------------------
