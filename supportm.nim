@@ -1,6 +1,7 @@
-import strformat, macros, sequtils, sugar, options, strutils, tables, os, re, hashes, json, algorithm
+import strformat, macros, sequtils, sugar, options, strutils, tables, os, hashes, json, algorithm
 from random as random import nil
 from std/times as nt import nil
+from std/nre as nre import nil
 
 
 # Test -----------------------------------------------------------------------------------
@@ -237,8 +238,8 @@ func success*[T](value: T): Errorneous[T] = Errorneous[T](is_error: false, value
 # string.error_type --------------------------------------------------------------------------------
 # Extract error type from string message, the last part of `some text :some_type`
 func error_type*(message: string): string =
-  let error_type_re = re(".*\\s:([a-z0-9_-]+)$", flags = {re_study, re_ignore_case})
-  if message.match(error_type_re): message.split(re("\\s:")).last
+  let error_type_re = nre.re("(?i).*\\s:([a-z0-9_-]+)$")
+  if nre.match(message, error_type_re).is_some: nre.split(message, nre.re("\\s:")).last
   else:                            ""
 
 test "error_type":
