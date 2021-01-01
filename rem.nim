@@ -76,17 +76,17 @@ proc find1*(s: string, r: Regex): string =
 
 proc find2*(s: string, r: Regex): (string, string) =
   let list = find_all(s, r)
-  assert list.len == 2, "expected 2 but found {list.len} elements for {r.repr}"
+  assert list.len == 2, fmt"expected 2 but found {list.len} elements for {r.repr}"
   (list[0], list[1])
 
 proc find3*(s: string, r: Regex): (string, string, string) =
   let list = find_all(s, r)
-  assert list.len == 3, "expected 3 but found {list.len} elements for {r.repr}"
+  assert list.len == 3, fmt"expected 3 but found {list.len} elements for {r.repr}"
   (list[0], list[1], list[2])
 
 proc find4*(s: string, r: Regex): (string, string, string, string) =
   let list = find_all(s, r)
-  assert list.len == 4, "expected 4 but found {list.len} elements for {r.repr}"
+  assert list.len == 4, fmt"expected 4 but found {list.len} elements for {r.repr}"
   (list[0], list[1], list[2], list[3])
 
 test "find1,2,3,4":

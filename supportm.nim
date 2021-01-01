@@ -88,6 +88,23 @@ proc is_empty*[T](list: openarray[T]): bool = list.len == 0
 proc is_empty*(s: string): bool = s == ""
 
 
+# string.split2,3,4 -------------------------------------------------------------------------------
+proc split2*(s: string, by: string): (string, string) =
+  let list = s.split(by)
+  assert list.len == 2, fmt"expected 2 but found {list.len} elements after splitting {s} by {by}"
+  (list[0], list[1])
+
+proc split3*(s: string, by: string): (string, string, string) =
+  let list = s.split(by)
+  assert list.len == 3, fmt"expected 3 but found {list.len} elements after splitting {s} by {by}"
+  (list[0], list[1], list[2])
+
+proc split4*(s: string, by: string): (string, string, string, string) =
+  let list = s.split(by)
+  assert list.len == 4, fmt"expected 4 but found {list.len} elements after splitting {s} by {by}"
+  (list[0], list[1], list[2], list[3])
+
+
 # to_s ---------------------------------------------------------------------------------------------
 proc to_s*[T](v: T): string = $v
 
