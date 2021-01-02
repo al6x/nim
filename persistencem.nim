@@ -1,9 +1,10 @@
-import ./supportm, sugar, json, os, options, fsm as fs, ./timem, json
+import ./supportm, sugar, json, os, options, ./timem, json
+from fsm as fs import nil
 
 
 proc read_from*[T](t: type[T], path: string): Option[T] =
   try:
-    let json = fs.read_file path
+    let json = fs.read path
     json.parse_json.to(T).some
   except:
     T.none
@@ -15,7 +16,7 @@ proc read_from*[T](t: type[T], path: string, default: () -> T): T =
 
 
 proc write_to*[T](v: T, path: string): void =
-  fs.write_file(path, (%v).pretty)
+  fs.write(path, (%v).pretty)
 
 
 # cache --------------------------------------------------------------------------------------------

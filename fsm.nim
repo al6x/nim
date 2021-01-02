@@ -1,32 +1,66 @@
-import ./supportm, os, options
+import ./supportm, os, options, sugar, strutils
 
-proc read_file*(path: string): string =
+# open_file ----------------------------------------------------------------------------------------
+proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
   var file: File
-  if file.open(path):
+  var opened = file.open(path, mode)
+
+  if ensure_parents:
+    # If there's no parent dir - creating parent dirs and retrying opening
+    if (not opened) and (not path.parent_dir.exists_dir):
+      path.parent_dir.create_dir
+      opened = file.open(path, mode)
+
+  if opened:
     defer: file.close
-    file.read_all
+    return cb(file)
   else:
     raise new_exception(IOError, "cannot open: " & path)
 
-proc read_file_optional*(path: string): Option[string] =
+
+# read_file ----------------------------------------------------------------------------------------
+proc read*(path: string): string =
+  open_file(path, false, fm_read, (file) => file.read_all)
+
+
+# read_file_optional -------------------------------------------------------------------------------
+proc read_optional*(path: string): Option[string] =
   var file: File
-  if file.open(path):
+  if file.open(path, fm_read):
     defer: file.close
     file.read_all.some
   else:
     string.none
 
-proc write_file*(path, content: string): void =
-  var file: File
-  var opened = file.open(path, fmWrite)
 
-  # If there's no parent dir - creating parent dirs and retrying opening
-  if (not opened) and (not path.parent_dir.exists_dir):
-    path.parent_dir.create_dir
-    opened = file.open(path, fmWrite)
+# write_file ---------------------------------------------------------------------------------------
+proc write*(path, data: string): void =
+  discard open_file(path, true, fm_write, proc (file: auto): bool =
+    file.write data
+    false
+  )
 
-  if opened:
-    defer: file.close
-    file.write content
-  else:
-    raise new_exception(IOError, "cannot open: " & path)
+
+# append -------------------------------------------------------------------------------------------
+proc append*(path, data: string): void =
+  discard open_file(path, true, fm_append, proc (file: auto): bool =
+    file.write data
+    false
+  )
+
+
+# append_line --------------------------------------------------------------------------------------
+proc append_line*(path, data: string): void =
+  assert not("\n" in data), "appended line can't have newline characters"
+  discard open_file(path, true, fm_append, proc (file: auto): bool =
+    file.write "\n"
+    file.write data
+    false
+  )
+
+
+# Test ---------------------------------------------------------------------------------------------
+# write_file("./tmp/some.txt", "some text")
+# append_line("./tmp/some.txt", "line 1")
+# append_line("./tmp/some.txt", "line 2")
+# p read_file("./tmp/some.txt")
