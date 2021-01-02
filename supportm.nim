@@ -88,6 +88,14 @@ proc is_empty*[T](list: openarray[T]): bool = list.len == 0
 proc is_empty*(s: string): bool = s == ""
 
 
+# string.take --------------------------------------------------------------------------------------
+proc take*(s: string, n: int): string =
+  if n < s.len: s[0..(n - 1)] else: s
+
+test "take":
+  assert "abcd".take(2) == "ab"
+  assert "ab".take(10) == "ab"
+
 # string.split2,3,4 -------------------------------------------------------------------------------
 proc split2*(s: string, by: string): (string, string) =
   let list = s.split(by)

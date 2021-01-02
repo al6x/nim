@@ -1,6 +1,6 @@
 import strformat, sequtils, sugar, strutils, re, std/math, json, ./supportm, hashes
 
-from std/times as nt import nil
+from std/times as times import nil
 
 type
   Time* = object
@@ -46,21 +46,21 @@ proc epoch_sec*(year: int, month: int, day: int, hour: int, min: int, sec: int):
 
 
 # Time ---------------------------------------------------------------------------------------------
-proc now*(_: type[Time]): Time = Time.init nt.utc(nt.now())
+proc now*(_: type[Time]): Time = Time.init times.utc(times.now())
 
 proc init*(_: type[Time], year: int, month: int, day: int, hour: int, min: int, sec: int): Time =
   let epoch = epoch_sec(year, month, day, hour, min, sec)
   Time(year: year, month: month, day: day, hour: hour, min: min, sec: sec, epoch: epoch)
 
-proc init*(_: type[Time], t: nt.DateTime): Time =
-  Time.init(t.year, t.month.ord, t.monthday, t.hour, t.minute, t.second)
+proc init*(_: type[Time], t: times.DateTime): Time =
+  Time.init(times.year(t), times.month(t).ord, times.monthday(t), times.hour(t), times.minute(t), times.second(t))
 
 proc init*(_: type[Time], epoch_sec: int64): Time =
-  Time.init nt.utc(nt.fromUnix(epoch_sec))
+  Time.init times.utc(times.fromUnix(epoch_sec))
 
-let time_format = nt.init_time_format "yyyy-MM-dd HH:mm:ss"
+let time_format = times.init_time_format "yyyy-MM-dd HH:mm:ss"
 proc init*(_: type[Time], time: string): Time =
-  Time.init nt.parse(time, time_format, nt.utc())
+  Time.init times.parse(time, time_format, times.utc())
 
 
 proc `$`*(t: Time): string =
@@ -79,17 +79,17 @@ proc init*(_: type[TimeD], year: int, month: int, day: int): TimeD =
   let epoch = epoch_sec(year, month, day, 0, 0, 1)
   TimeD(year: year, month: month, day: day, epoch: epoch)
 
-proc init*(_: type[TimeD], t: nt.DateTime): TimeD =
+proc init*(_: type[TimeD], t: times.DateTime): TimeD =
   TimeD.init(t.year, t.month.ord, t.monthday)
 
 proc init*(_: type[TimeD], t: Time): TimeD =
   TimeD.init(t.year, t.month.ord, t.day)
 
-let time_d_format = nt.init_time_format "yyyy-MM-dd"
+let time_d_format = times.init_time_format "yyyy-MM-dd"
 proc init*(_: type[TimeD], time: string): TimeD =
-  let t = nt.parse(time, time_d_format, nt.utc())
-  let epoch = epoch_sec(t.year, t.month.ord, t.monthday, 0, 0, 1)
-  TimeD(year: t.year, month: t.month.ord, day: t.monthday, epoch: epoch)
+  let t = times.parse(time, time_d_format, times.utc())
+  let epoch = epoch_sec(times.year(t), times.month(t).ord, times.monthday(t), 0, 0, 1)
+  TimeD(year: times.year(t), month: times.month(t).ord, day: times.monthday(t), epoch: epoch)
 
 
 proc to*(t: Time, _: type[TimeD]): TimeD = TimeD.init t
@@ -121,11 +121,11 @@ proc to*(t: TimeD, _: type[TimeM]): TimeM = TimeM.init t
 proc now*(_: type[TimeM]): TimeM = Time.now.to TimeM
 
 
-let time_m_format = nt.init_time_format "yyyy-MM"
+let time_m_format = times.init_time_format "yyyy-MM"
 proc init*(_: type[TimeM], time: string): TimeM =
-  let t = nt.parse(time, time_m_format, nt.utc())
-  let epoch = epoch_sec(t.year, t.month.ord, 1, 0, 0, 1)
-  TimeM(year: t.year, month: t.month.ord, epoch: epoch)
+  let t = times.parse(time, time_m_format, times.utc())
+  let epoch = epoch_sec(times.year(t), times.month(t).ord, 1, 0, 0, 1)
+  TimeM(year: times.year(t), month: times.month(t).ord, epoch: epoch)
 
 
 proc `$`*(t: TimeM): string = t.year.align(4) & "-" & t.month.align(2)
@@ -138,9 +138,9 @@ proc init_from_json*(dst: var TimeM, json: JsonNode, json_path: string) =
 
 test "epoch":
   proc nt_epoch(time: string): int64 =
-    let format = nt.init_time_format "yyyy-MM-dd HH:mm:ss"
-    let t = nt.parse(time, format, nt.utc())
-    nt.to_unix(nt.to_time(t))
+    let format = times.init_time_format "yyyy-MM-dd HH:mm:ss"
+    let t = times.parse(time, format, times.utc())
+    times.to_unix(times.to_time(t))
 
   assert nt_epoch("2000-01-01 01:01:01") == Time.init("2000-01-01 01:01:01").epoch
   assert nt_epoch("2002-02-01 01:01:01") == Time.init("2002-02-01 01:01:01").epoch
@@ -214,15 +214,15 @@ proc m_to_yyyy_mm*(m: int, base_year: int): string =
 
 
 proc current_yyyy_mm*(): string =
-  let d = nt.utc(nt.now())
-  to_yyyy_mm d.year, d.month.ord
+  let d = times.utc(times.now())
+  to_yyyy_mm times.year(d), times.month(d).ord
 
 
 proc current_yyyy_mm_dd*(): string =
-  let d = nt.utc(nt.now())
-  to_yyyy_mm_dd d.year, d.month.ord, d.monthday
+  let d = times.utc(times.now())
+  to_yyyy_mm_dd times.year(d), times.month(d).ord, times.monthday(d)
 
-proc now_sec*(): int64 = nt.to_unix(nt.to_time(nt.utc(nt.now())))
+proc now_sec*(): int64 = times.to_unix(times.to_time(times.utc(times.now())))
 
 # todo "Convert timestamps in JSON and other data to human readable format"
 # let time_format = init_time_format "yyyy-MM-dd HH:mm:ss"
