@@ -1,5 +1,4 @@
 import strformat, sequtils, sugar, strutils, re, std/math, json, ./supportm, hashes
-
 from std/times as times import nil
 
 type
@@ -113,20 +112,16 @@ proc init*(_: type[TimeM], year: int, month: int): TimeM =
 
 proc init*(_: type[TimeM], t: Time | TimeD): TimeM = TimeM.init(t.year, t.month)
 
-
-proc to*(t: Time, _: type[TimeM]): TimeM = TimeM.init t
-proc to*(t: TimeD, _: type[TimeM]): TimeM = TimeM.init t
-
-
-proc now*(_: type[TimeM]): TimeM = Time.now.to TimeM
-
-
 let time_m_format = times.init_time_format "yyyy-MM"
 proc init*(_: type[TimeM], time: string): TimeM =
   let t = times.parse(time, time_m_format, times.utc())
   let epoch = epoch_sec(times.year(t), times.month(t).ord, 1, 0, 0, 1)
   TimeM(year: times.year(t), month: times.month(t).ord, epoch: epoch)
 
+proc to*(t: Time, _: type[TimeM]): TimeM = TimeM.init t
+proc to*(t: TimeD, _: type[TimeM]): TimeM = TimeM.init t
+
+proc now*(_: type[TimeM]): TimeM = Time.now.to TimeM
 
 proc `$`*(t: TimeM): string = t.year.align(4) & "-" & t.month.align(2)
 

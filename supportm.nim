@@ -1,3 +1,4 @@
+import system except find
 import strformat, macros, sequtils, sugar, options, strutils, tables, os, hashes, json, algorithm
 from random as random import nil
 from std/times as nt import nil
@@ -124,7 +125,7 @@ proc last*[T](list: openarray[T]): T =
 
 
 # openarray.find -----------------------------------------------------------------------------------
-func search*[T](list: openarray[T], check: (T) -> bool): Option[T] =
+func find*[T](list: openarray[T], check: (T) -> bool): Option[T] =
   for v in list:
     if check(v): return v.some
   T.none
