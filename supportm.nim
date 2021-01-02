@@ -1,19 +1,42 @@
 import system except find
-import strformat, macros, sequtils, sugar, options, strutils, tables, os, hashes, json, algorithm
+import strformat, macros, sequtils, sugar, options, strutils, tables, os, hashes, json, algorithm, math,
+  unicode
 from random as random import nil
 from std/times as nt import nil
 from std/nre as nre import nil
 
 
-# Test -----------------------------------------------------------------------------------
+# test ---------------------------------------------------------------------------------------------
 let test_enabled = get_env("test", "false").to_lower
 template test*(name: string, body) =
-  if test_enabled == "true" or test_enabled == name:
+  var lname = name.to_lower
+  if test_enabled == "true" or test_enabled == lname:
     try:
       body
     except:
-      echo "test '", name, "' failed"
+      echo "test '", lname, "' failed"
       raise get_current_exception()
+
+
+# slow_test ----------------------------------------------------------------------------------------
+var test_group_cache = init_table[string, string]()
+template test*(name: string, group: string, body) =
+  var lname  = name.to_lower
+  var lgroup = group.to_lower
+  if lgroup notin test_group_cache:
+    test_group_cache[group] = get_env("test_" & lgroup, "true").to_lower
+
+  if (test_enabled == "true" and test_group_cache[lgroup] == "true") or test_enabled == lname:
+    try:
+      body
+    except:
+      echo "test '", lname, "' '", lgroup, "' failed"
+      raise get_current_exception()
+
+
+# aqual --------------------------------------------------------------------------------------------
+proc aqual*(a: float, b: float, epsilon: float): bool =
+  (a - b).abs() <= epsilon
 
 
 # throw ----------------------------------------------------------------------------------
@@ -129,6 +152,17 @@ func find*[T](list: openarray[T], check: (T) -> bool): Option[T] =
   for v in list:
     if check(v): return v.some
   T.none
+
+
+# Option.get -----------------------------------------------------------------------------------
+proc get*[T](o: Option[T], otherwise: (proc (): T)): T =
+  if o.is_some: o.get else: otherwise()
+
+
+# Option.get -----------------------------------------------------------------------------------
+proc ensure*[T](o: Option[T], message: string): T =
+  assert o.is_some, message
+  o.get
 
 
 # openarray.find -----------------------------------------------------------------------------------
