@@ -1,4 +1,4 @@
-import ./supportm, sugar, httpclient, json as _, uri
+import supportm, sugar, httpclient, jsonm, uri, errorneousm
 
 let default_timeout_sec = 30
 

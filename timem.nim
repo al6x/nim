@@ -1,4 +1,4 @@
-import strformat, sequtils, sugar, strutils, re, std/math, json, ./supportm, hashes
+import stringm, sequtils, sugar, re, std/math, jsonm, supportm, hashes
 from std/times as times import nil
 
 type
@@ -9,18 +9,18 @@ type
     hour*:  0..23
     min*:   0..59
     sec*:   0..59
-    epoch*: int64 # Could be negative
+    epoch*: int64 # in sec, could be negative
 
   TimeD* = object
     year*:  Natural
     month*: 1..12
     day*:   1..31
-    epoch*: int64 # Could be negative
+    epoch*: int64 # in sec, could be negative
 
   TimeM* = object
     year*:  Natural
     month*: 1..12
-    epoch*: int64 # Could be negative
+    epoch*: int64 # in sec, could be negative
 
 
 # Epoch --------------------------------------------------------------------------------------------

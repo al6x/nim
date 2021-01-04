@@ -1,4 +1,4 @@
-import ./supportm, osproc, json, strformat
+import osproc, jsonm, stringm, errorneousm
 
 type ShellArg[B, I, A] = object
   before: B

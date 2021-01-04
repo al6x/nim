@@ -1,5 +1,3 @@
-import strformat, macros, sequtils, sugar, options, strutils, tables, os, re, algorithm, hashes
-import ./supportm, ./logm, ./stringm
+import supportm, stringm, macros, seqm, sugar, optionm, tablem, rem, errorneousm, tablem
 
-export strformat, sequtils, sugar, options, strutils, tables, algorithm, hashes
-export supportm, logm, stringm
+export supportm, stringm, macros, seqm, sugar, optionm, tablem, rem, errorneousm, tablem

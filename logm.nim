@@ -1,4 +1,4 @@
-import ./supportm, strformat, os, strutils, sets
+import supportm, stringm, os, seqm, sets, docm
 
 todo "Alter get_env to use env.yml in current dir"
 
