@@ -15,7 +15,7 @@ template test*(name: string, body) =
       raise get_current_exception()
 
 
-# slow_test ----------------------------------------------------------------------------------------
+# test ---------------------------------------------------------------------------------------------
 var test_group_cache = init_table[string, string]()
 template test*(name: string, group: string, body) =
   var lname  = name.to_lower

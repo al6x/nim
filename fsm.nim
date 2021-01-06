@@ -1,4 +1,4 @@
-import ./supportm, os, options, sugar, strutils
+import supportm, os, options, sugar, strutils
 
 # open_file ----------------------------------------------------------------------------------------
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
@@ -7,7 +7,7 @@ proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc 
 
   if ensure_parents:
     # If there's no parent dir - creating parent dirs and retrying opening
-    if (not opened) and (not path.parent_dir.exists_dir):
+    if (not opened) and (not path.parent_dir.dir_exists):
       path.parent_dir.create_dir
       opened = file.open(path, mode)
 
