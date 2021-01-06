@@ -180,13 +180,19 @@ proc `+`*(t: TimeM, ti: TimeInterval): TimeM =
   assert ti.hours == 0
   assert ti.minutes == 0
   assert ti.seconds == 0
-  let months = t.month + ti.months
-  TimeM.init(t.year + ti.years + (months div 12), months mod 12)
+  let mcount = t.month + ti.months
+  var years  = t.year + ti.years + (mcount div 12)
+  var months = mcount mod 12
+  if months == 0:
+    years  -= 1
+    months = 12
+  TimeM.init(years, months)
 
 test "+(TimeM, TimeInterval)":
   assert (TimeM.init(2001, 1) + 2.months)  == TimeM.init(2001, 3)
   assert (TimeM.init(2001, 1) + 12.months) == TimeM.init(2002, 1)
   assert (TimeM.init(2001, 1) + 14.months) == TimeM.init(2002, 3)
+  assert (TimeM.init(2001, 11) + 1.months) == TimeM.init(2001, 12)
 
 
 # Helpers ------------------------------------------------------------------------------------------

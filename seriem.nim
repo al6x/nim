@@ -26,7 +26,7 @@ proc init_from_json*(dst: var PointM, json: JsonNode, json_path: string) =
   dst = (json.get_elems[0].to(TimeM), json.get_elems[1].get_float)
 
 
-# extrapolate_serie_m ------------------------------------------------------------------------------
+# extrapolate --------------------------------------------------------------------------------------
 # Extrapolation done as calculating the slope between the last and the given point in past and
 # projecting it into the future ![](normalization/cpi-extrapolation.jpg).
 # Used for CPI.
@@ -118,8 +118,8 @@ test "to_monthly":
 
   assert:
     to_monthly(prices_d) ==
-      @[("2000-01", 2.0), ("2000-02", 1.0)].to_points_m
+    @[("2000-01", 2.0), ("2000-02", 1.0)].to_points_m
 
   assert:
     to_monthly(prices_d, (TimeM.init(2000, 3), 4.0).some) ==
-      @[("2000-01", 2.0), ("2000-02", 1.0), ("2000-03", 4.0)].to_points_m
+    @[("2000-01", 2.0), ("2000-02", 1.0), ("2000-03", 4.0)].to_points_m
