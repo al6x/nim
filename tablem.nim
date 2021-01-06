@@ -32,6 +32,11 @@ proc keys*[K, V](table: Table[K, V]): seq[K] =
   for k in table.keys: result.add k
 
 
+# values -------------------------------------------------------------------------------------------
+proc values*[K, V](table: Table[K, V]): seq[V] =
+  for v in table.values: result.add v
+
+
 # to_table -----------------------------------------------------------------------------------------
 proc to_table*[V, K](list: openarray[V], key: (V) -> K): Table[K, V] =
   for v in list: result[key(v)] = v

@@ -1,4 +1,4 @@
-import strformat, macros, sugar, options, strutils, os, hashes, unicode, tables
+import strformat, macros, sugar, options, strutils, os, unicode, tables
 from std/times as nt import nil
 from std/nre as nre import nil
 
@@ -54,15 +54,8 @@ proc to_s*[T](v: T): string = $v
 proc align*(n: int, digits: int): string = ($n).align(digits, '0')
 
 
-# T.hash -------------------------------------------------------------------------------------------
-proc autohash*[T: tuple|object](o: T): Hash =
-  var h: Hash = 0
-  for f in o.fields: h = h !& f.hash
-  !$h
-
-
 # T.$ ----------------------------------------------------------------------------------------------
-proc `$`[T: typed](x: ref T): string = "->" & $(x[])
+proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 
 
 # p --------------------------------------------------------------------------------------
