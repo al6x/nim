@@ -53,14 +53,17 @@ proc epoch_seconds*(year: int, month: int, day: int, hour: int, minute: int, sec
 
 
 # Time ---------------------------------------------------------------------------------------------
-proc now*(_: type[Time]): Time = Time.init times.utc(times.now())
-
 proc init*(_: type[Time], year: int, month: int, day: int, hour: int, minute: int, second: int): Time =
   let epoch = epoch_seconds(year, month, day, hour, minute, second)
   Time(year: year, month: month, day: day, hour: hour, minute: minute, second: second, epoch: epoch)
 
 proc init*(_: type[Time], t: times.DateTime): Time =
-  Time.init(times.year(t), times.month(t).ord, times.monthday(t), times.hour(t), times.minute(t), times.second(t))
+  Time.init(
+    times.year(t), times.month(t).ord, times.monthday(t),
+    times.hour(t), times.minute(t), times.second(t)
+  )
+
+proc now*(_: type[Time]): Time = Time.init times.utc(times.now())
 
 proc init*(_: type[Time], epoch_seconds: int64): Time =
   Time.init times.utc(times.fromUnix(epoch_seconds))
@@ -99,7 +102,7 @@ proc init*(_: type[TimeD], time: string): TimeD =
   TimeD(year: times.year(t), month: times.month(t).ord, day: times.monthday(t), epoch: epoch)
 
 
-proc to*(t: Time, _: type[TimeD]): TimeD = TimeD.init t
+# proc to*(t: Time, _: type[TimeD]): TimeD = TimeD.init t
 
 
 proc now*(_: type[TimeD]): TimeD = Time.now.to TimeD
@@ -126,8 +129,8 @@ proc init*(_: type[TimeM], time: string): TimeM =
   let epoch = epoch_seconds(times.year(t), times.month(t).ord, 1, 0, 0, 1)
   TimeM(year: times.year(t), month: times.month(t).ord, epoch: epoch)
 
-proc to*(t: Time, _: type[TimeM]): TimeM = TimeM.init t
-proc to*(t: TimeD, _: type[TimeM]): TimeM = TimeM.init t
+# proc to*(t: Time, _: type[TimeM]): TimeM = TimeM.init t
+# proc to*(t: TimeD, _: type[TimeM]): TimeM = TimeM.init t
 
 proc now*(_: type[TimeM]): TimeM = Time.now.to TimeM
 
@@ -193,6 +196,7 @@ test "+(TimeM, TimeInterval)":
   assert (TimeM.init(2001, 1) + 12.months) == TimeM.init(2002, 1)
   assert (TimeM.init(2001, 1) + 14.months) == TimeM.init(2002, 3)
   assert (TimeM.init(2001, 11) + 1.months) == TimeM.init(2001, 12)
+  assert (TimeM.init(2001, 11) + 13.months) == TimeM.init(2002, 12)
 
 
 # Helpers ------------------------------------------------------------------------------------------

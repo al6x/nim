@@ -3,17 +3,26 @@ import basem, timem, mathm, jsonm, docm
 
 # Points -------------------------------------------------------------------------------------------
 type PointT*  = tuple[t: Time, v:float]
+type PointsT* = seq[PointT]
 
 type PointD*  = tuple[d: TimeD, v:float]
+type PointsD* = seq[PointD]
 
 type PointM*  = tuple[m: TimeM, v:float]
+type PointsM* = seq[PointM]
 
 
-proc to_point_d*(p: (string, float)): PointD = (TimeD.init(p[0]), p[1])
-proc to_points_d*(list: seq[(string, float)]): seq[PointD] = list.map((p) => p.to_point_d)
+proc init*(_: type[PointD], point: (string, float)): PointD = (TimeD.init(point[0]), point[1])
+proc init*(_: type[PointsD], list: seq[(string, float)]): PointsD = list.map((p) => p.to(PointD))
 
-proc to_point_m*(p: (string, float)): PointM = (TimeM.init(p[0]), p[1])
-proc to_points_m*(list: seq[(string, float)]): seq[PointM] = list.map((p) => p.to_point_m)
+proc init*(_: type[PointM], point: (string, float)): PointM = (TimeM.init(point[0]), point[1])
+proc init*(_: type[PointsM], list: seq[(string, float)]): PointsM = list.map((p) => p.to(PointM))
+
+# proc to_point_d*(p: (string, float)): PointD = (TimeD.init(p[0]), p[1])
+# proc to_points_d*(list: seq[(string, float)]): seq[PointD] = list.map((p) => p.to_point_d)
+
+# proc to_point_m*(p: (string, float)): PointM = (TimeM.init(p[0]), p[1])
+# proc to_points_m*(list: seq[(string, float)]): seq[PointM] = list.map((p) => p.to_point_m)
 
 
 # Json ---------------------------------------------------------------------------------------------
@@ -54,11 +63,11 @@ proc extrapolate*(
 test "extrapolate":
   let past_rates_m: seq[PointM] = @[
     ("2000-01", 1.0), ("2000-02", 2.0), ("2000-03", 3.0), ("2000-04", 4.0), ("2000-05", 5.0)
-  ].to_points_m
+  ].to(PointsM)
   assert extrapolate(past_rates_m, 2, 4) == @[
     ("2000-01", 1.0), ("2000-02", 2.0), ("2000-03", 3.0), ("2000-04", 4.0), ("2000-05", 5.0),
     ("2000-06", 6.0), ("2000-07", 7.0)
-  ].to_points_m
+  ].to(PointsM)
 
 
 # to_monthly ---------------------------------------------------------------------------------------
@@ -114,12 +123,12 @@ test "to_monthly":
     ("1990-01-01", 1.0),
     ("2000-01-01", 1.0), ("2000-01-02", 3.0),
     ("2000-02-01", 1.0), # ("2000-02-02", undefined),
-  ].to_points_d
+  ].to(PointsD)
 
   assert:
     to_monthly(prices_d) ==
-    @[("2000-01", 2.0), ("2000-02", 1.0)].to_points_m
+    @[("2000-01", 2.0), ("2000-02", 1.0)].to(PointsM)
 
   assert:
     to_monthly(prices_d, (TimeM.init(2000, 3), 4.0).some) ==
-    @[("2000-01", 2.0), ("2000-02", 1.0), ("2000-03", 4.0)].to_points_m
+    @[("2000-01", 2.0), ("2000-02", 1.0), ("2000-03", 4.0)].to(PointsM)
