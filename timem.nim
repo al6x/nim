@@ -9,30 +9,46 @@ type
     hour*:   0..23
     minute*: 0..59
     second*: 0..59
-    epoch*:  int64 # in seconds, could be negative
+    epoch*:  int # in seconds, could be negative
 
   TimeD* = object
     year*:  Natural
     month*: 1..12
     day*:   1..31
-    epoch*: int64 # in seconds, could be negative
+    epoch*: int # in seconds, could be negative
 
   TimeM* = object
     year*:  Natural
     month*: 1..12
-    epoch*: int64 # in seconds, could be negative
+    epoch*: int # in seconds, could be negative
 
   TimeInterval* = object
-    seconds*: int
-    minutes*: int
-    hours*:   int
-    days*:    int
-    months*:  int
-    years*:   int
+    seconds_part*: int
+    minutes_part*: int
+    hours_part*:   int
+    days_part*:    int
 
+    case is_calendar: bool
+    of true:
+      months_part*:  int
+      years_part*:   int
+    of false:
+      discard
+
+
+# Helpers ------------------------------------------------------------------------------------------
+const minute_sec* = 60
+const hour_sec*   = 60 * minute_sec
+const day_sec*    = 24 * hour_sec
+const day_min*    = 24 * 60
+
+# const second_ms* = 1000
+# const minute_ms* = 60 * sec_ms
+# let hour_ms* = 60 * min_ms;
+# let day_ms* = 24 * hour_ms
 
 # Epoch --------------------------------------------------------------------------------------------
-proc epoch_days(y: int, m: int, d: int): int64 =
+proc epoch_days(y: int, m: int, d: int): int =
   var y = y
   if m <= 2: y.dec
 
@@ -43,7 +59,7 @@ proc epoch_days(y: int, m: int, d: int): int64 =
   return era * 146097 + doe - 719468
 
 
-proc epoch_seconds*(year: int, month: int, day: int, hour: int, minute: int, second: int): int64 =
+proc epoch_seconds*(year: int, month: int, day: int, hour: int, minute: int, second: int): int =
   let epoch_days = epoch_days(year, month, day)
   var seconds = epoch_days * day_sec
   seconds.inc hour * hour_sec
@@ -65,7 +81,7 @@ proc init*(_: type[Time], t: times.DateTime): Time =
 
 proc now*(_: type[Time]): Time = Time.init times.utc(times.now())
 
-proc init*(_: type[Time], epoch_seconds: int64): Time =
+proc init*(_: type[Time], epoch_seconds: int): Time =
   Time.init times.utc(times.fromUnix(epoch_seconds))
 
 let time_format = times.init_time_format "yyyy-MM-dd HH:mm:ss"
@@ -102,9 +118,6 @@ proc init*(_: type[TimeD], time: string): TimeD =
   TimeD(year: times.year(t), month: times.month(t).ord, day: times.monthday(t), epoch: epoch)
 
 
-# proc to*(t: Time, _: type[TimeD]): TimeD = TimeD.init t
-
-
 proc now*(_: type[TimeD]): TimeD = Time.now.to TimeD
 
 
@@ -129,9 +142,6 @@ proc init*(_: type[TimeM], time: string): TimeM =
   let epoch = epoch_seconds(times.year(t), times.month(t).ord, 1, 0, 0, 1)
   TimeM(year: times.year(t), month: times.month(t).ord, epoch: epoch)
 
-# proc to*(t: Time, _: type[TimeM]): TimeM = TimeM.init t
-# proc to*(t: TimeD, _: type[TimeM]): TimeM = TimeM.init t
-
 proc now*(_: type[TimeM]): TimeM = Time.now.to TimeM
 
 proc `$`*(t: TimeM): string = t.year.align(4) & "-" & t.month.align(2)
@@ -143,10 +153,10 @@ proc init_from_json*(dst: var TimeM, json: JsonNode, json_path: string) =
 
 
 test "epoch":
-  proc nt_epoch(time: string): int64 =
+  proc nt_epoch(time: string): int =
     let format = times.init_time_format "yyyy-MM-dd HH:mm:ss"
     let t = times.parse(time, format, times.utc())
-    times.to_unix(times.to_time(t))
+    times.to_unix(times.to_time(t)).int
 
   assert nt_epoch("2000-01-01 01:01:01") == Time.init("2000-01-01 01:01:01").epoch
   assert nt_epoch("2002-02-01 01:01:01") == Time.init("2002-02-01 01:01:01").epoch
@@ -159,44 +169,79 @@ test "epoch":
 
 
 # TimeInterval -------------------------------------------------------------------------------------
-proc init*(_: type[TimeInterval], years, months, days, hours, minutes, seconds: int = 0): TimeInterval =
-  result.years   = years
-  result.months  = months
-  result.days    = days
-  result.hours   = hours
-  result.minutes = minutes
-  result.seconds = seconds
+# proc init*(_: type[TimeInterval], seconds: int = 0): TimeInterval =
+#   result.seconds = seconds
+
+proc init*(
+  _: type[TimeInterval], seconds_part: int, minutes_part, hours_part, days_part, months_part, years_part: int
+): TimeInterval =
+  TimeInterval(
+    is_calendar:  true,
+    seconds_part: seconds_part,
+    minutes_part: minutes_part,
+    hours_part:   hours_part,
+    days_part:    days_part,
+    months_part:  months_part,
+    years_part:   years_part
+  )
+
+proc init*(_: type[TimeInterval], seconds_part: int, minutes_part, hours_part, days_part: int): TimeInterval =
+  TimeInterval(
+    is_calendar:  false,
+    seconds_part: seconds_part,
+    minutes_part: minutes_part,
+    hours_part:   hours_part,
+    days_part:    days_part
+  )
+
+proc init*(_: type[TimeInterval], seconds_part: int): TimeInterval = TimeInterval.init(seconds_part, 0, 0, 0)
 
 
 # years,months,... ---------------------------------------------------------------------------------
-proc years*(y: int): TimeInterval = TimeInterval.init(years = y)
-proc months*(m: int): TimeInterval = TimeInterval.init(months = m)
-proc days*(d: int): TimeInterval = TimeInterval.init(days = d)
-proc hours*(h: int): TimeInterval = TimeInterval.init(hours = h)
-proc minutes*(m: int): TimeInterval = TimeInterval.init(minutes = m)
-proc seconds*(s: int): TimeInterval = TimeInterval.init(seconds = s)
+proc years*(y: int): TimeInterval   = TimeInterval.init(0, 0, 0, 0, 0, y)
+proc months*(m: int): TimeInterval  = TimeInterval.init(0, 0, 0, 0, m, 0)
+proc seconds*(s: int): TimeInterval = TimeInterval.init(s)
+proc minutes*(m: int): TimeInterval = TimeInterval.init(0, m, 0, 0)
+proc hours*(h: int): TimeInterval   = TimeInterval.init(0, 0, h, 0)
+proc days*(d: int): TimeInterval    = TimeInterval.init(0, 0, 0, d)
 
+proc days*(i: TimeInterval): float =
+  assert not i.is_calendar, "days not supported for calendar interval"
+  i.days_part.float + (i.hours_part.float / 24.0) + (i.minutes_part.float / day_min.float) +
+    (i.seconds_part.float / day_sec.float)
+
+test "days":
+  assert aqual(12.hours.days, 0.5, 1e-3)
 
 # + ------------------------------------------------------------------------------------------------
 proc `+`*(t: TimeM, ti: TimeInterval): TimeM =
-  assert ti.days == 0
-  assert ti.hours == 0
-  assert ti.minutes == 0
-  assert ti.seconds == 0
-  let mcount = t.month + ti.months
-  var years  = t.year + ti.years + (mcount div 12)
+  assert ti.days_part == 0
+  assert ti.hours_part == 0
+  assert ti.minutes_part == 0
+  assert ti.seconds_part == 0
+  let mcount = t.month + ti.months_part
+  var years  = t.year + ti.years_part + (mcount div 12)
   var months = mcount mod 12
   if months == 0:
     years  -= 1
     months = 12
   TimeM.init(years, months)
 
-test "+(TimeM, TimeInterval)":
-  assert (TimeM.init(2001, 1) + 2.months)  == TimeM.init(2001, 3)
-  assert (TimeM.init(2001, 1) + 12.months) == TimeM.init(2002, 1)
-  assert (TimeM.init(2001, 1) + 14.months) == TimeM.init(2002, 3)
-  assert (TimeM.init(2001, 11) + 1.months) == TimeM.init(2001, 12)
+test "+":
+  assert (TimeM.init(2001, 1)  + 2.months)  == TimeM.init(2001, 3)
+  assert (TimeM.init(2001, 1)  + 12.months) == TimeM.init(2002, 1)
+  assert (TimeM.init(2001, 1)  + 14.months) == TimeM.init(2002, 3)
+  assert (TimeM.init(2001, 11) + 1.months)  == TimeM.init(2001, 12)
   assert (TimeM.init(2001, 11) + 13.months) == TimeM.init(2002, 12)
+
+
+# - ------------------------------------------------------------------------------------------------
+proc `-`*(a: Time | TimeD | TimeM, b: Time | TimeD | TimeM): TimeInterval =
+  TimeInterval.init(a.epoch - b.epoch)
+
+test "-":
+  assert (TimeD.init(2001, 3, 1) - TimeD.init(2001, 1, 1)).days.aqual(59.0, 1e-3)
+  assert (TimeM.init(2001, 3) - TimeD.init(2001, 1, 1)).days.aqual(59.0, 1e-3)
 
 
 # Helpers ------------------------------------------------------------------------------------------
@@ -209,9 +254,9 @@ proc hash*(t: Time | TimeD | TimeM): Hash = t.epoch.hash
 # proc `==`*(a: string, b: TimeM): bool = TimeM.init(a) == b
 # proc `==`*(a: TimeM, b: string): bool = b == a
 
-proc sec_to_min*(sec: int64): int64 = sec div 60
-proc sec_to_hour*(sec: int64): int64 = sec div 3600
-proc sec_to_day*(sec: int64): int64 = sec div (24 * 3600)
+proc sec_to_min*(sec: int): int = sec div 60
+proc sec_to_hour*(sec: int): int = sec div 3600
+proc sec_to_day*(sec: int): int = sec div (24 * 3600)
 
 
 
@@ -269,7 +314,7 @@ proc current_yyyy_mm_dd*(): string =
   let d = times.utc(times.now())
   to_yyyy_mm_dd times.year(d), times.month(d).ord, times.monthday(d)
 
-proc now_sec*(): int64 = times.to_unix(times.to_time(times.utc(times.now())))
+proc now_sec*(): int = times.to_unix(times.to_time(times.utc(times.now()))).int
 
 # todo "Convert timestamps in JSON and other data to human readable format"
 # let time_format = init_time_format "yyyy-MM-dd HH:mm:ss"

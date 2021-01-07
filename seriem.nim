@@ -18,12 +18,6 @@ proc init*(_: type[PointsD], list: seq[(string, float)]): PointsD = list.map((p)
 proc init*(_: type[PointM], point: (string, float)): PointM = (TimeM.init(point[0]), point[1])
 proc init*(_: type[PointsM], list: seq[(string, float)]): PointsM = list.map((p) => p.to(PointM))
 
-# proc to_point_d*(p: (string, float)): PointD = (TimeD.init(p[0]), p[1])
-# proc to_points_d*(list: seq[(string, float)]): seq[PointD] = list.map((p) => p.to_point_d)
-
-# proc to_point_m*(p: (string, float)): PointM = (TimeM.init(p[0]), p[1])
-# proc to_points_m*(list: seq[(string, float)]): seq[PointM] = list.map((p) => p.to_point_m)
-
 
 # Json ---------------------------------------------------------------------------------------------
 proc `%`*(point: PointT | PointD | PointM): JsonNode = %[%(point[0]), %(point[1])]

@@ -66,13 +66,6 @@ proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 const p* = echo
 
 
-# Constants ------------------------------------------------------------------------------
-let sec_ms* = 1000; let min_ms* = 60 * sec_ms; let hour_ms* = 60 * min_ms;
-let day_ms* = 24 * hour_ms
-
-let min_sec* = 60; let hour_sec* = 60 * min_sec; let day_sec* = 24 * hour_sec
-
-
 # string.error_type --------------------------------------------------------------------------------
 # Extract error type from string message, the last part of `some text :some_type`
 func error_type*(message: string): string =
