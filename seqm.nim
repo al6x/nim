@@ -4,19 +4,60 @@ from random as random import nil
 
 export sequtils
 
+
+# is_empty -----------------------------------------------------------------------------------------
+proc is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
+
+
+# first --------------------------------------------------------------------------------------------
+proc first*[T](list: openarray[T]): T {.inline.} =
+  assert list.len > 0, "can't get first from empty list"
+  list[0]
+
+
+# last ---------------------------------------------------------------------------------------------
+proc last*[T](list: openarray[T]): T {.inline.} =
+  assert list.len > 0, "can't get last from empty list"
+  list[^1]
+
+
 # find ---------------------------------------------------------------------------------------------
-func find*[T](list: openarray[T], check: (T) -> bool): Option[T] =
+func find*[T](list: openarray[T], check: (T) -> bool): Option[T] {.inline.} =
   for v in list:
     if check(v): return v.some
   T.none
 
 
-# find ---------------------------------------------------------------------------------------------
-proc sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] = list.sortedByIt(op(it))
+# map ----------------------------------------------------------------------------------------------
+proc map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} =
+  for i, v in list: result.add(op(v, i))
+
+
+# sort_by ------------------------------------------------------------------------------------------
+proc sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
 
 
 # sort ---------------------------------------------------------------------------------------------
-proc sort*[T](list: openarray[T]): seq[T] = list.sorted
+proc sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
+
+
+# findi_min/max ------------------------------------------------------------------------------------
+func findi_min*[T](list: openarray[T], op: (T) -> float): int =
+  assert not list.is_empty
+  list.map((v, i) => (op(v), i)).sort_by((pair) => pair[0])[0][1]
+
+func findi_max*[T](list: openarray[T], op: (T) -> float): int =
+  assert not list.is_empty
+  list.map((v, i) => (op(v), i)).sort_by((pair) => pair[0])[^1][1]
+
+test "findi_min/max":
+  assert @[1.0, 2.0, 3.0].findi_min((v) => (v - 2.1).abs) == 1
+  assert @[1.0, 2.0, 3.0].findi_max((v) => (v - 0.5).abs) == 2
+
+
+# find_min, find_max -------------------------------------------------------------------------------
+func find_min*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_min(op)]
+func find_max*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_max(op)]
 
 
 # filter_map ---------------------------------------------------------------------------------------
@@ -27,20 +68,8 @@ proc filter_map*[V, R](list: openarray[V], convert: proc (v: V): Option[R]): seq
 
 
 # each ---------------------------------------------------------------------------------------------
-proc each*[T](list: openarray[T]; cb: proc (x: T): void): void =
+proc each*[T](list: openarray[T]; cb: proc (x: T): void): void {.inline.} =
   for v in list: cb(v)
-
-
-# first --------------------------------------------------------------------------------------------
-proc first*[T](list: openarray[T]): T =
-  assert list.len > 0, "can't get first from empty list"
-  list[0]
-
-
-# last ---------------------------------------------------------------------------------------------
-proc last*[T](list: openarray[T]): T =
-  assert list.len > 0, "can't get last from empty list"
-  list[list.len - 1]
 
 
 # shuffle ------------------------------------------------------------------------------------------
@@ -50,12 +79,8 @@ proc shuffle*[T](list: openarray[T], seed = 1): seq[T] =
   random.shuffle(rand, result)
 
 
-# is_empty -----------------------------------------------------------------------------------------
-proc is_empty*[T](list: openarray[T]): bool = list.len == 0
-
-
 # count --------------------------------------------------------------------------------------------
-func count*[T](list: openarray[T], check: (T) -> bool): int =
+func count*[T](list: openarray[T], check: (T) -> bool): int {.inline.} =
   for v in list:
     if check(v): result.inc 1
 

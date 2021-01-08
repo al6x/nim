@@ -28,7 +28,7 @@ type
     hours_part*:   int
     days_part*:    int
 
-    case is_calendar: bool
+    case is_calendar: bool # Calendar time requires complex calender calculations
     of true:
       months_part*:  int
       years_part*:   int
@@ -254,9 +254,9 @@ proc hash*(t: Time | TimeD | TimeM): Hash = t.epoch.hash
 # proc `==`*(a: string, b: TimeM): bool = TimeM.init(a) == b
 # proc `==`*(a: TimeM, b: string): bool = b == a
 
-proc sec_to_min*(sec: int): int = sec div 60
-proc sec_to_hour*(sec: int): int = sec div 3600
-proc sec_to_day*(sec: int): int = sec div (24 * 3600)
+proc seconds_to_minuntes*(sec: int): int = sec div 60
+proc seconds_to_hours*(sec: int): int = sec div 3600
+proc seconds_to_days*(sec: int): int = sec div (24 * 3600)
 
 
 
