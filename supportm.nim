@@ -6,34 +6,36 @@ from std/nre as nre import nil
 # test ---------------------------------------------------------------------------------------------
 let test_enabled = get_env("test", "false").to_lower
 template test*(name: string, body) =
-  var lname = name.to_lower
-  if test_enabled == "true" or test_enabled == lname:
-    try:
-      body
-    except:
-      echo "test '", lname, "' failed"
-      raise get_current_exception()
+  block:
+    var lname = name.to_lower
+    if test_enabled == "true" or test_enabled == lname:
+      try:
+        body
+      except:
+        echo "test '", lname, "' failed"
+        raise get_current_exception()
 
 
 # test ---------------------------------------------------------------------------------------------
 var test_group_cache = init_table[string, string]()
 template test*(name: string, group: string, body) =
-  var lname  = name.to_lower
-  var lgroup = group.to_lower
-  if lgroup notin test_group_cache:
-    test_group_cache[group] = get_env("test_" & lgroup, "true").to_lower
+  block:
+    var lname  = name.to_lower
+    var lgroup = group.to_lower
+    if lgroup notin test_group_cache:
+      test_group_cache[group] = get_env("test_" & lgroup, "true").to_lower
 
-  if (test_enabled == "true" and test_group_cache[lgroup] == "true") or test_enabled == lname:
-    try:
-      body
-    except:
-      echo "test '", lname, "' '", lgroup, "' failed"
-      raise get_current_exception()
+    if (test_enabled == "true" and test_group_cache[lgroup] == "true") or test_enabled == lname:
+      try:
+        body
+      except:
+        echo "test '", lname, "' '", lgroup, "' failed"
+        raise get_current_exception()
 
 
 # aqual --------------------------------------------------------------------------------------------
-proc aqual*(a: float, b: float, epsilon: float): bool =
-  (a - b).abs() <= epsilon
+# proc aqual*(a: float, b: float, epsilon: float): bool =
+#   (a - b).abs() <= epsilon
 
 
 # throw ----------------------------------------------------------------------------------
@@ -52,6 +54,7 @@ proc init*[T](_: type[string], v: T): string = $v
 
 # to -----------------------------------------------------------------------------------------------
 template to*[F,T](f: F, _: type[T]): T = T.init(f)
+# template to*(list: seq[untyped], R): seq[typeof R] = R.init_seq(list)
 
 
 # int.align ----------------------------------------------------------------------------------------

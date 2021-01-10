@@ -1,4 +1,4 @@
-import supportm, algorithm, std/math, sequtils
+import supportm, algorithm, std/math, sequtils, strformat
 
 export math
 
@@ -32,6 +32,37 @@ proc median*(values: openarray[float], is_sorted = false): float =
 
 # mean ---------------------------------------------------------------------------------------------
 proc mean*(values: openarray[float]): float = values.sum() / values.len.to_float
+
+
+# min_max_rate -------------------------------------------------------------------------------------
+proc min_max_rate*(a: float | int, b: float | int): float =
+  assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
+  result = min(a.float, b.float) / max(a.float, b.float)
+  assert(result >= 0 and result <= 1, "invalid rate")
+
+
+# requal -------------------------------------------------------------------------------------------
+# Relative float equality
+proc requal*(a: float, b: float, repsilon: float = 1e-3): bool =
+  if a == b: return true
+  else:
+    let aabs = a.abs
+    let babs = b.abs
+    if aabs == babs: return true
+    let smaller = min(aabs, babs)
+    let larger  = max(aabs, babs)
+    let relative_error = (larger - smaller) / larger
+    relative_error < repsilon
+
+proc `=~`*(a: float, b: float): bool  {.inline.} = a.requal(b)
+proc `!~`*(a: float, b: float): bool  {.inline.} = not(a =~ b)
+
+test "requal":
+  assert 0.0 !~ 1.0
+  assert 1.0 !~ 0.0
+  assert 0.0 =~ 0.0
+  assert 1.0 =~ 1.0009
+  assert 1.0 !~ 1.0011
 
 
 # // min_max_norm --------------------------------------------------------------------------

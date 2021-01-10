@@ -11,13 +11,18 @@ proc is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
 # first --------------------------------------------------------------------------------------------
 proc first*[T](list: openarray[T]): T {.inline.} =
-  assert list.len > 0, "can't get first from empty list"
+  assert not list.is_empty, "can't get first from empty list"
   list[0]
+
+
+# first_optional -----------------------------------------------------------------------------------
+proc first_optional*[T](list: openarray[T]): Option[T] =
+  if list.is_empty: T.none else: list[0].some
 
 
 # last ---------------------------------------------------------------------------------------------
 proc last*[T](list: openarray[T]): T {.inline.} =
-  assert list.len > 0, "can't get last from empty list"
+  assert not list.is_empty, "can't get last from empty list"
   list[^1]
 
 
@@ -108,6 +113,19 @@ proc flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
   for list2 in list:
     for v in list2:
       result.add(v)
+
+
+# init ---------------------------------------------------------------------------------------------
+template init*[R, A](_: type[seq[R]], list: seq[A]): seq[R] =
+  list.map(proc (v: A): R = R.init(v))
+template init*[R, A, B](_: type[seq[R]], list: seq[(A, B)]): seq[R] =
+  list.map(proc (v: (A, B)): R = R.init(v[0], v[1]))
+template init*[R, A, B, C](_: type[seq[R]], list: seq[(A, B, C)]): seq[R] =
+  list.map(proc (v: (A, B, C)): R = R.init(v[0], v[1], v[2]))
+
+
+# to_seq ---------------------------------------------------------------------------------------------
+# template to_seq*(list: seq[untyped], R): seq[typeof R] = R.init_seq(list)
 
 
 # seq.== -------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import stringm, sequtils, sugar, re, std/math, jsonm, supportm, hashes
+import stringm, sequtils, sugar, re, std/math, jsonm, supportm, hashes, mathm
 from std/times as times import nil
 
 type
@@ -211,7 +211,7 @@ proc days*(i: TimeInterval): float =
     (i.seconds_part.float / day_sec.float)
 
 test "days":
-  assert aqual(12.hours.days, 0.5, 1e-3)
+  assert 12.hours.days =~ 0.5
 
 # + ------------------------------------------------------------------------------------------------
 proc `+`*(t: TimeM, ti: TimeInterval): TimeM =
@@ -240,8 +240,8 @@ proc `-`*(a: Time | TimeD | TimeM, b: Time | TimeD | TimeM): TimeInterval =
   TimeInterval.init(a.epoch - b.epoch)
 
 test "-":
-  assert (TimeD.init(2001, 3, 1) - TimeD.init(2001, 1, 1)).days.aqual(59.0, 1e-3)
-  assert (TimeM.init(2001, 3) - TimeD.init(2001, 1, 1)).days.aqual(59.0, 1e-3)
+  assert (TimeD.init(2001, 3, 1) - TimeD.init(2001, 1, 1)).days =~ 59.0
+  assert (TimeM.init(2001, 3) - TimeD.init(2001, 1, 1)).days =~ 59.0
 
 
 # Helpers ------------------------------------------------------------------------------------------
