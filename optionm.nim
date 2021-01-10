@@ -37,6 +37,10 @@ proc ensure*[T](o: Option[T], message: string): T =
   o.get
 
 
+proc message*[T](o: Option[T]): string =
+  assert o.is_none
+  o.message
+
 proc map*[T](self: Option[T], op: proc (v: T)): Option[T] =
   if self.isSome: op(self.value)
 

@@ -6,44 +6,51 @@ export sequtils
 
 
 # is_empty -----------------------------------------------------------------------------------------
-proc is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
+func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
 
 # first --------------------------------------------------------------------------------------------
-proc first*[T](list: openarray[T]): T {.inline.} =
+func first*[T](list: openarray[T]): T {.inline.} =
   assert not list.is_empty, "can't get first from empty list"
   list[0]
 
 
 # first_optional -----------------------------------------------------------------------------------
-proc first_optional*[T](list: openarray[T]): Option[T] =
+func first_optional*[T](list: openarray[T]): Option[T] =
   if list.is_empty: T.none else: list[0].some
 
 
 # last ---------------------------------------------------------------------------------------------
-proc last*[T](list: openarray[T]): T {.inline.} =
+func last*[T](list: openarray[T]): T {.inline.} =
   assert not list.is_empty, "can't get last from empty list"
   list[^1]
 
 
 # find ---------------------------------------------------------------------------------------------
-func find*[T](list: openarray[T], check: (T) -> bool): Option[T] {.inline.} =
+func find*[T](list: openarray[T], check: (T) -> bool): Option[T] =
   for v in list:
     if check(v): return v.some
   T.none
 
 
+# findi --------------------------------------------------------------------------------------------
+func findi*[T](list: openarray[T], check: (T) -> bool): Option[int] =
+  for i, v in list:
+    if check(v): return i.some
+  int.none
+
+
 # map ----------------------------------------------------------------------------------------------
-proc map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} =
+func map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} =
   for i, v in list: result.add(op(v, i))
 
 
 # sort_by ------------------------------------------------------------------------------------------
-proc sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
+func sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
 
 
 # sort ---------------------------------------------------------------------------------------------
-proc sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
+func sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
 
 
 # findi_min/max ------------------------------------------------------------------------------------
@@ -66,19 +73,19 @@ func find_max*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_max
 
 
 # filter_map ---------------------------------------------------------------------------------------
-proc filter_map*[V, R](list: openarray[V], convert: proc (v: V): Option[R]): seq[R] =
+func filter_map*[V, R](list: openarray[V], convert: proc (v: V): Option[R]): seq[R] =
   for v in list:
     let o = convert(v)
     if o.is_some: result.add o.get
 
 
 # each ---------------------------------------------------------------------------------------------
-proc each*[T](list: openarray[T]; cb: proc (x: T): void): void {.inline.} =
+func each*[T](list: openarray[T]; cb: proc (x: T): void): void {.inline.} =
   for v in list: cb(v)
 
 
 # shuffle ------------------------------------------------------------------------------------------
-proc shuffle*[T](list: openarray[T], seed = 1): seq[T] =
+func shuffle*[T](list: openarray[T], seed = 1): seq[T] =
   var rand = random.init_rand(seed)
   result = list.to_seq
   random.shuffle(rand, result)
@@ -91,7 +98,7 @@ func count*[T](list: openarray[T], check: (T) -> bool): int {.inline.} =
 
 
 # batches ------------------------------------------------------------------------------------------
-proc batches*[T](list: openarray[T], size: int): seq[seq[T]] =
+func batches*[T](list: openarray[T], size: int): seq[seq[T]] =
   var i = 0
   while i < list.len:
     var batch: seq[T]
@@ -109,7 +116,7 @@ test "batches":
 
 
 # flatten ------------------------------------------------------------------------------------------
-proc flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
+func flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
   for list2 in list:
     for v in list2:
       result.add(v)

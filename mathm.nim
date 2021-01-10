@@ -3,10 +3,10 @@ import supportm, algorithm, std/math, sequtils, strformat
 export math
 
 # quantile -------------------------------------------------------------------------------
-proc pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
+func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
 
 # quantile -------------------------------------------------------------------------------
-proc quantile*(values: open_array[float], q: float, is_sorted = false): float =
+func quantile*(values: open_array[float], q: float, is_sorted = false): float =
   let sorted = if is_sorted: values.to_seq else: values.sorted
   let pos = (sorted.len - 1).to_float * q
   let base = pos.floor.to_int
@@ -22,20 +22,20 @@ test "quantile":
 
 
 # sum ----------------------------------------------------------------------------------------------
-proc sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
+func sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
 
 
 # median -------------------------------------------------------------------------------------------
-proc median*(values: openarray[float], is_sorted = false): float =
+func median*(values: openarray[float], is_sorted = false): float =
   quantile(values, 0.5, is_sorted)
 
 
 # mean ---------------------------------------------------------------------------------------------
-proc mean*(values: openarray[float]): float = values.sum() / values.len.to_float
+func mean*(values: openarray[float]): float = values.sum() / values.len.to_float
 
 
 # min_max_rate -------------------------------------------------------------------------------------
-proc min_max_rate*(a: float | int, b: float | int): float =
+func min_max_rate*(a: float | int, b: float | int): float =
   assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
   result = min(a.float, b.float) / max(a.float, b.float)
   assert(result >= 0 and result <= 1, "invalid rate")
@@ -43,7 +43,7 @@ proc min_max_rate*(a: float | int, b: float | int): float =
 
 # requal -------------------------------------------------------------------------------------------
 # Relative float equality
-proc requal*(a: float, b: float, repsilon: float = 1e-3): bool =
+func requal*(a: float, b: float, repsilon: float = 1e-3): bool =
   if a == b: return true
   else:
     let aabs = a.abs
@@ -54,8 +54,8 @@ proc requal*(a: float, b: float, repsilon: float = 1e-3): bool =
     let relative_error = (larger - smaller) / larger
     relative_error < repsilon
 
-proc `=~`*(a: float, b: float): bool  {.inline.} = a.requal(b)
-proc `!~`*(a: float, b: float): bool  {.inline.} = not(a =~ b)
+func `=~`*(a: float, b: float): bool  {.inline.} = a.requal(b)
+func `!~`*(a: float, b: float): bool  {.inline.} = not(a =~ b)
 
 test "requal":
   assert 0.0 !~ 1.0
