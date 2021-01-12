@@ -28,16 +28,18 @@ func last*[T](list: openarray[T]): T {.inline.} =
 
 # findi --------------------------------------------------------------------------------------------
 func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
-  for i in start..(list.len - 1):
-    if check(list[i]): return i.some
+  if start < (list.len - 1):
+    for i in start..(list.len - 1):
+      if check(list[i]): return i.some
   int.none "not found"
 
 
 # find ---------------------------------------------------------------------------------------------
 func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
-  for i in start..(list.len - 1):
-    let v = list[i]
-    if check(v): return v.some
+  if start < (list.len - 1):
+    for i in start..(list.len - 1):
+      let v = list[i]
+      if check(v): return v.some
   T.none "not found"
 
 

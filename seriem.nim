@@ -1,4 +1,4 @@
-import basem, timem, mathm, jsonm, docm
+import supportm, timem, mathm, jsonm, docm, seqm, optionm, tablem, sugar
 
 
 # Points -------------------------------------------------------------------------------------------
@@ -21,26 +21,29 @@ proc init*(_: type[PointM], m: string, v: float): PointM = (TimeM.init(m), v)
 
 # getters ------------------------------------------------------------------------------------------
 proc time*(p: PointT): Time {.inline.} = p[0]
-proc day*(p: PointD): TimeD {.inline.} = p[0]
-proc month*(p: PointM): TimeM {.inline.} = p[0]
+proc time*(p: PointD): TimeD {.inline.} = p[0]
+proc time*(p: PointM): TimeM {.inline.} = p[0]
+# proc day*(p: PointD): TimeD {.inline.} = p[0]
+# proc month*(p: PointM): TimeM {.inline.} = p[0]
 proc value*(p: PointT | PointD | PointM): float {.inline.} = p[1]
 
 
-# Json ---------------------------------------------------------------------------------------------
-proc `%`*(point: PointT | PointD | PointM): JsonNode = %[%(point[0]), %(point[1])]
-proc init_from_json*(dst: var PointT, json: JsonNode, json_path: string) =
-  dst = (json.get_elems[0].to(Time), json.get_elems[1].get_float)
-proc init_from_json*(dst: var PointD, json: JsonNode, json_path: string) =
-  dst = (json.get_elems[0].to(TimeD), json.get_elems[1].get_float)
-proc init_from_json*(dst: var PointM, json: JsonNode, json_path: string) =
-  dst = (json.get_elems[0].to(TimeM), json.get_elems[1].get_float)
+# converters ---------------------------------------------------------------------------------------
+converter to_pointd*(p: ((int, int, int), float)): PointD = (TimeD.init(p[0][0], p[0][1], p[0][2]), p[1])
+converter to_pointsd*(points: seq[((int, int, int), float)]): PointsD = points.map((p) => p.to_pointd)
+
+converter to_pointm*(p: ((int, int), float)): PointM = (TimeM.init(p[0][0], p[0][1]), p[1])
+converter to_pointsm*(points: seq[((int, int), float)]): PointsM = points.map((p) => p.to_pointm)
 
 
-# extrapolate_ab -----------------------------------------------------------------------------------
+# extrapolate --------------------------------------------------------------------------------------
 # Extrapolation done as calculating the slope between the last and the given point in past and
 # projecting it into the future ![](normalization/cpi-extrapolation.jpg).
 # Used for CPI.
-todo "Try linear regression, maybe it would be better, plot to see current method vs linear regression?"
+todo:
+  "Try linear regression, or exponential moving average maybe it would be better " &
+  "plot to see current method vs linear regression, find best with backtesting?"
+
 proc extrapolate*(
   serie:                     seq[PointM],
   months:                    int,
@@ -56,12 +59,12 @@ proc extrapolate*(
   var last = serie.last
   for i in 1..months:
     extrapolated.add((
-      last.month + i.months,
+      last.time + i.months,
       last.value + monthly_slope * i.float
     ))
   extrapolated
 
-test "extrapolate_ab":
+test "extrapolate":
   let past_rates_m: seq[PointM] = @[
     ("2000-01", 1.0), ("2000-02", 2.0), ("2000-03", 3.0), ("2000-04", 4.0), ("2000-05", 5.0)
   ].to(PointsM)
@@ -69,6 +72,25 @@ test "extrapolate_ab":
     ("2000-01", 1.0), ("2000-02", 2.0), ("2000-03", 3.0), ("2000-04", 4.0), ("2000-05", 5.0),
     ("2000-06", 6.0), ("2000-07", 7.0)
   ].to(PointsM)
+
+
+# zip ----------------------------------------------------------------------------------------------
+proc zip*[T](serie_a: seq[(T, float)], serie_b: seq[(T, float)]): seq[(T, float, float)] =
+  var j = 0
+  for i in 0..(serie_a.len - 1):
+    let (atime, avalue) = serie_a[i]
+    let bi = serie_b.findi((p) => p.time == atime, j)
+    if bi.is_some:
+      result.add((atime, avalue, serie_b[bi.get].value))
+      j = bi.get + 1
+    elif not result.is_empty:
+      return # not allowing spans
+
+test "zip":
+  let a: PointsM = @[((2000, 1), 1.0), ((2000, 2), 2.0), ((2000, 3), 3.0),                   ((2000, 4), 0.1)]
+  let b: PointsM = @[                  ((2000, 2), 0.3), ((2000, 3), 0.2), ((2000, 4), 0.1),                 ]
+
+  assert zip(a, b) == @[(TimeM.init(2000, 2), 2.0, 0.3), (TimeM.init(2000, 3), 3.0, 0.2)]
 
 
 # differentiate ------------------------------------------------------------------------------------
@@ -227,3 +249,13 @@ test "to_monthly":
   assert:
     to_monthly(prices_d, (TimeM.init(2000, 3), 4.0).some) ==
     @[("2000-01", 2.0), ("2000-02", 1.0), ("2000-03", 4.0)].to(PointsM)
+
+
+# Json ---------------------------------------------------------------------------------------------
+proc `%`*(point: PointT | PointD | PointM): JsonNode = %[%(point[0]), %(point[1])]
+proc init_from_json*(dst: var PointT, json: JsonNode, json_path: string) =
+  dst = (json.get_elems[0].to(Time), json.get_elems[1].get_float)
+proc init_from_json*(dst: var PointD, json: JsonNode, json_path: string) =
+  dst = (json.get_elems[0].to(TimeD), json.get_elems[1].get_float)
+proc init_from_json*(dst: var PointM, json: JsonNode, json_path: string) =
+  dst = (json.get_elems[0].to(TimeM), json.get_elems[1].get_float)
