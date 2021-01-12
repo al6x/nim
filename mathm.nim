@@ -2,10 +2,11 @@ import supportm, algorithm, std/math, sequtils, strformat
 
 export math
 
-# quantile -------------------------------------------------------------------------------
+
+# quantile -----------------------------------------------------------------------------------------
 func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
 
-# quantile -------------------------------------------------------------------------------
+# quantile -----------------------------------------------------------------------------------------
 func quantile*(values: open_array[float], q: float, is_sorted = false): float =
   let sorted = if is_sorted: values.to_seq else: values.sorted
   let pos = (sorted.len - 1).to_float * q

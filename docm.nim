@@ -1,3 +1,5 @@
+import sequtils
+
 type
   DocPriority* = enum high_e, normal_e, low_e
 
@@ -18,8 +20,8 @@ type
 
 var docs*: seq[DocItem]
 
-proc doc*(title: string, text: string, tags: seq[string] = @[]): void =
-  docs.add DocItem(kind: text_e, title: title, text: text, tags: tags)
+proc doc*(title: string, text: string, tags: openarray[string] = []): void =
+  docs.add DocItem(kind: text_e, title: title, text: text, tags: tags.to_seq)
 
-proc todo*(todo: string, priority: DocPriority = normal_e, tags: seq[string] = @[]): void =
-  docs.add DocItem(kind: todo_e, priority: priority, tags: tags)
+proc todo*(todo: string, priority: DocPriority = normal_e, tags: openarray[string] = []): void =
+  docs.add DocItem(kind: todo_e, priority: priority, tags: tags.to_seq)

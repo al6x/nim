@@ -12,11 +12,11 @@ type PointM*  = tuple[m: TimeM, v:float]
 type PointsM* = seq[PointM]
 
 
-proc init*(_: type[PointD], point: (string, float)): PointD = (TimeD.init(point[0]), point[1])
-proc init*(_: type[PointsD], list: seq[(string, float)]): PointsD = list.map((p) => p.to(PointD))
+proc init*(_: type[PointD], d: TimeD, v: float): PointD = (d, v)
+proc init*(_: type[PointD], d: string, v: float): PointD = (TimeD.init(d), v)
 
-proc init*(_: type[PointM], point: (string, float)): PointM = (TimeM.init(point[0]), point[1])
-proc init*(_: type[PointsM], list: seq[(string, float)]): PointsM = list.map((p) => p.to(PointM))
+proc init*(_: type[PointM], m: TimeM, v: float): PointM = (m, v)
+proc init*(_: type[PointM], m: string, v: float): PointM = (TimeM.init(m), v)
 
 
 # Json ---------------------------------------------------------------------------------------------

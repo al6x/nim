@@ -26,18 +26,19 @@ func last*[T](list: openarray[T]): T {.inline.} =
   list[^1]
 
 
-# find ---------------------------------------------------------------------------------------------
-func find*[T](list: openarray[T], check: (T) -> bool): Option[T] =
-  for v in list:
-    if check(v): return v.some
-  T.none
-
-
 # findi --------------------------------------------------------------------------------------------
-func findi*[T](list: openarray[T], check: (T) -> bool): Option[int] =
-  for i, v in list:
-    if check(v): return i.some
-  int.none
+func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
+  for i in start..(list.len - 1):
+    if check(list[i]): return i.some
+  int.none "not found"
+
+
+# find ---------------------------------------------------------------------------------------------
+func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
+  for i in start..(list.len - 1):
+    let v = list[i]
+    if check(v): return v.some
+  T.none "not found"
 
 
 # map ----------------------------------------------------------------------------------------------
@@ -70,6 +71,12 @@ test "findi_min/max":
 # find_min, find_max -------------------------------------------------------------------------------
 func find_min*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_min(op)]
 func find_max*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_max(op)]
+
+
+# filter -------------------------------------------------------------------------------------------
+func filter*[V](list: openarray[Option[V]]): seq[V] =
+  for o in list:
+    if o.is_some: result.add o.get
 
 
 # filter_map ---------------------------------------------------------------------------------------

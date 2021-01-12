@@ -19,6 +19,9 @@ type Log* = object
   component*: string
   prefixes*:  seq[string]
 
+proc init*(_: type[Log], component: string, prefixes: seq[string] = @[]): Log =
+  Log(component: component, prefixes: prefixes)
+
 proc format_component(component: string): string =
   let truncated = if component.len > 3: component[0..3] else: component
   fmt"{truncated.to_lower.align(4)} | "

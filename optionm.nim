@@ -1,4 +1,5 @@
-import supportm, typetraits
+import typetraits
+import supportm, jsonm
 
 type
   Option*[T] = object
@@ -33,7 +34,7 @@ proc get*[T](o: Option[T], otherwise: (proc (): T)): T =
 
 
 proc ensure*[T](o: Option[T], message: string): T =
-  assert o.is_some, message
+  if o.is_none: throw(message)
   o.get
 
 
@@ -41,8 +42,9 @@ proc message*[T](o: Option[T]): string =
   assert o.is_none
   o.message
 
-proc map*[T](self: Option[T], op: proc (v: T)): Option[T] =
-  if self.isSome: op(self.value)
+proc map*[T, R](self: Option[T], op: proc (v: T): R): Option[R] =
+  if self.is_some: op(self.value).some
+  else:            R.none(self.message)
 
 proc `$`*[T](self: Option[T]): string =
   if self.is_some:
@@ -50,4 +52,12 @@ proc `$`*[T](self: Option[T]): string =
     result.addQuoted self.value
     result.add ")"
   else:
-    if self.message != "": "None(" & self.message & ")" else: "None"
+    result = if self.message != "": "None(" & self.message & ")" else: "None"
+
+# json ---------------------------------------------------------------------------------------------
+func `%`*[T](o: Option[T]): JsonNode =
+  if o.is_some: %(o.value)
+  else:         %nil
+
+# func init_from_json*[T](dst: var Option[T], json: JsonNode, json_path: string) =
+#   dst = init_from_json(json.get_str).some

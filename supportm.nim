@@ -18,7 +18,7 @@ template test*(name: string, body) =
 
 # test ---------------------------------------------------------------------------------------------
 var test_group_cache = init_table[string, string]()
-template test*(name: string, group: string, body) =
+template test*(name: string, group, body) =
   block:
     var lname  = name.to_lower
     var lgroup = group.to_lower

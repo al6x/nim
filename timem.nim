@@ -1,4 +1,4 @@
-import stringm, sequtils, sugar, re, std/math, jsonm, supportm, hashes, mathm
+import stringm, sequtils, sugar, re, std/math, jsonm, supportm, hashm, mathm
 from std/times as times import nil
 
 type
@@ -210,8 +210,13 @@ proc days*(i: TimeInterval): float =
   i.days_part.float + (i.hours_part.float / 24.0) + (i.minutes_part.float / day_min.float) +
     (i.seconds_part.float / day_sec.float)
 
+proc seconds*(i: TimeInterval): int =
+  assert not i.is_calendar, "seconds not supported for calendar interval"
+  i.days_part * day_sec + i.hours_part * hour_sec + i.minutes_part * minute_sec + i.seconds_part
+
 test "days":
   assert 12.hours.days =~ 0.5
+  assert 2.minutes.seconds == 120
 
 # + ------------------------------------------------------------------------------------------------
 proc `+`*(t: TimeM, ti: TimeInterval): TimeM =
@@ -259,7 +264,11 @@ proc seconds_to_hours*(sec: int): int = sec div 3600
 proc seconds_to_days*(sec: int): int = sec div (24 * 3600)
 
 
-
+# Hash ---------------------------------------------------------------------------------------------
+proc hash(v: Time): Hash = v.autohash
+proc hash(v: TimeD): Hash = v.autohash
+proc hash(v: TimeM): Hash = v.autohash
+proc hash(v: TimeInterval): Hash = v.autohash
 
 
 proc assert_yyyy_mm*(yyyy_mm: string): void =
