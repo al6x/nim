@@ -2,13 +2,13 @@ import basem, timem, mathm, jsonm, docm
 
 
 # Points -------------------------------------------------------------------------------------------
-type PointT*  = tuple[t: Time, v:float]
+type PointT*  = (Time, float)
 type PointsT* = seq[PointT]
 
-type PointD*  = tuple[d: TimeD, v:float]
+type PointD*  = (TimeD, float)
 type PointsD* = seq[PointD]
 
-type PointM*  = tuple[m: TimeM, v:float]
+type PointM*  = (TimeM, float)
 type PointsM* = seq[PointM]
 
 
@@ -17,6 +17,13 @@ proc init*(_: type[PointD], d: string, v: float): PointD = (TimeD.init(d), v)
 
 proc init*(_: type[PointM], m: TimeM, v: float): PointM = (m, v)
 proc init*(_: type[PointM], m: string, v: float): PointM = (TimeM.init(m), v)
+
+
+# getters ------------------------------------------------------------------------------------------
+proc time*(p: PointT): Time {.inline.} = p[0]
+proc day*(p: PointD): TimeD {.inline.} = p[0]
+proc month*(p: PointM): TimeM {.inline.} = p[0]
+proc value*(p: PointT | PointD | PointM): float {.inline.} = p[1]
 
 
 # Json ---------------------------------------------------------------------------------------------
@@ -40,8 +47,8 @@ proc extrapolate*(
   past_months_to_infer_from: int
 ): seq[PointM] =
   # Calculating CPI monthly slope from the past data
-  let b = serie[^1].v
-  let a = serie[^(past_months_to_infer_from + 1)].v
+  let b = serie[^1].value
+  let a = serie[^(past_months_to_infer_from + 1)].value
   let monthly_slope  = (b - a) / past_months_to_infer_from.float
 
   # Projecting into future
@@ -49,8 +56,8 @@ proc extrapolate*(
   var last = serie.last
   for i in 1..months:
     extrapolated.add((
-      last.m + i.months,
-      last.v + monthly_slope * i.float
+      last.month + i.months,
+      last.value + monthly_slope * i.float
     ))
   extrapolated
 

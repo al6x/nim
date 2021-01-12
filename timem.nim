@@ -168,6 +168,12 @@ test "epoch":
   assert nt_epoch("2002-02-01 00:00:01") == TimeM.init("2002-02").epoch
 
 
+# converters ---------------------------------------------------------------------------------------
+converter to_timed*(t: (int, int, int, int, int, int)): Time = Time.init(t[0], t[1], t[2], t[3], t[4], t[5])
+converter to_timed*(d: (int, int, int)): TimeD = TimeD.init(d[0], d[1], d[2])
+converter to_timem*(m: (int, int)): TimeM = TimeM.init(m[0], m[1])
+
+
 # TimeInterval -------------------------------------------------------------------------------------
 # proc init*(_: type[TimeInterval], seconds: int = 0): TimeInterval =
 #   result.seconds = seconds
