@@ -68,7 +68,7 @@ proc `$`*[T](o: Option[T]): string =
 # json ---------------------------------------------------------------------------------------------
 func `%`*[T](o: Option[T]): JsonNode =
   if o.is_some: %(o.value)
-  else:         %nil
+  else:         new_jnull()
 
 # func init_from_json*[T](dst: var Option[T], json: JsonNode, json_path: string) =
 #   dst = init_from_json(json.get_str).some

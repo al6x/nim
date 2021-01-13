@@ -271,10 +271,10 @@ proc seconds_to_days*(sec: int): int = sec div (24 * 3600)
 
 
 # Hash ---------------------------------------------------------------------------------------------
-proc hash(v: Time): Hash = v.autohash
-proc hash(v: TimeD): Hash = v.autohash
-proc hash(v: TimeM): Hash = v.autohash
-proc hash(v: TimeInterval): Hash = v.autohash
+proc hash*(v: Time): Hash = v.epoch.hash
+proc hash*(v: TimeD): Hash = v.epoch.hash
+proc hash*(v: TimeM): Hash = v.epoch.hash
+proc hash*(v: TimeInterval): Hash = v.autohash
 
 
 proc assert_yyyy_mm*(yyyy_mm: string): void =
