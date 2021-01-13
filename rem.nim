@@ -1,5 +1,6 @@
-import ./supportm, options, strutils, sugar, sequtils, strformat
+import supportm, optionm, strutils, sugar, sequtils, strformat
 from std/nre as nre import nil
+from std/options as stdoptions import nil
 
 type Regex* = nre.Regex
 
@@ -45,12 +46,23 @@ test "replace":
 # find ---------------------------------------------------------------------------------------------
 proc find*(s: string, r: Regex): Option[string] =
   let found = nre.find(s, r)
-  if found.isSome: nre.match(found.get).some else: string.none
+  if stdoptions.is_some(found): nre.match(stdoptions.get(found)).some else: return
 
 test "find":
   assert "abcde".find(re"[bcd]") == "b".some
   assert "abcde".find(re"[x]").is_none
 
+
+# parse --------------------------------------------------------------------------------------------
+proc parse*(r: Regex, s: string): Option[seq[string]] =
+  let found = nre.match(s, r)
+  if stdoptions.is_some(found):
+    to_seq(nre.items(nre.captures(stdoptions.get(found)))).map((o) => stdoptions.get(o)).some
+  else:
+    return
+
+test "parse":
+  assert re".+ (\d+) (\d+)".parse("a 22 45") == @["22", "45"].some
 
 # find_iter ---------------------------------------------------------------------------------------------
 iterator find_iter*(s: string, r: Regex): string =
@@ -67,28 +79,38 @@ test "find_all":
   assert "abcde".find_all(re"[bcd]") == @["b", "c", "d"]
   assert "abcde".find_all(re"[x]") == @[]
 
+# parse1,2,3,4 --------------------------------------------------------------------------------------
+proc parse1*(r: Regex, s: string): Option[string] =
+  let foundo = r.parse(s)
+  if foundo.is_none: return
+  let found = foundo.get
+  if found.len == 1: found[0].some else: return
 
-# find1,2,3,4 --------------------------------------------------------------------------------------
-proc find1*(s: string, r: Regex): string =
-  let list = find_all(s, r)
-  assert list.len == 1, "expected 1 but found {list.len} elements for {r.repr}"
-  list[0]
+proc parse2*(r: Regex, s: string): Option[(string, string)] =
+  let foundo = r.parse(s)
+  if foundo.is_none: return
+  let found = foundo.get
+  if found.len == 2: (found[0], found[1]).some else: return
 
-proc find2*(s: string, r: Regex): (string, string) =
-  let list = find_all(s, r)
-  assert list.len == 2, fmt"expected 2 but found {list.len} elements for {r.repr}"
-  (list[0], list[1])
+proc parse3*(r: Regex, s: string): Option[(string, string, string)] =
+  let foundo = r.parse(s)
+  if foundo.is_none: return
+  let found = foundo.get
+  if found.len == 3: (found[0], found[1], found[2]).some else: return
 
-proc find3*(s: string, r: Regex): (string, string, string) =
-  let list = find_all(s, r)
-  assert list.len == 3, fmt"expected 3 but found {list.len} elements for {r.repr}"
-  (list[0], list[1], list[2])
+proc parse4*(r: Regex, s: string): Option[(string, string, string, string)] =
+  let foundo = r.parse(s)
+  if foundo.is_none: return
+  let found = foundo.get
+  if found.len == 4: (found[0], found[1], found[2], found[3]).some else: return
 
-proc find4*(s: string, r: Regex): (string, string, string, string) =
-  let list = find_all(s, r)
-  assert list.len == 4, fmt"expected 4 but found {list.len} elements for {r.repr}"
-  (list[0], list[1], list[2], list[3])
+proc parse5*(r: Regex, s: string): Option[(string, string, string, string, string)] =
+  let foundo = r.parse(s)
+  if foundo.is_none: return
+  let found = foundo.get
+  if found.len == 4: (found[0], found[1], found[2], found[3], found[4]).some else: return
 
-test "find1,2,3,4":
-  assert "abc".find1(re"[b]") == "b"
-  assert "abc".find2(re"[bc]") == ("b", "c")
+test "parse1,2,3,4,5":
+  let pattern = re".+ (\d+) (\d+)"
+  assert pattern.parse2("a 22 45") == ("22", "45").some
+  assert pattern.parse2("a 22").is_none

@@ -52,6 +52,10 @@ proc apply*[T](o: Option[T], op: proc (v: T): void): void =
   if o.is_some: op(o.value)
 
 
+proc `==`*(a, b: Option): bool {.inline.} =
+  (a.is_some and b.is_some and a.value == b.value) or (not a.is_some and not b.is_some)
+
+
 proc `$`*[T](o: Option[T]): string =
   if o.is_some:
     result = "Some("
