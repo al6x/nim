@@ -108,7 +108,7 @@ proc parse5*(r: Regex, s: string): Option[(string, string, string, string, strin
   let foundo = r.parse(s)
   if foundo.is_none: return
   let found = foundo.get
-  if found.len == 4: (found[0], found[1], found[2], found[3], found[4]).some else: return
+  if found.len == 5: (found[0], found[1], found[2], found[3], found[4]).some else: return
 
 test "parse1,2,3,4,5":
   let pattern = re".+ (\d+) (\d+)"
