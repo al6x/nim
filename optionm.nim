@@ -70,5 +70,10 @@ func `%`*[T](o: Option[T]): JsonNode =
   if o.is_some: %(o.value)
   else:         new_jnull()
 
-# func init_from_json*[T](dst: var Option[T], json: JsonNode, json_path: string) =
-#   dst = init_from_json(json.get_str).some
+func init_from_json*[T](dst: var Option[T], json: JsonNode, json_path: string) =
+  if json != nil and json.kind != JNull:
+    when T is ref:
+      dst = some(new(T))
+    else:
+      dst = some(default(T))
+    initFromJson(dst.get, json, json_path)

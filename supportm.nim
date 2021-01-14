@@ -1,6 +1,7 @@
-import strformat, macros, sugar, options, strutils, os, unicode, tables
+import strformat, macros, sugar, strutils, os, unicode, tables
 from std/times as nt import nil
 from std/nre as nre import nil
+from std/options as stdoptions import nil
 
 
 # test ---------------------------------------------------------------------------------------------
@@ -73,7 +74,7 @@ const p* = echo
 # Extract error type from string message, the last part of `some text :some_type`
 func error_type*(message: string): string =
   let error_type_re = nre.re("(?i).*\\s:([a-z0-9_-]+)$")
-  if nre.match(message, error_type_re).is_some: nre.split(message, nre.re("\\s:"))[^1]
+  if stdoptions.is_some(nre.match(message, error_type_re)): nre.split(message, nre.re("\\s:"))[^1]
   else:                                         ""
 
 test "error_type":
