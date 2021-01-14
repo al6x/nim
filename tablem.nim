@@ -61,6 +61,6 @@ proc ensure*[K, V](table: Table[K, V], key: K, message = "key not found"): V =
 
 
 # get_optional -------------------------------------------------------------------------------------
-proc get_optional*[K, V](table: Table[K, V] | ref Table[K, V], key: K, message = "key not found"): Option[V] =
-  if key notin table: V.none(message)
+proc get_optional*[K, V](table: Table[K, V] | ref Table[K, V], key: K): Option[V] =
+  if key notin table: V.none
   else:               table[key].some

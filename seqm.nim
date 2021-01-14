@@ -31,7 +31,7 @@ func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
   if start < (list.len - 1):
     for i in start..(list.len - 1):
       if check(list[i]): return i.some
-  int.none "not found"
+  int.none
 
 
 # find ---------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
     for i in start..(list.len - 1):
       let v = list[i]
       if check(v): return v.some
-  T.none "not found"
+  T.none
 
 
 # map ----------------------------------------------------------------------------------------------
