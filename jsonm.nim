@@ -8,4 +8,4 @@ proc to_json*[T](v: T, pretty = true): string =
 
 
 # T.from_json ----------------------------------------------------------------------------------------
-proc from_json*[T](v: type[T], json: string): T = json.parse_json.to(T)
+# proc from_json*[T](v: type[T], json: string): T = json.parse_json.to(T)

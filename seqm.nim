@@ -27,6 +27,12 @@ func last*[T](list: openarray[T]): T {.inline.} =
 
 
 # findi --------------------------------------------------------------------------------------------
+func findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
+  if start < (list.len - 1):
+    for i in start..(list.len - 1):
+      if list[i] == value: return i.some
+  int.none
+
 func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
   if start < (list.len - 1):
     for i in start..(list.len - 1):

@@ -1,4 +1,4 @@
-import supportm, parsecsv, strutils, optionm, sugar
+import supportm, parsecsv, strutils, optionm, sugar, tablem, strformat
 
 # map_csv ------------------------------------------------------------------------------------------
 proc map_csv*[T](
@@ -11,12 +11,15 @@ proc map_csv*[T](
   try:
     parser.open csv_file_path
     parser.read_header_row
+    let column_indexes = parser.headers.to_index
     while parser.read_row:
       proc row(key: string): string =
-        if key in parser.headers:
-          parser.row_entry key
+        let index = column_indexes.ensure(key, fmt"unknown CSV row '{key}'")
+        if index >= parser.row.len:
+          # Handling bug in `parsecsv`, it parses "a,b," as 2 length seq, but it should be 3
+          return ""
         else:
-          throw fmt"unknown CSV row '{key}'"
+          parser.row[index]
       result.add map row
   finally:
     parser.close

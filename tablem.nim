@@ -37,7 +37,7 @@ test "filter_map":
 
 
 # keys ---------------------------------------------------------------------------------------------
-proc keys*[K, V](table: Table[K, V]): seq[K] =
+proc keys*[K, V](table: Table[K, V] | ref Table[K, V]): seq[K] =
   for k in table.keys: result.add k
 
 
@@ -52,6 +52,11 @@ proc to_table*[V, K](list: openarray[V], key: (V) -> K): Table[K, V] =
 
 proc to_table*[V, K](list: openarray[V], key: (V, int) -> K): Table[K, V] =
   for i, v in list: result[key(v, i)] = v
+
+
+# to_index -----------------------------------------------------------------------------------------
+proc to_index*[V](list: openarray[V]): Table[V, int] =
+  for i, v in list: result[v] = i
 
 
 # ensure -------------------------------------------------------------------------------------------
