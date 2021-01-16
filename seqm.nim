@@ -138,11 +138,11 @@ func flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
 
 
 # init ---------------------------------------------------------------------------------------------
-template init*[R, A](_: type[seq[R]], list: seq[A]): seq[R] =
+proc init*[R, A](_: type[seq[R]], list: seq[A]): seq[R] =
   list.map(proc (v: A): R = R.init(v))
-template init*[R, A, B](_: type[seq[R]], list: seq[(A, B)]): seq[R] =
+proc init*[R, A, B](_: type[seq[R]], list: seq[(A, B)]): seq[R] =
   list.map(proc (v: (A, B)): R = R.init(v[0], v[1]))
-template init*[R, A, B, C](_: type[seq[R]], list: seq[(A, B, C)]): seq[R] =
+proc init*[R, A, B, C](_: type[seq[R]], list: seq[(A, B, C)]): seq[R] =
   list.map(proc (v: (A, B, C)): R = R.init(v[0], v[1], v[2]))
 
 

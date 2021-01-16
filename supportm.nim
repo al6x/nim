@@ -40,7 +40,7 @@ template test*(name: string, group, body) =
 
 
 # throw ----------------------------------------------------------------------------------
-template throw*(message: string) = raise newException(CatchableError, message)
+proc throw*(message: string) = raise newException(CatchableError, message)
 
 
 # to_ref ---------------------------------------------------------------------------------
@@ -55,7 +55,6 @@ proc init*[T](_: type[string], v: T): string = $v
 
 # to -----------------------------------------------------------------------------------------------
 template to*[F,T](f: F, _: type[T]): T = T.init(f)
-# template to*(list: seq[untyped], R): seq[typeof R] = R.init_seq(list)
 
 
 # int.align ----------------------------------------------------------------------------------------
@@ -67,7 +66,7 @@ proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 
 
 # p ------------------------------------------------------------------------------------------------
-const p* = echo
+proc p*(args: varargs[string, `$`]): void = echo args.join(" ")
 
 
 # string.error_type --------------------------------------------------------------------------------

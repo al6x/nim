@@ -66,12 +66,12 @@ proc extrapolate*(
 
 test "extrapolate":
   let past_rates_m: seq[PointM] = @[
-    ("2000-01", 1.0), ("2000-02", 2.0), ("2000-03", 3.0), ("2000-04", 4.0), ("2000-05", 5.0)
-  ].to(PointsM)
+    ((2000, 1), 1.0), ((2000, 2), 2.0), ((2000, 3), 3.0), ((2000, 4), 4.0), ((2000, 5), 5.0)
+  ]
   assert extrapolate(past_rates_m, 2, 4) == @[
-    ("2000-01", 1.0), ("2000-02", 2.0), ("2000-03", 3.0), ("2000-04", 4.0), ("2000-05", 5.0),
-    ("2000-06", 6.0), ("2000-07", 7.0)
-  ].to(PointsM)
+    ((2000, 1), 1.0), ((2000, 2), 2.0), ((2000, 3), 3.0), ((2000, 4), 4.0), ((2000, 5), 5.0),
+    ((2000, 6), 6.0), ((2000, 7), 7.0)
+  ]
 
 
 # zip ----------------------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ proc to_monthly*(
   var months_aggregated = init_table[TimeM, seq[float]]()
   for i, (time_any, v) in points_any:
     # let (y, m, _) = yyyy_mm_dd_to_ymd yyyy_mm_dd
-    let time_m = time_any.to(TimeM)
+    let time_m = TimeM.init(time_any)
     if not (time_m in months_aggregated): months_aggregated[time_m] = @[]
     months_aggregated[time_m].add v
 
@@ -231,24 +231,22 @@ proc to_monthly*(
   # Removing everything older than the highest missing
   if largest_missing.is_some:
     points_m = points_m.filter((point) => point[0] > largest_missing.get)
-
   points_m
 
-
 test "to_monthly":
-  let prices_d = @[
-    ("1990-01-01", 1.0),
-    ("2000-01-01", 1.0), ("2000-01-02", 3.0),
-    ("2000-02-01", 1.0), # ("2000-02-02", undefined),
-  ].to(PointsD)
+  let prices_d: seq[PointD] = @[
+    ((1990, 1, 1), 1.0),
+    ((2000, 1, 1), 1.0), ((2000, 1, 2), 3.0),
+    ((2000, 2, 1), 1.0), # (2000, 2, 2), undefined),
+  ]
 
-  assert:
-    to_monthly(prices_d) ==
-    @[("2000-01", 2.0), ("2000-02", 1.0)].to(PointsM)
+  assert to_monthly(prices_d) == @[
+    ((2000, 1), 2.0), ((2000, 2), 1.0)
+  ]
 
-  assert:
-    to_monthly(prices_d, (TimeM.init(2000, 3), 4.0).some) ==
-    @[("2000-01", 2.0), ("2000-02", 1.0), ("2000-03", 4.0)].to(PointsM)
+  assert to_monthly(prices_d, (TimeM.init(2000, 3), 4.0).some) == @[
+    ((2000, 1), 2.0), ((2000, 2), 1.0), ((2000, 3), 4.0)
+  ]
 
 
 # Json ---------------------------------------------------------------------------------------------
