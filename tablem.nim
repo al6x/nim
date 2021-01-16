@@ -69,3 +69,21 @@ proc ensure*[K, V](table: Table[K, V], key: K, message = "key not found"): V =
 proc get_optional*[K, V](table: Table[K, V] | ref Table[K, V], key: K): Option[V] =
   if key notin table: V.none
   else:               table[key].some
+
+
+# update -------------------------------------------------------------------------------------------
+proc update*[K, V](
+  table: Table[K, V] | ref Table[K, V], key: K, op: (proc (v: V): V), default: V
+): void =
+  table[k] = op(table.get_or_default(key, default))
+
+
+# inc ----------------------------------------------------------------------------------------------
+proc inc*[K](table: var Table[K, int], key: K, v: int = 1): void =
+  table[key] = table.get_or_default(key, 0) + v
+
+test "inc":
+  var counts: Table[string, int]
+  counts.inc("a")
+  counts.inc("a", 2)
+  assert counts["a"] == 3

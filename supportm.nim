@@ -39,11 +39,16 @@ template test*(name: string, group, body) =
 #   (a - b).abs() <= epsilon
 
 
-# throw ----------------------------------------------------------------------------------
-proc throw*(message: string) = raise newException(CatchableError, message)
+# throw --------------------------------------------------------------------------------------------
+template throw*(message: string) = raise newException(CatchableError, message)
 
 
-# to_ref ---------------------------------------------------------------------------------
+# ensure -------------------------------------------------------------------------------------------
+proc ensure*[V](v: V, check: proc (v: V): bool, message = "check failed"): V =
+  if check(v): v else: throw(message)
+
+
+# to_ref -------------------------------------------------------------------------------------------
 proc to_ref*[T](o: T): ref T =
   result.new
   result[] = o

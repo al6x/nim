@@ -137,6 +137,11 @@ func flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
       result.add(v)
 
 
+# unique -------------------------------------------------------------------------------------------
+func unique*[T](list: openarray[T]): seq[T] =
+  list.deduplicate
+
+
 # init ---------------------------------------------------------------------------------------------
 proc init*[R, A](_: type[seq[R]], list: seq[A]): seq[R] =
   list.map(proc (v: A): R = R.init(v))
