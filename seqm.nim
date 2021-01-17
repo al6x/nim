@@ -49,6 +49,15 @@ func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
   T.none
 
 
+# find_all -----------------------------------------------------------------------------------------
+func find_all*[T](list: openarray[T], check: (T) -> bool, start = 0): seq[T] =
+  if start < (list.len - 1):
+    for i in start..(list.len - 1):
+      let v = list[i]
+      if check(v): result.add(v)
+  result
+
+
 # map ----------------------------------------------------------------------------------------------
 func map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} =
   for i, v in list: result.add(op(v, i))
