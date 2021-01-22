@@ -3,45 +3,6 @@ import supportm, algorithm, std/math, sequtils, strformat
 export math
 
 
-# quantile -----------------------------------------------------------------------------------------
-func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
-
-# quantile -----------------------------------------------------------------------------------------
-func quantile*(values: open_array[float], q: float, is_sorted = false): float =
-  let sorted = if is_sorted: values.to_seq else: values.sorted
-  let pos = (sorted.len - 1).to_float * q
-  let base = pos.floor.to_int
-  let rest = pos - base.to_float
-  if (base + 1) < sorted.len:
-    sorted[base] + rest * (sorted[base + 1] - sorted[base])
-  else:
-    sorted[base]
-
-test "quantile":
-  assert quantile(@[1.0, 2.0, 3.0], 0.5) == 2.0
-  assert quantile(@[1.0, 2.0, 3.0, 4.0], 0.5) == 2.5
-
-
-# sum ----------------------------------------------------------------------------------------------
-func sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
-
-
-# median -------------------------------------------------------------------------------------------
-func median*(values: openarray[float], is_sorted = false): float =
-  quantile(values, 0.5, is_sorted)
-
-
-# mean ---------------------------------------------------------------------------------------------
-func mean*(values: openarray[float]): float = values.sum() / values.len.to_float
-
-
-# min_max_rate -------------------------------------------------------------------------------------
-func min_max_rate*(a: float | int, b: float | int): float =
-  assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
-  result = min(a.float, b.float) / max(a.float, b.float)
-  assert(result >= 0 and result <= 1, "invalid rate")
-
-
 # requal -------------------------------------------------------------------------------------------
 # Relative float equality
 func requal*(a: float, b: float, repsilon: float = 1e-3): bool =
@@ -64,6 +25,46 @@ test "requal":
   assert 0.0 =~ 0.0
   assert 1.0 =~ 1.0009
   assert 1.0 !~ 1.0011
+
+
+# pow ----------------------------------------------------------------------------------------------
+func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
+
+
+# quantile -----------------------------------------------------------------------------------------
+func quantile*(values: open_array[float], q: float, is_sorted = false): float =
+  let sorted = if is_sorted: values.to_seq else: values.sorted
+  let pos = (sorted.len - 1).to_float * q
+  let base = pos.floor.to_int
+  let rest = pos - base.to_float
+  if (base + 1) < sorted.len:
+    sorted[base] + rest * (sorted[base + 1] - sorted[base])
+  else:
+    sorted[base]
+
+test "quantile":
+  assert quantile([1.0, 2.0, 3.0], 0.5) =~ 2.0
+  assert quantile([1.0, 2.0, 3.0, 4.0], 0.5) =~ 2.5
+  assert quantile([1.0, 2.0, 3.0, 4.0], 0.25) =~ 1.75
+
+# sum ----------------------------------------------------------------------------------------------
+func sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
+
+
+# median -------------------------------------------------------------------------------------------
+func median*(values: openarray[float], is_sorted = false): float =
+  quantile(values, 0.5, is_sorted)
+
+
+# mean ---------------------------------------------------------------------------------------------
+func mean*(values: openarray[float]): float = values.sum() / values.len.to_float
+
+
+# min_max_rate -------------------------------------------------------------------------------------
+func min_max_rate*(a: float | int, b: float | int): float =
+  assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
+  result = min(a.float, b.float) / max(a.float, b.float)
+  assert(result >= 0 and result <= 1, "invalid rate")
 
 
 # // min_max_norm --------------------------------------------------------------------------

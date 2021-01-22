@@ -17,7 +17,7 @@ proc is_enabled(config: LogConfig, component: string, level: string): bool =
 
 type Log* = object
   component*: string
-  prefixes*:  seq[string]
+  prefixes*:  seq[string] # Things like id, user_id, etc.
 
 proc init*(_: type[Log], component: string, prefixes: seq[string] = @[]): Log =
   Log(component: component, prefixes: prefixes)
@@ -28,7 +28,7 @@ proc format_component(component: string): string =
 
 proc format_prefixes(prefixes: seq[string]): string =
   if prefixes.is_empty: ""
-  else:                 prefixes.join("], [") & " "
+  else:                 prefixes.join(", ") & " "
 
 proc debug*(log: Log, message: string): void =
   if log_config.is_enabled(log.component, "debug"):
@@ -49,4 +49,27 @@ proc error*(log: Log, message: string): void =
 proc error*(log: Log, message: string, exception: ref Exception): void =
   if log_config.is_enabled(log.component, "error"):
     stderr.write_line fmt"E {format_component(log.component)}{format_prefixes(log.prefixes)}{message}"
+    stderr.write_line exception.get_stack_trace()
+
+# Without log --------------------------------------------------------------------------------------
+let default_component = "Main"
+proc debug*(message: string): void =
+  if log_config.is_enabled(default_component, "debug"):
+    echo fmt"  {format_component(default_component)}{message}"
+
+proc info*(message: string): void =
+  if log_config.is_enabled(default_component, "info"):
+    echo fmt"  {format_component(default_component)}{message}"
+
+proc warn*(message: string): void =
+  if log_config.is_enabled(default_component, "warn"):
+    echo fmt"W {format_component(default_component)}{message}"
+
+proc error*(message: string): void =
+  if log_config.is_enabled(default_component, "error"):
+    stderr.write_line fmt"E {format_component(default_component)}{message}"
+
+proc error*(message: string, exception: ref Exception): void =
+  if log_config.is_enabled(default_component, "error"):
+    stderr.write_line fmt"E {format_component(default_component)}{message}"
     stderr.write_line exception.get_stack_trace()

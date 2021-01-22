@@ -7,6 +7,8 @@ type Errorneous*[T] = object
   of false:
     value*: T
 
+func is_success*[T](e: Errorneous[T]): bool = not e.is_error
+
 func get*[T](e: Errorneous[T]): T =
   if e.is_error: throw(e.error) else: e.value
 
@@ -31,7 +33,6 @@ func successes*[T](list: seq[Errorneous[T]]): seq[T] =
   list.filter_map(proc (e: Errorneous[T]): auto =
     if e.is_error: T.none else: e.value.some
   )
-
 
 func successes*[K, V](table: Table[K, Errorneous[V]] | ref Table[K, Errorneous[V]]): Table[K, V] =
   table.filter_map(proc (e: Errorneous[V]): auto =

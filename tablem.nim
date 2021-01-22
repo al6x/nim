@@ -11,11 +11,11 @@ proc map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: proc (v: V): R
 
 
 # filter -------------------------------------------------------------------------------------------
-proc filter*[K, V](table: Table[K, V], predicate: proc (v: V): bool): Table[K, V] =
+proc filter*[K, V](table: Table[K, V] | ref Table[K, V], predicate: proc (v: V): bool): Table[K, V] =
   for k, v in table:
     if predicate(v): result[k] = v
 
-proc filter*[K, V](table: Table[K, V], predicate: proc (v: V, k: K): bool): Table[K, V] =
+proc filter*[K, V](table: Table[K, V] | ref Table[K, V], predicate: proc (v: V, k: K): bool): Table[K, V] =
   for k, v in table:
     if predicate(v, k): result[k] = v
 

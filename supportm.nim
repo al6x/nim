@@ -71,7 +71,7 @@ proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 
 
 # p ------------------------------------------------------------------------------------------------
-proc p*(args: varargs[string, `$`]): void = echo args.join(" ")
+func p*(args: varargs[string, `$`]): void = debug_echo args.join(" ")
 
 
 # string.error_type --------------------------------------------------------------------------------
