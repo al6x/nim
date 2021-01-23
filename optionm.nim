@@ -10,7 +10,8 @@ proc apply*[T](o: Option[T], op: proc (v: T): void): void =
   if o.is_some: op(o.value)
 
 
-template get*[T](o: Option[T], otherwise): T =
-  if o.is_some: o.get
-  else:
-    otherwise
+# template get*[T](o: Option[T], otherwise): T =
+#   if o.is_some: o.get
+#   else:
+#     let it = o
+#     otherwise

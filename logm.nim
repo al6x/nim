@@ -5,12 +5,14 @@ todo "Alter get_env to use env.yml in current dir"
 
 # LogConfig ----------------------------------------------------------------------------------------
 type LogConfig* = object
-  disable: HashSet[string]
+  disable:  HashSet[string]
+  log_data: bool
 
 let log_config = LogConfig(
   # List of components and levels to hide, separated by comma, case insensitive,
   # could be "HTTP" or "debug" or "HTTP_debug"
-  disable: get_env("disable_logs", "").to_lower.split(",").to_hash_set
+  disable:  get_env("disable_logs", "").to_lower.split(",").to_hash_set,
+  log_data: get_env("log_data", "false").parse_bool
 )
 
 proc is_enabled(config: LogConfig, component: string, level: string): bool =
@@ -84,23 +86,25 @@ proc format_component(log: Log): string =
 
 
 proc format_data(log: Log): string =
-  if log.data.is_nil: " | {}" else: " | " & log.data.to_json(pretty = false)
+  if log_config.log_data:
+    if log.data.is_nil: " | {}" else: " | " & log.data.to_json(pretty = false)
+  else:
+    ""
 
 
-let keyre = re"(\$[a-zA-Z0-9_]+)"
+let keyre = re"(\{[a-zA-Z0-9_]+\})"
 proc format_message(log: Log, message: string): string =
   message.replace(keyre, proc (skey: string): string =
-    if log.data.is_nil: "nil"
+    if log.data.is_nil: skey
     else:
       assert log.data.kind == JObject
-      let key = skey[1..^1]
-      if key in log.data.fields:
-        $(%(log.data.fields[key]))
-      else: "nil"
+      let key = skey[1..^2]
+      if key in log.data.fields: $(%(log.data.fields[key]))
+      else:                      skey
   )
 
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
   let log = Log.init("Finance")
-  log.with((symbol: "MSFT", currency: "USD")).info("getting prices for $symbol in $currency")
+  log.with((symbol: "MSFT", currency: "USD")).info("getting prices for {symbol} in {currency}")
