@@ -19,6 +19,7 @@ type Log* = object
   component*: string
   prefixes*:  seq[string] # Things like id, user_id, etc.
 
+
 proc init*(_: type[Log], component: string, prefixes: seq[string] = @[]): Log =
   Log(component: component, prefixes: prefixes)
 
