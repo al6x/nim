@@ -1,4 +1,4 @@
-import osproc, jsonm, stringm, errorneousm
+import osproc, jsonm, stringm, falliblem
 
 type ShellArg[B, I, A] = object
   before: B
@@ -6,7 +6,7 @@ type ShellArg[B, I, A] = object
   after:  A
 
 let json_output_token = "shell_call_json_output:"
-proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after: A): seq[Errorneous[R]] =
+proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after: A): seq[Fallible[R]] =
   let shell_arg = ShellArg[B, I, A](before: before, inputs: inputs, after: after)
   let shell_arg_json = $(%shell_arg)
   let escaped_shell_arg_json = shell_arg_json.replace("\"", "\\\"")
@@ -21,13 +21,13 @@ proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after:
   let parsed_json = json_output.parse_json
   for edata in parsed_json.items:
     result.add if edata["is_error"].get_bool:
-      R.failure edata["error"].get_str
+      R.error edata["error"].get_str
     else:
       try:
         edata["value"].to(R).success
       except:
         let error = get_current_exception_msg()
-        R.failure fmt"can't parse {$(R.typeof)} json, because {error}"
+        R.error fmt"can't parse {$(R.typeof)} json, because {error}"
 
-proc shell_call*[B, I, A, R](command: string, before: B, input: I, after: A): Errorneous[R] =
+proc shell_call*[B, I, A, R](command: string, before: B, input: I, after: A): Fallible[R] =
   shell_calls[B, I, A, R](command, before, @[input], after)[0]

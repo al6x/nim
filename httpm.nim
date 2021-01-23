@@ -1,4 +1,4 @@
-import supportm, sugar, httpclient, jsonm, uri, errorneousm
+import supportm, sugar, httpclient, jsonm, uri, seqm, falliblem
 
 let default_timeout_sec = 30
 
@@ -41,7 +41,7 @@ proc http_post*[B, R](url: string, body: B, timeout_sec = default_timeout_sec): 
 # http_post_batch ----------------------------------------------------------------------------------
 proc http_post_batch*[B, R](
   url: string, requests: seq[B], timeout_sec = default_timeout_sec
-): seq[Errorneous[R]] =
+): seq[Fallible[R]] =
   let client = new_http_client(
     timeout = timeout_sec * 1000,
     headers = new_http_headers({ "Content-Type": "application/json" })
@@ -50,11 +50,11 @@ proc http_post_batch*[B, R](
   let data = client.post_content(url, $(%requests))
   let json = data.parse_json
   if json.kind == JObject and "is_error" in json:
-    result = requests.map((_) => R.failure json["error"].get_str)
+    result = requests.map((_) => R.error(json["error"].get_str))
   else:
     for item in json:
       result.add if item.kind == JObject and "is_error" in item:
-        R.failure item["error"].get_str
+        R.error item["error"].get_str
       else:
         item.to(R).success
 
