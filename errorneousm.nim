@@ -12,6 +12,11 @@ func is_success*[T](e: Errorneous[T]): bool = not e.is_error
 func get*[T](e: Errorneous[T]): T =
   if e.is_error: throw(e.error) else: e.value
 
+template get*[T](e: Errorneous[T], otherwise): T =
+  if e.is_success: e.value
+  else:
+    otherwise
+
 func failure*(T: type, error: string): Errorneous[T] = Errorneous[T](is_error: true, error: error)
 
 func success*[T](value: T): Errorneous[T] = Errorneous[T](is_error: false, value: value)
