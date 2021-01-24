@@ -10,6 +10,10 @@ type Fallible*[T] = object
 
 func is_success*[T](e: Fallible[T]): bool = not e.is_error
 
+func is_empty*[T](e: Fallible[T]): bool {.inline.} = e.is_error
+func is_blank*[T](e: Fallible[T]): bool {.inline.} = e.is_error
+func is_present*[T](e: Fallible[T]): bool {.inline.} = not e.is_error
+
 
 func get*[T](e: Fallible[T]): T =
   if e.is_error: throw(e.message) else: e.value
@@ -20,8 +24,11 @@ func error*(T: type, message: string): Fallible[T] = Fallible[T](is_error: true,
 
 func success*[T](value: T): Fallible[T] = Fallible[T](is_error: false, value: value)
 
-
 func success*[T](value: Option[T]): Fallible[T] = Fallible[T](is_error: false, value: value.get)
+
+func set*[T](value: T): Fallible[T] = Fallible[T](is_error: false, value: value)
+
+func set*[T](value: Option[T]): Fallible[T] = Fallible[T](is_error: false, value: value.get)
 
 
 # Used in `a.to(Fallible[B])` conversions

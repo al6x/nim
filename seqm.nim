@@ -7,7 +7,7 @@ export sequtils
 
 # is_empty -----------------------------------------------------------------------------------------
 func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
-
+func is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
 # first --------------------------------------------------------------------------------------------
 func first*[T](list: openarray[T]): T {.inline.} =

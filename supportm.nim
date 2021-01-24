@@ -43,6 +43,10 @@ template test*(name: string, group, body) =
 template throw*(message: string) = raise newException(CatchableError, message)
 
 
+# Exception.message --------------------------------------------------------------------------------
+func message*(e: Exception | ref Exception): string = e.msg
+
+
 # ensure -------------------------------------------------------------------------------------------
 proc ensure*[V](v: V, check: proc (v: V): bool, message = "check failed"): V =
   if check(v): v else: throw(message)

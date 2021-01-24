@@ -37,7 +37,9 @@ proc format_message(log: Log, message: string): string
 
 proc with*(log: Log, data: tuple): Log =
   var log = log
-  log.data = % data
+  if log.data.is_nil: log.data = new_JObject()
+  # Merging new data with existing
+  for key, value in (% data).fields: log.data.fields[key] = value
   log
 
 
@@ -99,7 +101,10 @@ proc format_message(log: Log, message: string): string =
     else:
       assert log.data.kind == JObject
       let key = skey[1..^2]
-      if key in log.data.fields: $(%(log.data.fields[key]))
+      if key in log.data.fields:
+        let value = log.data.fields[key]
+        if value.kind == JString: value.get_str
+        else:                     $(value)
       else:                      skey
   )
 
@@ -108,3 +113,6 @@ proc format_message(log: Log, message: string): string =
 if is_main_module:
   let log = Log.init("Finance")
   log.with((symbol: "MSFT", currency: "USD")).info("getting prices for {symbol} in {currency}")
+
+  # Chaining
+  log.with((symbol: "MSFT",)).with((currency: "USD",)).info("getting prices for {symbol} in {currency}")

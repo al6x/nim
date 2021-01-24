@@ -10,7 +10,7 @@ proc to_json*[T](v: T, pretty = true): string =
 
 proc `%`*[T: tuple](o: T): JsonNode =
   result = new_JObject()
-  for k, v in o.fieldPairs: result[k] = %v
+  for k, v in o.field_pairs: result[k] = %v
 
 
 # T.from_json ----------------------------------------------------------------------------------------

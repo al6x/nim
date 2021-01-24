@@ -64,6 +64,15 @@ proc build_url*(url: string, query: varargs[(string, string)]): string =
   if query.len > 0: url & "?" & query.encode_query
   else:            url
 
+proc query_param_to_string(v: int | float | string | bool): string = $v
+
+proc build_url*(url: string, query: tuple): string =
+  var squery: seq[(string, string)] = @[]
+  for k, v in query.field_pairs: squery.add((k, v.query_param_to_string))
+  build_url(url, squery)
+
 test "build_url":
   assert build_url("http://some.com") == "http://some.com"
-  assert build_url("http://some.com", { "a": "1", "b": "2" }) == "http://some.com?a=1&b=2"
+  assert build_url("http://some.com", { "a": "1", "b": "two" }) == "http://some.com?a=1&b=two"
+
+  assert build_url("http://some.com", (a: 1, b: "two")) == "http://some.com?a=1&b=two"

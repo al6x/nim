@@ -2,12 +2,20 @@ import supportm, options
 
 export options
 
-proc ensure*[T](o: Option[T], message: string): T =
+
+func ensure*[T](o: Option[T], message: string): T =
   if o.is_none: throw(message) else: o.get
 
 
-proc apply*[T](o: Option[T], op: proc (v: T): void): void =
+func apply*[T](o: Option[T], op: proc (v: T): void): void =
   if o.is_some: op(o.value)
+
+
+func is_empty*[T](o: Option[T]): bool {.inline.} = o.is_none
+func is_blank*[T](o: Option[T]): bool {.inline.} = o.is_none
+func is_present*[T](o: Option[T]): bool {.inline.} = o.is_some
+
+proc set*[T](v: T): Option[T] {.inline.} = v.some
 
 
 # template get*[T](o: Option[T], otherwise): T =
