@@ -26,9 +26,9 @@ func success*[T](value: T): Fallible[T] = Fallible[T](is_error: false, value: va
 
 func success*[T](value: Option[T]): Fallible[T] = Fallible[T](is_error: false, value: value.get)
 
-func set*[T](value: T): Fallible[T] = Fallible[T](is_error: false, value: value)
+# func set*[T](value: T): Fallible[T] = Fallible[T](is_error: false, value: value)
 
-func set*[T](value: Option[T]): Fallible[T] = Fallible[T](is_error: false, value: value.get)
+# func set*[T](value: Option[T]): Fallible[T] = Fallible[T](is_error: false, value: value.get)
 
 
 # Used in `a.to(Fallible[B])` conversions

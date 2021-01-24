@@ -15,7 +15,7 @@ func is_empty*[T](o: Option[T]): bool {.inline.} = o.is_none
 func is_blank*[T](o: Option[T]): bool {.inline.} = o.is_none
 func is_present*[T](o: Option[T]): bool {.inline.} = o.is_some
 
-proc set*[T](v: T): Option[T] {.inline.} = v.some
+# proc set*[T](v: T): Option[T] {.inline.} = v.some
 
 
 # template get*[T](o: Option[T], otherwise): T =
