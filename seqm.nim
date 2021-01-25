@@ -26,6 +26,15 @@ func last*[T](list: openarray[T]): T {.inline.} =
   list[^1]
 
 
+# take ---------------------------------------------------------------------------------------------
+proc take*[T](s: openarray[T], n: int): seq[T] =
+  if n < s.len: s[0..(n - 1)] else: s.to_seq
+
+test "take":
+  assert @[1, 2, 3].take(2) == @[1, 2]
+  assert @[1, 2, 3].take(10) == @[1, 2, 3]
+
+
 # findi --------------------------------------------------------------------------------------------
 func findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
   if start < (list.len - 1):
@@ -65,6 +74,9 @@ func map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} 
 
 # sort_by ------------------------------------------------------------------------------------------
 func sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
+
+test "sort_by":
+  assert @[(3, 2), (1, 3)].sort_by((v) => v) == @[(1, 3), (3, 2)]
 
 
 # sort ---------------------------------------------------------------------------------------------
@@ -149,6 +161,33 @@ func flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
 # unique -------------------------------------------------------------------------------------------
 func unique*[T](list: openarray[T]): seq[T] =
   list.deduplicate
+
+
+# add_capped ---------------------------------------------------------------------------------------
+proc add_capped*[T](list: var seq[T], v: T, cap: int): void =
+  assert cap > 0
+  if list.len < cap: list.add v
+  else:              list = list[1..(cap - 1)] & @[v]
+
+test "add_capped":
+  var l: seq[int]
+  l.add_capped(1, 2)
+  l.add_capped(2, 2)
+  l.add_capped(3, 2)
+  assert l == @[2, 3]
+
+
+# prepend_capped -----------------------------------------------------------------------------------
+proc prepend_capped*[T](list: var seq[T], v: T, cap: int): void =
+  assert cap > 0
+  list = @[v] & (if list.len < cap: list else: list[0..(cap - 2)])
+
+test "prepend_capped":
+  var l: seq[int]
+  l.prepend_capped(1, 2)
+  l.prepend_capped(2, 2)
+  l.prepend_capped(3, 2)
+  assert l == @[3, 2]
 
 
 # init ---------------------------------------------------------------------------------------------

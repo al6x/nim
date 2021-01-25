@@ -175,9 +175,6 @@ converter to_timem*(m: (int, int)): TimeM = TimeM.init(m[0], m[1])
 
 
 # TimeInterval -------------------------------------------------------------------------------------
-# proc init*(_: type[TimeInterval], seconds: int = 0): TimeInterval =
-#   result.seconds = seconds
-
 proc init*(
   _: type[TimeInterval], seconds_part: int, minutes_part, hours_part, days_part, months_part, years_part: int
 ): TimeInterval =
@@ -224,7 +221,12 @@ test "days":
   assert 12.hours.days =~ 0.5
   assert 2.minutes.seconds == 120
 
-# + ------------------------------------------------------------------------------------------------
+
+# +.Time -------------------------------------------------------------------------------------------
+proc `+`*(t: Time, ti: TimeInterval): Time = Time.init(t.epoch + ti.seconds)
+
+
+# +.TimeM ------------------------------------------------------------------------------------------
 proc `+`*(t: TimeM, ti: TimeInterval): TimeM =
   assert ti.days_part == 0
   assert ti.hours_part == 0
