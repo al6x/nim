@@ -63,5 +63,5 @@ func successes*[K, V](table: Table[K, Fallible[V]] | ref Table[K, Fallible[V]]):
   )
 
 
-proc map*[A, B](a: Fallible[A], op: proc (v: A): B): Fallible[B] =
+proc map*[A, B](a: Fallible[A], op: (A) -> B): Fallible[B] =
   if a.is_success: op(a.get).success else: B.error(a.message)

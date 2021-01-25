@@ -97,14 +97,14 @@ func filter*[V](list: openarray[Option[V]]): seq[V] =
 
 
 # filter_map ---------------------------------------------------------------------------------------
-func filter_map*[V, R](list: openarray[V], convert: proc (v: V): Option[R]): seq[R] =
+func filter_map*[V, R](list: openarray[V], convert: (V) -> Option[R]): seq[R] =
   for v in list:
     let o = convert(v)
     if o.is_some: result.add o.get
 
 
 # each ---------------------------------------------------------------------------------------------
-func each*[T](list: openarray[T]; cb: proc (x: T): void): void {.inline.} =
+func each*[T](list: openarray[T]; cb: (T) -> void): void {.inline.} =
   for v in list: cb(v)
 
 

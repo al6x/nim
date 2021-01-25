@@ -48,7 +48,7 @@ func message*(e: Exception | ref Exception): string = e.msg
 
 
 # ensure -------------------------------------------------------------------------------------------
-proc ensure*[V](v: V, check: proc (v: V): bool, message = "check failed"): V =
+proc ensure*[V](v: V, check: (V) -> bool, message = "check failed"): V =
   if check(v): v else: throw(message)
 
 
