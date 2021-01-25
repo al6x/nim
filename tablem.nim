@@ -3,19 +3,19 @@ import tables, sugar, optionm, supportm
 export tables
 
 # map ----------------------------------------------------------------------------------------------
-proc map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: proc (v: V, k: K): R): Table[K, R] =
+proc map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: (V, K) -> R): Table[K, R] =
   for k, v in table: result[k] = convert(v, k)
 
-proc map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: proc (v: V): R): Table[K, R] =
+proc map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: (V) -> R): Table[K, R] =
   for k, v in table: result[k] = convert(v)
 
 
 # filter -------------------------------------------------------------------------------------------
-proc filter*[K, V](table: Table[K, V] | ref Table[K, V], predicate: proc (v: V): bool): Table[K, V] =
+proc filter*[K, V](table: Table[K, V] | ref Table[K, V], predicate: (V) -> bool): Table[K, V] =
   for k, v in table:
     if predicate(v): result[k] = v
 
-proc filter*[K, V](table: Table[K, V] | ref Table[K, V], predicate: proc (v: V, k: K): bool): Table[K, V] =
+proc filter*[K, V](table: Table[K, V] | ref Table[K, V], predicate: (V, K) -> bool): Table[K, V] =
   for k, v in table:
     if predicate(v, k): result[k] = v
 
@@ -25,7 +25,7 @@ proc filter*[K, V](table: Table[K, Option[V]] | ref Table[K, Option[V]]): Table[
 
 
 # filter_map ---------------------------------------------------------------------------------------
-proc filter_map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: proc (v: V): Option[R]): Table[K, R] =
+proc filter_map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: (V) -> Option[R]): Table[K, R] =
   for k, v in table:
     let o = convert(v)
     if o.is_some: result[k] = o.get
@@ -60,26 +60,34 @@ proc to_index*[V](list: openarray[V]): Table[V, int] =
 
 
 # ensure -------------------------------------------------------------------------------------------
-proc ensure*[K, V](table: Table[K, V], key: K, message = "key not found"): V =
+proc ensure*[K, V](table: Table[K, V], key: K, message = "key not found"): V {.inline.} =
   if key notin table: throw(message)
   table[key]
 
 
 # get_optional -------------------------------------------------------------------------------------
-proc get_optional*[K, V](table: Table[K, V] | ref Table[K, V], key: K): Option[V] =
-  if key notin table: V.none
-  else:               table[key].some
+proc get_optional*[K, V](table: Table[K, V] | ref Table[K, V], key: K): Option[V] {.inline.} =
+  if key notin table: V.none else: table[key].some
 
 
-# update -------------------------------------------------------------------------------------------
-proc update*[K, V](
-  table: Table[K, V] | ref Table[K, V], key: K, op: (proc (v: V): V), default: V
-): void =
-  table[k] = op(table.get_or_default(key, default))
+# get ----------------------------------------------------------------------------------------------
+proc get*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: V): void {.inline.} =
+  table.get_or_default(key, default)
+
+proc get*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: () -> V): void {.inline.} =
+  if key notin table: default() else: table[key]
+
+
+# mget ---------------------------------------------------------------------------------------------
+proc mget*[K, V](table: var Table[K, V] | ref Table[K, V], key: K, value: V): void {.inline.} =
+  table.mget_or_put(table, key, value)
+
+proc mget*[K, V](table: var Table[K, V] | ref Table[K, V], key: K, value: ((V) -> V)): void {.inline.} =
+  if key notin table: table.mget_or_put(key, value()) else: table[key]
 
 
 # inc ----------------------------------------------------------------------------------------------
-proc inc*[K](table: var Table[K, int], key: K, v: int = 1): void =
+proc inc*[K](table: var Table[K, int], key: K, v: int = 1): void {.inline.} =
   table[key] = table.get_or_default(key, 0) + v
 
 test "inc":
@@ -87,3 +95,10 @@ test "inc":
   counts.inc("a")
   counts.inc("a", 2)
   assert counts["a"] == 3
+
+
+# update -------------------------------------------------------------------------------------------
+proc update*[K, V](
+  table: var Table[K, V] | ref Table[K, V], key: K, op: ((V) -> V), default: V
+): void {.inline.} =
+  table[k] = op(table.get_or_default(key, default))
