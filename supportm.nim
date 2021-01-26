@@ -47,6 +47,10 @@ template throw*(message: string) = raise newException(CatchableError, message)
 func message*(e: Exception | ref Exception): string = e.msg
 
 
+# copy.T -------------------------------------------------------------------------------------------
+# Making the copy intention explicit
+func copy*[T](o: T | ref T): T = o
+
 # ensure -------------------------------------------------------------------------------------------
 proc ensure*[V](v: V, check: (V) -> bool, message = "check failed"): V =
   if check(v): v else: throw(message)
