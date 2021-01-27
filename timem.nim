@@ -271,7 +271,7 @@ test "humanize":
   assert 12.hours.humanize(round = false, short = true) == "12h"
   assert 70.minutes.humanize(round = false, short = true) == "1h 10m"
 
-  assert 70.minutes.humanize(round = true, short = true) == "1h"
+  assert 130.minutes.humanize() == "2 hours"
 
 
 # +.Time -------------------------------------------------------------------------------------------
