@@ -25,6 +25,18 @@ test "take":
   assert "ab".take(10) == "ab"
 
 
+# pluralize ----------------------------------------------------------------------------------------
+proc pluralize*(count: int, singular, plural: string): string =
+  if count == 1: singular else: plural
+
+proc pluralize*(count: int, singular: string): string =
+  if count == 1: singular else: singular & "s"
+
+test "pluralize":
+  assert 1.pluralize("second") == "second"
+  assert 2.pluralize("second") == "seconds"
+
+
 # split2,3,4 ---------------------------------------------------------------------------------------
 proc split2*(s: string, by: string): (string, string) =
   let list = s.split(by)

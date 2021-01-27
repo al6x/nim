@@ -37,10 +37,14 @@ type
 
 
 # Helpers ------------------------------------------------------------------------------------------
-const minute_sec* = 60
-const hour_sec*   = 60 * minute_sec
-const day_sec*    = 24 * hour_sec
+const day_hours*  = 24
 const day_min*    = 24 * 60
+const day_sec*    = 24 * 60 * 60
+
+const hour_min*   = 60
+const hour_sec*   = 60 * 60
+
+const minute_sec* = 60
 
 # const second_ms* = 1000
 # const minute_ms* = 60 * sec_ms
@@ -200,7 +204,7 @@ proc init*(_: type[TimeInterval], seconds_part: int, minutes_part, hours_part, d
 proc init*(_: type[TimeInterval], seconds_part: int): TimeInterval = TimeInterval.init(seconds_part, 0, 0, 0)
 
 
-# years,months,... ---------------------------------------------------------------------------------
+# years,months,...int ------------------------------------------------------------------------------
 proc years*(y: int): TimeInterval   = TimeInterval.init(0, 0, 0, 0, 0, y)
 proc months*(m: int): TimeInterval  = TimeInterval.init(0, 0, 0, 0, m, 0)
 proc seconds*(s: int): TimeInterval = TimeInterval.init(s)
@@ -208,10 +212,17 @@ proc minutes*(m: int): TimeInterval = TimeInterval.init(0, m, 0, 0)
 proc hours*(h: int): TimeInterval   = TimeInterval.init(0, 0, h, 0)
 proc days*(d: int): TimeInterval    = TimeInterval.init(0, 0, 0, d)
 
+
+# days,hours,seconds.TimeInterval ------------------------------------------------------------------
 proc days*(i: TimeInterval): float =
   assert not i.is_calendar, "days not supported for calendar interval"
   i.days_part.float + (i.hours_part.float / 24.0) + (i.minutes_part.float / day_min.float) +
     (i.seconds_part.float / day_sec.float)
+
+proc hours*(i: TimeInterval): float =
+  assert not i.is_calendar, "hours not supported for calendar interval"
+  i.days_part.float * day_hours.float + i.hours_part.float + (i.minutes_part.float / hour_min.float) +
+    (i.seconds_part.float / hour_sec.float)
 
 proc seconds*(i: TimeInterval): int =
   assert not i.is_calendar, "seconds not supported for calendar interval"
@@ -220,6 +231,32 @@ proc seconds*(i: TimeInterval): int =
 test "days":
   assert 12.hours.days =~ 0.5
   assert 2.minutes.seconds == 120
+
+
+# humanize.int ------------------------------------------------------------------------------
+proc humanize*(seconds: int, short = false): string =
+  let (days,    left_after_days)    = seconds.div_rem(day_sec)
+  let (hours,   left_after_hours)   = left_after_days.div_rem(hour_sec)
+  let (minutes, left_after_minutes) = left_after_hours.div_rem(minute_sec)
+  let seconds                       = left_after_minutes
+
+  var buff: seq[string] = @[]
+  if days > 0:    buff.add($days &    (if short: "d" else: " " & days.pluralize("day")))
+  if hours > 0:   buff.add($hours &   (if short: "h" else: " " & hours.pluralize("hour")))
+  if minutes > 0: buff.add($minutes & (if short: "m" else: " " & minutes.pluralize("min")))
+  if seconds > 0: buff.add($seconds & (if short: "s" else: " " & seconds.pluralize("second")))
+
+  buff.join(" ")
+
+
+# humanize.TimeInterval ------------------------------------------------------------------------------
+proc humanize*(i: TimeInterval, short = false): string =
+  assert not i.is_calendar, "pretty not supported for calendar interval"
+  i.seconds.humanize(short = short)
+
+test "humanize":
+  assert 12.hours.humanize(true)   == "12h"
+  assert 70.minutes.humanize(true) == "1h 10m"
 
 
 # +.Time -------------------------------------------------------------------------------------------
