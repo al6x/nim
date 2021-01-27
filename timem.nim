@@ -234,12 +234,7 @@ test "days":
 
 
 # humanize.int ------------------------------------------------------------------------------
-proc humanize*(seconds: int, short = false): string =
-  let (days,    left_after_days)    = seconds.div_rem(day_sec)
-  let (hours,   left_after_hours)   = left_after_days.div_rem(hour_sec)
-  let (minutes, left_after_minutes) = left_after_hours.div_rem(minute_sec)
-  let seconds                       = left_after_minutes
-
+proc format_humanized(days, hours, minutes, seconds: int, short: bool): string =
   var buff: seq[string] = @[]
   if days > 0:    buff.add($days &    (if short: "d" else: " " & days.pluralize("day")))
   if hours > 0:   buff.add($hours &   (if short: "h" else: " " & hours.pluralize("hour")))
@@ -248,15 +243,35 @@ proc humanize*(seconds: int, short = false): string =
 
   buff.join(" ")
 
+proc humanize*(seconds: int, round = true, short = false): string =
+  if round:
+    let days = (seconds.float / day_sec.float).round.int
+    if days > 0: format_humanized(days, 0, 0, 0, short)
+    else:
+      let hours = (seconds.float / hour_sec.float).round.int
+      if hours > 0: format_humanized(0, hours, 0, 0, short)
+      else:
+        let minutes = (seconds.float / minute_sec.float).round.int
+        if minutes > 0: format_humanized(0, 0, minutes, 0, short)
+        else:
+          format_humanized(0, 0, 0, seconds, short)
+  else:
+    let (days,    left_after_days)    = seconds.div_rem(day_sec)
+    let (hours,   left_after_hours)   = left_after_days.div_rem(hour_sec)
+    let (minutes, left_after_minutes) = left_after_hours.div_rem(minute_sec)
+    let seconds                       = left_after_minutes
+    format_humanized(days, hours, minutes, seconds, short)
 
 # humanize.TimeInterval ------------------------------------------------------------------------------
-proc humanize*(i: TimeInterval, short = false): string =
+proc humanize*(i: TimeInterval, round = true, short = false): string =
   assert not i.is_calendar, "pretty not supported for calendar interval"
-  i.seconds.humanize(short = short)
+  i.seconds.humanize(short = short, round = round)
 
 test "humanize":
-  assert 12.hours.humanize(true)   == "12h"
-  assert 70.minutes.humanize(true) == "1h 10m"
+  assert 12.hours.humanize(round = false, short = true) == "12h"
+  assert 70.minutes.humanize(round = false, short = true) == "1h 10m"
+
+  assert 70.minutes.humanize(round = true, short = true) == "1h"
 
 
 # +.Time -------------------------------------------------------------------------------------------
