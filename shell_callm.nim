@@ -25,9 +25,8 @@ proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after:
     else:
       try:
         edata["value"].to(R).success
-      except:
-        let error = get_current_exception_msg()
-        R.error fmt"can't parse {$(R.typeof)} json, because {error}"
+      except CatchableError as e:
+        R.error fmt"can't parse {$(R.typeof)} json, {e}"
 
 proc shell_call*[B, I, A, R](command: string, before: B, input: I, after: A): Fallible[R] =
   shell_calls[B, I, A, R](command, before, @[input], after)[0]

@@ -12,9 +12,9 @@ template test*(name: string, body) =
     if test_enabled == "true" or test_enabled == lname:
       try:
         body
-      except:
+      except CatchableError as e:
         echo "test '", lname, "' failed"
-        raise get_current_exception()
+        raise e
 
 
 # test ---------------------------------------------------------------------------------------------
@@ -29,9 +29,9 @@ template test*(name: string, group, body) =
     if (test_enabled == "true" and test_group_cache[lgroup] == "true") or test_enabled == lname:
       try:
         body
-      except:
+      except CatchableError as e:
         echo "test '", lname, "' '", lgroup, "' failed"
-        raise get_current_exception()
+        raise e
 
 
 # aqual --------------------------------------------------------------------------------------------

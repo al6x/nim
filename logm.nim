@@ -5,19 +5,34 @@ todo "Alter get_env to use env.yml in current dir"
 
 # LogConfig ----------------------------------------------------------------------------------------
 type LogConfig* = object
-  disable:  HashSet[string]
-  log_data: bool
+  disable_logs: HashSet[string]
+  log_as_debug: HashSet[string]
+  log_data:     bool
 
 let log_config = LogConfig(
   # List of components and levels to hide, separated by comma, case insensitive,
   # could be "HTTP" or "debug" or "HTTP_debug"
-  disable:  get_env("disable_logs", "").to_lower.split(",").to_hash_set,
-  log_data: get_env("log_data", "false").parse_bool
+  disable_logs: get_env("disable_logs", "").to_lower.split(",").to_hash_set,
+  # List of components that will be logged with debug level, separated by comma, case insensitive,
+  # could be "HTTP" or "HTTP,DB"
+  log_as_debug: get_env("log_as_debug", "").to_lower.split(",").to_hash_set,
+  log_data:     get_env("log_data", "false").parse_bool,
 )
 
 proc is_enabled(config: LogConfig, component: string, level: string): bool =
-  let c = component.to_lower; let l = level.to_lower; let cl = fmt"{c}.{l}"
-  not (c in config.disable or l in config.disable or cl in config.disable)
+  let (c, l) = (component.to_lower, level.to_lower)
+  let cl = fmt"{c}.{l}"
+  not (c in config.disable_logs or l in config.disable_logs or cl in config.disable_logs)
+
+proc is_debug(config: LogConfig, component: string): bool =
+  component.to_lower in config.log_as_debug
+
+# colors -------------------------------------------------------------------------------------------
+proc green(s: string): string = "\e[32m" & s & "\e[0m"
+proc grey(s: string): string = "\e[90m" & s & "\e[0m"
+
+proc yellow(s: string): string = "\e[33m" & s & "\e[0m"
+proc red(s: string): string = "\e[31m" & s & "\e[0m"
 
 
 # Log ----------------------------------------------------------------------------------------------
@@ -45,28 +60,30 @@ proc with*(log: Log, data: tuple): Log =
 
 proc debug*(log: Log, message: string): void =
   if log_config.is_enabled(log.component, "debug"):
-    echo fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
+    echo grey fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
 
 
 proc info*(log: Log, message: string): void =
   if log_config.is_enabled(log.component, "info"):
-    echo fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
+    let message = fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
+    if log_config.is_debug(log.component): echo grey message
+    else:                                  echo message
 
 
 proc warn*(log: Log, message: string): void =
   if log_config.is_enabled(log.component, "warn"):
-    echo fmt"W {log.format_component()}{log.format_message(message)}{log.format_data()}"
+    echo yellow fmt"W {log.format_component()}{log.format_message(message)}{log.format_data()}"
 
 
 proc error*(log: Log, message: string): void =
   if log_config.is_enabled(log.component, "error"):
-    stderr.write_line fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
+    stderr.write_line red fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
 
 
 proc error*(log: Log, message: string, exception: ref Exception): void =
   if log_config.is_enabled(log.component, "error"):
-    stderr.write_line fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
-    stderr.write_line exception.get_stack_trace()
+    stderr.write_line red fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
+    stderr.write_line red exception.get_stack_trace()
 
 
 # Shortcuts ----------------------------------------------------------------------------------------
