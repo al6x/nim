@@ -280,8 +280,20 @@ proc `$`*(interval: TimeInterval): string =
   interval.humanize(short = true, round = false)
 
 
+# + (TimeInterval, TimeInterval) -------------------------------------------------------------------
+proc `+`*(a: TimeInterval, b: TimeInterval): TimeInterval =
+  assert not (a.is_calendar and b.is_calendar), "+ not supported for calendar intervals"
+  TimeInterval.init(
+    a.seconds_part + b.seconds_part,
+    a.minutes_part + b.minutes_part,
+    a.hours_part   + b.hours_part,
+    a.days_part    + b.days_part
+  )
+
+
 # +.Time -------------------------------------------------------------------------------------------
-proc `+`*(t: Time, ti: TimeInterval): Time = Time.init(t.epoch + ti.seconds)
+proc `+`*(t: Time, ti: TimeInterval): Time =
+  Time.init(t.epoch + ti.seconds)
 
 
 # +.TimeM ------------------------------------------------------------------------------------------
