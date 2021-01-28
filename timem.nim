@@ -262,6 +262,7 @@ proc humanize*(seconds: int, round = true, short = false): string =
     let seconds                       = left_after_minutes
     format_humanized(days, hours, minutes, seconds, short)
 
+
 # humanize.TimeInterval ------------------------------------------------------------------------------
 proc humanize*(i: TimeInterval, round = true, short = false): string =
   assert not i.is_calendar, "pretty not supported for calendar interval"
@@ -272,6 +273,11 @@ test "humanize":
   assert 70.minutes.humanize(round = false, short = true) == "1h 10m"
 
   assert 130.minutes.humanize() == "2 hours"
+
+
+# $.TimeInterval -----------------------------------------------------------------------------------
+proc `$`*(interval: TimeInterval): string =
+  interval.humanize(short = true, round = false)
 
 
 # +.Time -------------------------------------------------------------------------------------------
