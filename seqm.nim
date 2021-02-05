@@ -9,6 +9,7 @@ export sequtils
 func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 func is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
+
 # first --------------------------------------------------------------------------------------------
 func first*[T](list: openarray[T]): T {.inline.} =
   assert not list.is_empty, "can't get first from empty list"
