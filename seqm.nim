@@ -87,11 +87,27 @@ func sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
 # findi_min/max ------------------------------------------------------------------------------------
 func findi_min*[T](list: openarray[T], op: (T) -> float): int =
   assert not list.is_empty
-  list.map((v, i) => (op(v), i)).sort_by((pair) => pair[0])[0][1]
+  var (min, min_i) = (op(list[0]), 0)
+  for i in 1..(list.len - 1):
+    let m = op(list[i])
+    if m < min:
+      min = m
+      min_i = i
+  min_i
+
+func findi_min*(list: openarray[float]): int = list.findi_min((v) => v)
 
 func findi_max*[T](list: openarray[T], op: (T) -> float): int =
   assert not list.is_empty
-  list.map((v, i) => (op(v), i)).sort_by((pair) => pair[0])[^1][1]
+  var (max, max_i) = (op(list[0]), 0)
+  for i in 1..(list.len - 1):
+    let m = op(list[i])
+    if m > max:
+      max = m
+      max_i = i
+  max_i
+
+func findi_max*(list: openarray[float]): int = list.findi_max((v) => v)
 
 test "findi_min/max":
   assert @[1.0, 2.0, 3.0].findi_min((v) => (v - 2.1).abs) == 1

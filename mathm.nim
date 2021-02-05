@@ -5,19 +5,22 @@ export math
 
 # requal -------------------------------------------------------------------------------------------
 # Relative float equality
-func requal*(a: float, b: float, repsilon: float = 1e-3): bool =
-  if a == b: return true
+const requal_default_epsilon = 0.001
+const requal_min_float       = MinFloatNormal / requal_default_epsilon
+func requal*(a: float, b: float, repsilon: float = requal_default_epsilon): bool =
+  if a == b:
+    true
+  elif a.sgn != b.sgn:
+    false
   else:
     let aabs = a.abs
     let babs = b.abs
-    if aabs == babs: return true
-    let smaller = min(aabs, babs)
-    let larger  = max(aabs, babs)
-    let relative_error = (larger - smaller) / larger
-    relative_error < repsilon
+    let (smaller, larger) = (min(aabs, babs), max(aabs, babs))
+    if larger < requal_min_float: true
+    else:                         ((larger - smaller) / larger) < repsilon
 
-func `=~`*(a: float, b: float): bool  {.inline.} = a.requal(b)
-func `!~`*(a: float, b: float): bool  {.inline.} = not(a =~ b)
+func `=~`*(a: float, b: float): bool {.inline.} = a.requal(b)
+func `!~`*(a: float, b: float): bool {.inline.} = not(a =~ b)
 
 test "requal":
   assert 0.0 !~ 1.0
@@ -25,6 +28,7 @@ test "requal":
   assert 0.0 =~ 0.0
   assert 1.0 =~ 1.0009
   assert 1.0 !~ 1.0011
+  assert 1.0 !~ -1.0
 
 
 # pow ----------------------------------------------------------------------------------------------
@@ -71,6 +75,12 @@ func min_max_rate*(a: float | int, b: float | int): float =
   assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
   result = min(a.float, b.float) / max(a.float, b.float)
   assert(result >= 0 and result <= 1, "invalid rate")
+
+
+# is_number ----------------------------------------------------------------------------------------
+func is_number*(n: float): bool =
+  let ntype = n.classify
+  ntype == fc_normal or ntype == fc_zero or ntype == fc_neg_zero
 
 
 # // min_max_norm --------------------------------------------------------------------------

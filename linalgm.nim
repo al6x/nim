@@ -5,6 +5,7 @@ type Point2D = tuple[x: float, y: float]
 type Point3D = tuple[x: float, y: float, z: float]
 
 # inverse_distance_weighting -----------------------------------------------------------------------
+const inverse_distance_weighting_minimal_distance = 1000.0 * MinFloatNormal
 func inverse_distance_weighting*(points: seq[Point3D], target: Point2D): float =
   let (x, y) = target
 
@@ -18,15 +19,16 @@ func inverse_distance_weighting*(points: seq[Point3D], target: Point2D): float =
   let distances = points.map((p) => ((p.x - x).pow(2) + (p.y - y).pow(2)).sqrt)
 
   # Handling special case when distance is 0
-  let minimal_distance = 1000.0 * float.low
-  let very_close_point_i = distances.findi((d) => d < minimal_distance)
-  if very_close_point_i.is_some: return points[very_close_point_i.get].z
+  let min_distance_i = distances.findi_min
+  if distances[min_distance_i] < inverse_distance_weighting_minimal_distance:
+    return points[min_distance_i].z
 
   # Calculating weights
   let weights = distances.map((d) => 1/d)
 
   # Calculating weighted sum
-  return weights.map((w, i) => w * points[i].z).sum / weights.sum
+  result = weights.map((w, i) => w * points[i].z).sum / weights.sum
+  assert result.is_number
 
 test "inverse_distance_weighting":
   assert inverse_distance_weighting(
@@ -35,6 +37,8 @@ test "inverse_distance_weighting":
     @[(3.0, 3.0, 1.0), (5.0, 3.0, 2.0), (5.0, 5.0, 2.0), (3.0, 5.0, 1.0)], (4.5, 4.5)) =~ 1.6496
   assert inverse_distance_weighting(
     @[(3.0, 3.0, 1.0), (3.0, 3.0, 1.0), (3.0, 3.0, 1.0), (3.0, 3.0, 1.0)], (3.0, 3.0)) =~ 1.0
+  assert inverse_distance_weighting(
+    @[(4.0, 2.0, 0.5), (4.0, 2.0, 0.5), (4.0, 2.0, 0.5), (4.0, 2.0, 0.5)], (4.0, 2.0)) =~ 0.5
 
 
 # doc({
