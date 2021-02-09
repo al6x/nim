@@ -9,6 +9,7 @@ type Fallible*[T] = object
 
 
 func is_success*[T](e: Fallible[T]): bool = not e.is_error
+func is_error*[T](e: Fallible[T]): bool = e.is_error
 
 func is_empty*[T](e: Fallible[T]): bool {.inline.} = e.is_error
 func is_blank*[T](e: Fallible[T]): bool {.inline.} = e.is_error

@@ -233,7 +233,7 @@ test "days":
   assert 2.minutes.seconds == 120
 
 
-# humanize.int ------------------------------------------------------------------------------
+# humanize -----------------------------------------------------------------------------------------
 proc format_humanized(days, hours, minutes, seconds: int, short: bool): string =
   var buff: seq[string] = @[]
   if days > 0:    buff.add($days &    (if short: "d" else: " " & days.pluralize("day")))
