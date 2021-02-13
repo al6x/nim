@@ -18,8 +18,5 @@ func is_present*[T](o: Option[T]): bool {.inline.} = o.is_some
 # proc set*[T](v: T): Option[T] {.inline.} = v.some
 
 
-# template get*[T](o: Option[T], otherwise): T =
-#   if o.is_some: o.get
-#   else:
-#     let it = o
-#     otherwise
+proc get*[T](o: Option[T], otherwise: () -> T): T =
+  if o.is_some: o.get else: otherwise()

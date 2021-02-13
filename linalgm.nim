@@ -10,8 +10,8 @@ func inverse_distance_weighting*(points: seq[Point3D], target: Point2D): float =
   let (x, y) = target
 
   # Ensuring approximated point inside of points
-  let xis = points.map((p) => p.x)
-  let yis = points.map((p) => p.y)
+  let xis = points.pick(x)
+  let yis = points.pick(y)
   assert((xis.min <= x) and (x <= xis.max), "x of approximated point lies outside of neighbours")
   assert((yis.min <= y) and (y <= yis.max), "y of approximated point lies outside of neighbours")
 

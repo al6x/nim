@@ -1,4 +1,5 @@
 import system except find
+import std/macros
 import optionm, sugar, algorithm, supportm, sequtils, tables
 from random as random import nil
 
@@ -58,6 +59,31 @@ func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
       if check(v): return v.some
   T.none
 
+
+# find_by ------------------------------------------------------------------------------------------
+template find_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
+  var result: Option[T]
+  for v in `list`:
+    if v.`field` == `value`: result = v.some
+  result
+
+test "find_by":
+  let people = @[(name: "John"), (name: "Sarah")]
+  assert people.find_by(name, "Sarah").get == (name: "Sarah")
+  # expand_macros:
+  #   echo people.find_by(name, "John")
+
+
+# pick ---------------------------------------------------------------------------------------------
+template pick*[T](list: seq[T], field: untyped): untyped =
+  var result: seq[T.`field`] = @[]
+  for v in `list`:
+    result.add v.`field`
+  result
+
+test "pick":
+  let people = @[(name: "John"), (name: "Sarah")]
+  assert people.pick(name) == @["John", "Sarah"]
 
 # find_all -----------------------------------------------------------------------------------------
 func find_all*[T](list: openarray[T], check: (T) -> bool, start = 0): seq[T] =

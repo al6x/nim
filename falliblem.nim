@@ -54,9 +54,9 @@ func errors*[K, V](table: Table[K, Fallible[V]] | ref Table[K, Fallible[V]]): Ta
 
 
 func successes*[T](list: seq[Fallible[T]]): seq[T] =
-  list.filter_map(proc (e: Fallible[T]): auto =
-    if e.is_error: T.none else: e.value.some
-  )
+  for v in list:
+    if v.is_present:
+      result.add v.get
 
 func successes*[K, V](table: Table[K, Fallible[V]] | ref Table[K, Fallible[V]]): Table[K, V] =
   table.filter_map(proc (e: Fallible[V]): auto =
@@ -66,3 +66,7 @@ func successes*[K, V](table: Table[K, Fallible[V]] | ref Table[K, Fallible[V]]):
 
 proc map*[A, B](a: Fallible[A], op: (A) -> B): Fallible[B] =
   if a.is_success: op(a.get).success else: B.error(a.message)
+
+
+converter to_option*[T](v: Fallible[T]): Option[T] =
+  if v.is_present: v.get.some else: T.none
