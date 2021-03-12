@@ -2,7 +2,7 @@ import strformat, macros, sugar, strutils, os, tables
 
 
 # Helper -------------------------------------------------------------------------------------------
-template throw*(message: string) = raise newException(CatchableError, message)
+template throw(message: string) = raise newException(CatchableError, message)
 
 
 # Env ----------------------------------------------------------------------------------------------

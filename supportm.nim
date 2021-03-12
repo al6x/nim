@@ -24,9 +24,10 @@ template test*(name: string, group, body) =
     var lname  = name.to_lower
     var lgroup = group.to_lower
     if lgroup notin test_group_cache:
-      test_group_cache[group] = get_env("test_" & lgroup, "true").to_lower
+      let tlgroup = "test_" & lgroup
+      test_group_cache[group] = (if tlgroup in env: env[tlgroup] else: "true").to_lower
 
-    if (test_enabled == "true" and test_group_cache[lgroup] == "true") or test_enabled == lname:
+    if (test_enabled and test_group_cache[lgroup] == "true") or test_enabled_s == lname:
       try:
         body
       except CatchableError as e:
