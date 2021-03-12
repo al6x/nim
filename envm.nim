@@ -8,7 +8,7 @@ template throw(message: string) = raise newException(CatchableError, message)
 # Env ----------------------------------------------------------------------------------------------
 type Env = Table[string, string]
 
-const special_arguments = { "help": "bool", "test": "string" }.to_table
+const special_arguments = { "help": "bool", "test": "bool/string" }.to_table
 
 # Normalizing keys, so both camel case and underscore keys will be matched
 func normalize_key(v: string): string = v.to_lower.replace("_", "")
@@ -46,8 +46,10 @@ proc parse_env*[T: tuple|object](
   var o = default
 
   # List of keys in object
-  var object_keys: seq[string]
-  for k, v in o.field_pairs: object_keys.add k
+  var object_keys, normalized_object_keys: seq[string]
+  for k, v in o.field_pairs:
+    object_keys.add k
+    normalized_object_keys.add k.normalize_key
 
   # Parsing command line arguments
   var options: Table[string, string]
@@ -61,7 +63,7 @@ proc parse_env*[T: tuple|object](
         let pair = token.split("=", 2)
         # Keys are normalized, lowercased with replaced `_`
         options[pair[0].normalize_key] = pair[1]
-      elif token.normalize_key in object_keys or token.normalize_key in special_arguments:
+      elif token.normalize_key in normalized_object_keys or token.normalize_key in special_arguments:
         # Non key/value argument with name matching `T.key` treating as boolean key/value
         options[token.normalize_key] = "true"
       else:
@@ -83,10 +85,12 @@ proc parse_env*[T: tuple|object](
       quit(0)
 
   block: # Validating args
+    if required_args[1] == 0 and args.len > 0:
+      throw fmt"Expected no arguments, but got {args.len}"
     if args.len < required_args[0] or args.len > required_args[1]:
       throw fmt"Expected {required_args[0]}..{required_args[1]} arguments, but got {args.len}"
     for k, _ in options:
-      if k notin object_keys and k notin special_arguments:
+      if k notin normalized_object_keys and k notin special_arguments:
         throw fmt"Unknown option '{k}'"
 
     func ktype(k: string): string =
@@ -94,22 +98,28 @@ proc parse_env*[T: tuple|object](
         if k == k2: return $(typeof v)
       throw fmt"Invalid '{k}'"
     for k in required_options:
-      if k notin options:
+      if k.normalize_key notin options:
         throw fmt"Option '{k}', {ktype(k)}, required"
 
   # Parsing and casting into object
   for k, v in o.field_pairs:
-    if k in options: v = parse_string_as(options[k], v)
-    elif k in env:   v = parse_string_as(env[k], v)
+    let nk = k.normalize_key
+    if nk in options: v = parse_string_as(options[nk], v)
+    elif nk in env:   v = parse_string_as(env[nk], v)
 
   (o, args)
 
 
 # Test ---------------------------------------------------------------------------------------------
-# nim c -r envm.nim file=a.txt lines=2 something
+# nim c -r envm.nim file=a.txt some_flag lines=2 something
 if is_main_module:
   type Config = object
-    file:  string
-    lines: int
+    file:      string
+    lines:     int
+    some_flag: bool
 
-  echo Config.parse_env(Config(file: "", lines: 2), required_options = ["file"], required_args = (1, 2))
+  echo Config.parse_env(
+    default          = Config(file: "", lines: 2, some_flag: false),
+    required_options = ["file"],
+    required_args    = (1, 2)
+  )
