@@ -76,14 +76,18 @@ test "find_by":
 
 # pick ---------------------------------------------------------------------------------------------
 template pick*[T](list: seq[T], field: untyped): untyped =
-  var result: seq[T.`field`] = @[]
-  for v in `list`:
-    result.add v.`field`
-  result
+  list.map((v) => v.`field`)
+  # var result: seq[T.`field`] = @[]
+  # for v in `list`:
+  #   result.add v.`field`
+  # result
 
 test "pick":
   let people = @[(name: "John"), (name: "Sarah")]
   assert people.pick(name) == @["John", "Sarah"]
+
+  proc name_fn(o: tuple[name: string]): string = o.name
+  assert people.pick(name_fn) == @["John", "Sarah"]
 
 # find_all -----------------------------------------------------------------------------------------
 func find_all*[T](list: openarray[T], check: (T) -> bool, start = 0): seq[T] =
@@ -108,6 +112,10 @@ test "sort_by":
 
 # sort ---------------------------------------------------------------------------------------------
 func sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
+
+
+# reverse ------------------------------------------------------------------------------------------
+func reverse*[T](list: openarray[T]): seq[T] {.inline.} = list.reversed
 
 
 # findi_min/max ------------------------------------------------------------------------------------

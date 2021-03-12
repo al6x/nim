@@ -1,4 +1,4 @@
-import sequtils
+import sequtils, strutils, strformat
 
 type
   DocPriority* = enum high_e, normal_e, low_e
@@ -17,6 +17,8 @@ type
       priority: DocPriority
 
     tags: seq[string]
+
+converter to_doc_level*(s: string): DocPriority = parse_enum[DocPriority](fmt"{s}_e")
 
 var docs*: seq[DocItem]
 

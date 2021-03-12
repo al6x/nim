@@ -1,20 +1,20 @@
-import strformat, macros, sugar, strutils, os, unicode, tables
+import strformat, macros, sugar, strutils, unicode, tables, envm
 from std/times as nt import nil
 from std/nre as nre import nil
 from std/options as stdoptions import nil
 
 
 # test ---------------------------------------------------------------------------------------------
-let test_enabled = get_env("test", "false").to_lower
+let test_enabled_s = if "test" in env: env["test"] else: "false"
+let test_enabled   = test_enabled_s == "true"
 template test*(name: string, body) =
-  block:
-    var lname = name.to_lower
-    if test_enabled == "true" or test_enabled == lname:
-      try:
-        body
-      except CatchableError as e:
-        echo "test '", lname, "' failed"
-        raise e
+  # block:
+  if test_enabled or test_enabled_s == name.to_lower:
+    try:
+      body
+    except CatchableError as e:
+      echo "test '", name.to_lower, "' failed"
+      raise e
 
 
 # test ---------------------------------------------------------------------------------------------
