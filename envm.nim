@@ -1,4 +1,5 @@
 import strformat, macros, sugar, strutils, os, tables
+from terminalm as terminal import nil
 
 
 # Helper -------------------------------------------------------------------------------------------
@@ -41,7 +42,11 @@ proc parse_string_as(v: string, _: bool): bool = v.to_lower in ["true", "yes"]
 
 # parse_env ----------------------------------------------------------------------------------------
 proc parse_env*[T: tuple|object](
-  _: type[T], default: T, required_args = (0, 0), required_options: openarray[string] = [], env = env
+  _:                type[T],
+  default:          T,
+  required_args                       = (0, 0),
+  required_options: openarray[string] = [],
+  env                                 = env
 ): (T, seq[string]) =
   var o = default
 
@@ -71,17 +76,18 @@ proc parse_env*[T: tuple|object](
 
   block: # Printing help
     if "help" in options and options["help"] == "true":
-      echo "Help:"
-      echo "  options:"
-      for k, v in special_arguments:
-        echo fmt"    - {k}, {v}"
-      for k, v in o.field_pairs:
-        echo "    - " & k & ", " & $(typeof v) & (if k in required_options: ", required" else: "")
       if required_args[1] > 0:
         if required_args[1] == required_args[0]:
-          echo fmt"  arguments count {required_args[0]}"
+          echo fmt"arguments count {required_args[0]}"
         else:
-          echo fmt"  arguments count {required_args[0]}..{required_args[1]}"
+          echo fmt"arguments count {required_args[0]}..{required_args[1]}"
+
+      for k, v in o.field_pairs:
+        echo "  - " & k & ", " & $(typeof v) & (if k in required_options: ", required" else: "")
+      echo ""
+      for k, v in special_arguments:
+        echo terminal.grey(fmt"  - {k}, {v}")
+
       quit(0)
 
   block: # Validating args

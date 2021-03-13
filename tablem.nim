@@ -101,4 +101,4 @@ test "inc":
 proc update*[K, V](
   table: var Table[K, V] | ref Table[K, V], key: K, op: ((V) -> V), default: V
 ): void {.inline.} =
-  table[k] = op(table.get_or_default(key, default))
+  table[key] = op(table.get_or_default(key, default))

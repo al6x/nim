@@ -1,4 +1,4 @@
-import supportm, stringm, os, seqm, sets, docm, jsonm, rem, tablem
+import supportm, stringm, os, seqm, sets, docm, jsonm, rem, tablem, terminalm
 
 todo "Alter get_env to use env.yml in current dir"
 
@@ -26,13 +26,6 @@ proc is_enabled(config: LogConfig, component: string, level: string): bool =
 
 proc is_debug(config: LogConfig, component: string): bool =
   component.to_lower in config.log_as_debug
-
-# colors -------------------------------------------------------------------------------------------
-proc green(s: string): string = "\e[32m" & s & "\e[0m"
-proc grey(s: string): string = "\e[90m" & s & "\e[0m"
-
-proc yellow(s: string): string = "\e[33m" & s & "\e[0m"
-proc red(s: string): string = "\e[31m" & s & "\e[0m"
 
 
 # Log ----------------------------------------------------------------------------------------------
