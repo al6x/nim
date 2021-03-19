@@ -10,6 +10,12 @@ func map*[V, R](t: (V, V), op: (v: V) -> R): (R, R) =
 func map*[V, R](t: (V, V, V), op: (v: V) -> R): (R, R, R) =
   (op(t[0]), op(t[1]), op(t[2]))
 
+# func map*[V, R](t: (V, V, V, V), op: (v: V) -> R): (R, R, R, R) =
+#   (op(t[0]), op(t[1]), op(t[2]), op(t[3]))
+
+# func map*[V, R](t: (V, V, V, V, V), op: (v: V) -> R): (R, R, R, R, R) =
+#   (op(t[0]), op(t[1]), op(t[2]), op(t[3]), op(t[4]))
+
 # # first --------------------------------------------------------------------------------------------
 # func first*[V](v: (V,)): V = v[0]
 # func first*[V, B](v: (V, B)): V = v[0]

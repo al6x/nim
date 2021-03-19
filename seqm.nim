@@ -75,7 +75,7 @@ test "find_by":
 
 
 # pick ---------------------------------------------------------------------------------------------
-template pick*[T](list: seq[T], field: untyped): untyped =
+template pick*[T](list: openarray[T], field: untyped): untyped =
   list.map((v) => v.`field`)
   # var result: seq[T.`field`] = @[]
   # for v in `list`:

@@ -2,6 +2,7 @@ import strformat, macros, sugar, strutils, unicode, tables, envm
 from std/times as nt import nil
 from std/nre as nre import nil
 from std/options as stdoptions import nil
+from terminalm as terminal import nil
 
 
 # test ---------------------------------------------------------------------------------------------
@@ -42,6 +43,13 @@ template test*(name: string, group, body) =
 
 # throw --------------------------------------------------------------------------------------------
 template throw*(message: string) = raise newException(CatchableError, message)
+
+# A simple way to message user by throwing an error
+# type MessageError* = object of CatchableError
+template throw_message*(message: string) =
+  echo terminal.red(message)
+  quit(0)
+  # raise newException(MessageError, message)
 
 
 # Exception.message --------------------------------------------------------------------------------

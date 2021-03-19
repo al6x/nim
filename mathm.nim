@@ -33,6 +33,7 @@ test "requal":
 
 # pow ----------------------------------------------------------------------------------------------
 func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
+proc `^`*(base: float | int, pow: float | int): float = base.pow(pow)
 
 
 # quantile -----------------------------------------------------------------------------------------
