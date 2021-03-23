@@ -54,6 +54,8 @@ test "quantile":
 
 
 # sum ----------------------------------------------------------------------------------------------
+func sum*(values: openarray[int]): int = values.foldl(a + b, 0)
+
 func sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
 
 func sum*[T](values: openarray[T], op: (T) -> float): float =

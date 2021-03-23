@@ -63,6 +63,8 @@ func copy*[T](o: T | ref T): T = o
 # ensure -------------------------------------------------------------------------------------------
 proc ensure*[V](v: V, check: (V) -> bool, message = "check failed"): V =
   if check(v): v else: throw(message)
+proc ensure*[V](v: V, check: (V) -> bool, message: () -> string): V =
+  if check(v): v else: throw(message())
 
 
 # to_ref -------------------------------------------------------------------------------------------

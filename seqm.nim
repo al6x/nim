@@ -153,6 +153,11 @@ func find_min*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_min
 func find_max*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_max(op)]
 
 
+# reject -------------------------------------------------------------------------------------------
+func reject*[V](list: openarray[V], op: (V) -> bool): seq[V] =
+  list.filter((v) => not op(v))
+
+
 # filter -------------------------------------------------------------------------------------------
 func filter*[V](list: openarray[Option[V]]): seq[V] =
   for o in list:

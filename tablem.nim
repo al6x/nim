@@ -71,10 +71,10 @@ proc get_optional*[K, V](table: Table[K, V] | ref Table[K, V], key: K): Option[V
 
 
 # get ----------------------------------------------------------------------------------------------
-proc get*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: V): void {.inline.} =
+proc get*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: V): V {.inline.} =
   table.get_or_default(key, default)
 
-proc get*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: () -> V): void {.inline.} =
+proc get*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: () -> V): V {.inline.} =
   if key notin table: default() else: table[key]
 
 
