@@ -1,4 +1,4 @@
-import supportm, optionm, strutils, sugar, sequtils, strformat
+import supportm, optionm, strutils, sugar, sequtils, strformat, tables
 from std/nre as nre import nil
 from std/options as stdoptions import nil
 
@@ -39,8 +39,8 @@ proc replace*(s: string, r: Regex, by: string): string = nre.replace(s, r, by)
 proc replace*(s: string, r: Regex, by: (proc (match: string): string)): string = nre.replace(s, r, by)
 
 test "replace":
-  assert replace("abcde", re"[bcd]", "_") == "a___e"
-  assert replace("abcde", re"[bcd]", (match) => match.to_upper) == "aBCDe"
+  assert "abcde".replace(re"[bcd]", "_") == "a___e"
+  assert "abcde".replace(re"[bcd]", (match) => match.to_upper) == "aBCDe"
 
 
 # find ---------------------------------------------------------------------------------------------
@@ -63,6 +63,19 @@ proc parse*(r: Regex, s: string): Option[seq[string]] =
 
 test "parse":
   assert re".+ (\d+) (\d+)".parse("a 22 45") == @["22", "45"].some
+
+
+# parse_named --------------------------------------------------------------------------------------
+proc parse_named*(r: Regex, s: string): Table[string, string] =
+  let found = nre.match(s, r)
+  if stdoptions.is_some(found):
+    nre.to_table(nre.captures(stdoptions.get(found)))
+  else:
+    return
+
+test "parse_named":
+  assert re".+ (?<a>\d+) (?<b>\d+)".parse_named("a 22 45") == { "a": "22", "b": "45" }.to_table
+
 
 # find_iter ---------------------------------------------------------------------------------------------
 iterator find_iter*(s: string, r: Regex): string =
