@@ -1,0 +1,56 @@
+cookie_secret
+assets_file_paths
+assets_max_age_ms
+json_limit_bs
+nim sessions https://github.com/FedericoCeratto/nim-httpauth
+on_error
+
+contentType = "text/html;charset=utf-8"
+
+get:/favicon
+
+req.session:   Table[string, string]
+https://github.com/nim-lang/redis
+
+asset_path = (path: string) => {
+    if (!(path in this.asset_hash_cache)) {
+      let hash = null
+      for (const base_path of this.assets_file_paths) {
+        const full_path = `${base_path}${path}`
+        if (nodefs.existsSync(full_path)) {
+          const data = nodefs.readFileSync(full_path, { encoding: 'utf8' })
+          hash = md5(data).substr(0, 6)
+        }
+      }
+      assert(!!hash, `asset ${path} don't exists!`)
+      this.asset_hash_cache[path] = '' + hash
+    }
+    const hash = environment == 'development' ? Math.round(Math.random() * 1000000) : this.asset_hash_cache[path]
+    return `${assets_http_path}${path}?hash=${hash}`
+  }
+
+
+// Assets
+  const assets_file_paths = [...default_assets_file_paths, ...(options.assets_file_paths || [])]
+  const dont_cache_assets = /\.js\.map$/
+  for (const file_path of assets_file_paths) {
+    const assets_max_age_ms = options.assets_max_age_ms || 31557600000
+    app.use(assets_http_path, compression(), express.static(file_path, {
+      maxAge:     assets_max_age_ms,
+      setHeaders: (res, path) => {
+        if (dont_cache_assets.test(path)) res.setHeader('Cache-Control', 'public, max-age=0')
+      }
+    }))
+  }
+
+
+export function build_session_middleware(options: { cookie_secret?: string, cookie_max_age_ms?: number }) {
+  // The `req.session` used for both reading and writing
+  // `req.session.views = (req.session.views || 0) + 1`
+  if (environment == 'production' && !options.cookie_secret)
+    log('warn', 'cookie secret not defined!')
+  const cookie_secret = options.cookie_secret || 'dummy-development-cookie-secret'
+  const max_age = options.cookie_max_age_ms || 9 * 365 * 24 * 60 * 60 * 1000 // 9 years
+  const expires = new Date(Date.now() + max_age)
+  return cookie_session({ name: 'session', keys: [cookie_secret], maxAge: max_age, expires })
+}

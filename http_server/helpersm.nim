@@ -1,31 +1,25 @@
-import logging
-import ../basem, ../logm
-
-let logger = Log.init "HTTP"
+import ../basem, ../jsonm
 
 
-# Ensuring HttpBeast is not used, as it's slow in threaded mode ------------------------------------
-if not defined(useStdLib):
-  logger.warn "define useStdLib, otherwise HttpBeast will be used and it's slow with ThreadPool"
+# escape_js ----------------------------------------------------------------------------------------
+func escape_js(js: string): string =
+  js.to_json.replace(re"""^"|"$""", "")
+
+test "escape_js":
+  assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
 
 
-# Disabling logging --------------------------------------------------------------------------------
-type VoidLogger* = ref object of Logger
+# escape_html --------------------------------------------------------------------------------------
+const ESCAPE_HTML_MAP = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  """: "&quot;",
+  """: "&#39;"
+}.to_table
 
-method log*(logger: VoidLogger, level: Level, args: varargs[string, `$`]) = discard
+func escape_html(html: string): string =
+  html.replace(re"""[&<>'"]""", (c) => ESCAPE_HTML_MAP[c])
 
-add_handler(VoidLogger())
-
-
-# route_to_pattern ---------------------------------------------------------------------------------
-# Rewrites `"/users/:name/profile/"` as `re"/users/(?<name>[^/]+)/profile"`
-proc route_pattern_to_re*(route: string): Regex =
-  let pattern_str = route.replace(re"(:[a-z0-9]+)", proc (match: string): string =
-    let name = match.replace(":", "")
-    fmt"(?<{name}>[^/]+)"
-  )
-  re(pattern_str)
-
-test "route_pattern_to_re":
-  assert route_pattern_to_re("/users/:name/profile").parse_named("/users/alex/profile/") ==
-    { "name": "alex" }.to_table
+test "escape_html":
+  assert escape_html("<div>") == """&lt;div&gt;"""

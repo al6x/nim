@@ -6,6 +6,9 @@ export options
 func ensure*[T](o: Option[T], message: string): T =
   if o.is_none: throw(message) else: o.get
 
+func ensure*[T](o: Option[T], message: () -> string): T =
+  if o.is_none: throw(message()) else: o.get
+
 
 func apply*[T](o: Option[T], op: (T) -> void): void =
   if o.is_some: op(o.value)

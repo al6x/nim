@@ -17,14 +17,14 @@ let log_config = LogConfig(
   # could be "HTTP" or "HTTP,DB"
   log_as_debug: get_env("log_as_debug", "").to_lower.split(",").to_hash_set,
   log_data:     get_env("log_data", "false").parse_bool,
-)
+).to_shared_ptr
 
-proc is_enabled(config: LogConfig, component: string, level: string): bool =
+proc is_enabled(config: ptr LogConfig, component: string, level: string): bool =
   let (c, l) = (component.to_lower, level.to_lower)
   let cl = fmt"{c}.{l}"
   not (c in config.disable_logs or l in config.disable_logs or cl in config.disable_logs)
 
-proc is_debug(config: LogConfig, component: string): bool =
+proc is_debug(config: ptr LogConfig, component: string): bool =
   component.to_lower in config.log_as_debug
 
 
@@ -38,9 +38,9 @@ proc init*(_: type[Log], component: string): Log =
   Log(component: component)
 
 
-proc format_component(log: Log): string
-proc format_data(log: Log): string
-proc format_message(log: Log, message: string): string
+proc format_component(log: Log): string {.gcsafe.}
+proc format_data(log: Log): string {.gcsafe.}
+proc format_message(log: Log, message: string): string {.gcsafe.}
 
 
 proc with*(log: Log, data: tuple): Log =
@@ -51,44 +51,49 @@ proc with*(log: Log, data: tuple): Log =
   log
 
 
-proc debug*(log: Log, message: string): void =
+proc with*(log: Log, error: ref Exception): Log =
+  log.with((error: error.message, trace: error.get_stack_trace))
+
+
+proc debug*(log: Log, message: string): void {.gcsafe.} =
   if log_config.is_enabled(log.component, "debug"):
     echo grey fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
 
 
-proc info*(log: Log, message: string): void =
+proc info*(log: Log, message: string): void {.gcsafe.} =
   if log_config.is_enabled(log.component, "info"):
     let message = fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
     if log_config.is_debug(log.component): echo grey message
     else:                                  echo message
 
 
-proc warn*(log: Log, message: string): void =
+proc warn*(log: Log, message: string): void {.gcsafe.} =
   if log_config.is_enabled(log.component, "warn"):
     echo yellow fmt"W {log.format_component()}{log.format_message(message)}{log.format_data()}"
 
 
-proc error*(log: Log, message: string): void =
+proc error*(log: Log, message: string): void {.gcsafe.} =
   if log_config.is_enabled(log.component, "error"):
     stderr.write_line red fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
 
 
-proc error*(log: Log, message: string, exception: ref Exception): void =
+proc error*(log: Log, message: string, exception: ref Exception): void {.gcsafe.} =
   if log_config.is_enabled(log.component, "error"):
     stderr.write_line red fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
     stderr.write_line red exception.get_stack_trace()
 
 
 # Shortcuts ----------------------------------------------------------------------------------------
-proc debug*(message: string): void = Log.init("Main").debug(message)
+proc debug*(message: string): void {.gcsafe.} = Log.init("Main").debug(message)
 
-proc info*(message: string): void = Log.init("Main").info(message)
+proc info*(message: string): void {.gcsafe.} = Log.init("Main").info(message)
 
-proc warn*(message: string): void = Log.init("Main").warn(message)
+proc warn*(message: string): void {.gcsafe.} = Log.init("Main").warn(message)
 
-proc error*(message: string): void = Log.init("Main").error(message)
+proc error*(message: string): void {.gcsafe.} = Log.init("Main").error(message)
 
-proc error*(message: string, exception: ref Exception): void = Log.init("Main").error(message, exception)
+proc error*(message: string, exception: ref Exception): void {.gcsafe.} =
+  Log.init("Main").error(message, exception)
 
 
 # Utils --------------------------------------------------------------------------------------------
@@ -103,11 +108,10 @@ proc format_data(log: Log): string =
   else:
     ""
 
-
-let keyre = re"(\{[a-zA-Z0-9_]+\})"
 proc format_message(log: Log, message: string): string =
+  let keyre = re"(\{[a-zA-Z0-9_]+\})"
   message.replace(keyre, proc (skey: string): string =
-    if log.data.is_nil: skey
+    let value = if log.data.is_nil: skey
     else:
       assert log.data.kind == JObject
       let key = skey[1..^2]
@@ -116,6 +120,7 @@ proc format_message(log: Log, message: string): string =
         if value.kind == JString: value.get_str
         else:                     $(value)
       else:                      skey
+    value.replace("\n", " ")
   )
 
 

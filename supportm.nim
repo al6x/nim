@@ -73,6 +73,12 @@ proc to_ref*[T](o: T): ref T =
   result[] = o
 
 
+# to_shared_ptr ------------------------------------------------------------------------------------
+proc to_shared_ptr*[T](v: T): ptr T =
+  result = create_shared(T)
+  result[] = v
+
+
 # init ---------------------------------------------------------------------------------------------
 proc init*[T](_: type[string], v: T): string = $v
 
@@ -105,6 +111,10 @@ test "error_type":
 
 
 # timer_sec ----------------------------------------------------------------------------------------
-proc timer_sec*(): (() -> int) =
+proc timer_sec*(): (proc (): int {.gcsafe.}) =
   let started_at = nt.utc(nt.now())
   () => nt.in_seconds(nt.`-`(nt.utc(nt.now()), started_at)).int
+
+proc timer_ms*(): (proc (): int {.gcsafe.}) =
+  let started_at = nt.utc(nt.now())
+  () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int

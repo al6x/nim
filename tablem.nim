@@ -78,12 +78,27 @@ proc get*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: () -> V):
   if key notin table: default() else: table[key]
 
 
+# [key, default] -----------------------------------------------------------------------------------
+proc `[]`*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: V): V {.inline.} =
+  table.get_or_default(key, default)
+
+proc `[]`*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: () -> V): V {.inline.} =
+  if key notin table: default() else: table[key]
+
+
 # mget ---------------------------------------------------------------------------------------------
 proc mget*[K, V](table: var Table[K, V] | ref Table[K, V], key: K, value: V): void {.inline.} =
-  table.mget_or_put(table, key, value)
+  table.mget_or_put(key, value)
 
 proc mget*[K, V](table: var Table[K, V] | ref Table[K, V], key: K, value: ((V) -> V)): void {.inline.} =
   if key notin table: table.mget_or_put(key, value()) else: table[key]
+
+
+# & ------------------------------------------------------------------------------------------------
+# Merge two tables, same keys in the first table will be overwritten
+proc `&`*[K, V](a, b: Table[K, V] | ref Table[K, V]): Table[K, V] =
+  for k, v in a: result[k] = v
+  for k, v in b: result[k] = v
 
 
 # inc ----------------------------------------------------------------------------------------------
