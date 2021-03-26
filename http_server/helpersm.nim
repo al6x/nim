@@ -1,5 +1,5 @@
 import logging
-import basem, logm
+import ../basem, ../logm
 
 let logger = Log.init "HTTP"
 

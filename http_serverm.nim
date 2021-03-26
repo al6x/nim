@@ -4,15 +4,15 @@ from jester import nil
 from httpcore import nil
 
 import basem, logm, jsonm, rem
-import http_server_supportm
+import http_server/helpersm
 
 {.experimental: "code_reordering".}
 
 let log = Log.init "HTTP"
 
 
-# HttpRequest --------------------------------------------------------------------------------------
-type HttpRequest* = ref object
+# Request ------------------------------------------------------------------------------------------
+type Request* = ref object
   ip*:              string
   `method`*:        string
   headers*:         Table[string, seq[string]]
@@ -24,78 +24,78 @@ type HttpRequest* = ref object
   path_params*:     Table[string, string]
 
 
-# HttpResponse -------------------------------------------------------------------------------------
-type HttpResponse* = ref object
+# Response -----------------------------------------------------------------------------------------
+type Response* = ref object
   status*: int
   body*:   string
 
 
-# HttpHandler --------------------------------------------------------------------------------------
-type HttpHandler* = proc (req: HttpRequest): HttpResponse {.gcsafe.}
+# Handler ------------------------------------------------------------------------------------------
+type Handler* = proc (req: Request): Response {.gcsafe.}
 
-type HttpRoute* = ref object
+type Route* = ref object
   `method`*: string
   pattern*:  Regex
-  handler*:  HttpHandler
+  handler*:  Handler
 
 
-# HttpConfig ---------------------------------------------------------------------------------------
-type HttpConfig* = ref object
+# ServerConfig -------------------------------------------------------------------------------------
+type ServerConfig* = ref object
   host*:           string
   port*:           int
   default_format*: string
   async_delay*:    int
 
 func init*(
-  _: type[HttpConfig],
+  _: type[ServerConfig],
   host           = "localhost",
   port           = 5000,
   default_format = "json",
   async_delay    = 3
-): HttpConfig =
-  HttpConfig(host: host, port: port, async_delay: async_delay)
+): ServerConfig =
+  ServerConfig(host: host, port: port, async_delay: async_delay)
 
 
-# HttpServer ---------------------------------------------------------------------------------------
-type HttpServer* = ref object
-  config*: HttpConfig
+# Server -------------------------------------------------------------------------------------------
+type Server* = ref object
+  config*: ServerConfig
   jester*: jester.Jester
-  routes*: seq[HttpRoute]
+  routes*: seq[Route]
 
-proc init*(_: type[HttpServer], config: HttpConfig): HttpServer =
-  HttpServer(
+proc init*(_: type[Server], config: ServerConfig): Server =
+  Server(
     config: config,
     jester: init_jester(config)
   )
 
 proc init*(
-  _: type[HttpServer],
+  _: type[Server],
   host        = "localhost",
   port        = 5000
-): HttpServer =
-  HttpServer.init(HttpConfig.init(host = host, port = port))
+): Server =
+  Server.init(ServerConfig.init(host = host, port = port))
 
 
 # route --------------------------------------------------------------------------------------------
-proc route*(server: var HttpServer, `method`: string, pattern: Regex, handler: HttpHandler): void =
-  server.routes.add(HttpRoute(
+proc route*(server: var Server, `method`: string, pattern: Regex, handler: Handler): void =
+  server.routes.add(Route(
     `method`: `method`,
     pattern:  pattern,
     handler:  handler
   ))
 
-proc route*(server: var HttpServer, `method`: string, pattern: string, handler: HttpHandler): void =
+proc route*(server: var Server, `method`: string, pattern: string, handler: Handler): void =
   route(server, `method`, route_pattern_to_re(pattern), handler)
 
-proc get*(server: var HttpServer, pattern: string | Regex, handler: HttpHandler): void =
+proc get*(server: var Server, pattern: string | Regex, handler: Handler): void =
   route(server, "get", pattern, handler)
 
-proc post*(server: var HttpServer, pattern: string | Regex, handler: HttpHandler): void =
+proc post*(server: var Server, pattern: string | Regex, handler: Handler): void =
   route(server, "post", pattern, handler)
 
 
 # process ------------------------------------------------------------------------------------------
-proc process(server: HttpServer, req: HttpRequest): HttpResponse =
+proc process(server: Server, req: Request): Response =
   # Matching route
   # TODO 2 use more efficient route matching
   let routeo = server.routes.find((route) => route.`method` == req.`method` and route.pattern =~ req.path)
@@ -105,11 +105,11 @@ proc process(server: HttpServer, req: HttpRequest): HttpResponse =
     req.init2(route.pattern)
     route.handler(req)
   else:
-    HttpResponse(body: "unknown route")
+    Response(body: "unknown route")
 
 
 # run ----------------------------------------------------------------------------------------------
-proc run*(server: HttpServer): void =
+proc run*(server: Server): void =
   log
     .with((host: server.config.host, port: server.config.port))
     .info "started on http://{host}:{port}"
@@ -123,15 +123,15 @@ proc run*(server: HttpServer): void =
 
 # jester_handler -----------------------------------------------------------------------------------
 # Delegates work to thread pool
-proc jester_handler(server: HttpServer, jreq: jester.Request): Future[jester.ResponseData] {.async.} =
+proc jester_handler(server: Server, jreq: jester.Request): Future[jester.ResponseData] {.async.} =
   block route:
-    let req = HttpRequest.init1(jreq)
+    let req = Request.init1(jreq)
 
     # Spawning and waiting for the result
     var cresp = spawn server.process(req)
     while true:
       if cresp.is_ready: break
-      await sleep_async 5
+      await sleep_async(server.config.async_delay)
     let resp = ^cresp
 
     jester.resp(resp.body)
@@ -145,7 +145,7 @@ proc jester_handler(server: HttpServer, jreq: jester.Request): Future[jester.Res
 
 
 # init_jester --------------------------------------------------------------------------------------
-proc init_jester(config: HttpConfig): jester.Jester =
+proc init_jester(config: ServerConfig): jester.Jester =
   let settings = jester.new_settings(
     port      = Port(config.port),
     staticDir = getCurrentDir() / "public",
@@ -157,9 +157,9 @@ proc init_jester(config: HttpConfig): jester.Jester =
   jester.init_jester(settings)
 
 
-# HttpRequest.init ---------------------------------------------------------------------------------
+# Request.init -------------------------------------------------------------------------------------
 # Initialization part 1
-proc init1(_: type[HttpRequest], jreq: jester.Request): HttpRequest =
+proc init1(_: type[Request], jreq: jester.Request): Request =
   let path  = jester.path(jreq)
   let query = jester.params(jreq)
 
@@ -172,30 +172,21 @@ proc init1(_: type[HttpRequest], jreq: jester.Request): HttpRequest =
   result.query    = query
 
 # Part 2
-proc init2(req: var HttpRequest, pattern: Regex): void =
+proc init2(req: var Request, pattern: Regex): void =
   req.path_params = pattern.parse_named(req.path)
   # result.format   = query.get("format", default_format)
 
 
-
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  var http = HttpServer.init()
+  var server = Server.init()
 
-  http.get("/users/:name/profile", proc (req: HttpRequest): auto =
-    HttpResponse(body: "ok " & $(req))
+  server.get("/users/:name/profile", proc (req: Request): auto =
+    Response(body: "ok " & $(req))
   )
 
-  http.run
+  server.run
 
-
-
-# template process_with_threadpool(req: string) =
-#   var cresult = spawn process(req)
-#   while true:
-#     if cresult.is_ready: break
-#     await sleep_async 5
-#   result = ^cresult
 
 
 
