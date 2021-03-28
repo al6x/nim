@@ -1,4 +1,4 @@
-import tables, sugar, optionm, supportm
+import tables, sugar, optionm, supportm, hashes
 
 export tables
 
@@ -117,3 +117,10 @@ proc update*[K, V](
   table: var Table[K, V] | ref Table[K, V], key: K, op: ((V) -> V), default: V
 ): void {.inline.} =
   table[key] = op(table.get_or_default(key, default))
+
+
+# hash ---------------------------------------------------------------------------------------------
+proc hash*[K, V](table: Table[K, V] | ref Table[K, V]): Hash =
+  for k, v in table:
+    result = result !& k.hash !& v.hash
+  result = !$result

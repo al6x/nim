@@ -1,11 +1,11 @@
 import system except find
+import basem, logm, jsonm, rem, timem, randomm
+import ./supportm, ./helpersm
+
 import os, threadpool, asyncdispatch
 from jester import nil
 from httpcore import nil
-from cookies import nil
-
-import basem, logm, jsonm, rem, timem
-import http_server/supportm
+from times as times import nil
 
 {.experimental: "code_reordering".}
 
@@ -14,17 +14,17 @@ proc log(): Log = Log.init "HTTP"
 
 # Request ------------------------------------------------------------------------------------------
 type Request* = ref object
-  ip*:          string
-  methd*:       string
-  headers*:     Table[string, seq[string]]
-  # cookies*:     Table[string, string]
-  path*:        string
-  query*:       Table[string, string]
-  body*:        string
-  format*:      string
-  params*:      Table[string, string]
-  session_id*:  string
-  user_token*:  string
+  ip*:            string
+  methd*:         string
+  headers*:       Table[string, seq[string]]
+  cookies*:       Table[string, string]
+  path*:          string
+  query*:         Table[string, string]
+  body*:          string
+  format*:        string
+  params*:        Table[string, string]
+  session_token*: string
+  user_token*:    string
 
 proc `[]`*(req: Request, key: string): string =
   req.params[key]
@@ -159,9 +159,13 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
   let req_log = log()
     .with((`method`: req.methd, method4: req.methd.take(4).align_left(4), path: req.path))
 
-  # Matching route
+  # Detecting format
   let format = parse_format(req.query, req.headers).get(server.config.default_format)
-  let routes = if format in server.config.data_formats: server.data_routes else: server.routes
+  let is_data_format = format in server.config.data_formats
+  let is_web_format  = format in @["html"]
+
+  # Matching route
+  let routes = if is_data_format: server.data_routes else: server.routes
   let route_prefix = req.methd & ":" & req.path.route_prefix
   let normalized_path = req.path.replace(re"/$", "")
   let routeo = routes[route_prefix, @[]]
@@ -182,10 +186,15 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
   req_log.with((time: Time.now)).info("{method4} '{path}' started")
 
   try:
-    let response = route.handler(req)
+    var response = route.handler(req)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .info("{method4} '{path}' finished, {duration_ms}ms")
+
+    # Writing cookies
+    if is_web_format:
+      response.headers.set_cookie("user_token", req.user_token)
+
     response
   except CatchableError as e:
     req_log
@@ -251,7 +260,7 @@ proc init1(_: type[Request], jreq: jester.Request): Request =
   result.ip       = jester.ip(jreq)
   result.methd    = httpcore.`$`(jester.req_method(jreq)).to_lower
   result.headers  = jester.headers(jreq).table[]
-  # result.cookies  = jester.cookies(jreq)
+  result.cookies  = jester.cookies(jreq)
   result.path     = path
   result.query    = query
 
@@ -259,8 +268,9 @@ proc init1(_: type[Request], jreq: jester.Request): Request =
 proc init2(req: var Request, pattern: Regex, format: string): void =
   req.params = pattern.parse_named(req.path) & req.query
   req.format = format
-  req.user_token =
 
+  req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random()]]
+  req.session_token = req.params["session_token", secure_random()]
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -312,3 +322,6 @@ if is_main_module:
 #   server: var Server, pattern: string | Regex, mapper: ApiMapper[A], handler: ApiHandler2[A, R]
 # ): void =
 #   api_route(server, "post", pattern, mapper, handler)
+
+
+# let cookies = parse_cookies(req.headers)

@@ -33,7 +33,7 @@ proc read_optional*(path: string): Option[string] =
     string.none
 
 
-# write_file ---------------------------------------------------------------------------------------
+# write --------------------------------------------------------------------------------------------
 proc write*(path, data: string): void =
   discard open_file(path, true, fm_write, proc (file: auto): bool =
     file.write data
@@ -91,7 +91,7 @@ proc delete*(path: string, recursive = false) =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  write_file("./tmp/some.txt", "some text")
+  write("./tmp/some.txt", "some text")
   append_line("./tmp/some.txt", "line 1")
   append_line("./tmp/some.txt", "line 2")
-  echo read_file("./tmp/some.txt")
+  echo read("./tmp/some.txt")

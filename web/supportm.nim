@@ -1,7 +1,6 @@
-import logging, mimetypes
-import ../basem, ../logm
+import basem, logm
 
-from jester import nil
+import logging, mimetypes, strtabs
 
 let logger = Log.init "HTTP"
 

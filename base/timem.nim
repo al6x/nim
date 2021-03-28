@@ -104,6 +104,18 @@ proc init_from_json*(dst: var Time, json: JsonNode, json_path: string) =
   dst = Time.init(json.get_str)
 
 
+# times.DateTime -----------------------------------------------------------------------------------
+proc to_datetime*(t: Time): times.DateTime =
+  times.init_date_time(
+    year = t.year, month = times.Month(t.month), monthday = t.day,
+    hour = t.hour, minute = t.minute, second = t.second, nanosecond = 0,
+    zone = times.utc()
+  )
+
+test "to_datetime":
+  let t = Time.now
+  assert Time.init(t.to_datetime) == t
+
 # TimeD --------------------------------------------------------------------------------------------
 proc init*(_: type[TimeD], year: int, month: int, day: int): TimeD =
   let epoch = epoch_seconds(year, month, day, 0, 0, 1)
