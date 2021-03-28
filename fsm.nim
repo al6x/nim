@@ -1,4 +1,4 @@
-import supportm, os, sugar, strutils, optionm
+import supportm, os, sugar, strutils, optionm, strformat
 
 # open_file ----------------------------------------------------------------------------------------
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
@@ -59,8 +59,39 @@ proc append_line*(path, data: string): void =
   )
 
 
+# exists -------------------------------------------------------------------------------------------
+proc exists*(path: string): bool =
+  try:
+    discard get_file_info(path)
+    true
+  except:
+    false
+
+
+# is_empty_dir -------------------------------------------------------------------------------------
+proc is_empty_dir(path: string): bool =
+  for _ in walk_dir(path, relative = true, check_dir = false):
+    return false
+  true
+
+# delete -------------------------------------------------------------------------------------------
+# Deletes file or directory, does nothing if path not exist
+proc delete*(path: string, recursive = false) =
+  try:
+    remove_file path
+  except:
+    if not path.exists:
+      return
+    elif path.is_empty_dir or recursive:
+      remove_dir path
+    else:
+      assert path.dir_exists, "internal error, expecting directory to exist"
+      throw fmt"can't delete not empty directory '{path}'"
+
+
 # Test ---------------------------------------------------------------------------------------------
-# write_file("./tmp/some.txt", "some text")
-# append_line("./tmp/some.txt", "line 1")
-# append_line("./tmp/some.txt", "line 2")
-# p read_file("./tmp/some.txt")
+if is_main_module:
+  write_file("./tmp/some.txt", "some text")
+  append_line("./tmp/some.txt", "line 1")
+  append_line("./tmp/some.txt", "line 2")
+  echo read_file("./tmp/some.txt")

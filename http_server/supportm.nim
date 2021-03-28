@@ -1,6 +1,7 @@
 import logging, mimetypes
 import ../basem, ../logm
-# from ../http_serverm import Format
+
+from jester import nil
 
 let logger = Log.init "HTTP"
 
@@ -43,11 +44,7 @@ proc parse_format*(
   query: Table[string, string], headers: Table[string, seq[string]]
 ): Option[string] {.gcsafe.} =
   if "format" in query: return query["format"].some
-  var content_type: seq[string] = @[]
-  for key in @["Content-Type", "content-type", "Accept", "accept"]:
-    if key in headers:
-      content_type = headers[key]
-      break
+  let content_type = headers["Content-Type", headers["Accept", @[]]]
   if not content_type.is_blank:
     let ext = mime[].get_ext(content_type[0], "unknown")
     if ext != "unknown":

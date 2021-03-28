@@ -2,16 +2,19 @@ import sugar, jsonm, optionm, timem
 from fsm as fs import nil
 
 
-proc read_from*[T](t: type[T], path: string): Option[T] =
+proc read_from_optional*[T](t: type[T], path: string): Option[T] =
   try:
     let json = fs.read path
     json.parse_json.to(T).some
   except:
     T.none
 
+proc read_from*[T](t: type[T], path: string): T =
+  let v = read_from_optional(t, path)
+  if v.is_some: v.get else: T.init
 
 proc read_from*[T](t: type[T], path: string, default: () -> T): T =
-  let v = read_from(t, path)
+  let v = read_from_optional(t, path)
   if v.is_some: v.get else: default()
 
 
@@ -33,7 +36,7 @@ proc cache*[T](path: string, expiration_sec: int, build: () -> T): T =
     let cache = Cache(value: v, timestamp: Time.now(), version: cache_version)
     cache.write_to(path)
     cache
-  var cached = Cache[T].read_from(path, build_and_write)
+  var cached = Cache[T].read_from_optional(path, build_and_write)
   if (cached.version != cache_version) or ((Time.now.epoch - cached.timestamp.epoch) > expiration_sec):
     cached = build_and_write()
   cached.value

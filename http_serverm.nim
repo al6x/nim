@@ -2,8 +2,9 @@ import system except find
 import os, threadpool, asyncdispatch
 from jester import nil
 from httpcore import nil
+from cookies import nil
 
-import basem, logm, jsonm, rem, timem, jsonm
+import basem, logm, jsonm, rem, timem
 import http_server/supportm
 
 {.experimental: "code_reordering".}
@@ -12,17 +13,18 @@ proc log(): Log = Log.init "HTTP"
 
 
 # Request ------------------------------------------------------------------------------------------
-
 type Request* = ref object
-  ip*:       string
-  methd*:    string
-  headers*:  Table[string, seq[string]]
-  cookies*:  Table[string, string]
-  path*:     string
-  query*:    Table[string, string]
-  body*:     string
-  format*:   string
-  params*:   Table[string, string]
+  ip*:          string
+  methd*:       string
+  headers*:     Table[string, seq[string]]
+  # cookies*:     Table[string, string]
+  path*:        string
+  query*:       Table[string, string]
+  body*:        string
+  format*:      string
+  params*:      Table[string, string]
+  session_id*:  string
+  user_token*:  string
 
 proc `[]`*(req: Request, key: string): string =
   req.params[key]
@@ -220,7 +222,7 @@ proc jester_handler(server: Server, jreq: jester.Request): Future[jester.Respons
     let resp: Response = ^cresp
 
     # Responding
-    jester.resp2(
+    jester.resp(
       httpcore.HttpCode(resp.code),
       resp.headers.map((t) => (key: t.key, val: t.value)),
       resp.content
@@ -249,7 +251,7 @@ proc init1(_: type[Request], jreq: jester.Request): Request =
   result.ip       = jester.ip(jreq)
   result.methd    = httpcore.`$`(jester.req_method(jreq)).to_lower
   result.headers  = jester.headers(jreq).table[]
-  result.cookies  = jester.cookies(jreq)
+  # result.cookies  = jester.cookies(jreq)
   result.path     = path
   result.query    = query
 
@@ -257,6 +259,8 @@ proc init1(_: type[Request], jreq: jester.Request): Request =
 proc init2(req: var Request, pattern: Regex, format: string): void =
   req.params = pattern.parse_named(req.path) & req.query
   req.format = format
+  req.user_token =
+
 
 
 # Test ---------------------------------------------------------------------------------------------
