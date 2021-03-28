@@ -1,4 +1,5 @@
 import basem, logm
+import ./helpersm
 
 import logging, mimetypes, strtabs
 
@@ -49,3 +50,19 @@ proc parse_format*(
     if ext != "unknown":
       return ext.some
   string.none
+
+
+# render_error_page --------------------------------------------------------------------------------
+proc render_default_error_page*(message: string, error: ref CatchableError, show_error: bool): string =
+  if show_error: fmt"""
+    <p>{message.escape_html}</p>
+    <pre>{message.escape_html}
+    {error.get_stack_trace.escape_html}</pre>
+  """
+  else:
+    message.escape_html
+
+
+# render_error_page --------------------------------------------------------------------------------
+proc render_default_not_found_page*(message: string): string =
+  message.escape_html

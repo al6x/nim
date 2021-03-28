@@ -45,10 +45,36 @@ proc init*(
   Response(code: code, content: content, headers: headers)
 
 proc respond*(content: string): Response =
-  Response.init(200, content, @[("Content-Type", "text/html;charset=utf-8")])
+  Response.init(content = content, headers = @[("Content-Type", "text/html;charset=utf-8")])
 
 proc redirect*(url: string): Response =
   Response.init(303, "Redirected to {url}", @[("Location", url)])
+
+
+# ServerConfig -------------------------------------------------------------------------------------
+type ServerConfig* = ref object
+  host*:           string
+  port*:           int
+  async_delay*:    int         # Delay while async handlers waits for threadpool
+  data_formats*:   seq[string] # Data format types, like ["json", "yaml", "toml"]
+  default_format*: string
+  show_errors*:    bool        # Show stack trace on the error page, it's handy in development,
+                               # but should be disabledled in production
+
+func init*(
+  _: type[ServerConfig],
+  host           = "localhost",
+  port           = 5000,
+  async_delay    = 3,
+  data_formats   = @["json"],
+  default_format = "html",
+  show_errors    = true
+): ServerConfig =
+  ServerConfig(
+    host: host, port: port, async_delay: async_delay,
+    data_formats: data_formats, default_format: default_format,
+    show_errors: show_errors
+  )
 
 
 # Handler, ApiHandler ------------------------------------------------------------------------------
@@ -64,30 +90,8 @@ type Route* = ref object
   handler*: Handler
 
 
-# ServerConfig -------------------------------------------------------------------------------------
-type ServerConfig* = ref object
-  host*:           string
-  port*:           int
-  async_delay*:    int         # Delay while async handlers waits for threadpool
-  data_formats*:   seq[string] # Data format types, like ["json", "yaml", "toml"]
-  default_format*: string
-
-func init*(
-  _: type[ServerConfig],
-  host           = "localhost",
-  port           = 5000,
-  async_delay    = 3,
-  data_formats   = @["json"],
-  default_format = "html"
-): ServerConfig =
-  ServerConfig(
-    host: host, port: port, async_delay: async_delay,
-    data_formats: data_formats, default_format: default_format
-  )
-
-
 # Server -------------------------------------------------------------------------------------------
-type Server* = ref object
+type Server* = ref object of RootObj
   config*:      ServerConfig
   jester*:      jester.Jester
   routes*:      Table[string, seq[Route]] # First prefix to speed up route matching
@@ -140,7 +144,7 @@ proc post*(server: var Server, pattern: string | Regex, handler: Handler): void 
 proc add_data_route*[T](server: var Server, pattern: Regex, methd: string, handler: ApiHandler[T]): void =
   proc data_handler(req: Request): Response =
     let data: T = handler(req)
-    Response.init(200, $(data.to_json), @[("Content-Type", "application/json")])
+    data.format_as(req.format)
 
   server.data_routes.add(pattern, methd, data_handler)
 
@@ -155,17 +159,20 @@ proc post_data*[T](server: var Server, pattern: string | Regex, handler: ApiHand
 
 
 # process ------------------------------------------------------------------------------------------
+type format_type = enum html_e, data_e, other_e
 proc process(server: Server, req: Request): Response {.gcsafe.} =
-  let req_log = log()
-    .with((`method`: req.methd, method4: req.methd.take(4).align_left(4), path: req.path))
-
   # Detecting format
-  let format = parse_format(req.query, req.headers).get(server.config.default_format)
-  let is_data_format = format in server.config.data_formats
-  let is_web_format  = format in @["html"]
+  req.format = parse_format(req.query, req.headers).get(server.config.default_format)
+  let format_type =
+    if   req.format in server.config.data_formats: data_e
+    elif req.format in @["html"]:                  html_e
+    else:                                          other_e
+
+  let req_log = log()
+    .with((`method`: req.methd, method4: req.methd.take(4).align_left(4), path: req.path, format: req.format))
 
   # Matching route
-  let routes = if is_data_format: server.data_routes else: server.routes
+  let routes = if format_type == data_e: server.data_routes else: server.routes
   let route_prefix = req.methd & ":" & req.path.route_prefix
   let normalized_path = req.path.replace(re"/$", "")
   let routeo = routes[route_prefix, @[]]
@@ -173,26 +180,34 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
 
   if routeo.is_none:
     if not ignore_request(req.path):
-      req_log.with((time: Time.now)).error("{method4} '{path}' route not found")
-    return Response(code: 404)
+      req_log.with((time: Time.now)).error("{method4} {path} route not found")
+    return (
+      case format_type
+      of html_e:  Response.init(404, server.render_not_found_page("Route not found"))
+      of data_e:  format_error_as("Route not found", req.format)
+      of other_e: Response.init(404, "Route not found")
+    )
   let route = routeo.get
 
-  # Preparing for processing
-  var req = req
-  req.init2(route.pattern, format)
+  # Finishing request initialization
+  if routeo.is_some:
+    req.params = routeo.get.pattern.parse_named(req.path) & req.query
+
+    req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random()]]
+    req.session_token = req.params["session_token", secure_random()]
 
   # Processing
   let tic = timer_ms()
-  req_log.with((time: Time.now)).info("{method4} '{path}' started")
+  req_log.with((time: Time.now)).info("{method4} {path}.{format} started")
 
   try:
     var response = route.handler(req)
     req_log
       .with((time: Time.now, duration_ms: tic()))
-      .info("{method4} '{path}' finished, {duration_ms}ms")
+      .info("{method4} {path}.{format} finished, {duration_ms}ms")
 
     # Writing cookies
-    if is_web_format:
+    if format_type == html_e:
       response.headers.set_cookie("user_token", req.user_token)
 
     response
@@ -200,8 +215,18 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
-      .error("{method4} '{path}' failed, {duration_ms}ms, {error}")
-    Response(code: 500, content: "Unexpected error")
+      .error("{method4} {path}.{format} failed, {duration_ms}ms, {error}")
+
+    let show_errors = server.config.show_errors
+    case format_type
+    of html_e:
+      Response.init(500, server.render_error_page("Unexpected error", e))
+    of data_e:
+      if show_errors: format_error_as(e, req.format)
+      else:           format_error_as("Unexpected error", req.format)
+    of other_e:
+      if show_errors: Response.init(500, fmt"{e.message}\n{e.get_stack_trace}".escape_html)
+      else:           Response.init(500, "Unexpected error")
 
 
 # run ----------------------------------------------------------------------------------------------
@@ -221,7 +246,7 @@ proc run*(server: Server): void =
 # Delegates work to thread pool
 proc jester_handler(server: Server, jreq: jester.Request): Future[jester.ResponseData] {.async.} =
   block route:
-    let req = Request.init1(jreq)
+    let req = Request.partial_init(jreq)
 
     # Spawning and waiting for the result
     var cresp = spawn server.process(req)
@@ -250,9 +275,8 @@ proc init_jester(config: ServerConfig): jester.Jester =
   jester.init_jester(settings)
 
 
-# Request.init -------------------------------------------------------------------------------------
-# Initialization part 1
-proc init1(_: type[Request], jreq: jester.Request): Request =
+# Request.partial_init -----------------------------------------------------------------------------
+proc partial_init(_: type[Request], jreq: jester.Request): Request =
   let path  = jester.path(jreq)
   let query = jester.params(jreq)
 
@@ -264,13 +288,31 @@ proc init1(_: type[Request], jreq: jester.Request): Request =
   result.path     = path
   result.query    = query
 
-# Part 2
-proc init2(req: var Request, pattern: Regex, format: string): void =
-  req.params = pattern.parse_named(req.path) & req.query
-  req.format = format
 
-  req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random()]]
-  req.session_token = req.params["session_token", secure_random()]
+# error pages and format ---------------------------------------------------------------------------
+method render_error_page*(server: Server, message: string, error: ref CatchableError): string  {.base.} =
+  render_default_error_page(message, error, server.config.show_errors)
+
+method render_not_found_page*(_: Server, message: string): string  {.base.} =
+  render_default_not_found_page(message)
+
+# Can't be defined as method because it somehow violate memory safety
+proc format_as[T](data: T, format: string): Response =
+  if format == "json": Response.init(200, data.to_json, @[("Content-Type", "application/json")])
+  else:                Response.init(500, fmt"Error, invalid format '{format}'")
+
+proc format_error_as(message: string, format: string): Response =
+  if format == "json":
+    Response.init(200, (is_error: true, message: message).to_json, @[("Content-Type", "application/json")])
+  else:
+    Response.init(500, fmt"Error, invalid format '{format}'")
+
+proc format_error_as(error: ref CatchableError, format: string): Response =
+  if format == "json":
+    let content = (is_error: true, message: error.message, stack: error.get_stack_trace).to_json
+    Response.init(200, content, @[("Content-Type", "application/json")])
+  else:
+    Response.init(500, fmt"Error, invalid format '{format}'")
 
 
 # Test ---------------------------------------------------------------------------------------------
