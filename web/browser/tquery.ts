@@ -51,6 +51,7 @@ export interface TElement {
 
   find(query: string): TElement[]
   find_one(query: string): TElement
+  find_by_id(id: string): TElement
   find_parents(query: string): TElement[]
   find_parent(query: string): TElement
   get_parent(): TElement
@@ -107,6 +108,7 @@ export interface TContainer<T> {
 
   find(query: string): TElement[]
   find_one(query: string): TElement
+  find_by_id(id: string): TElement
 }
 
 
@@ -120,6 +122,7 @@ export interface TElementStatic {
 
   find(query: string): TElement[]
   find_one(query: string): TElement
+  find_by_id(id: string): TElement
 
   build(html: string): TElement[]
   build_one(html: string): TElement
@@ -156,6 +159,9 @@ export class TElementImpl implements TElement {
     const found = this.find(query)
     assert.equal(found.length, 1, `required to find exactly 1 '${query}' but found ${found.length}`)
     return found[0]
+  }
+  find_by_id(id: string) {
+    return this.find_one(`#${id}`)
   }
   find_parents(query: string) {
     return this.$el.parents(query).toArray().map((el: something) => new TElementImpl(el))
@@ -262,6 +268,9 @@ export class TContainerImpl<T> implements TContainer<T> {
     assert.equal(found.length, 1, `required to find exactly 1 '${query}' but found ${found.length}`)
     return found[0]
   }
+  find_by_id(id: string) {
+    return this.find_one(`#${id}`)
+  }
 }
 
 
@@ -269,6 +278,7 @@ export class TContainerImpl<T> implements TContainer<T> {
 export const $: TElementStatic = wrap as something
 $.find = find
 $.find_one = find_one
+$.find_by_id = find_by_id
 $.build = build
 $.build_one = build_one
 
@@ -298,6 +308,10 @@ export function find_one(query: string): TElement {
   const found = find(query)
   assert.equal(found.length, 1, `required to find exactly 1 '${query}' but found ${found.length}`)
   return found[0]
+}
+
+export function find_by_id(id: string): TElement {
+  return find_one(`#${id}`)
 }
 
 export function build(html: TInput): TElement[] {

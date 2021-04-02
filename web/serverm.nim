@@ -40,9 +40,9 @@ type Response* = ref object
   headers*:  seq[tuple[key, value: string]]
 
 proc init*(
-  _: type[Response], code = 200, content = "", headers: seq[tuple[key, value: string]] = @[]
+  _: type[Response], code = 200, content = "", headers: openarray[tuple[key, value: string]] = @[]
 ): Response =
-  Response(code: code, content: content, headers: headers)
+  Response(code: code, content: content, headers: headers.to_seq)
 
 proc respond*(content: string): Response =
   Response.init(content = content, headers = @[("Content-Type", "text/html;charset=utf-8")])
@@ -61,19 +61,30 @@ type ServerConfig* = ref object
   show_errors*:    bool        # Show stack trace on the error page, it's handy in development,
                                # but should be disabledled in production
 
-func init*(
+  assets_path*:       string
+  assets_file_paths*: seq[string]
+
+
+# p script_dir
+proc init*(
   _: type[ServerConfig],
   host           = "localhost",
   port           = 5000,
   async_delay    = 3,
   data_formats   = @["json"],
   default_format = "html",
-  show_errors    = true
+  show_errors    = true,
+
+  assets_path       = "/assets",
+  assets_file_paths = new_seq[string]()
 ): ServerConfig =
+  const script_dir = instantiation_info(full_paths = true).filename.parent_dir
+  var assets_file_paths = assets_file_paths & @[script_dir / "browser"]
   ServerConfig(
     host: host, port: port, async_delay: async_delay,
     data_formats: data_formats, default_format: default_format,
-    show_errors: show_errors
+    show_errors: show_errors,
+    assets_path: assets_path, assets_file_paths: assets_file_paths
   )
 
 
@@ -161,6 +172,11 @@ proc post_data*[T](server: var Server, pattern: string | Regex, handler: ApiHand
 # process ------------------------------------------------------------------------------------------
 type format_type = enum html_e, data_e, other_e
 proc process(server: Server, req: Request): Response {.gcsafe.} =
+  # Serving files
+  let res = server.handle_assets_slow(req)
+  if res.is_present:
+    return res.get
+
   # Detecting format
   req.format = parse_format(req.query, req.headers).get(server.config.default_format)
   let format_type =
@@ -266,7 +282,7 @@ proc jester_handler(server: Server, jreq: jester.Request): Future[jester.Respons
 proc init_jester(config: ServerConfig): jester.Jester =
   let settings = jester.new_settings(
     port      = Port(config.port),
-    staticDir = getCurrentDir() / "public",
+    # staticDir = "/alex/projects/nim/browser", # fmt"{get_current_dir()}/../browser",
     appName   = "",
     bindAddr  = config.host,
     reusePort = false,
@@ -313,6 +329,32 @@ proc format_error_as(error: ref CatchableError, format: string): Response =
     Response.init(200, content, @[("Content-Type", "application/json")])
   else:
     Response.init(500, fmt"Error, invalid format '{format}'")
+
+
+# handle_assets_slow -------------------------------------------------------------------------------
+# TODO 2, it's slow, files in production should be served by NGinx
+proc handle_assets_slow(
+  server: Server, req: Request
+): Option[Response] =
+  if req.path.starts_with(server.config.assets_path):
+    if ".." in req.path:
+      return Response.init(500, "Invalid path").some
+
+    var path = req.path.replace(server.config.assets_path, "/")
+    for prefix in server.config.assets_file_paths:
+      let full_path = prefix / path
+      if full_path.file_exists:
+        let size = full_path.get_file_size
+        if size > 10_000_000: # 10 mb
+          return Response.init(500, "Error, large files not yet supported").some
+        else:
+          let mimetype = full_path.parse_mime.get("")
+          var content = read_file(full_path)
+          return Response.init(200, content, { "Content-Type": mimetype }).some
+
+    log().with((time: Time.now, path: req.path)).error("{path} file not found")
+    return Response.init(404, "Error, file not found").some
+  return Response.none
 
 
 # Test ---------------------------------------------------------------------------------------------

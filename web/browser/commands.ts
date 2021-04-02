@@ -1,7 +1,8 @@
-import { assert, http_call } from 'bon/base.ts'
-import { $, build, find_one, find, waiting, TEvent, get_form_data } from './tquery.ts'
+import { assert, http_call, log } from 'bon/base.ts'
+import { $, build, build_one, find_one, find_by_id, find, waiting, TEvent, get_form_data } from './tquery.ts'
 import { get_user_token, get_session_token } from './helpers.ts'
 
+declare const morphdom: (a: HTMLElement, b: string | HTMLElement) => void
 
 // Command -------------------------------------------------------------------------------------------
 export interface Command {
@@ -24,10 +25,16 @@ export async function execute_command(command: Command, event?: Event | TEvent) 
   // log('info', `executing '${command.command}' command`)
   if (!(command.command in executors)) throw new Error(`unknown command '${command.command}'`)
   let executor: CommandExecutor = executors[command.command]
-  if (event) {
-    await waiting(event, () => executor(command))
-  } else {
-    await executor(command)
+  try {
+    if (event) {
+      await waiting(event, () => executor(command))
+    } else {
+      await executor(command)
+    }
+  } catch (e) {
+    show_error({ command: "show_error", error: e.message || "Unknown error" })
+    log('error', `executing '${command.command}' command`, e)
+    console.error(e)
   }
 }
 
@@ -62,7 +69,7 @@ export interface ExecuteCommand {
   id:      string
 }
 export async function execute({ id }: ExecuteCommand) {
-  const command = JSON.parse(find_one(`#${id}`).ensure_attr('command'))
+  const command = JSON.parse(find_by_id(id).ensure_attr('command'))
   execute_command(command)
 }
 register_executor("show_error", show_error)
@@ -109,7 +116,7 @@ export interface FlashCommand {
   id:      string
 }
 export async function flash({ id }: FlashCommand) {
-  find_one(`#${id}`).flash()
+  find_by_id(id).flash()
 }
 register_executor("flash", flash)
 
@@ -136,19 +143,19 @@ export async function reload({ url }: ReloadCommand) {
     show_error({ command: 'show_error', error: `Unknown error, please reload page` })
     return
   }
-  await replace({ command: 'replace', page: await result.text() })
+  await update({ command: 'update', page: await result.text() })
 }
 register_executor("reload", reload)
 
 
-// ReplaceCommand ----------------------------------------------------------------------------------
+// UpdateCommand ----------------------------------------------------------------------------------
 // TODO 2 also add `location`
-export type ReplaceCommand =
-  { command: 'replace', element: string, id?: string, flash?: boolean } |
-  // { command: 'replace', element: string,  flash?: boolean } |
-  { command: 'replace', page: string }
+export type UpdateCommand =
+  { command: 'update', partial: string, id?: string, flash?: boolean } |
+  // { command: 'update', element: string,  flash?: boolean } |
+  { command: 'update', page: string }
 
-async function replace(command: ReplaceCommand) {
+async function update(command: UpdateCommand) {
   function is_page(html: string) { return /<html/.test(html) }
 
   if ('page' in command) {
@@ -159,26 +166,28 @@ async function replace(command: ReplaceCommand) {
       .replace(/<\/body[\s\S]*/, '')
       .replace(/<script[\s\S]*?script>/g, '')
       .replace(/<link[\s\S]*?>/g, '')
-    find_one('body').set_content(bodyInnerHtml)
+    morphdom(document.body, bodyInnerHtml)
+    // find_one('body').set_content(bodyInnerHtml)
   } else {
-    assert(!is_page(command.element), `use 'page' command to replace the whole HTML page`)
-    // Extracting `id` from html text
-    const $elements = build(command.element)
-    for (const $el of $elements) {
-      const find_element = () => {
-        // group_id will be used in case when elements united with the `<group id="some-id">`
-        const id = command.id || $el.get_attr('id'), group_id = $el.get_attr('group_id')
-        if      (id)       return find_one(`#${id}`)
-        else if (group_id) return find_one(`[group_id="${group_id}"]`)
-        else               throw new Error(`nether id nor group_id are defined`)
+    assert(!is_page(command.partial), `use 'page' option to update the whole HTML page`)
+    if (command.id) {
+      // Updating single element with explicit ID
+      build_one(command.partial) // Ensuring there's only one element in partial
+      morphdom(find_by_id(command.id).native, command.partial)
+      if (command.flash) find_by_id(command.id).flash()
+    } else {
+      // Updating one or more elements with id specified implicitly in HTML chunks
+      const $elements = build(command.partial)
+      for (const $el of $elements) {
+        const id = $el.get_attr('id')
+        if (!id) throw new Error(`explicit id or id in the partial required for update`)
+        morphdom(find_by_id(id).native, $el.native)
+        if (command.flash) find_by_id(id).flash()
       }
-
-      find_element().replace_with($el)
-      if (command.flash) find_element().flash()
     }
   }
 }
-register_executor("replace", replace)
+register_executor("update", update)
 
 
 // RedirectCommand ---------------------------------------------------------------------------------
@@ -197,7 +206,7 @@ export async function redirect(command: RedirectCommand) {
   }
 
   if ('page' in command) {
-    await replace({ command: 'replace', page: command.page })
+    await update({ command: 'update', page: command.page })
     update_history()
   } else if ('method' in command) {
     let method = command.method || 'get'
@@ -210,7 +219,7 @@ export async function redirect(command: RedirectCommand) {
         show_error({ command: 'show_error', error: `Unknown error, please reload page` })
         return
       }
-      await replace({ command: 'replace', page: await result.text() })
+      await update({ command: 'update', page: await result.text() })
       update_history()
     } else {
       // Redirect with post

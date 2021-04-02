@@ -5,8 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Test</title>
     <script src="/vendor/jquery-3.6.0.min.js"></script>
-    <script src="/build.js" type="module"></script>
+    <script src="/vendor/morphdom-2.6.1.min.js"></script>
+    <script src="/client.build.js" type="module"></script>
   </head>
   <body>
+    <div id="a">A</div>
+    <script>
+      morphdom(document.getElementById("a"), '<div id="a">B</div>')
+    </script>
   </body>
 </html>

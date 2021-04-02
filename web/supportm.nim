@@ -1,7 +1,7 @@
 import basem, logm
 import ./helpersm
 
-import logging, mimetypes, strtabs
+import logging, mimetypes, strtabs, os
 
 let logger = Log.init "HTTP"
 
@@ -37,8 +37,8 @@ test "route_pattern_to_re":
     { "name": "alex" }.to_table
 
 
-# parse_format -------------------------------------------------------------------------------------
-let mime = new_mimetypes().to_shared_ptr
+# parse_format, parse_mime -------------------------------------------------------------------------
+let mimes = new_mimetypes().to_shared_ptr
 
 proc parse_format*(
   query: Table[string, string], headers: Table[string, seq[string]]
@@ -46,9 +46,19 @@ proc parse_format*(
   if "format" in query: return query["format"].some
   let content_type = headers["Content-Type", headers["Accept", @[]]]
   if not content_type.is_blank:
-    let ext = mime[].get_ext(content_type[0], "unknown")
+    let ext = mimes[].get_ext(content_type[0], "unknown")
     if ext != "unknown":
       return ext.some
+  string.none
+
+proc parse_mime*(
+  path: string
+): Option[string] {.gcsafe.} =
+  let ext = path.split_file.ext
+  if not ext.is_empty:
+    let m = mimes[].get_mimetype(ext[1..^1], "unknown")
+    if m != "unknown":
+      return m.some
   string.none
 
 
