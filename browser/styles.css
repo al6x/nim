@@ -1,0 +1,64 @@
+/* Flash ---------------------------------------------------------------------------------------- */
+@keyframes yellowfade {
+  from { background: #fdd835; }
+  to { background: #fff; }
+}
+
+.flash {
+  animation-name: yellowfade;
+  animation-duration: 1.5s;
+}
+
+
+/* Waiting -------------------------------------------------------------------------------------- */
+@keyframes waiting {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.waiting:not(input) {
+  color: transparent !important;
+  min-height: .8rem;
+  pointer-events: none;
+  position: relative;
+}
+
+.waiting::after {
+  animation: loading 500ms infinite linear;
+  border: .1rem solid primary-color;
+  border-radius: 50%;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  content: "";
+  display: block;
+  height: .8rem;
+  left: 50%;
+  margin-left: -.4rem;
+  margin-top: -.4rem;
+  position: absolute;
+  top: 50%;
+  width: .8rem;
+  z-index: 1;
+}
+
+.-waiting.-waiting-lg {
+  min-height: 2rem;
+}
+
+.-waiting.-waiting-lg::after {
+  height: 1.6rem;
+  margin-left: -.8rem;
+  margin-top: -.8rem;
+  width: 1.6rem;
+}
+
+/* Inverting color on black buttons */
+.-primary.-waiting::after {
+  border-color: background-color;
+  border-right-color: primary-color;
+  border-top-color: primary-color;
+}

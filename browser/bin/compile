@@ -1,0 +1,2 @@
+#!/bin/bash
+deno bundle --config tsconfig.json --import-map import_map.json client.ts > client.build.js
