@@ -60,17 +60,26 @@ type Request* = ref object
   path*:          string
   query*:         Table[string, string]
   body*:          string
+  data*:          JsonNode
+
   format*:        string
   params*:        Table[string, string]
   session_token*: string
   user_token*:    string
   config*:        ServerConfig # There's no other way to pass it as GCSafe
 
+proc get(req: Request, key: string, default: Option[string]): string =
+  if   key in req.body:   req.data[key].get_str
+  elif key in req.query:  req.query[key]
+  elif key in req.params: req.params[key]
+  elif default.is_some:   default.get
+  else:                   throw fmt"no '{key}' key in request"
+
 proc `[]`*(req: Request, key: string): string =
-  req.params[key]
+  req.get(key, string.none)
 
 proc `[]`*(req: Request, key: string, default: string): string =
-  req.params[key, default]
+  req.get(key, default.some)
 
 
 # Response ----------------------------------------------------------------------------------------
@@ -115,6 +124,8 @@ type Server* = ref object of RootObj
   jester*:      jester.Jester
   routes*:      Table[string, seq[Route]] # First prefix to speed up route matching
   data_routes*: Table[string, seq[Route]] # First prefix to speed up route matching
+
+proc init_jester(config: ServerConfig): jester.Jester
 
 proc init*(_: type[Server], config: ServerConfig): Server =
   Server(
@@ -214,7 +225,8 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
   let routeo = routes[route_prefix, @[]]
     .find((route) => route.methd == req.methd and route.pattern =~ normalized_path)
 
-  if routeo.is_none:
+  let route = if routeo.is_some: routeo.get
+  else:
     if not ignore_request(req.path):
       req_log.with((time: Time.now)).error("{method4} {path} route not found")
     return (
@@ -223,14 +235,16 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
       of data_e:  format_error_as("Route not found", req.format)
       of other_e: Response.init(404, "Route not found")
     )
-  let route = routeo.get
 
   # Finishing request initialization
-  if routeo.is_some:
-    req.params = routeo.get.pattern.parse_named(req.path) & req.query
+  req.params = routeo.get.pattern.parse_named(req.path) & req.query
+  req.data   = try:
+    (if req.format == "json": req.body else: "{}").parse_json
+  except:
+    return Response.init(400, "Invalid JSON body")
 
-    req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random()]]
-    req.session_token = req.params["session_token", secure_random()]
+  req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random()]]
+  req.session_token = req.params["session_token", secure_random()]
 
   # Processing
   let tic = timer_ms()
@@ -294,6 +308,7 @@ proc jester_handler(server: Server, jreq: jester.Request): Future[jester.Respons
     # Responding
     jester.resp(httpcore.HttpCode(resp.code), resp.headers, resp.content)
 
+
 # init_jester --------------------------------------------------------------------------------------
 proc init_jester(config: ServerConfig): jester.Jester =
   let settings = jester.new_settings(
@@ -319,6 +334,7 @@ proc partial_init(_: type[Request], config: ServerConfig, jreq: jester.Request):
   result.cookies  = jester.cookies(jreq)
   result.path     = path
   result.query    = query
+  result.body     = jester.body(jreq)
   result.config   = config
 
 

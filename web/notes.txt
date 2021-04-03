@@ -42,3 +42,9 @@ SIGSEGV: Illegal storage access. (Attempt to read from nil?)
 3) State management
 
 4) Plain single threaded Python/PHP script, could be used with NGinx only
+
+5) Huge memory consumption
+
+6) How to pass server around?
+
+7) fmt not works with objects

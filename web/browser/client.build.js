@@ -759,7 +759,7 @@ function unwrap(input) {
     else return input;
 }
 function get_form_data($form) {
-    const list = $form.native.serializeArray();
+    const list = jQuery($form.native).serializeArray();
     const result = {
     };
     for (let { name , value  } of list)result[name] = value;
@@ -829,20 +829,20 @@ async function call(command) {
     let with_state = 'state' in command ? command.state : false;
     let state = with_state ? get_state() : {
     };
-    let commands = await http_call(command.call, {
+    let response = await http_call(command.call, {
         ...args,
-        ...state,
-        location
+        ...state
     }, {
         method: 'post',
         params: {
             format: 'json',
             user_token: get_user_token(),
-            session_token: get_session_token()
+            session_token: get_session_token(),
+            location
         }
     });
-    commands = commands instanceof Array ? commands : [
-        commands
+    let commands = response instanceof Array ? response : [
+        response
     ];
     for (const command1 of commands)await execute_command(command1);
 }

@@ -401,7 +401,7 @@ function unwrap(input: something): something {
 }
 
 export function get_form_data($form: TElement): { [key: string]: string } {
-  const list = ($form.native as something).serializeArray()
+  const list = jQuery($form.native as something).serializeArray()
   const result: {[key: string]: string } = {}
   for (let { name, value } of list) result[name] = value
   return result

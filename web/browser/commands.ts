@@ -94,21 +94,21 @@ export async function call(command: CallCommand) {
   let state      = with_state ? get_state() : {}
 
   // Calling server
-  let commands = await http_call<object, object[]>(command.call, {
+  let response = await http_call<object, object | object[]>(command.call, {
     ...args,
     ...state,
-    location
   }, {
     method: 'post',
     params: {
       format:        'json',
       user_token:    get_user_token(),
-      session_token: get_session_token()
+      session_token: get_session_token(),
+      location
     }
   })
 
   // Processing response commands
-  commands = commands instanceof Array ? commands : [commands]
+  let commands = response instanceof Array ? response : [response]
   for (const command of commands) await execute_command(command)
 }
 register_executor("call", call)
