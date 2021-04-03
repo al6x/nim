@@ -1,3 +1,5 @@
+# nim c -r web/examples/counter_example.nim
+
 import basem, jsonm
 import ../serverm, ../helpersm, ../commandsm, ../fs_sessionsm
 import os
