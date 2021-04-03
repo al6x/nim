@@ -1,30 +1,41 @@
-import { assert, http_call, log } from 'bon/base.ts'
+import { assert, http_call, log, sort } from 'bon/base.ts'
 import { $, build, build_one, find_one, find_by_id, find, waiting, TEvent, get_form_data } from './tquery.ts'
 import { get_user_token, get_session_token } from './helpers.ts'
 
 declare const morphdom: (a: HTMLElement, b: string | HTMLElement) => void
 
-// Command -------------------------------------------------------------------------------------------
-export interface Command {
-  command: string
-}
-
-
 // CommandExecutor ---------------------------------------------------------------------------------
-export type CommandExecutor = (command: Command) => Promise<void>
+export type CommandExecutor = (command: object) => Promise<void>
 
-export const executors: {[command: string]: CommandExecutor} = {}
+export const executors: { [command: string]: CommandExecutor } = {}
 
-export function register_executor<C extends Command>(name: string, executor: (command: C) => Promise<void>): void {
+export function register_executor<C extends object>(name: string, executor: (command: C) => Promise<void>): void {
   executors[name] = executor as CommandExecutor
 }
 
 
 // execute_command ---------------------------------------------------------------------------------
-export async function execute_command(command: Command, event?: Event | TEvent) {
-  // log('info', `executing '${command.command}' command`)
-  if (!(command.command in executors)) throw new Error(`unknown command '${command.command}'`)
-  let executor: CommandExecutor = executors[command.command]
+export async function execute_command(command: object, event?: Event | TEvent) {
+  // if (!(command.command in executors)) throw new Error(`unknown command '${command.command}'`)
+  // let executor: CommandExecutor = executors[command.command]
+
+  var found: string | null = null
+  for (let name in executors) {
+    if (name in command) {
+      // Some commands may have conflict, like `update/flash` and `flash`, resolving it
+      if (found != null) {
+        let abname = sort([name, found]).join("/")
+        if (abname in executors) found = abname
+        else                     throw new Error(`Can't resolve executor for ${found}, ${name}!`)
+      } else {
+        found = name
+      }
+    }
+  }
+  if (found == null) throw new Error(`Executor not found for command ${Object.keys(command).join(", ")}!`)
+  let executor = executors[found]
+
+  log('info', `executing ${found}`)
   try {
     if (event) {
       await waiting(event, () => executor(command))
@@ -32,8 +43,8 @@ export async function execute_command(command: Command, event?: Event | TEvent) 
       await executor(command)
     }
   } catch (e) {
-    show_error({ command: "show_error", error: e.message || "Unknown error" })
-    log('error', `executing '${command.command}' command`, e)
+    show_error({ show_error: e.message || "Unknown error" })
+    log('error', `executing ${found}`, e)
     console.error(e)
   }
 }
@@ -41,23 +52,21 @@ export async function execute_command(command: Command, event?: Event | TEvent) 
 
 // ShowErrorCommand ----------------------------------------------------------------------------------
 export interface ShowErrorCommand {
-  command: 'show_error'
-  error:   string
+  show_error: string
 }
-export async function show_error({ error }: ShowErrorCommand) {
-  alert(error || 'Unknown error')
+export async function show_error({ show_error }: ShowErrorCommand) {
+  alert(show_error || 'Unknown error')
 }
 register_executor("show_error", show_error)
 
 
 // ConfirmCommand --------------------------------------------------------------------------------
 export interface ConfirmCommand {
-  command: 'confirm'
+  confirm:  object // Command to execute
   message?: string
-  execute:  Command
 }
-export async function confirm({ message, execute }: ConfirmCommand) {
-  if (window.confirm(message || 'Are you sure?')) await execute_command(execute)
+export async function confirm({ confirm: command, message }: ConfirmCommand) {
+  if (window.confirm(message || 'Are you sure?')) await execute_command(command)
 }
 register_executor("confirm", confirm)
 
@@ -65,21 +74,19 @@ register_executor("confirm", confirm)
 // ExecuteCommand --------------------------------------------------------------------------------
 // Execute command from another DOM element
 export interface ExecuteCommand {
-  command: 'execute'
-  id:      string
+  execute: string // ID of DOM element
 }
-export async function execute({ id }: ExecuteCommand) {
+export async function execute({ execute: id }: ExecuteCommand) {
   const command = JSON.parse(find_by_id(id).ensure_attr('command'))
   execute_command(command)
 }
-register_executor("show_error", show_error)
+register_executor("execute", execute)
 
 
 // CallCommand -------------------------------------------------------------------------------------
 // Call server
 export interface CallCommand {
-  command: 'call'
-  path:     string
+  call:     string
   args?:    object
   state?:   boolean
 }
@@ -90,7 +97,7 @@ export async function call(command: CallCommand) {
   let state      = with_state ? get_state() : {}
 
   // Calling server
-  let commands = await http_call<object, object[]>(command.path, {
+  let commands = await http_call<object, object[]>(command.call, {
     ...args,
     ...state,
     location
@@ -105,17 +112,16 @@ export async function call(command: CallCommand) {
 
   // Processing response commands
   assert(commands && commands instanceof Array, `wrong command response format`)
-  for (const command of commands) await execute_command(command as Command)
+  for (const command of commands) await execute_command(command)
 }
 register_executor("call", call)
 
 
 // FlashCommand --------------------------------------------------------------------------------------
 export interface FlashCommand {
-  command: 'flash'
-  id:      string
+  flash: string // ID of DOM element to flash
 }
-export async function flash({ id }: FlashCommand) {
+export async function flash({ flash: id }: FlashCommand) {
   find_by_id(id).flash()
 }
 register_executor("flash", flash)
@@ -123,45 +129,44 @@ register_executor("flash", flash)
 
 // JsCommand -----------------------------------------------------------------------------------------
 export interface JsCommand {
-  command: 'eval_js'
-  js:      string
+  eval_js: string
 }
-export async function eval_js({ js }: JsCommand) {
-  eval(js)
+export async function eval_js({ eval_js }: JsCommand) {
+  eval(eval_js)
 }
 register_executor("eval_js", eval_js)
 
 
 // ReloadCommand -------------------------------------------------------------------------------------
 export interface ReloadCommand {
-  command: 'reload'
-  url?:     string
+  reload: boolean | string
 }
-export async function reload({ url }: ReloadCommand) {
-  const result = await fetch(url || window.location.href)
+export async function reload({ reload: url }: ReloadCommand) {
+  const result = await fetch((typeof url == "boolean") ? window.location.href : url)
   if (!result.ok) {
-    show_error({ command: 'show_error', error: `Unknown error, please reload page` })
+    show_error({ show_error: `Unknown error, please reload page` })
     return
   }
-  await update({ command: 'update', page: await result.text() })
+  await update({ update: await result.text() })
 }
 register_executor("reload", reload)
 
 
 // UpdateCommand ----------------------------------------------------------------------------------
 // TODO 2 also add `location`
-export type UpdateCommand =
-  { command: 'update', partial: string, id?: string, flash?: boolean } |
-  // { command: 'update', element: string,  flash?: boolean } |
-  { command: 'update', page: string }
-
+export interface UpdateCommand {
+  update: string
+  id?:    string
+  flash?: boolean
+}
 async function update(command: UpdateCommand) {
+  let html = command.update
   function is_page(html: string) { return /<html/.test(html) }
 
-  if ('page' in command) {
-    const match = command.page.match(/<head.*?><title>(.*?)<\/title>/)
+  if (is_page(html)) {
+    const match = html.match(/<head.*?><title>(.*?)<\/title>/)
     if (match) window.document.title = match[1]
-    const bodyInnerHtml = command.page
+    const bodyInnerHtml = html
       .replace(/^[\s\S]*<body[\s\S]*?>/, '')
       .replace(/<\/body[\s\S]*/, '')
       .replace(/<script[\s\S]*?script>/g, '')
@@ -169,15 +174,14 @@ async function update(command: UpdateCommand) {
     morphdom(document.body, bodyInnerHtml)
     // find_one('body').set_content(bodyInnerHtml)
   } else {
-    assert(!is_page(command.partial), `use 'page' option to update the whole HTML page`)
     if (command.id) {
       // Updating single element with explicit ID
-      build_one(command.partial) // Ensuring there's only one element in partial
-      morphdom(find_by_id(command.id).native, command.partial)
+      build_one(html) // Ensuring there's only one element in partial
+      morphdom(find_by_id(command.id).native, html)
       if (command.flash) find_by_id(command.id).flash()
     } else {
       // Updating one or more elements with id specified implicitly in HTML chunks
-      const $elements = build(command.partial)
+      const $elements = build(html)
       for (const $el of $elements) {
         const id = $el.get_attr('id')
         if (!id) throw new Error(`explicit id or id in the partial required for update`)
@@ -188,12 +192,13 @@ async function update(command: UpdateCommand) {
   }
 }
 register_executor("update", update)
+register_executor("flash/update", update) // To resolve conflict with the `flash` command
 
 
 // RedirectCommand ---------------------------------------------------------------------------------
 export type RedirectCommand =
-  { command: 'redirect', redirect: string, page: string } |
-  { command: 'redirect', redirect: string, method?: 'get' | 'post' }
+  { redirect: string, page: string } |
+  { redirect: string, method?: 'get' | 'post' }
 
 export async function redirect(command: RedirectCommand) {
   const { redirect: path } = command
@@ -206,7 +211,7 @@ export async function redirect(command: RedirectCommand) {
   }
 
   if ('page' in command) {
-    await update({ command: 'update', page: command.page })
+    await update({ update: command.page })
     update_history()
   } else if ('method' in command) {
     let method = command.method || 'get'
@@ -216,10 +221,10 @@ export async function redirect(command: RedirectCommand) {
       // and expect it to be in the DOM
       const result = await fetch(url || window.location.href)
       if (!result.ok) {
-        show_error({ command: 'show_error', error: `Unknown error, please reload page` })
+        show_error({ show_error: `Unknown error, please reload page` })
         return
       }
-      await update({ command: 'update', page: await result.text() })
+      await update({ update: await result.text() })
       update_history()
     } else {
       // Redirect with post
@@ -251,7 +256,7 @@ async function check_for_location_change(): Promise<boolean> {
     if (
       parse_location(window.location.href) != parse_location(current_location) &&
       parse_location(window.location.href) != skip_reload_on_location_change
-    ) await reload({ command: 'reload' })
+    ) await reload({ reload: true })
     current_location = window.location.href
     skip_reload_on_location_change = null
     return true
