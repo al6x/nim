@@ -1,7 +1,10 @@
 import basem, jsonm, timem
-
+import ./supportm
+import random
 from jester import nil
 from times import nil
+
+export escape_html
 
 
 # escape_js ----------------------------------------------------------------------------------------
@@ -10,22 +13,6 @@ func escape_js*(js: string): string =
 
 test "escape_js":
   assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
-
-
-# escape_html --------------------------------------------------------------------------------------
-const ESCAPE_HTML_MAP = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  """: "&quot;",
-  """: "&#39;"
-}.to_table
-
-func escape_html*(html: string): string =
-  html.replace(re"""[&<>'"]""", (c) => ESCAPE_HTML_MAP[c])
-
-test "escape_html":
-  assert escape_html("<div>") == """&lt;div&gt;"""
 
 
 # set_cookie ---------------------------------------------------------------------------------------
@@ -40,7 +27,37 @@ proc set_cookie*(
     jester.set_cookie(key, value, expires = expires)
   headers = wrapperfn().headers.get
 
-# # get_cookies ------------------------------------------------------------------------------------
-# proc get_cookies*(headers: Table[string, seq[string]]): Table[string, string] =
-#   let raw = headers["Cookie", @[]].join("; ")
-#   for k, v in std_cookies.parse_cookies(raw): result[k] = v
+
+# asset_path ---------------------------------------------------------------------------------------
+proc asset_path*(
+  path: string, assets_path: string, assets_file_paths: seq[string], max_file_size: int, cache_assets: bool
+): string =
+  assert path.starts_with("/"), fmt"path '{path}' must start with /"
+  var hash = if cache_assets:
+    asset_hash(path, assets_file_paths, max_file_size)
+  else:
+    var rgen = init_rand(Timem.now.epoch)
+    $rgen.rand(int.high)
+  fmt"{assets_path}{path}?hash={hash}"
+
+proc asset_path*[R](req: R, path: string): string =
+  let config = req.config
+  asset_path(path, config.assets_path, config.assets_file_paths, config.max_file_size, config.cache_assets)
+
+
+# base_assets --------------------------------------------------------------------------------------
+# TODO 2 use live reload ${useLiveReload ? `<script src="${assetPath('/livereload.js')}"></script>` : ''}
+proc base_assets*[R](request: R): string = fmt"""
+  <script src="{request.asset_path("/vendor/jquery-3.6.0.min.js")}"></script>
+  <script src="{request.asset_path("/vendor/morphdom-2.6.1.min.js")}"></script>
+  <script src="{request.asset_path("/client.build.js")}" type="module"></script>
+  <link rel="stylesheet" href="{request.asset_path("/styles.css")}">
+  <script>
+    window.user_token    = "{request.user_token}"
+    window.session_token = "{request.session_token}"
+  </script>
+"""
+
+# <script>
+#     jQuery.noConflict(true)
+#   </script>

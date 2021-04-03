@@ -1,5 +1,5 @@
 import system except find
-import basem, logm, jsonm, rem, timem, randomm
+import basem, logm, jsonm, rem, timem, randomm, envm
 import ./supportm, ./helpersm
 
 import os, threadpool, asyncdispatch
@@ -10,6 +10,45 @@ from times as times import nil
 {.experimental: "code_reordering".}
 
 proc log(): Log = Log.init "HTTP"
+
+
+# ServerConfig -------------------------------------------------------------------------------------
+type ServerConfig* = ref object
+  host*:           string
+  port*:           int
+  async_delay*:    int         # Delay while async handlers waits for threadpool
+  data_formats*:   seq[string] # Data format types, like ["json", "yaml", "toml"]
+  default_format*: string
+  show_errors*:    bool        # Show stack trace on the error page, it's handy in development,
+                               # but should be disabledled in production
+
+  assets_path*:       string      # Http prefix for assets, like `/assets`
+  assets_file_paths*: seq[string]
+  max_file_size*:     int         # Currently large files are not supported
+  cache_assets*:      bool
+
+proc init*(
+  _: type[ServerConfig],
+  host           = "localhost",
+  port           = 5000,
+  async_delay    = 3,
+  data_formats   = @["json"],
+  default_format = "html",
+  show_errors    = true,
+
+  assets_path       = "/assets",
+  assets_file_paths = new_seq[string](),
+  max_file_size     = 10_000_000,                  # 10 Mb
+  cache_assets      = env["environment", "development"] == "production"
+): ServerConfig =
+  const script_dir = instantiation_info(full_paths = true).filename.parent_dir
+  var assets_file_paths = assets_file_paths & @[script_dir / "browser"]
+  ServerConfig(
+    host: host, port: port, async_delay: async_delay,
+    data_formats: data_formats, default_format: default_format,
+    show_errors: show_errors,
+    assets_path: assets_path, assets_file_paths: assets_file_paths, max_file_size: max_file_size
+  )
 
 
 # Request ------------------------------------------------------------------------------------------
@@ -25,6 +64,7 @@ type Request* = ref object
   params*:        Table[string, string]
   session_token*: string
   user_token*:    string
+  config*:        ServerConfig # There's no other way to pass it as GCSafe
 
 proc `[]`*(req: Request, key: string): string =
   req.params[key]
@@ -37,55 +77,23 @@ proc `[]`*(req: Request, key: string, default: string): string =
 type Response* = ref object
   code*:     int
   content*:  string
-  headers*:  seq[tuple[key, value: string]]
+  headers*:  seq[(string, string)]
 
 proc init*(
-  _: type[Response], code = 200, content = "", headers: openarray[tuple[key, value: string]] = @[]
+  _: type[Response], code = 200, content = "", headers: openarray[(string, string)] = @[]
 ): Response =
   Response(code: code, content: content, headers: headers.to_seq)
+
+proc init*(
+  _: type[Response], data: (int, string, seq[(string, string)])
+): Response =
+  Response(code: data[0], content: data[1], headers: data[2])
 
 proc respond*(content: string): Response =
   Response.init(content = content, headers = @[("Content-Type", "text/html;charset=utf-8")])
 
 proc redirect*(url: string): Response =
   Response.init(303, "Redirected to {url}", @[("Location", url)])
-
-
-# ServerConfig -------------------------------------------------------------------------------------
-type ServerConfig* = ref object
-  host*:           string
-  port*:           int
-  async_delay*:    int         # Delay while async handlers waits for threadpool
-  data_formats*:   seq[string] # Data format types, like ["json", "yaml", "toml"]
-  default_format*: string
-  show_errors*:    bool        # Show stack trace on the error page, it's handy in development,
-                               # but should be disabledled in production
-
-  assets_path*:       string
-  assets_file_paths*: seq[string]
-
-
-# p script_dir
-proc init*(
-  _: type[ServerConfig],
-  host           = "localhost",
-  port           = 5000,
-  async_delay    = 3,
-  data_formats   = @["json"],
-  default_format = "html",
-  show_errors    = true,
-
-  assets_path       = "/assets",
-  assets_file_paths = new_seq[string]()
-): ServerConfig =
-  const script_dir = instantiation_info(full_paths = true).filename.parent_dir
-  var assets_file_paths = assets_file_paths & @[script_dir / "browser"]
-  ServerConfig(
-    host: host, port: port, async_delay: async_delay,
-    data_formats: data_formats, default_format: default_format,
-    show_errors: show_errors,
-    assets_path: assets_path, assets_file_paths: assets_file_paths
-  )
 
 
 # Handler, ApiHandler ------------------------------------------------------------------------------
@@ -125,8 +133,8 @@ proc init*(
 # route --------------------------------------------------------------------------------------------
 # route_prefix needed to speed up route matching
 proc route_prefix(pattern: string): string =
-  re"(^/[a-z0-9]+)".parse1(pattern.replace(re"^\^", ""))
-    .ensure(() => fmt"route '{pattern}' should have prefix")
+  re"(^/[a-z0-9]+)".parse1(pattern.replace(re"^\^", "")).get("")
+    # .ensure(() => fmt"route '{pattern}' should have prefix")
 
 proc add(routes: var Table[string, seq[Route]], pattern: Regex, methd: string, handler: Handler): void =
   let route = Route(pattern: pattern, methd: methd, handler: handler)
@@ -168,14 +176,24 @@ proc get_data*[T](server: var Server, pattern: string | Regex, handler: ApiHandl
 proc post_data*[T](server: var Server, pattern: string | Regex, handler: ApiHandler[T]): void =
   server.add_data_route(pattern, "post", handler)
 
+proc action*[T](server: var Server, action: string, handler: ApiHandler[T]): void =
+  server.add_data_route("/" & action, "post", handler)
+
 
 # process ------------------------------------------------------------------------------------------
 type format_type = enum html_e, data_e, other_e
 proc process(server: Server, req: Request): Response {.gcsafe.} =
   # Serving files
-  let res = server.handle_assets_slow(req)
-  if res.is_present:
-    return res.get
+  let file_res = handle_assets_slow(
+    path              = req.path,
+    query             = req.query,
+    assets_path       = server.config.assets_path,
+    assets_file_paths = server.config.assets_file_paths,
+    max_file_size     = server.config.max_file_size,
+    cache_assets      = server.config.cache_assets
+  )
+  if file_res.is_present:
+    return Response.init(file_res.get)
 
   # Detecting format
   req.format = parse_format(req.query, req.headers).get(server.config.default_format)
@@ -189,7 +207,9 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
 
   # Matching route
   let routes = if format_type == data_e: server.data_routes else: server.routes
+
   let route_prefix = req.methd & ":" & req.path.route_prefix
+
   let normalized_path = req.path.replace(re"/$", "")
   let routeo = routes[route_prefix, @[]]
     .find((route) => route.methd == req.methd and route.pattern =~ normalized_path)
@@ -214,13 +234,13 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
 
   # Processing
   let tic = timer_ms()
-  req_log.with((time: Time.now)).info("{method4} {path}.{format} started")
+  req_log.with((time: Time.now)).info("{method4} {path} as {format} started")
 
   try:
     var response = route.handler(req)
     req_log
       .with((time: Time.now, duration_ms: tic()))
-      .info("{method4} {path}.{format} finished, {duration_ms}ms")
+      .info("{method4} {path} as {format} finished, {duration_ms}ms")
 
     # Writing cookies
     if format_type == html_e:
@@ -231,7 +251,7 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
-      .error("{method4} {path}.{format} failed, {duration_ms}ms, {error}")
+      .error("{method4} {path} as {format} failed, {duration_ms}ms, {error}")
 
     let show_errors = server.config.show_errors
     case format_type
@@ -262,7 +282,7 @@ proc run*(server: Server): void =
 # Delegates work to thread pool
 proc jester_handler(server: Server, jreq: jester.Request): Future[jester.ResponseData] {.async.} =
   block route:
-    let req = Request.partial_init(jreq)
+    let req = Request.partial_init(server.config, jreq)
 
     # Spawning and waiting for the result
     var cresp = spawn server.process(req)
@@ -272,11 +292,7 @@ proc jester_handler(server: Server, jreq: jester.Request): Future[jester.Respons
     let resp: Response = ^cresp
 
     # Responding
-    jester.resp(
-      httpcore.HttpCode(resp.code),
-      resp.headers.map((t) => (key: t.key, val: t.value)),
-      resp.content
-    )
+    jester.resp(httpcore.HttpCode(resp.code), resp.headers, resp.content)
 
 # init_jester --------------------------------------------------------------------------------------
 proc init_jester(config: ServerConfig): jester.Jester =
@@ -292,7 +308,7 @@ proc init_jester(config: ServerConfig): jester.Jester =
 
 
 # Request.partial_init -----------------------------------------------------------------------------
-proc partial_init(_: type[Request], jreq: jester.Request): Request =
+proc partial_init(_: type[Request], config: ServerConfig, jreq: jester.Request): Request =
   let path  = jester.path(jreq)
   let query = jester.params(jreq)
 
@@ -303,6 +319,7 @@ proc partial_init(_: type[Request], jreq: jester.Request): Request =
   result.cookies  = jester.cookies(jreq)
   result.path     = path
   result.query    = query
+  result.config   = config
 
 
 # error pages and format ---------------------------------------------------------------------------
@@ -329,32 +346,6 @@ proc format_error_as(error: ref CatchableError, format: string): Response =
     Response.init(200, content, @[("Content-Type", "application/json")])
   else:
     Response.init(500, fmt"Error, invalid format '{format}'")
-
-
-# handle_assets_slow -------------------------------------------------------------------------------
-# TODO 2, it's slow, files in production should be served by NGinx
-proc handle_assets_slow(
-  server: Server, req: Request
-): Option[Response] =
-  if req.path.starts_with(server.config.assets_path):
-    if ".." in req.path:
-      return Response.init(500, "Invalid path").some
-
-    var path = req.path.replace(server.config.assets_path, "/")
-    for prefix in server.config.assets_file_paths:
-      let full_path = prefix / path
-      if full_path.file_exists:
-        let size = full_path.get_file_size
-        if size > 10_000_000: # 10 mb
-          return Response.init(500, "Error, large files not yet supported").some
-        else:
-          let mimetype = full_path.parse_mime.get("")
-          var content = read_file(full_path)
-          return Response.init(200, content, { "Content-Type": mimetype }).some
-
-    log().with((time: Time.now, path: req.path)).error("{path} file not found")
-    return Response.init(404, "Error, file not found").some
-  return Response.none
 
 
 # Test ---------------------------------------------------------------------------------------------

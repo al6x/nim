@@ -44,8 +44,7 @@ export async function execute_command(command: object, event?: Event | TEvent) {
     }
   } catch (e) {
     show_error({ show_error: e.message || "Unknown error" })
-    log('error', `executing ${found}`, e)
-    console.error(e)
+    log('error', `executing '${found}' command`, e)
   }
 }
 
@@ -111,7 +110,7 @@ export async function call(command: CallCommand) {
   })
 
   // Processing response commands
-  assert(commands && commands instanceof Array, `wrong command response format`)
+  commands = commands instanceof Array ? commands : [commands]
   for (const command of commands) await execute_command(command)
 }
 register_executor("call", call)

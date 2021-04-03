@@ -54,3 +54,46 @@ export function build_session_middleware(options: { cookie_secret?: string, cook
   const expires = new Date(Date.now() + max_age)
   return cookie_session({ name: 'session', keys: [cookie_secret], maxAge: max_age, expires })
 }
+
+
+# get_cookies ------------------------------------------------------------------------------------
+# proc get_cookies*(headers: Table[string, seq[string]]): Table[string, string] =
+#   let raw = headers["Cookie", @[]].join("; ")
+#   for k, v in std_cookies.parse_cookies(raw): result[k] = v
+
+
+
+
+counter_example(52351,0x7000072f5000) malloc: *** error for object 0x7fd290500290: pointer being freed was not allocated
+*** set a breakpoint in malloc_error_break to debug
+Traceback (most recent call last)
+/balex/applications/nim-1.4.2/lib/pure/concurrency/threadpool.nim(370) slave
+/alex/projects/nim/web/serverm.nim(283) processWrapper
+/balex/applications/nim-1.4.2/lib/system.nim(240) process
+/balex/applications/nim-1.4.2/lib/system/gc.nim(439) newObj
+/balex/applications/nim-1.4.2/lib/system/gc_common.nim(430) prepareDealloc
+/balex/applications/nim-1.4.2/lib/impure/nre.nim(242) destroyRegex
+SIGABRT: Abnormal termination.
+Error: execution of an external program failed: '/alex/projects/nim/build/counter_example '
+
+
+
+
+/balex/applications/nim-1.4.2/lib/pure/concurrency/threadpool.nim(370) slave
+/alex/projects/nim/web/serverm.nim(285) processWrapper
+/alex/projects/nim/web/serverm.nim(184) process
+/alex/projects/nim/web/supportm.nim(152) handle_assets_slow
+/alex/projects/nim/web/supportm.nim(76) parse_mime
+/balex/applications/nim-1.4.2/lib/pure/mimetypes.nim(1897) getMimetype
+/balex/applications/nim-1.4.2/lib/pure/strtabs.nim(192) getOrDefault
+/balex/applications/nim-1.4.2/lib/pure/strtabs.nim(135) rawGet
+/balex/applications/nim-1.4.2/lib/pure/strtabs.nim(121) myCmp
+SIGSEGV: Illegal storage access. (Attempt to read from nil?)
+
+
+
+1) How to store state, communicate between threads
+
+2) How to deal with bugs
+
+3) State management

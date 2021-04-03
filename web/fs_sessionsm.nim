@@ -26,6 +26,9 @@ proc init[T](_: type[SessionData[T]], session: T): SessionData[T] =
 
 
 # [], []=, delete ----------------------------------------------------------------------------------
+func fs_path(sessions: FsSessions, id: string): string =
+  fmt"{sessions.path}/{id.take(2)}/{id}.json"
+
 proc `[]`*[T](sessions: FsSessions[T], id: string): T =
   let data = SessionData[T].read_from(sessions.fs_path(id), () => SessionData.init(T.init))
   if (Time.now.epoch - data.timestamp.epoch) < sessions.expiration_sec:
@@ -39,11 +42,6 @@ proc delete*[T](sessions: FsSessions[T], id: string) =
 
 proc delete*[T](sessions: FsSessions[T]) =
   fs.delete(sessions.path, recursive = true)
-
-
-# Helpers ------------------------------------------------------------------------------------------
-func fs_path(sessions: FsSessions, id: string): string =
-  fmt"{sessions.path}/{id.take(2)}/{id}.json"
 
 
 # Test ---------------------------------------------------------------------------------------------

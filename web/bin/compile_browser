@@ -1,5 +1,5 @@
 #!/bin/bash
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-pushd $SCRIPT_DIR/../browser
+WEB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )"
+pushd $WEB_DIR/browser
 deno bundle --config tsconfig.json --import-map import_map.json client.ts > client.build.js
 popd

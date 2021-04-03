@@ -69,18 +69,22 @@ class Hash {
 let cached_environment = undefined;
 function get_environment() {
     if (cached_environment == undefined) {
-        const environment = Deno.env.get('environment') || 'development';
-        if (![
-            'development',
-            'production',
-            'test'
-        ].includes(environment)) throw new Error(`invalid environment '${environment}'`);
-        cached_environment = environment;
+        if (is_browser()) {
+            cached_environment = "development";
+        } else {
+            const environment = window.Deno.env.get('environment') || 'development';
+            if (![
+                'development',
+                'production',
+                'test'
+            ].includes(environment)) throw new Error(`invalid environment '${environment}'`);
+            cached_environment = environment;
+        }
     }
     return cached_environment;
 }
 function is_browser() {
-    return "Deno" in window;
+    return !("Deno" in window);
 }
 function map_to_json_if_defined(v) {
     return v && v.toJSON ? v.toJSON() : v;
@@ -114,7 +118,7 @@ test.run = async ()=>{
             await test1();
         } catch (e) {
             log('error', `test failed ${name ? ` '${name}'` : ''}`, e);
-            Deno.exit();
+            if (is_browser()) window.Deno.exit();
         }
     }
     log('info', 'tests passed');
@@ -238,7 +242,7 @@ test(()=>{
 });
 let cached_is_debug_enabled = undefined;
 function is_debug_enabled() {
-    if (cached_is_debug_enabled == undefined) cached_is_debug_enabled = Deno.env.get('debug')?.toLowerCase() == "true";
+    if (cached_is_debug_enabled == undefined) cached_is_debug_enabled = window.Deno.env.get('debug')?.toLowerCase() == "true";
     return cached_is_debug_enabled;
 }
 function pad0(v) {
@@ -388,6 +392,31 @@ function partition(o, splitter) {
         ];
     }
 }
+function sort(list, comparator) {
+    if (list.length == 0) return list;
+    else {
+        if (comparator) {
+            list = [
+                ...list
+            ];
+            list.sort(comparator);
+            return list;
+        } else {
+            if (typeof list[0] == 'number') comparator = function(a, b) {
+                return a - b;
+            };
+            else if (typeof list[0] == 'string') comparator = function(a, b) {
+                return a.localeCompare(b);
+            };
+            else throw new Error(`the 'comparator' required to sort a list of non numbers or strings`);
+            list = [
+                ...list
+            ];
+            list.sort(comparator);
+            return list;
+        }
+    }
+}
 function pick(o, keys) {
     return partition(o, (_v, i)=>keys.includes(i)
     )[0];
@@ -499,6 +528,9 @@ class TElementImpl {
         const found = this.find(query);
         assert.equal(found.length, 1, `required to find exactly 1 '${query}' but found ${found.length}`);
         return found[0];
+    }
+    find_by_id(id) {
+        return this.find_one(`#${id}`);
     }
     find_parents(query) {
         return this.$el.parents(query).toArray().map((el)=>new TElementImpl(el)
@@ -628,10 +660,14 @@ class TContainerImpl {
         assert.equal(found.length, 1, `required to find exactly 1 '${query}' but found ${found.length}`);
         return found[0];
     }
+    find_by_id(id) {
+        return this.find_one(`#${id}`);
+    }
 }
 const $ = wrap;
 $.find = find;
 $.find_one = find_one;
+$.find_by_id = find_by_id;
 $.build = build;
 $.build_one = build_one;
 function wrap(arg) {
@@ -652,6 +688,9 @@ function find_one(query) {
     const found = find(query);
     assert.equal(found.length, 1, `required to find exactly 1 '${query}' but found ${found.length}`);
     return found[0];
+}
+function find_by_id(id) {
+    return find_one(`#${id}`);
 }
 function build(html) {
     return jQuery(unwrap(html)).toArray().map((el)=>new TElementImpl(el)
@@ -727,10 +766,10 @@ function get_form_data($form) {
     return result;
 }
 function get_user_token() {
-    return ensure(find_one(`meta[name="user_token"]`).get_attr('content'), "user_token");
+    return ensure(window["user_token"], "user_token");
 }
 function get_session_token() {
-    return ensure(find_one(`meta[name="session_token"]`).get_attr('content'), "session_token");
+    return ensure(window["session_token"], "session_token");
 }
 const executors = {
 };
@@ -738,24 +777,51 @@ function register_executor(name, executor) {
     executors[name] = executor;
 }
 async function execute_command(command, event) {
-    if (!(command.command in executors)) throw new Error(`unknown command '${command.command}'`);
-    let executor = executors[command.command];
-    if (event) {
-        await waiting(event, ()=>executor(command)
-        );
-    } else {
-        await executor(command);
+    var found = null;
+    for(let name in executors){
+        if (name in command) {
+            if (found != null) {
+                let abname = sort([
+                    name,
+                    found
+                ]).join("/");
+                if (abname in executors) found = abname;
+                else throw new Error(`Can't resolve executor for ${found}, ${name}!`);
+            } else {
+                found = name;
+            }
+        }
+    }
+    if (found == null) throw new Error(`Executor not found for command ${Object.keys(command).join(", ")}!`);
+    let executor = executors[found];
+    log('info', `executing ${found}`);
+    try {
+        if (event) {
+            await waiting(event, ()=>executor(command)
+            );
+        } else {
+            await executor(command);
+        }
+    } catch (e) {
+        show_error({
+            show_error: e.message || "Unknown error"
+        });
+        log('error', `executing '${found}' command`, e);
     }
 }
-async function show_error({ error  }) {
-    alert(error || 'Unknown error');
+async function show_error({ show_error: show_error1  }) {
+    alert(show_error1 || 'Unknown error');
 }
 register_executor("show_error", show_error);
-async function confirm({ message: message1 , execute  }) {
-    if (window.confirm(message1 || 'Are you sure?')) await execute_command(execute);
+async function confirm({ confirm: command , message: message1  }) {
+    if (window.confirm(message1 || 'Are you sure?')) await execute_command(command);
 }
 register_executor("confirm", confirm);
-register_executor("show_error", show_error);
+async function execute({ execute: id  }) {
+    const command = JSON.parse(find_by_id(id).ensure_attr('command'));
+    execute_command(command);
+}
+register_executor("execute", execute);
 async function call(command) {
     let args = command.args || {
     };
@@ -763,7 +829,7 @@ async function call(command) {
     let with_state = 'state' in command ? command.state : false;
     let state = with_state ? get_state() : {
     };
-    let commands = await http_call(command.path, {
+    let commands = await http_call(command.call, {
         ...args,
         ...state,
         location
@@ -775,58 +841,61 @@ async function call(command) {
             session_token: get_session_token()
         }
     });
-    assert(commands && commands instanceof Array, `wrong command response format`);
+    commands = commands instanceof Array ? commands : [
+        commands
+    ];
     for (const command1 of commands)await execute_command(command1);
 }
 register_executor("call", call);
-async function flash1({ id  }) {
-    find_one(`#${id}`).flash();
+async function flash1({ flash: id  }) {
+    find_by_id(id).flash();
 }
 register_executor("flash", flash1);
-async function eval_js({ js  }) {
-    eval(js);
+async function eval_js({ eval_js: eval_js1  }) {
+    eval(eval_js1);
 }
 register_executor("eval_js", eval_js);
-async function reload({ url  }) {
-    const result = await fetch(url || window.location.href);
+async function reload({ reload: url  }) {
+    const result = await fetch(typeof url == "boolean" ? window.location.href : url);
     if (!result.ok) {
         show_error({
-            command: 'show_error',
-            error: `Unknown error, please reload page`
+            show_error: `Unknown error, please reload page`
         });
         return;
     }
-    await replace({
-        command: 'replace',
-        page: await result.text()
+    await update({
+        update: await result.text()
     });
 }
 register_executor("reload", reload);
-async function replace(command) {
-    function is_page(html) {
-        return /<html/.test(html);
+async function update(command) {
+    let html = command.update;
+    function is_page(html1) {
+        return /<html/.test(html1);
     }
-    if ('page' in command) {
-        const match = command.page.match(/<head.*?><title>(.*?)<\/title>/);
+    if (is_page(html)) {
+        const match = html.match(/<head.*?><title>(.*?)<\/title>/);
         if (match) window.document.title = match[1];
-        const bodyInnerHtml = command.page.replace(/^[\s\S]*<body[\s\S]*?>/, '').replace(/<\/body[\s\S]*/, '').replace(/<script[\s\S]*?script>/g, '').replace(/<link[\s\S]*?>/g, '');
-        find_one('body').set_content(bodyInnerHtml);
+        const bodyInnerHtml = html.replace(/^[\s\S]*<body[\s\S]*?>/, '').replace(/<\/body[\s\S]*/, '').replace(/<script[\s\S]*?script>/g, '').replace(/<link[\s\S]*?>/g, '');
+        morphdom(document.body, bodyInnerHtml);
     } else {
-        assert(!is_page(command.element), `use 'page' command to replace the whole HTML page`);
-        const $elements = build(command.element);
-        for (const $el of $elements){
-            const find_element = ()=>{
-                const id = command.id || $el.get_attr('id'), group_id = $el.get_attr('group_id');
-                if (id) return find_one(`#${id}`);
-                else if (group_id) return find_one(`[group_id="${group_id}"]`);
-                else throw new Error(`nether id nor group_id are defined`);
-            };
-            find_element().replace_with($el);
-            if (command.flash) find_element().flash();
+        if (command.id) {
+            build_one(html);
+            morphdom(find_by_id(command.id).native, html);
+            if (command.flash) find_by_id(command.id).flash();
+        } else {
+            const $elements = build(html);
+            for (const $el of $elements){
+                const id = $el.get_attr('id');
+                if (!id) throw new Error(`explicit id or id in the partial required for update`);
+                morphdom(find_by_id(id).native, $el.native);
+                if (command.flash) find_by_id(id).flash();
+            }
         }
     }
 }
-register_executor("replace", replace);
+register_executor("update", update);
+register_executor("flash/update", update);
 async function redirect(command) {
     const { redirect: path  } = command;
     const url = /^\//.test(path) ? window.location.origin + path : path;
@@ -837,9 +906,8 @@ async function redirect(command) {
         on_location_change();
     }
     if ('page' in command) {
-        await replace({
-            command: 'replace',
-            page: command.page
+        await update({
+            update: command.page
         });
         update_history();
     } else if ('method' in command) {
@@ -848,14 +916,12 @@ async function redirect(command) {
             const result = await fetch(url || window.location.href);
             if (!result.ok) {
                 show_error({
-                    command: 'show_error',
-                    error: `Unknown error, please reload page`
+                    show_error: `Unknown error, please reload page`
                 });
                 return;
             }
-            await replace({
-                command: 'replace',
-                page: await result.text()
+            await update({
+                update: await result.text()
             });
             update_history();
         } else {
@@ -873,7 +939,7 @@ let current_location = window.location.href;
 async function check_for_location_change() {
     if (current_location != window.location.href) {
         if (parse_location(window.location.href) != parse_location(current_location) && parse_location(window.location.href) != skip_reload_on_location_change) await reload({
-            command: 'reload'
+            reload: true
         });
         current_location = window.location.href;
         skip_reload_on_location_change = null;
@@ -936,7 +1002,7 @@ window.addEventListener('error', (event1)=>{
     else log('error', `unknown error`, "unknown error event");
 });
 window.addEventListener("unhandledrejection", (event1)=>{
-    alert(`Unknown error`);
+    alert(`Unknown async error`);
     log('error', `unknown async error`, "" + event1);
 });
 

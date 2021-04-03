@@ -28,6 +28,6 @@ window.addEventListener('error', (event) => {
 })
 
 window.addEventListener("unhandledrejection", (event) => {
-  alert(`Unknown error`)
+  alert(`Unknown async error`)
   log('error', `unknown async error`, "" + event)
 })
