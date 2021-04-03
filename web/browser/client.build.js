@@ -873,29 +873,43 @@ async function update(command) {
     function is_page(html1) {
         return /<html/.test(html1);
     }
+    let flash2 = command.flash == true;
     if (is_page(html)) {
         const match = html.match(/<head.*?><title>(.*?)<\/title>/);
         if (match) window.document.title = match[1];
         const bodyInnerHtml = html.replace(/^[\s\S]*<body[\s\S]*?>/, '').replace(/<\/body[\s\S]*/, '').replace(/<script[\s\S]*?script>/g, '').replace(/<link[\s\S]*?>/g, '');
-        morphdom(document.body, bodyInnerHtml);
+        update_dom(document.body, bodyInnerHtml, flash2);
     } else {
         if (command.id) {
             build_one(html);
-            morphdom(find_by_id(command.id).native, html);
-            if (command.flash) find_by_id(command.id).flash();
+            update_dom(find_by_id(command.id).native, html, flash2);
         } else {
             const $elements = build(html);
             for (const $el of $elements){
                 const id = $el.get_attr('id');
                 if (!id) throw new Error(`explicit id or id in the partial required for update`);
-                morphdom(find_by_id(id).native, $el.native);
-                if (command.flash) find_by_id(id).flash();
+                update_dom(find_by_id(id).native, $el.native, flash2);
             }
         }
     }
 }
 register_executor("update", update);
 register_executor("flash/update", update);
+function update_dom(el, updated_el, flash2) {
+    function flash_if_needed(element) {
+        if (flash2) setTimeout(()=>$(element).flash()
+        , 10);
+    }
+    window.morphdom(el, updated_el, {
+        onNodeAdded: function(element) {
+            flash_if_needed(element);
+        },
+        onElUpdated: function(element) {
+            flash_if_needed(element);
+        },
+        childrenOnly: false
+    });
+}
 async function redirect(command) {
     const { redirect: path  } = command;
     const url = /^\//.test(path) ? window.location.origin + path : path;

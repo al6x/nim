@@ -1,8 +1,6 @@
-import { assert, http_call, log, sort } from 'bon/base.ts'
+import { assert, http_call, log, sort, something } from 'bon/base.ts'
 import { $, build, build_one, find_one, find_by_id, find, waiting, TEvent, get_form_data } from './tquery.ts'
 import { get_user_token, get_session_token } from './helpers.ts'
-
-declare const morphdom: (a: HTMLElement, b: string | HTMLElement) => void
 
 // CommandExecutor ---------------------------------------------------------------------------------
 export type CommandExecutor = (command: object) => Promise<void>
@@ -161,6 +159,7 @@ export interface UpdateCommand {
 async function update(command: UpdateCommand) {
   let html = command.update
   function is_page(html: string) { return /<html/.test(html) }
+  let flash = command.flash == true
 
   if (is_page(html)) {
     const match = html.match(/<head.*?><title>(.*?)<\/title>/)
@@ -170,28 +169,45 @@ async function update(command: UpdateCommand) {
       .replace(/<\/body[\s\S]*/, '')
       .replace(/<script[\s\S]*?script>/g, '')
       .replace(/<link[\s\S]*?>/g, '')
-    morphdom(document.body, bodyInnerHtml)
+    update_dom(document.body, bodyInnerHtml, flash)
     // find_one('body').set_content(bodyInnerHtml)
   } else {
     if (command.id) {
       // Updating single element with explicit ID
       build_one(html) // Ensuring there's only one element in partial
-      morphdom(find_by_id(command.id).native, html)
-      if (command.flash) find_by_id(command.id).flash()
+      update_dom(find_by_id(command.id).native, html, flash)
+      // if (command.flash) find_by_id(command.id).flash()
     } else {
       // Updating one or more elements with id specified implicitly in HTML chunks
       const $elements = build(html)
       for (const $el of $elements) {
         const id = $el.get_attr('id')
         if (!id) throw new Error(`explicit id or id in the partial required for update`)
-        morphdom(find_by_id(id).native, $el.native)
-        if (command.flash) find_by_id(id).flash()
+        update_dom(find_by_id(id).native, $el.native, flash)
+        // if (command.flash) find_by_id(id).flash()
       }
     }
   }
 }
 register_executor("update", update)
 register_executor("flash/update", update) // To resolve conflict with the `flash` command
+
+function update_dom(el: HTMLElement, updated_el: string | HTMLElement, flash: boolean) {
+  function flash_if_needed(element: HTMLElement) {
+    if (flash) setTimeout(() => $(element).flash(), 10)
+  }
+  (window as something).morphdom(el, updated_el, {
+    // getNodeKey: function(node) { return node.id; },
+    // onBeforeNodeAdded: function(node) { return node; },
+    onNodeAdded: function(element: HTMLElement) { flash_if_needed(element) },
+    // onBeforeElUpdated: function(fromEl, toEl) { return true; },
+    onElUpdated: function(element: HTMLElement) { flash_if_needed(element) },
+    // onBeforeNodeDiscarded: function(node) { return true; },
+    // onNodeDiscarded: function(node) { },
+    // onBeforeElChildrenUpdated: function(fromEl, toEl) { return true; },
+    childrenOnly: false
+  })
+}
 
 
 // RedirectCommand ---------------------------------------------------------------------------------

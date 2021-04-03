@@ -36,8 +36,7 @@ proc asset_path*(
   var hash = if cache_assets:
     asset_hash(path, assets_file_paths, max_file_size)
   else:
-    var rgen = init_rand(Timem.now.epoch)
-    $rgen.rand(int.high)
+    $(Time.now.epoch)
   fmt"{assets_path}{path}?hash={hash}"
 
 proc asset_path*[R](req: R, path: string): string =
