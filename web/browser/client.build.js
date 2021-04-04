@@ -896,19 +896,29 @@ async function update(command) {
 register_executor("update", update);
 register_executor("flash/update", update);
 function update_dom(el, updated_el, flash2) {
-    function flash_if_needed(element) {
-        if (flash2) setTimeout(()=>$(element).flash()
-        , 10);
+    let before = {
+    };
+    if (flash2) {
+        find(".flashable").map(($el)=>{
+            let [id, html] = [
+                $el.get_attr("id"),
+                $el.get_html()
+            ];
+            before[id || html] = html;
+        });
     }
-    window.morphdom(el, updated_el, {
-        onNodeAdded: function(element) {
-            flash_if_needed(element);
-        },
-        onElUpdated: function(element) {
-            flash_if_needed(element);
-        },
-        childrenOnly: false
-    });
+    window.morphdom(el, updated_el);
+    if (flash2) {
+        setTimeout(()=>{
+            find(".flashable").map(($el)=>{
+                let [id, html] = [
+                    $el.get_attr("id"),
+                    $el.get_html()
+                ];
+                if (before[id || html] != html) $el.flash();
+            });
+        }, 10);
+    }
 }
 async function redirect(command) {
     const { redirect: path  } = command;

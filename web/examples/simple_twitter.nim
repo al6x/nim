@@ -22,7 +22,7 @@ proc save*(state: State, id: string): void =
 # Templates ----------------------------------------------------------------------------------------
 proc MessageEl(message: string): string =
   fmt"""
-    <div>{message.escape_html}</div>
+    <div class="message flashable">{message.escape_html}</div>
   """
 
 proc AppEl(state: State): string =
@@ -32,7 +32,7 @@ proc AppEl(state: State): string =
         {state.messages.map(MessageEl).join("\n")}
       </div>
       <br/>
-      <form>
+      <form class="add_form">
         <textarea name="add_text">{state.add_text}</textarea>
         <button on_click={action("add", true)}>Add</button>
       </form>
@@ -42,6 +42,9 @@ proc AppEl(state: State): string =
 proc PageEl(req: Request, state: State): string =
   fmt"""
     <html>
+      <head>
+        <link rel="stylesheet" href="{req.asset_path("/twitter.css")}">
+      </head>
       <body>
         {AppEl(state)}
 
@@ -52,7 +55,9 @@ proc PageEl(req: Request, state: State): string =
 
 
 # Behavior -----------------------------------------------------------------------------------------
-var server = Server.init()
+var server = Server.init(ServerConfig.init(
+  assets_file_paths = @["./web/examples"])
+)
 
 server.get("/", proc (req: Request): auto =
   let state = State.load(req.user_token)
@@ -77,7 +82,7 @@ proc on*[T](
     let input: T = req.data.to(T)
     handler(state, input)
     state.save(req.user_token)
-    (update: AppEl(state))
+    (update: AppEl(state), flash: true)
   )
 
 

@@ -1,6 +1,7 @@
-1 Create twitter 1 and twitter 2
-3 add deserialize code
-4 add styles with tailwind
+1 add state and session
+
+
+4 add styles with pure.css
 
 
 
@@ -60,3 +61,12 @@ SIGSEGV: Illegal storage access. (Attempt to read from nil?)
 6) How to pass server around?
 
 7) fmt not works with objects
+
+9) try implement it with React, with server persistence etc
+
+10) SEO friendly and fast First Page Load, no need for JS and very small size
+
+
+Add Problems with Server Side
+
+Redefine as higher priority

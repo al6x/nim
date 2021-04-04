@@ -1,4 +1,4 @@
-import { assert, http_call, log, sort, something } from 'bon/base.ts'
+import { p, unique, assert, http_call, log, sort, something } from 'bon/base.ts'
 import { $, build, build_one, find_one, find_by_id, find, waiting, TEvent, get_form_data } from './tquery.ts'
 import { get_user_token, get_session_token } from './helpers.ts'
 
@@ -193,20 +193,26 @@ register_executor("update", update)
 register_executor("flash/update", update) // To resolve conflict with the `flash` command
 
 function update_dom(el: HTMLElement, updated_el: string | HTMLElement, flash: boolean) {
-  function flash_if_needed(element: HTMLElement) {
-    if (flash) setTimeout(() => $(element).flash(), 10)
+  // Getting list of flashable elements before update
+  let before: { [id: string]: string } = {}
+  if (flash) {
+    find(".flashable").map(($el) => {
+      let [id, html] = [$el.get_attr("id"), $el.get_html()]
+      before[id || html] = html
+    })
   }
-  (window as something).morphdom(el, updated_el, {
-    // getNodeKey: function(node) { return node.id; },
-    // onBeforeNodeAdded: function(node) { return node; },
-    onNodeAdded: function(element: HTMLElement) { flash_if_needed(element) },
-    // onBeforeElUpdated: function(fromEl, toEl) { return true; },
-    onElUpdated: function(element: HTMLElement) { flash_if_needed(element) },
-    // onBeforeNodeDiscarded: function(node) { return true; },
-    // onNodeDiscarded: function(node) { },
-    // onBeforeElChildrenUpdated: function(fromEl, toEl) { return true; },
-    childrenOnly: false
-  })
+
+  ;(window as something).morphdom(el, updated_el)
+
+  // Checking if any element has been updated
+  if (flash) {
+    setTimeout(() => {
+      find(".flashable").map(($el) => {
+        let [id, html] = [$el.get_attr("id"), $el.get_html()]
+        if (before[id || html] != html) $el.flash()
+      })
+    }, 10)
+  }
 }
 
 

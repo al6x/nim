@@ -27,21 +27,23 @@ proc EditFormEl(message: Message): string =
   let update = action("update", (id: message.id), true)
   let cancel = action("cancel_edit")
   fmt"""
-    <form>
-      <textarea name="update_text">{message.text.escape_html}</textarea>
-      <button on_click={update}>Update</button>
-      <button on_click={cancel}>Cancel</button>
-    </form>
+    <div id={message.id}>
+      <form class="edit_form">
+        <textarea name="update_text">{message.text.escape_html}</textarea>
+        <button on_click={update}>Update</button>
+        <button on_click={cancel}>Cancel</button>
+      </form>
+    </div>
   """
 
 proc MessageEl(message: Message): string =
   let edit    = action("edit", (id: message.id))
   let delete  = action("delete", (id: message.id))
   fmt"""
-    <div>
+    <div id={message.id} class="message flashable">
       <span>{message.text.escape_html}</span>
-      <button on_click={edit}>Edit</button>
       <button on_click={delete}>Delete</button>
+      <button on_click={edit}>Edit</button>
     </div>
   """
 
@@ -59,7 +61,7 @@ proc AppEl(state: State): string =
         {state.messages.map(ShowOrEditEl).join("\n")}
       </div>
       <br/>
-      <form>
+      <form class="add_form">
         <textarea name="add_text">{state.add_text}</textarea>
         <button on_click={action("add", true)}>Add</button>
       </form>
@@ -69,6 +71,9 @@ proc AppEl(state: State): string =
 proc PageEl(req: Request, state: State): string =
   fmt"""
     <html>
+      <head>
+        <link rel="stylesheet" href="{req.asset_path("/twitter.css")}">
+      </head>
       <body>
         {AppEl(state)}
 
@@ -79,7 +84,9 @@ proc PageEl(req: Request, state: State): string =
 
 
 # Behavior -----------------------------------------------------------------------------------------
-var server = Server.init()
+var server = Server.init(ServerConfig.init(
+  assets_file_paths = @["./web/examples"])
+)
 
 server.get("/", proc (req: Request): auto =
   let state = State.load(req.user_token)
@@ -124,7 +131,7 @@ proc on*[T](
     let input: T = req.data.to(T)
     handler(state, input)
     state.save(req.user_token)
-    (update: AppEl(state))
+    (update: AppEl(state), flash: true)
   )
 
 proc on*(
@@ -134,7 +141,7 @@ proc on*(
     var state = State.load(req.user_token)
     handler(state)
     state.save(req.user_token)
-    (update: AppEl(state))
+    (update: AppEl(state), flash: true)
   )
 
 
