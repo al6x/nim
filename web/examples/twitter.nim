@@ -1,8 +1,8 @@
 import system except find
 import basem, jsonm
 import ../serverm, ../helpersm, ../commandsm, ../fs_storage
-import os
 {.experimental: "code_reordering".}
+
 
 # State --------------------------------------------------------------------------------------------
 type
@@ -143,7 +143,6 @@ proc on*(
     state.save(req.user_token)
     (update: AppEl(state), flash: true)
   )
-
 
 proc storage(): FsStorage[State] =
   FsStorage[State].init "./tmp/twitter"

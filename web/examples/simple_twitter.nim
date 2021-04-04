@@ -4,6 +4,7 @@ import ../serverm, ../helpersm, ../commandsm, ../fs_storage
 import os
 {.experimental: "code_reordering".}
 
+
 # State --------------------------------------------------------------------------------------------
 type
   State = object
@@ -84,7 +85,6 @@ proc on*[T](
     state.save(req.user_token)
     (update: AppEl(state), flash: true)
   )
-
 
 proc storage(): FsStorage[State] =
   FsStorage[State].init "./tmp/simple_twitter"
