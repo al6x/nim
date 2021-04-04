@@ -822,14 +822,14 @@ async function execute({ execute: id  }) {
     execute_command(command);
 }
 register_executor("execute", execute);
-async function call(command) {
+async function action(command) {
     let args = command.args || {
     };
     let location = '' + window.location.href;
     let with_state = 'state' in command ? command.state : false;
     let state = with_state ? get_state() : {
     };
-    let response = await http_call(command.call, {
+    let response = await http_call(command.action, {
         ...args,
         ...state
     }, {
@@ -846,7 +846,7 @@ async function call(command) {
     ];
     for (const command1 of commands)await execute_command(command1);
 }
-register_executor("call", call);
+register_executor("action", action);
 async function flash1({ flash: id  }) {
     find_by_id(id).flash();
 }

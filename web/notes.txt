@@ -1,3 +1,9 @@
+1 Create twitter 1 and twitter 2
+3 add deserialize code
+4 add styles with tailwind
+
+
+
 json_limit_bs
 nim sessions https://github.com/FedericoCeratto/nim-httpauth
 get:/favicon
@@ -33,6 +39,12 @@ Error: execution of an external program failed: '/alex/projects/nim/build/counte
 /balex/applications/nim-1.4.2/lib/pure/strtabs.nim(121) myCmp
 SIGSEGV: Illegal storage access. (Attempt to read from nil?)
 
+-1) Almost all parts are in place
+
+-0.5) JVM
+
+0) Try building something like that with Karax or React and see how much more code you would need
+
 0) Sometimes it hangs
 
 1) How to store state, communicate between threads
@@ -43,7 +55,7 @@ SIGSEGV: Illegal storage access. (Attempt to read from nil?)
 
 4) Plain single threaded Python/PHP script, could be used with NGinx only
 
-5) Huge memory consumption
+5) Small memory consumption
 
 6) How to pass server around?
 

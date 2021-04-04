@@ -80,21 +80,21 @@ export async function execute({ execute: id }: ExecuteCommand) {
 register_executor("execute", execute)
 
 
-// CallCommand -------------------------------------------------------------------------------------
+// ActionCommand -----------------------------------------------------------------------------------
 // Call server
-export interface CallCommand {
-  call:     string
+export interface ActionCommand {
+  action:   string
   args?:    object
   state?:   boolean
 }
-export async function call(command: CallCommand) {
+export async function action(command: ActionCommand) {
   let args       = command.args || {}
   let location   = '' + window.location.href
   let with_state = 'state' in command ? command.state : false
   let state      = with_state ? get_state() : {}
 
   // Calling server
-  let response = await http_call<object, object | object[]>(command.call, {
+  let response = await http_call<object, object | object[]>(command.action, {
     ...args,
     ...state,
   }, {
@@ -111,7 +111,7 @@ export async function call(command: CallCommand) {
   let commands = response instanceof Array ? response : [response]
   for (const command of commands) await execute_command(command)
 }
-register_executor("call", call)
+register_executor("action", action)
 
 
 // FlashCommand --------------------------------------------------------------------------------------

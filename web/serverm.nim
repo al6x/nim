@@ -187,7 +187,9 @@ proc get_data*[T](server: var Server, pattern: string | Regex, handler: ApiHandl
 proc post_data*[T](server: var Server, pattern: string | Regex, handler: ApiHandler[T]): void =
   server.add_data_route(pattern, "post", handler)
 
-proc action*[T](server: var Server, action: string, handler: ApiHandler[T]): void =
+
+# action -------------------------------------------------------------------------------------------
+proc action*[D](server: var Server, action: string, handler: ApiHandler[D]): void =
   server.add_data_route("/" & action, "post", handler)
 
 

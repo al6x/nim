@@ -1,8 +1,9 @@
 import basem, jsonm
 
 
-# call ---------------------------------------------------------------------------------------------
-proc call*[T](call: string, args: T, state = false): string =
-  (call: call, args: args, state: state).to_json(false)
-proc call*(call: string, state = false): string =
-  (call: call, state: state).to_json(false)
+# action -------------------------------------------------------------------------------------------
+proc action*[T](action: string, args: T, state = false): string =
+  (action: "/" & action, args: args, state: state).to_json(false)
+
+proc action*(action: string, state = false): string =
+  (action: "/" & action, state: state).to_json(false)
