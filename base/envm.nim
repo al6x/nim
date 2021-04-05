@@ -3,7 +3,7 @@ from terminalm as terminal import nil
 
 
 # Helper -------------------------------------------------------------------------------------------
-template throw(message: string) = raise newException(CatchableError, message)
+template throw(message: string) = raise newException(Exception, message)
 
 
 # Env ----------------------------------------------------------------------------------------------

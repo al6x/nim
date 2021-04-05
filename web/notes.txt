@@ -33,51 +33,17 @@ Error: execution of an external program failed: '/alex/projects/nim/build/counte
 /balex/applications/nim-1.4.2/lib/pure/strtabs.nim(121) myCmp
 SIGSEGV: Illegal storage access. (Attempt to read from nil?)
 
--1) Almost all parts are in place
-
 -0.5) JVM
-
-0) Try building something like that with Karax or React and see how much more code you would need
-
-0) Sometimes it hangs
 
 1) How to store state, communicate between threads
 
-2) How to deal with bugs
-
 3) State management
 
-4) Plain single threaded Python/PHP script, could be used with NGinx only
 
-5) Small memory consumption
 
-6) How to pass server around?
 
-7) fmt not works with objects
 
-9) try implement it with React, with server persistence etc
-
-10) SEO friendly and fast First Page Load, no need for JS and very small size
 
 11) NOW - NGinx + Single Thread
-
-
-Add Problems with Server Side
-
-Redefine as higher priority
-
-
-
-
-
-
-
-/balex/applications/nim-1.4.2/lib/pure/concurrency/threadpool.nim(370) slave
-/alex/projects/nim/web/serverm.nim(304) processWrapper
-/alex/projects/nim/web/serverm.nim(256) process
-/alex/projects/nim/web/serverm.nim(176) data_handler
-/alex/projects/nim/web/examples/twitter.nim(132) :anonymous
-/alex/projects/nim/web/examples/twitter.nim(116) :anonymous
-/balex/applications/nim-1.4.2/lib/pure/options.nim(185) get
-Error: unhandled exception: Can't obtain a value from a `none` [UnpackDefect]
-Error: execution of an external program failed: '/alex/projects/nim/build/twitter '
+4) Plain single threaded Python/PHP script, could be used with NGinx only
+5) Small memory consumption

@@ -80,11 +80,11 @@ proc parse_mime*(
 
 
 # render_error_page --------------------------------------------------------------------------------
-proc render_default_error_page*(message: string, error: ref CatchableError, show_error: bool): string =
+proc render_default_error_page*(message: string, error: ref Exception, show_error: bool): string =
   if show_error: fmt"""
-    <p>{message.escape_html}</p>
-    <pre>{message.escape_html}
-    {error.get_stack_trace.escape_html}</pre>
+<p>{message.escape_html}</p>
+<pre>{message.escape_html}
+{error.get_stack_trace.escape_html}</pre>
   """
   else:
     message.escape_html
@@ -159,7 +159,6 @@ proc handle_assets_slow*(
             { "Content-Type": mimetype }.to_seq
 
           return (200, content, headers).some
-    p path
     log().with((time: Time.now, path: path)).error("{path} file not found")
     return (404, "Error, file not found", empty_headers).some
   return result

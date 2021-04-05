@@ -263,7 +263,7 @@ proc process(server: Server, req: Request): Response {.gcsafe.} =
       response.headers.set_cookie("user_token", req.user_token)
 
     response
-  except CatchableError as e:
+  except Exception as e:
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
@@ -341,7 +341,7 @@ proc partial_init(_: type[Request], config: ServerConfig, jreq: jester.Request):
 
 
 # error pages and format ---------------------------------------------------------------------------
-method render_error_page*(server: Server, message: string, error: ref CatchableError): string  {.base.} =
+method render_error_page*(server: Server, message: string, error: ref Exception): string  {.base.} =
   render_default_error_page(message, error, server.config.show_errors)
 
 method render_not_found_page*(_: Server, message: string): string  {.base.} =
@@ -358,7 +358,7 @@ proc format_error_as(message: string, format: string): Response =
   else:
     Response.init(500, fmt"Error, invalid format '{format}'")
 
-proc format_error_as(error: ref CatchableError, format: string): Response =
+proc format_error_as(error: ref Exception, format: string): Response =
   if format == "json":
     let content = (is_error: true, message: error.message, stack: error.get_stack_trace).to_json
     Response.init(200, content, @[("Content-Type", "application/json")])

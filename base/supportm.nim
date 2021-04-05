@@ -13,7 +13,7 @@ template test*(name: string, body) =
   if test_enabled or test_enabled_s == name.to_lower:
     try:
       body
-    except CatchableError as e:
+    except Exception as e:
       echo "test '", name.to_lower, "' failed"
       raise e
 
@@ -31,7 +31,7 @@ template test*(name: string, group, body) =
     if (test_enabled and test_group_cache[lgroup] == "true") or test_enabled_s == lname:
       try:
         body
-      except CatchableError as e:
+      except Exception as e:
         echo "test '", lname, "' '", lgroup, "' failed"
         raise e
 
@@ -42,10 +42,10 @@ template test*(name: string, group, body) =
 
 
 # throw --------------------------------------------------------------------------------------------
-template throw*(message: string) = raise newException(CatchableError, message)
+template throw*(message: string) = raise newException(Exception, message)
 
 # A simple way to message user by throwing an error
-# type MessageError* = object of CatchableError
+# type MessageError* = object of Exception
 template throw_message*(message: string) =
   echo terminal.red(message)
   quit(0)
