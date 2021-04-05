@@ -1,10 +1,3 @@
-1 add state and session
-
-
-4 add styles with pure.css
-
-
-
 json_limit_bs
 nim sessions https://github.com/FedericoCeratto/nim-httpauth
 get:/favicon
@@ -66,7 +59,25 @@ SIGSEGV: Illegal storage access. (Attempt to read from nil?)
 
 10) SEO friendly and fast First Page Load, no need for JS and very small size
 
+11) NOW - NGinx + Single Thread
+
 
 Add Problems with Server Side
 
 Redefine as higher priority
+
+
+
+
+
+
+
+/balex/applications/nim-1.4.2/lib/pure/concurrency/threadpool.nim(370) slave
+/alex/projects/nim/web/serverm.nim(304) processWrapper
+/alex/projects/nim/web/serverm.nim(256) process
+/alex/projects/nim/web/serverm.nim(176) data_handler
+/alex/projects/nim/web/examples/twitter.nim(132) :anonymous
+/alex/projects/nim/web/examples/twitter.nim(116) :anonymous
+/balex/applications/nim-1.4.2/lib/pure/options.nim(185) get
+Error: unhandled exception: Can't obtain a value from a `none` [UnpackDefect]
+Error: execution of an external program failed: '/alex/projects/nim/build/twitter '

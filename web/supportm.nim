@@ -50,7 +50,7 @@ proc route_pattern_to_re*(route: string): Regex =
   re("^" & pattern_str & "$")
 
 test "route_pattern_to_re":
-  assert route_pattern_to_re("/users/:name/profile").parse_named("/users/alex/profile/") ==
+  assert route_pattern_to_re("/users/:name/profile").parse_named("/users/alex/profile") ==
     { "name": "alex" }.to_table
 
 
