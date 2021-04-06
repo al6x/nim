@@ -8,7 +8,7 @@ One such command is `ActionCommand`, that tells Client to send message to the Se
 
 ## How the update work
 
-It's esier to use Twitter as Example, let's see what's going on when you click on "Edit" button and the "Edit Form" is shown.
+Let's consider the Twitter Example. What's going on when you click on "Edit" button and the "Edit Form" is shown.
 
 - When the "Edit" button clicked, the button sends the `ActionCommand` to the Client
 - And the Client forwards it to the Server.
@@ -30,4 +30,4 @@ The `ActionCommand` has the `state` attribute, if it's set to true, the Client w
 
 No it is not. It's works fast and well (see https://hey.com). There are special cases when you can't do that, for example if you want to react on every keypress, such cases should be handled manually.
 
-It is possible to optimise the update and do the DIFF on the Server (like Phoenix Elixir LiveView), so that only changed parts would be re-rendered and sent over network. I don't want to do that, because this approach works surprisingly well and in practice nobody would notice the difference, so it would be a waste of time without any meaningful gain in return.
+It is possible to optimise the update and do the DIFF on the Server (like Phoenix Elixir LiveView), so that only changed parts would be re-rendered and sent over network. It could be done in the future, but it's not needed, even non-optimised approach works surprisingly well.
