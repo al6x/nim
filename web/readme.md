@@ -30,6 +30,6 @@ The `ActionCommand` has the `state` attribute, if it's set to true, the Client w
 
 ## Isn't it a huge waste to send whole page HTML?
 
-No it is not. It's works fast and well (see https://hey.com). There are special cases when you can't do that, for example if you want to react on every keypress, such cases should be handled manually.
+No it is not. Such approach known for many years and works fast and well (see https://hey.com). There are special cases when you can't do that, for example if you want to react on every keypress, such cases should be handled manually.
 
 It is possible to optimise the update and do the DIFF on the Server (like Phoenix Elixir LiveView), so that only changed parts would be re-rendered and sent over network. It could be done in the future, but it's not needed, even non-optimised approach works surprisingly well.
