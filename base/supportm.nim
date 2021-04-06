@@ -111,10 +111,10 @@ test "error_type":
 
 
 # timer_sec ----------------------------------------------------------------------------------------
-proc timer_sec*(): (proc (): int {.gcsafe.}) =
+proc timer_sec*(): (proc (): int) =
   let started_at = nt.utc(nt.now())
   () => nt.in_seconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 
-proc timer_ms*(): (proc (): int {.gcsafe.}) =
+proc timer_ms*(): (proc (): int) =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int

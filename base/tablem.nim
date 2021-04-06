@@ -87,10 +87,14 @@ proc `[]`*[K, V](table: Table[K, V] | ref Table[K, V], key: K, default: () -> V)
 
 
 # mget ---------------------------------------------------------------------------------------------
-proc mget*[K, V](table: var Table[K, V] | ref Table[K, V], key: K, value: V): void {.inline.} =
+proc mget*[K, V](table: var Table[K, V], key: K, value: V): V =
+  table.mget_or_put(key, value)
+proc mget*[K, V](table: var ref Table[K, V], key: K, value: V): V =
   table.mget_or_put(key, value)
 
-proc mget*[K, V](table: var Table[K, V] | ref Table[K, V], key: K, value: ((V) -> V)): void {.inline.} =
+proc mget*[K, V](table: var Table[K, V], key: K, value: (() -> V)): V =
+  if key notin table: table.mget_or_put(key, value()) else: table[key]
+proc mget*[K, V](table: var ref Table[K, V], key: K, value: (() -> V)): V =
   if key notin table: table.mget_or_put(key, value()) else: table[key]
 
 

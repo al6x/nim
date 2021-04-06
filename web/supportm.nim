@@ -1,9 +1,14 @@
 import basem, logm, timem
 
 import logging, mimetypes, os
-import sharedtables, md5, hashes
+import md5
 
 proc log(): Log = Log.init "HTTP"
+
+
+# Ensuring HttpBeast is not used, as it requires GCSafe --------------------------------------------
+if not defined(useStdLib):
+  log().error "define useStdLib, otherwise HttpBeast will be used and it's slow with ThreadPool"
 
 
 # escape_html --------------------------------------------------------------------------------------
@@ -20,11 +25,6 @@ func escape_html*(html: string): string =
 
 test "escape_html":
   assert escape_html("<div>") == """&lt;div&gt;"""
-
-
-# Ensuring HttpBeast is not used, as it's slow in threaded mode ------------------------------------
-if not defined(useStdLib):
-  log().warn "define useStdLib, otherwise HttpBeast will be used and it's slow with ThreadPool"
 
 
 # ignore_request -----------------------------------------------------------------------------------
@@ -55,25 +55,26 @@ test "route_pattern_to_re":
 
 
 # parse_format, parse_mime -------------------------------------------------------------------------
-let mimes = new_mimetypes().to_shared_ptr
+let mimes = new_mimetypes()
 
 proc parse_format*(
   query: Table[string, string], headers: Table[string, seq[string]]
-): Option[string] {.gcsafe.} =
+): Option[string] =
   if "format" in query: return query["format"].some
   let content_type = headers["Content-Type", headers["Accept", @[]]]
   if not content_type.is_blank:
-    let ext = mimes[].get_ext(content_type[0], "unknown")
+    let ext = mimes.get_ext(content_type[0], "unknown")
     if ext != "unknown":
       return ext.some
   string.none
 
+# "some/some.json" => "application/json"
 proc parse_mime*(
   path: string
-): Option[string] {.gcsafe.} =
+): Option[string] =
   let ext = path.split_file.ext
   if not ext.is_empty:
-    let m = mimes[].get_mimetype(ext[1..^1], "unknown")
+    let m = mimes.get_mimetype(ext[1..^1], "unknown")
     if m != "unknown":
       return m.some
   string.none
@@ -109,23 +110,13 @@ proc asset_hash_slow*(path: string, assets_file_paths: seq[string], max_file_siz
       return content.get_md5
   throw "File not found"
 
-var filehashes: SharedTable[int, int]
-filehashes.init
-
+var asset_hash_cache: Table[string, string]
 proc asset_hash*(path: string, assets_file_paths: seq[string], max_file_size: int): string =
-  # Using path_hash and hash as int because SharedTable dosn't support strings
-  let path_hash = path.hash.int
-  var content_hash: int
-  filehashes.with_key(path_hash, proc (key: int, val: var int, pair_exists: var bool) =
-    if not pair_exists:
-      val = asset_hash_slow(path, assets_file_paths, max_file_size).hash.int
-    content_hash = val
-  )
-  $content_hash
+  asset_hash_cache.mget(path, () => asset_hash_slow(path, assets_file_paths, max_file_size))
 
 
 # handle_assets_slow -------------------------------------------------------------------------------
-# TODO 2, it's slow, files in production should be served by NGinx
+# It's slow, files in production should be served by NGinx
 # It's slow in Nim because there's no back pressure, and large file would be loaded into
 # memory https://github.com/dom96/jester/issues/181#issuecomment-812658617
 proc handle_assets_slow*(

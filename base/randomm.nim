@@ -7,7 +7,7 @@ let seed1: int = block:
   var rgen = init_rand(now.to_unix * 1_000_000_000 + now.nanosecond)
   @[rgen.rand(int.high), env.hash.int].hash.int
 
-proc secure_random*(): string {.gcsafe.} =
+proc secure_random*(): string =
   let seed2 = block:
     let now = get_time()
     var rgen = init_rand(now.to_unix * 1_000_000_000 + now.nanosecond)

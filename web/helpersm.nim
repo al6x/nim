@@ -46,17 +46,13 @@ proc asset_path*[R](req: R, path: string): string =
 
 # base_assets --------------------------------------------------------------------------------------
 # TODO 2 use live reload ${useLiveReload ? `<script src="${assetPath('/livereload.js')}"></script>` : ''}
-proc base_assets*[R](request: R): string = fmt"""
-  <script src="{request.asset_path("/vendor/jquery-3.6.0.min.js")}"></script>
-  <script src="{request.asset_path("/vendor/morphdom-2.6.1.min.js")}"></script>
-  <script src="{request.asset_path("/client.build.js")}" type="module"></script>
-  <link rel="stylesheet" href="{request.asset_path("/styles.css")}">
+proc base_assets*[S, R](server: S, req: R): string = fmt"""
+  <script src="{server.asset_path("/vendor/jquery-3.6.0.min.js")}"></script>
+  <script src="{server.asset_path("/vendor/morphdom-2.6.1.min.js")}"></script>
+  <script src="{server.asset_path("/client.build.js")}" type="module"></script>
+  <link rel="stylesheet" href="{server.asset_path("/styles.css")}">
   <script>
-    window.user_token    = "{request.user_token}"
-    window.session_token = "{request.session_token}"
+    window.user_token    = "{req.user_token}"
+    window.session_token = "{req.session_token}"
   </script>
 """
-
-# <script>
-#     jQuery.noConflict(true)
-#   </script>

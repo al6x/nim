@@ -40,16 +40,16 @@ proc AppEl(state: State): string =
     </div>
   """
 
-proc PageEl(req: Request, state: State): string =
+proc PageEl(server: Server, req: Request, state: State): string =
   fmt"""
     <html>
       <head>
-        <link rel="stylesheet" href="{req.asset_path("/twitter.css")}">
+        <link rel="stylesheet" href="{server.asset_path("/twitter.css")}">
       </head>
       <body>
         {AppEl(state)}
 
-        {req.base_assets()}
+        {server.base_assets(req)}
       </body>
     </html>
   """
@@ -62,7 +62,7 @@ var server = Server.init(ServerConfig.init(
 
 server.get("/", proc (req: Request): auto =
   let state = State.load(req.user_token)
-  respond PageEl(req, state)
+  respond PageEl(server, req, state)
 )
 
 State.on("add", proc (state: var State, data: tuple[add_text: string]): void =
@@ -76,7 +76,7 @@ server.run
 # Helpers ------------------------------------------------------------------------------------------
 
 proc on*[T](
-  _: type[State], action: string, handler: proc(state: var State, input: T): void {.gcsafe.}
+  _: type[State], action: string, handler: proc(state: var State, input: T): void
 ): void =
   server.action(action, proc (req: Request): auto =
     var state = State.load(req.user_token)

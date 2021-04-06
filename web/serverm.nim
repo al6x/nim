@@ -2,7 +2,7 @@ import system except find
 import basem, logm, jsonm, rem, timem, randomm, envm
 import ./supportm, ./helpersm
 
-import os, threadpool, asyncdispatch
+import os, asyncdispatch
 from jester import nil
 from httpcore import nil
 from times as times import nil
@@ -16,7 +16,6 @@ proc log(): Log = Log.init "HTTP"
 type ServerConfig* = ref object
   host*:           string
   port*:           int
-  async_delay*:    int         # Delay while async handlers waits for threadpool
   data_formats*:   seq[string] # Data format types, like ["json", "yaml", "toml"]
   default_format*: string
   show_errors*:    bool        # Show stack trace on the error page, it's handy in development,
@@ -31,7 +30,6 @@ proc init*(
   _: type[ServerConfig],
   host           = "localhost",
   port           = 5000,
-  async_delay    = 3,
   data_formats   = @["json"],
   default_format = "html",
   show_errors    = true,
@@ -44,7 +42,7 @@ proc init*(
   const script_dir = instantiation_info(full_paths = true).filename.parent_dir
   var assets_file_paths = assets_file_paths & @[script_dir / "browser"]
   ServerConfig(
-    host: host, port: port, async_delay: async_delay,
+    host: host, port: port,
     data_formats: data_formats, default_format: default_format,
     show_errors: show_errors,
     assets_path: assets_path, assets_file_paths: assets_file_paths, max_file_size: max_file_size
@@ -66,7 +64,6 @@ type Request* = ref object
   params*:        Table[string, string]
   session_token*: string
   user_token*:    string
-  config*:        ServerConfig # There's no other way to pass it as GCSafe
 
 proc get(req: Request, key: string, default: Option[string]): string =
   if   key in req.body:   req.data[key].get_str
@@ -107,9 +104,9 @@ proc redirect*(url: string): Response =
 
 # Handler, ApiHandler ------------------------------------------------------------------------------
 type
-  Handler* = proc(req: Request): Response {.gcsafe.}
+  Handler* = proc(req: Request): Response
 
-  ApiHandler*[T] = proc(req: Request): T {.gcsafe.}
+  ApiHandler*[T] = proc(req: Request): T
 
 # Route --------------------------------------------------------------------------------------------
 type Route* = ref object
@@ -195,7 +192,7 @@ proc action*[D](server: var Server, action: string, handler: ApiHandler[D]): voi
 
 # process ------------------------------------------------------------------------------------------
 type format_type = enum html_e, data_e, other_e
-proc process(server: Server, req: Request): Response {.gcsafe.} =
+proc process(server: Server, req: Request): Response =
   # Serving files
   let file_res = handle_assets_slow(
     path              = req.path,
@@ -288,7 +285,8 @@ proc run*(server: Server): void =
     .info "started on http://{host}:{port}"
 
   let jester_handler: jester.MatchProc = proc (jreq: jester.Request): Future[jester.ResponseData] =
-    jester_handler(server, jreq)
+    {.gcsafe.}:
+      jester_handler(server, jreq)
 
   jester.register(server.jester, jester_handler)
   jester.serve(server.jester)
@@ -298,16 +296,8 @@ proc run*(server: Server): void =
 # Delegates work to thread pool
 proc jester_handler(server: Server, jreq: jester.Request): Future[jester.ResponseData] {.async.} =
   block route:
-    let req = Request.partial_init(server.config, jreq)
-
-    # Spawning and waiting for the result
-    var cresp = spawn server.process(req)
-    while true:
-      if cresp.is_ready: break
-      await sleep_async(server.config.async_delay)
-    let resp: Response = ^cresp
-
-    # Responding
+    let req = Request.partial_init(jreq)
+    var resp = server.process(req)
     jester.resp(httpcore.HttpCode(resp.code), resp.headers, resp.content)
 
 
@@ -325,7 +315,7 @@ proc init_jester(config: ServerConfig): jester.Jester =
 
 
 # Request.partial_init -----------------------------------------------------------------------------
-proc partial_init(_: type[Request], config: ServerConfig, jreq: jester.Request): Request =
+proc partial_init(_: type[Request], jreq: jester.Request): Request =
   let path  = jester.path(jreq)
   let query = jester.params(jreq)
 
@@ -337,7 +327,6 @@ proc partial_init(_: type[Request], config: ServerConfig, jreq: jester.Request):
   result.path     = path
   result.query    = query
   result.body     = jester.body(jreq)
-  result.config   = config
 
 
 # error pages and format ---------------------------------------------------------------------------
