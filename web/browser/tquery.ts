@@ -1,3 +1,5 @@
+// Low-level DOM operations, like jQuery but stricter
+
 import { assert, something, p, flatten } from 'bon/base.ts'
 
 let jQuery = (window as something).jQuery
@@ -131,6 +133,9 @@ export interface TElementStatic {
 
   build(html: string): TElement[]
   build_one(html: string): TElement
+
+  // Uses morphdom to update only changed parts of DOM elements
+  smart_dom_update(el: TElement | HTMLElement, updated_el: string | HTMLElement, flash: boolean): void
 }
 
 
@@ -290,6 +295,7 @@ $.find_one = find_one
 $.find_by_id = find_by_id
 $.build = build
 $.build_one = build_one
+$.smart_dom_update = smart_dom_update
 
 function wrap(arg: Event):         TEvent
 function wrap(arg: TEvent):        TEvent
@@ -331,6 +337,16 @@ export function build_one(html: TInput): TElement {
   const elements = build(html)
   assert.equal(elements.length, 1, `required to build exactly 1 element but found ${elements.length}`)
   return elements[0]
+}
+
+export function smart_dom_update(
+  el: HTMLElement | TElement, updated_el: string | HTMLElement, flash: boolean
+) {
+  if (flash) {
+    flash_changed_flashable(() => (window as something).morphdom(el, updated_el), updated_el)
+  } else {
+    ;(window as something).morphdom(el, updated_el)
+  }
 }
 
 

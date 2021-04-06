@@ -688,6 +688,7 @@ $.find_one = find_one;
 $.find_by_id = find_by_id;
 $.build = build;
 $.build_one = build_one;
+$.smart_dom_update = smart_dom_update;
 function wrap(arg) {
     if (arg instanceof TEvent) return arg;
     else if ('is_telement' in arg) return arg;
@@ -718,6 +719,14 @@ function build_one(html) {
     const elements = build(html);
     assert.equal(elements.length, 1, `required to build exactly 1 element but found ${elements.length}`);
     return elements[0];
+}
+function smart_dom_update(el, updated_el, flash) {
+    if (flash) {
+        flash_changed_flashable(()=>window.morphdom(el, updated_el)
+        , updated_el);
+    } else {
+        window.morphdom(el, updated_el);
+    }
 }
 const flash_class = 'flash';
 const flash_before_delete_class = 'flash_before_delete';
@@ -931,31 +940,23 @@ async function update(command) {
         const match = html.match(/<head.*?><title>(.*?)<\/title>/);
         if (match) window.document.title = match[1];
         const bodyInnerHtml = html.replace(/^[\s\S]*<body[\s\S]*?>/, '').replace(/<\/body[\s\S]*/, '').replace(/<script[\s\S]*?script>/g, '').replace(/<link[\s\S]*?>/g, '');
-        update_dom(document.body, bodyInnerHtml, flash2);
+        smart_dom_update(document.body, bodyInnerHtml, flash2);
     } else {
         if (command.id) {
             build_one(html);
-            update_dom(find_by_id(command.id).native, html, flash2);
+            smart_dom_update(find_by_id(command.id).native, html, flash2);
         } else {
             const $elements = build(html);
             for (const $el of $elements){
                 const id = $el.get_attr('id');
                 if (!id) throw new Error(`explicit id or id in the partial required for update`);
-                update_dom(find_by_id(id).native, $el.native, flash2);
+                smart_dom_update(find_by_id(id).native, $el.native, flash2);
             }
         }
     }
 }
 register_executor("update", update);
 register_executor("flash/update", update);
-function update_dom(el, updated_el, flash2) {
-    if (flash2) {
-        flash_changed_flashable(()=>window.morphdom(el, updated_el)
-        , updated_el);
-    } else {
-        window.morphdom(el, updated_el);
-    }
-}
 async function redirect(command) {
     const { redirect: path  } = command;
     const url = /^\//.test(path) ? window.location.origin + path : path;

@@ -1,6 +1,6 @@
 import { p, log, sort, something, flatten } from 'bon/base.ts'
 import { $, build, build_one, find_by_id, find, waiting, TEvent, get_form_data,
-  flash_changed_flashable } from './tquery.ts'
+  smart_dom_update } from './tquery.ts'
 import { Transport } from './transport.ts'
 
 // CommandExecutor ---------------------------------------------------------------------------------
@@ -135,13 +135,13 @@ async function update(command: UpdateCommand) {
       .replace(/<\/body[\s\S]*/, '')
       .replace(/<script[\s\S]*?script>/g, '')
       .replace(/<link[\s\S]*?>/g, '')
-    update_dom(document.body, bodyInnerHtml, flash)
+    smart_dom_update(document.body, bodyInnerHtml, flash)
     // find_one('body').set_content(bodyInnerHtml)
   } else {
     if (command.id) {
       // Updating single element with explicit ID
       build_one(html) // Ensuring there's only one element in partial
-      update_dom(find_by_id(command.id).native, html, flash)
+      smart_dom_update(find_by_id(command.id).native, html, flash)
       // if (command.flash) find_by_id(command.id).flash()
     } else {
       // Updating one or more elements with id specified implicitly in HTML chunks
@@ -149,7 +149,7 @@ async function update(command: UpdateCommand) {
       for (const $el of $elements) {
         const id = $el.get_attr('id')
         if (!id) throw new Error(`explicit id or id in the partial required for update`)
-        update_dom(find_by_id(id).native, $el.native, flash)
+        smart_dom_update(find_by_id(id).native, $el.native, flash)
         // if (command.flash) find_by_id(id).flash()
       }
     }
@@ -157,14 +157,6 @@ async function update(command: UpdateCommand) {
 }
 register_executor("update", update)
 register_executor("flash/update", update) // To resolve conflict with the `flash` command
-
-function update_dom(el: HTMLElement, updated_el: string | HTMLElement, flash: boolean) {
-  if (flash) {
-    flash_changed_flashable(() => (window as something).morphdom(el, updated_el), updated_el)
-  } else {
-    ;(window as something).morphdom(el, updated_el)
-  }
-}
 
 
 // RedirectCommand ---------------------------------------------------------------------------------
