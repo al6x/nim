@@ -448,6 +448,12 @@ function reduce(o, accumulator, f) {
     );
     return accumulator;
 }
+function flatten(list) {
+    return reduce(list, [], (acc, v)=>{
+        acc.push(...v);
+        return acc;
+    });
+}
 function round(v, digits = 0) {
     return digits == 0 ? Math.round(v) : Math.round((v + Number.EPSILON) * Math.pow(10, digits)) / Math.pow(10, digits);
 }
@@ -585,11 +591,20 @@ class TElementImpl {
         assert(!!value, `missing '${name}' style`);
         return value;
     }
+    classes() {
+        return this.$el.attr('class').split(/\s+/);
+    }
+    has_class(klass) {
+        return this.$el.hasClass(klass);
+    }
     add_class(klass) {
         this.$el.addClass(klass);
     }
     remove_class(klass) {
         this.$el.removeClass(klass);
+    }
+    get_inner_html() {
+        return this.$el.html();
     }
     get_html() {
         return this.$el[0].outerHTML;
@@ -631,8 +646,11 @@ class TElementImpl {
     trigger(event) {
         this.$el.trigger(event);
     }
-    flash() {
-        flash(this);
+    flash(before_delete = false) {
+        flash(this, before_delete);
+    }
+    is_flashed() {
+        return this.has_class("flash") || this.has_class("flash_before_delete");
     }
     waiting(fn) {
         return waiting(this, fn);
@@ -701,26 +719,92 @@ function build_one(html) {
     assert.equal(elements.length, 1, `required to build exactly 1 element but found ${elements.length}`);
     return elements[0];
 }
+const flash_class = 'flash';
+const flash_before_delete_class = 'flash_before_delete';
 const updateTimeouts = {
 };
-function flash($el) {
-    const timeout = 1500;
+function flash($el, before_delete = false) {
     const id = $el.get_attr('id');
+    let [klass, delay] = before_delete ? [
+        flash_before_delete_class,
+        400
+    ] : [
+        flash_class,
+        1500
+    ];
     if (id) {
         if (id in updateTimeouts) {
             clearTimeout(updateTimeouts[id]);
-            $el.remove_class('flash');
+            $el.remove_class(klass);
             void $el.native.offsetWidth;
         }
-        $el.add_class('flash');
+        $el.add_class(klass);
         updateTimeouts[id] = setTimeout(()=>{
-            $el.remove_class('flash');
+            $el.remove_class(klass);
             delete updateTimeouts[id];
-        }, timeout);
+        }, delay);
     } else {
-        $el.add_class('flash');
-        setTimeout(()=>$el.remove_class('flash')
-        , 1500);
+        $el.add_class(klass);
+        setTimeout(()=>$el.remove_class(klass)
+        , delay);
+    }
+}
+function flash_changed_flashable(modify_dom, updated_el) {
+    function get_html_without_flash($el) {
+        return [
+            $el.classes().filter((klass)=>klass != flash_class && klass != flash_before_delete_class
+            ).join(" "),
+            $el.get_inner_html()
+        ].join(" ");
+    }
+    let before = {
+    };
+    find(".flashable").map(($el)=>{
+        let [id, html] = [
+            $el.get_attr("id"),
+            get_html_without_flash($el)
+        ];
+        before[id || html] = html;
+    });
+    let has_deleted = false;
+    let after = {
+    };
+    flatten(build(updated_el).map(($el)=>$el.find(".flashable")
+    )).map(($el)=>{
+        let [id, html] = [
+            $el.get_attr("id"),
+            get_html_without_flash($el)
+        ];
+        after[id || html] = html;
+    });
+    find(".flashable").map(($el)=>{
+        let [id, html] = [
+            $el.get_attr("id"),
+            get_html_without_flash($el)
+        ];
+        if (!((id || html) in after)) {
+            has_deleted = true;
+            if (!$el.is_flashed()) $el.flash(true);
+        }
+    });
+    function finish() {
+        modify_dom();
+        setTimeout(()=>{
+            find(".flashable").map(($el)=>{
+                let [id, html] = [
+                    $el.get_attr("id"),
+                    get_html_without_flash($el)
+                ];
+                if (before[id || html] != html) {
+                    if (!$el.is_flashed()) $el.flash();
+                }
+            });
+        }, 10);
+    }
+    if (has_deleted) {
+        setTimeout(finish, 400);
+    } else {
+        finish();
     }
 }
 async function waiting(arg, fn) {
@@ -764,12 +848,6 @@ function get_form_data($form) {
     };
     for (let { name , value  } of list)result[name] = value;
     return result;
-}
-function get_user_token() {
-    return ensure(window["user_token"], "user_token");
-}
-function get_session_token() {
-    return ensure(window["session_token"], "session_token");
 }
 const executors = {
 };
@@ -822,31 +900,6 @@ async function execute({ execute: id  }) {
     execute_command(command);
 }
 register_executor("execute", execute);
-async function action(command) {
-    let args = command.args || {
-    };
-    let location = '' + window.location.href;
-    let with_state = 'state' in command ? command.state : false;
-    let state = with_state ? get_state() : {
-    };
-    let response = await http_call(command.action, {
-        ...args,
-        ...state
-    }, {
-        method: 'post',
-        params: {
-            format: 'json',
-            user_token: get_user_token(),
-            session_token: get_session_token(),
-            location
-        }
-    });
-    let commands = response instanceof Array ? response : [
-        response
-    ];
-    for (const command1 of commands)await execute_command(command1);
-}
-register_executor("action", action);
 async function flash1({ flash: id  }) {
     find_by_id(id).flash();
 }
@@ -873,7 +926,7 @@ async function update(command) {
     function is_page(html1) {
         return /<html/.test(html1);
     }
-    let flash2 = command.flash == true;
+    let flash2 = true;
     if (is_page(html)) {
         const match = html.match(/<head.*?><title>(.*?)<\/title>/);
         if (match) window.document.title = match[1];
@@ -896,28 +949,11 @@ async function update(command) {
 register_executor("update", update);
 register_executor("flash/update", update);
 function update_dom(el, updated_el, flash2) {
-    let before = {
-    };
     if (flash2) {
-        find(".flashable").map(($el)=>{
-            let [id, html] = [
-                $el.get_attr("id"),
-                $el.get_html()
-            ];
-            before[id || html] = html;
-        });
-    }
-    window.morphdom(el, updated_el);
-    if (flash2) {
-        setTimeout(()=>{
-            find(".flashable").map(($el)=>{
-                let [id, html] = [
-                    $el.get_attr("id"),
-                    $el.get_html()
-                ];
-                if (before[id || html] != html) $el.flash();
-            });
-        }, 10);
+        flash_changed_flashable(()=>window.morphdom(el, updated_el)
+        , updated_el);
+    } else {
+        window.morphdom(el, updated_el);
     }
 }
 async function redirect(command) {
@@ -958,6 +994,33 @@ async function redirect(command) {
     }
 }
 register_executor("redirect", redirect);
+async function action1(command, transport) {
+    let args = command.args || {
+    };
+    let location = '' + window.location.href;
+    let with_state = 'state' in command ? command.state : false;
+    let state = with_state ? get_state() : {
+    };
+    log("info", `sending ${command.action}`);
+    transport.send({
+        action: command.action,
+        ...args,
+        ...state,
+        location
+    });
+}
+async function on_server_command(message1) {
+    let commands = message1 instanceof Array ? message1 : [
+        message1
+    ];
+    log("info", `received ${commands.length} commands`);
+    for (const command of commands)await execute_command(command);
+}
+function register_action_executor(transport) {
+    register_executor("action", (command)=>action1(command, transport)
+    );
+    transport.on(on_server_command);
+}
 let skip_reload_on_location_change = null;
 let current_location = window.location.href;
 async function check_for_location_change() {
@@ -1000,6 +1063,27 @@ function get_state() {
     };
     return state;
 }
+class FetchTransport {
+    constructor(user_token, session_token){
+        this.user_token = user_token;
+        this.session_token = session_token;
+    }
+    async send(action) {
+        let response = await http_call(action.action, action, {
+            method: 'post',
+            params: {
+                format: 'json',
+                user_token: this.user_token,
+                session_token: this.session_token
+            }
+        });
+        ensure(this.listener, "listener not set")(response);
+    }
+    on(listener) {
+        if (this.listener != null) throw new Error("only one listener supported");
+        this.listener = listener;
+    }
+}
 const events = [
     'touchstart',
     'touchend',
@@ -1029,4 +1113,12 @@ window.addEventListener("unhandledrejection", (event1)=>{
     alert(`Unknown async error`);
     log('error', `unknown async error`, "" + event1);
 });
+function get_user_token() {
+    return ensure(window["user_token"], "user_token");
+}
+function get_session_token() {
+    return ensure(window["session_token"], "session_token");
+}
+let transport = new FetchTransport(get_user_token(), get_session_token());
+register_action_executor(transport);
 

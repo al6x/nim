@@ -1,12 +1,25 @@
 /* Flash ---------------------------------------------------------------------------------------- */
 @keyframes yellowfade {
   from { background: #fdd835; }
-  to { background: #fff; }
+  to { background: inherit; }
+}
+
+@keyframes opacityfade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .flash {
   animation-name: yellowfade;
   animation-duration: 1.5s;
+}
+.flash_before_delete {
+  animation-name: opacityfade;
+  animation-duration: 0.4s;
 }
 
 

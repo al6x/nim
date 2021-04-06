@@ -1,6 +1,7 @@
-import { p, unique, assert, http_call, log, sort, something } from 'bon/base.ts'
-import { $, build, build_one, find_one, find_by_id, find, waiting, TEvent, get_form_data } from './tquery.ts'
-import { get_user_token, get_session_token } from './helpers.ts'
+import { p, log, sort, something, flatten } from 'bon/base.ts'
+import { $, build, build_one, find_by_id, find, waiting, TEvent, get_form_data,
+  flash_changed_flashable } from './tquery.ts'
+import { Transport } from './transport.ts'
 
 // CommandExecutor ---------------------------------------------------------------------------------
 export type CommandExecutor = (command: object) => Promise<void>
@@ -80,40 +81,6 @@ export async function execute({ execute: id }: ExecuteCommand) {
 register_executor("execute", execute)
 
 
-// ActionCommand -----------------------------------------------------------------------------------
-// Call server
-export interface ActionCommand {
-  action:   string
-  args?:    object
-  state?:   boolean
-}
-export async function action(command: ActionCommand) {
-  let args       = command.args || {}
-  let location   = '' + window.location.href
-  let with_state = 'state' in command ? command.state : false
-  let state      = with_state ? get_state() : {}
-
-  // Calling server
-  let response = await http_call<object, object | object[]>(command.action, {
-    ...args,
-    ...state,
-  }, {
-    method: 'post',
-    params: {
-      format:        'json',
-      user_token:    get_user_token(),
-      session_token: get_session_token(),
-      location
-    }
-  })
-
-  // Processing response commands
-  let commands = response instanceof Array ? response : [response]
-  for (const command of commands) await execute_command(command)
-}
-register_executor("action", action)
-
-
 // FlashCommand --------------------------------------------------------------------------------------
 export interface FlashCommand {
   flash: string // ID of DOM element to flash
@@ -154,12 +121,11 @@ register_executor("reload", reload)
 export interface UpdateCommand {
   update: string
   id?:    string
-  flash?: boolean
 }
 async function update(command: UpdateCommand) {
   let html = command.update
   function is_page(html: string) { return /<html/.test(html) }
-  let flash = command.flash == true
+  let flash = true // command.flash == true
 
   if (is_page(html)) {
     const match = html.match(/<head.*?><title>(.*?)<\/title>/)
@@ -193,25 +159,10 @@ register_executor("update", update)
 register_executor("flash/update", update) // To resolve conflict with the `flash` command
 
 function update_dom(el: HTMLElement, updated_el: string | HTMLElement, flash: boolean) {
-  // Getting list of flashable elements before update
-  let before: { [id: string]: string } = {}
   if (flash) {
-    find(".flashable").map(($el) => {
-      let [id, html] = [$el.get_attr("id"), $el.get_html()]
-      before[id || html] = html
-    })
-  }
-
-  ;(window as something).morphdom(el, updated_el)
-
-  // Checking if any element has been updated
-  if (flash) {
-    setTimeout(() => {
-      find(".flashable").map(($el) => {
-        let [id, html] = [$el.get_attr("id"), $el.get_html()]
-        if (before[id || html] != html) $el.flash()
-      })
-    }, 10)
+    flash_changed_flashable(() => (window as something).morphdom(el, updated_el), updated_el)
+  } else {
+    ;(window as something).morphdom(el, updated_el)
   }
 }
 
@@ -261,6 +212,43 @@ export async function redirect(command: RedirectCommand) {
   // window.open(url, '_parent')
 }
 register_executor("redirect", redirect)
+
+
+// ActionCommand -----------------------------------------------------------------------------------
+// Sending action to server
+export interface ActionCommand {
+  action:   string
+  args?:    object
+  state?:   boolean
+}
+
+export async function action(command: ActionCommand, transport: Transport) {
+  let args       = command.args || {}
+  let location   = '' + window.location.href
+  let with_state = 'state' in command ? command.state : false
+  let state      = with_state ? get_state() : {}
+
+  // Sending action to server
+  log("info", `sending ${command.action}`)
+  transport.send({
+    action: command.action,
+    ...args,
+    ...state,
+    location
+  })
+}
+
+export async function on_server_command(message: object) {
+  // Processing commands sent from server
+  let commands = message instanceof Array ? message : [message]
+  log("info", `received ${commands.length} commands`)
+  for (const command of commands) await execute_command(command)
+}
+
+export function register_action_executor(transport: Transport) {
+  register_executor("action", (command) => action(command as ActionCommand, transport))
+  transport.on(on_server_command)
+}
 
 
 // -------------------------------------------------------------------------------------------------

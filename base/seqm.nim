@@ -37,6 +37,11 @@ test "take":
   assert @[1, 2, 3].take(10) == @[1, 2, 3]
 
 
+# delete -------------------------------------------------------------------------------------------
+proc delete*[T](s: var seq[T], cond: (T) -> bool): void =
+  s = s.filter((v) => not cond(v))
+
+
 # findi --------------------------------------------------------------------------------------------
 func findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
   if start <= (list.len - 1):

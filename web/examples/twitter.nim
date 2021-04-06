@@ -100,7 +100,7 @@ State.on("add", proc (state: var State, data: tuple[add_text: string]): void =
 )
 
 State.on("delete", proc (state: var State, data: tuple[id: int]): void =
-  state.messages = state.messages.filter((message) => message.id != data.id)
+  state.messages.delete((message) => message.id == data.id)
 )
 
 State.on("edit", proc (state: var State, data: tuple[id: int]): void =
@@ -131,7 +131,7 @@ proc on*[T](
     let input: T = req.data.to(T)
     handler(state, input)
     state.save(req.user_token)
-    (update: AppEl(state), flash: true)
+    (update: AppEl(state))
   )
 
 proc on*(
@@ -141,7 +141,7 @@ proc on*(
     var state = State.load(req.user_token)
     handler(state)
     state.save(req.user_token)
-    (update: AppEl(state), flash: true)
+    (update: AppEl(state))
   )
 
 proc storage(): FsStorage[State] =

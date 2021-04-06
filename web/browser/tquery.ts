@@ -1,4 +1,4 @@
-import { assert, something, p } from 'bon/base.ts'
+import { assert, something, p, flatten } from 'bon/base.ts'
 
 let jQuery = (window as something).jQuery
 
@@ -70,10 +70,13 @@ export interface TElement {
   set_styles(attrs: { [name: string]: string | number | boolean | null | undefined }): void
   ensure_style(name: string): string
 
+  classes(): string[]
+  has_class(klass: string): boolean
   add_class(klass: string): void
   remove_class(klass: string): void
 
   get_html(): string
+  get_inner_html(): string
   set_content(html: TInput | TInput[]): void
   get_content(): string
   get_text_content(): string
@@ -88,6 +91,8 @@ export interface TElement {
   trigger(event: EventType): void
 
   flash(): void
+  flash(before_delete: boolean): void
+  is_flashed(): boolean
   waiting<T>(fn: () => Promise<T>): Promise<T>
 }
 
@@ -205,9 +210,12 @@ export class TElementImpl implements TElement {
     return value
   }
 
+  classes() { return this.$el.attr('class').split(/\s+/) }
+  has_class(klass: string) { return this.$el.hasClass(klass) }
   add_class(klass: string) { this.$el.addClass(klass) }
   remove_class(klass: string) { this.$el.removeClass(klass) }
 
+  get_inner_html() { return this.$el.html() }
   get_html() { return this.$el[0].outerHTML }
   set_content(html: TInput | TInput[]) {
     this.$el.html(unwrap(html))
@@ -241,7 +249,8 @@ export class TElementImpl implements TElement {
 
   trigger(event: EventType) { this.$el.trigger(event) }
 
-  flash() { flash(this) }
+  flash(before_delete = false) { flash(this, before_delete) }
+  is_flashed() { return this.has_class("flash") || this.has_class("flash_before_delete") }
   waiting<T>(fn: () => Promise<T>): Promise<T> { return waiting(this, fn) }
 
   trigger_new_content_added(el: TElement) {}
@@ -326,28 +335,87 @@ export function build_one(html: TInput): TElement {
 
 
 // flash --------------------------------------------------------------------------
+export const flash_timeout               = 1500 // should be same as in CSS animation
+export const flash_before_delete_timeout = 400  // should be same as in CSS animation
+export const flash_class                 = 'flash'
+export const flash_before_delete_class   = 'flash_before_delete'
 const updateTimeouts: { [key: string]: something } = {}
-function flash($el: TElement): void {
-  const timeout = 1500 // should be same as in CSS animation
+function flash($el: TElement, before_delete = false): void {
   const id = $el.get_attr('id')
+  let [klass, delay] = before_delete ?
+    [flash_before_delete_class, flash_before_delete_timeout] :
+    [flash_class, flash_timeout]
   if (id) {
     // ID used when flash repeatedly triggered on the same element, before the previous flash has
     // been finished. Without ID such fast flashes won't work properly.
     // Example - frequent updates from the server changing counter.
     if (id in updateTimeouts) {
       clearTimeout(updateTimeouts[id])
-      $el.remove_class('flash')
+      $el.remove_class(klass)
       void ($el.native as something).offsetWidth
     }
-    $el.add_class('flash')
+    $el.add_class(klass)
 
     updateTimeouts[id] = setTimeout(() => {
-      $el.remove_class('flash')
+      $el.remove_class(klass)
       delete updateTimeouts[id]
-    }, timeout)
+    }, delay)
   } else {
-    $el.add_class('flash')
-    setTimeout(() => $el.remove_class('flash'), timeout)
+    $el.add_class(klass)
+    setTimeout(() => $el.remove_class(klass), delay)
+  }
+}
+
+export function flash_changed_flashable(modify_dom: () => void, updated_el: string | HTMLElement) {
+  // To avoid the 'flash' class being seen as the change
+  function get_html_without_flash($el: TElement): string {
+    return [
+      $el.classes().filter((klass) => klass != flash_class && klass != flash_before_delete_class).join(" "),
+      $el.get_inner_html()
+    ].join(" ")
+  }
+
+  // Getting list of flashable elements before update
+  let before: { [id: string]: string } = {}
+  find(".flashable").map(($el) => {
+    let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
+    before[id || html] = html
+  })
+
+  // Highlighting deleted elements
+  let has_deleted = false
+  let after: { [id: string]: string } = {}
+  flatten(build(updated_el).map(($el) => $el.find(".flashable"))).map(($el) => {
+    let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
+    after[id || html] = html
+  })
+  find(".flashable").map(($el) => {
+    let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
+    if (!((id || html) in after)) {
+      has_deleted = true
+      if (!$el.is_flashed()) $el.flash(true)
+    }
+  })
+
+  function finish() {
+    modify_dom()
+
+    // Checking if any element has been updated
+    setTimeout(() => {
+      find(".flashable").map(($el) => {
+        let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
+        if (before[id || html] != html) {
+          if (!$el.is_flashed()) $el.flash()
+        }
+      })
+    }, 10)
+  }
+
+  if (has_deleted) {
+    // Delaying to wait for deleted flash animation
+    setTimeout(finish, flash_before_delete_timeout)
+  } else {
+    finish()
   }
 }
 
