@@ -22,7 +22,7 @@ This workflow would work for 95% of cases, and you should use it as much as poss
 
 Also, while it's possible to limit re-render to only specific component or specific list of components, it's not worth it. It's better to keep things simple and let machines do the work. So respond with the whole page if possible. If you really want to optimise and re-render only some specific component, use `(update: SpecificEl)` instead of `(update: AppEl)` in the Server response, you also can send array of such elements.
 
-Yet, sometimes there are cases when you need to do something unusual, in such case you may send Client explicit command. See list of commands available, you also can add your own custom commands.
+Also, sometimes there are cases when you need to do something unusual, in such case you may send Client explicit command. See list of commands available in `commands.ts`, you also can add your own commands.
 
 ## How forms are handled
 
