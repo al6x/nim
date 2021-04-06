@@ -25,3 +25,9 @@ Yet, sometimes there are cases when you need to do something unusual, in such ca
 ## How forms are handled
 
 The `ActionCommand` has the `state` attribute, if it's set to true, the Client would record the current state, all the inputs, and sends it to the Server along with the command.
+
+## Isn't it a huge waste to send whole page HTML?
+
+No it is not. It's works fast and well (see https://hey.com). There are special cases when you can't do that, for example if you want to react on every keypress, such cases should be handled manually.
+
+It is possible to optimise the update and do the DIFF on the Server (like Phoenix Elixir LiveView), so that only changed parts would be re-rendered and sent over network. I don't want to do that, because this approach works surprisingly well and in practice nobody would notice the difference, so it would be a waste of time without any meaningful gain in return.
