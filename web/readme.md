@@ -20,7 +20,7 @@ Let's consider the Twitter Example. What's going on when you click on "Edit" but
 
 This workflow would work for 95% of cases, and you should use it as much as possible and try to avoid explicitly telling Client what to do by sending commands manually.
 
-Also, while it's possible to limit re-render to only specific component or specific list of components, it's not worth it. It's better to keep things simple and let machines do the work. So respond with the whole page if possible. If you really want to optimise and re-render only some specific component, use `(update: SpecificEl)` instead of `(update: AppEl)` in the Server response, you also can send array of such elements.
+Also, it's possible to optimise and limit re-render to specific component or specific list of components. Although usually its not worth it and it's better to keep things simple and just re-render the whole page. You can re-render only some specific component by using `(update: SpecificEl)` instead of `(update: AppEl)` in the Server response, you also can send array of such elements.
 
 Also, sometimes there are cases when you need to do something unusual, in such case you may send Client explicit command. See list of commands available in `commands.ts`, you also can add your own commands.
 
