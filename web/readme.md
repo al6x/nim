@@ -15,7 +15,7 @@ Let's consider the Twitter Example. What's going on when you click on "Edit" but
 - The Server changes the attribute `State.edit_form`
 - Then Server re-renders the HTML for the whole Page.
 - Then Server sends the `UpdateCommand` with the new Page HTML to the Client.
-- Client finds the hanlder for the `UpdateCommand` command and execute it.
+- Client finds the hanlder for the recieved command and tells it to handle the command.
 - The `UpdateCommand` handler takes the new Page HTML and calculates the DIFF with the current Page HTML, and then applies only the DIFF, so it looks like UI is update interactively.
 
 This workflow would work for 95% of cases, and you should use it as much as possible and try to avoid explicitly telling Client what to do by sending commands manually.
