@@ -8,7 +8,7 @@ proc log(): Log = Log.init "HTTP"
 
 # Ensuring HttpBeast is not used, as it requires GCSafe --------------------------------------------
 if not defined(useStdLib):
-  log().error "define useStdLib, otherwise HttpBeast will be used and it's slow with ThreadPool"
+  log().error "define useStdLib, otherwise HttpBeast will be used and Bon server not support multithreading"
 
 
 # escape_html --------------------------------------------------------------------------------------
