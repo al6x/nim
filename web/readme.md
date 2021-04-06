@@ -24,7 +24,7 @@ Yet, sometimes there are cases when you need to do something unusual, in such ca
 
 ## How forms are handled
 
-The `ActionCommand` has the `state` attribute, if it's set to true, the Client would record the current state, all the inputs, and sends it to the Server along with the command.
+The `ActionCommand` has the `state` attribute, if it's set to true, the Client would record the current state, all the inputs, and sends it to the Server along with the given `ActionCommand`.
 
 ## Isn't it a huge waste to send whole page HTML?
 
