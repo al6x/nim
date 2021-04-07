@@ -23,7 +23,7 @@ proc save*(state: State, id: string): void =
 # Templates ----------------------------------------------------------------------------------------
 proc MessageEl(message: string): string =
   fmt"""
-    <div class="message flashable">{message.escape_html}</div>
+    <div class="message">{message.escape_html}</div>
   """
 
 proc AppEl(state: State): string =
@@ -83,7 +83,7 @@ proc on*[T](
     let input: T = req.data.to(T)
     handler(state, input)
     state.save(req.user_token)
-    (update: AppEl(state), flash: true)
+    (update: AppEl(state))
   )
 
 proc storage(): FsStorage[State] =
