@@ -83,7 +83,7 @@ proc on*[T](
     let input: T = req.data.to(T)
     handler(state, input)
     state.save(req.user_token)
-    (update: AppEl(state))
+    (update: AppEl(state), flash: true)
   )
 
 proc storage(): FsStorage[State] =
