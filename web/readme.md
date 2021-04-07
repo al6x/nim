@@ -34,7 +34,7 @@ The `ActionCommand` has the `state` attribute, if it's set to true, the Client w
 Not supported, you need to do it yourself.
 
 - Use Browser fetch pooling technic and check for update say every 3 sec.
-- Implement the `Transport` interface with WebSocket, currently the Transport uses `fetch`.
+- Implement the `Transport` interface in `transport.ts` with WebSocket, currently the Transport uses `fetch`.
 - Use separate WebSocket pusher process, written as separate Nim process or with Redis or something
   like that.
 
