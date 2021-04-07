@@ -4,7 +4,7 @@ It's easier to start from the Client. The Client can do only one thing - execute
 
 One such command is `ActionCommand`, that tells Client to send message to the Server.
 
-**You should not use commands explicitly**, but it's important to know how Client works.
+Commands **rarely used explicitly**, but it's important to know how Client works.
 
 ## How the update work
 
