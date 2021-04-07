@@ -36,7 +36,7 @@ proc EditFormEl(message: Message): string =
     </div>
   """
 
-proc MessageEl(message: Message): string =
+proc MessageEl(message: Message, show_controls = true): string =
   let edit    = action("edit", (id: message.id))
   let delete  = action("delete", (id: message.id))
   fmt"""
@@ -53,7 +53,7 @@ proc AppEl(state: State): string =
     if edit_form.is_present and edit_form.get.id == message.id:
       EditFormEl(message)
     else:
-      MessageEl(message)
+      MessageEl(message, not edit_form.is_present)
 
   fmt"""
     <div id="app">
@@ -93,29 +93,32 @@ server.get("/", proc (req: Request): auto =
   respond PageEl(server, req, state)
 )
 
-State.on("add", proc (state: var State, data: tuple[add_text: string]): void =
+State.on("add", proc (state: var State, data: tuple[add_text: string]): bool =
   state.messages.add((state.next_id, data.add_text))
   state.next_id += 1
   state.add_text = ""
+  true
 )
 
-State.on("delete", proc (state: var State, data: tuple[id: int]): void =
+State.on("delete", proc (state: var State, data: tuple[id: int]): bool =
   state.messages.delete((message) => message.id == data.id)
+  true
 )
 
-State.on("edit", proc (state: var State, data: tuple[id: int]): void =
+State.on("edit", proc (state: var State, data: tuple[id: int]): bool =
   let message = state.messages.find((message) => message.id == data.id).get
   state.edit_form = message.some
 )
 
-State.on("cancel_edit", proc (state: var State): void =
+State.on("cancel_edit", proc (state: var State): bool =
   state.edit_form = Message.none
 )
 
-State.on("update", proc (state: var State, data: tuple[id: int, update_text: string]): void =
+State.on("update", proc (state: var State, data: tuple[id: int, update_text: string]): bool =
   let i = state.messages.findi((message) => message.id == data.id).get
   state.messages[i].text = data.update_text
   state.edit_form = Message.none
+  true
 )
 
 server.run
@@ -124,24 +127,24 @@ server.run
 # Helpers ------------------------------------------------------------------------------------------
 
 proc on*[T](
-  _: type[State], action: string, handler: proc(state: var State, input: T): void
+  _: type[State], action: string, handler: proc(state: var State, input: T): bool
 ): void =
   server.action(action, proc (req: Request): auto =
     var state = State.load(req.user_token)
     let input: T = req.data.to(T)
-    handler(state, input)
+    let flash = handler(state, input)
     state.save(req.user_token)
-    (update: AppEl(state))
+    (update: AppEl(state), flash: flash)
   )
 
 proc on*(
-  _: type[State], action: string, handler: proc(state: var State): void
+  _: type[State], action: string, handler: proc(state: var State): bool
 ): void =
   server.action(action, proc (req: Request): auto =
     var state = State.load(req.user_token)
-    handler(state)
+    let flash = handler(state)
     state.save(req.user_token)
-    (update: AppEl(state))
+    (update: AppEl(state), flash: flash)
   )
 
 proc storage(): FsStorage[State] =
