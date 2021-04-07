@@ -736,10 +736,12 @@ button-hidden {
     display: none;
 }
 
-button-primary,
-button-selected,
+.primary:hover,
+.primary,
+.selected,
 abutton-primary,
 abutton-selected {
+    border-color: rgb(0, 120, 231);
     background-color: rgb(0, 120, 231);
     color: #fff;
 }
@@ -1426,7 +1428,7 @@ form {
   float: right;
   margin-left: 0.5rem;
   padding: 0.3em 0.7em;
-  border-color: rgb(0, 120, 231);
+  /* border-color: rgb(0, 120, 231);
   background-color: rgb(0, 120, 231);
-  color: #fff;
+  color: #fff; */
 }

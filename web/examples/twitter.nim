@@ -30,7 +30,7 @@ proc EditFormEl(message: Message): string =
     <div id={message.id}>
       <form class="edit_form">
         <textarea name="update_text">{message.text.escape_html}</textarea>
-        <button on_click={update}>Update</button>
+        <button on_click={update} class="primary">Update</button>
         <button on_click={cancel}>Cancel</button>
       </form>
     </div>
@@ -63,7 +63,7 @@ proc AppEl(state: State): string =
       <br/>
       <form class="add_form">
         <textarea name="add_text" placeholder="Write something...">{state.add_text}</textarea>
-        <button on_click={action("add", true)}>Add</button>
+        <button on_click={action("add", true)} class="primary">Add</button>
       </form>
     </div>
   """

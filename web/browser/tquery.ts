@@ -297,13 +297,12 @@ $.build = build
 $.build_one = build_one
 $.smart_dom_update = smart_dom_update
 
-function wrap(arg: Event):         TEvent
-function wrap(arg: TEvent):        TEvent
-function wrap(arg: Window):        TContainer<Window>
-function wrap(arg: Document):      TContainer<Document>
-function wrap(arg: TElement):      TElement
-function wrap(arg: HTMLElement):   TElement
-function wrap(arg: HTMLElement[]): TElement[]
+function wrap(arg: Event | TEvent):         TEvent
+function wrap(arg: Window):                 TContainer<Window>
+function wrap(arg: Document):               TContainer<Document>
+function wrap(arg: TElement | HTMLElement): TElement
+function wrap(arg: HTMLElement):            TElement
+function wrap(arg: HTMLElement[]):          TElement[]
 function wrap(arg: Event | TEvent | Window | Document | TElement | HTMLElement | HTMLElement[]): something {
   if      (arg instanceof TEvent)   return arg
   else if ('is_telement' in arg)    return arg
@@ -342,10 +341,11 @@ export function build_one(html: TInput): TElement {
 export function smart_dom_update(
   el: HTMLElement | TElement, updated_el: string | HTMLElement, flash: boolean
 ) {
+  let $el = wrap(el)
   if (flash) {
-    flash_changed_flashable(() => (window as something).morphdom(el, updated_el), updated_el)
+    flash_changed_flashable(() => (window as something).morphdom($el.native, updated_el), $el, updated_el)
   } else {
-    ;(window as something).morphdom(el, updated_el)
+    ;(window as something).morphdom($el.native, updated_el)
   }
 }
 
@@ -382,7 +382,7 @@ function flash($el: TElement, before_delete = false): void {
   }
 }
 
-export function flash_changed_flashable(modify_dom: () => void, updated_el: string | HTMLElement) {
+export function flash_changed_flashable(modify_dom: () => void, $el: TElement, updated_el: string | HTMLElement) {
   // To avoid the 'flash' class being seen as the change
   function get_html_without_flash($el: TElement): string {
     return [
@@ -393,21 +393,21 @@ export function flash_changed_flashable(modify_dom: () => void, updated_el: stri
 
   // Getting list of flashable elements before update
   let before: { [id: string]: string } = {}
-  find(".flashable").map(($el) => {
-    let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
-    before[id || html] = html
+  $el.find(".flashable").map(($el) => {
+    let id = $el.get_attr("id")
+    if (id) before[id] = get_html_without_flash($el)
   })
 
   // Highlighting deleted elements
   let has_deleted = false
-  let after: { [id: string]: string } = {}
-  flatten(build(updated_el).map(($el) => $el.find(".flashable"))).map(($el) => {
-    let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
-    after[id || html] = html
+  let ids_in_updated_el: { [id: string]: true } = {}
+  flatten(build(updated_el).map(($el) => $el.find("*[id]"))).map(($el) => {
+    let id = $el.get_attr("id")
+    if (id) ids_in_updated_el[id] = true
   })
-  find(".flashable").map(($el) => {
-    let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
-    if (!((id || html) in after)) {
+  $el.find(".flashable").map(($el) => {
+    let id = $el.get_attr("id")
+    if (id && !(id in ids_in_updated_el)) {
       has_deleted = true
       if (!$el.is_flashed()) $el.flash(true)
     }
@@ -418,9 +418,9 @@ export function flash_changed_flashable(modify_dom: () => void, updated_el: stri
 
     // Checking if any element has been updated
     setTimeout(() => {
-      find(".flashable").map(($el) => {
-        let [id, html] = [$el.get_attr("id"), get_html_without_flash($el)]
-        if (before[id || html] != html) {
+      $el.find(".flashable").map(($el) => {
+        let id = $el.get_attr("id")
+        if (id && before[id] != get_html_without_flash($el)) {
           if (!$el.is_flashed()) $el.flash()
         }
       })

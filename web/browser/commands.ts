@@ -121,11 +121,12 @@ register_executor("reload", reload)
 export interface UpdateCommand {
   update: string
   id?:    string
+  flash?: boolean
 }
 async function update(command: UpdateCommand) {
   let html = command.update
   function is_page(html: string) { return /<html/.test(html) }
-  let flash = true // command.flash == true
+  let flash = command.flash != false
 
   if (is_page(html)) {
     const match = html.match(/<head.*?><title>(.*?)<\/title>/)

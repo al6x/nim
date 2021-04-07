@@ -721,11 +721,12 @@ function build_one(html) {
     return elements[0];
 }
 function smart_dom_update(el, updated_el, flash) {
+    let $el = wrap(el);
     if (flash) {
-        flash_changed_flashable(()=>window.morphdom(el, updated_el)
-        , updated_el);
+        flash_changed_flashable(()=>window.morphdom($el.native, updated_el)
+        , $el, updated_el);
     } else {
-        window.morphdom(el, updated_el);
+        window.morphdom($el.native, updated_el);
     }
 }
 const flash_class = 'flash';
@@ -758,54 +759,42 @@ function flash($el, before_delete = false) {
         , delay);
     }
 }
-function flash_changed_flashable(modify_dom, updated_el) {
-    function get_html_without_flash($el) {
+function flash_changed_flashable(modify_dom, $el, updated_el) {
+    function get_html_without_flash($el1) {
         return [
-            $el.classes().filter((klass)=>klass != flash_class && klass != flash_before_delete_class
+            $el1.classes().filter((klass)=>klass != flash_class && klass != flash_before_delete_class
             ).join(" "),
-            $el.get_inner_html()
+            $el1.get_inner_html()
         ].join(" ");
     }
     let before = {
     };
-    find(".flashable").map(($el)=>{
-        let [id, html] = [
-            $el.get_attr("id"),
-            get_html_without_flash($el)
-        ];
-        before[id || html] = html;
+    $el.find(".flashable").map(($el1)=>{
+        let id = $el1.get_attr("id");
+        if (id) before[id] = get_html_without_flash($el1);
     });
     let has_deleted = false;
-    let after = {
+    let ids_in_updated_el = {
     };
-    flatten(build(updated_el).map(($el)=>$el.find(".flashable")
-    )).map(($el)=>{
-        let [id, html] = [
-            $el.get_attr("id"),
-            get_html_without_flash($el)
-        ];
-        after[id || html] = html;
+    flatten(build(updated_el).map(($el1)=>$el1.find("*[id]")
+    )).map(($el1)=>{
+        let id = $el1.get_attr("id");
+        if (id) ids_in_updated_el[id] = true;
     });
-    find(".flashable").map(($el)=>{
-        let [id, html] = [
-            $el.get_attr("id"),
-            get_html_without_flash($el)
-        ];
-        if (!((id || html) in after)) {
+    $el.find(".flashable").map(($el1)=>{
+        let id = $el1.get_attr("id");
+        if (id && !(id in ids_in_updated_el)) {
             has_deleted = true;
-            if (!$el.is_flashed()) $el.flash(true);
+            if (!$el1.is_flashed()) $el1.flash(true);
         }
     });
     function finish() {
         modify_dom();
         setTimeout(()=>{
-            find(".flashable").map(($el)=>{
-                let [id, html] = [
-                    $el.get_attr("id"),
-                    get_html_without_flash($el)
-                ];
-                if (before[id || html] != html) {
-                    if (!$el.is_flashed()) $el.flash();
+            $el.find(".flashable").map(($el1)=>{
+                let id = $el1.get_attr("id");
+                if (id && before[id] != get_html_without_flash($el1)) {
+                    if (!$el1.is_flashed()) $el1.flash();
                 }
             });
         }, 10);
@@ -935,7 +924,7 @@ async function update(command) {
     function is_page(html1) {
         return /<html/.test(html1);
     }
-    let flash2 = true;
+    let flash2 = command.flash != false;
     if (is_page(html)) {
         const match = html.match(/<head.*?><title>(.*?)<\/title>/);
         if (match) window.document.title = match[1];
