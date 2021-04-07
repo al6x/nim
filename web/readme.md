@@ -42,8 +42,7 @@ Not supported, you need to do it yourself.
 
 Not supported, you need to do it yourself.
 
-I don't want to support it right now because such kind of application require capable parallel statefull server.
-Parallel support in Nim is still experimental and lacks some features. Nim has `async` but it has its own set of problems, I don't want to use `async`. I think it would be better to use Redis with stateless Nim processes and push updates to server (see another question how to do that).
+It could be done with Nim `async` or with Redis with stateless Nim processes and push updates to server (see another question how to do that).
 
 ## Isn't it a huge waste to send whole page HTML?
 
