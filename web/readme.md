@@ -28,6 +28,24 @@ Also, sometimes there are cases when you need to do something unusual, in such c
 
 The `ActionCommand` has the `state` attribute, if it's set to true, the Client would record the current state, all the inputs, and sends it to the Server along with the given `ActionCommand`.
 
+
+## How to push updates from the Server?
+
+Not supported, you need to do it yourself.
+
+- Use Browser fetch pooling technic and check for update say every 3 sec.
+- Implement the `Transport` interface with WebSocket, currently the Transport uses `fetch`.
+- Use separate WebSocket pusher process, written as separate Nim process or with Redis or something
+  like that.
+
+## How to write multi user apps like Chat?
+
+Not supported, you need to do it yourself.
+
+I don't want to support it right now because such kind of application require capable parallel statefull server.
+Parallel support in Nim is still experimental and lacks some features. I think it would be better to use Redis
+with stateless Nim processes and push updates to server (see another question how to do that).
+
 ## Isn't it a huge waste to send whole page HTML?
 
 No it is not. Such approach known for many years and works fast and well (see https://hey.com). There are special cases when you can't do that, for example if you want to react on every keypress, such cases should be handled manually.
