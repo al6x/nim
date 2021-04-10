@@ -189,6 +189,10 @@ func shuffle*[T](list: openarray[T], seed = 1): seq[T] =
   result = list.to_seq
   random.shuffle(rand, result)
 
+func shuffle*[T](list: openarray[T], rand: random.Rand): seq[T] =
+  result = list.to_seq
+  random.shuffle(rand, result)
+
 
 # count --------------------------------------------------------------------------------------------
 func count*[T](list: openarray[T], check: (T) -> bool): int {.inline.} =
