@@ -109,19 +109,19 @@ proc asset_hash_slow*(path: string, assets_file_paths: seq[string], max_file_siz
       return content.get_md5
   throw "File not found"
 
-var filehashes: SharedTable[int, int]
+var filehashes: SharedTable[string, string]
 filehashes.init
 
 proc asset_hash*(path: string, assets_file_paths: seq[string], max_file_size: int): string =
   # Using path_hash and hash as int because SharedTable dosn't support strings
   let path_hash = path.hash.int
-  var content_hash: int
-  filehashes.with_key(path_hash, proc (key: int, val: var int, pair_exists: var bool) =
+  var content_hash: string
+  filehashes.with_key(path, proc (key: string, val: var string, pair_exists: var bool) =
     if not pair_exists:
-      val = asset_hash_slow(path, assets_file_paths, max_file_size).hash.int
+      val = asset_hash_slow(path, assets_file_paths, max_file_size)
     content_hash = val
   )
-  $content_hash
+  content_hash
 
 
 # handle_assets_slow -------------------------------------------------------------------------------
