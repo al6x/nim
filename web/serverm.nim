@@ -242,8 +242,8 @@ proc process(server: Server, req: Request): Response =
   except:
     return Response.init(400, "Invalid JSON body")
 
-  req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random()]]
-  req.session_token = req.params["session_token", secure_random()]
+  req.user_token    = req.params["user_token",    req.cookies["user_token", secure_random_token()]]
+  req.session_token = req.params["session_token", secure_random_token()]
 
   # Processing
   let tic = timer_ms()
