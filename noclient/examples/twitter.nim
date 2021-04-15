@@ -1,6 +1,6 @@
 import system except find
 import basem, jsonm
-import ../serverm, ../helpersm, ../commandsm, ../fs_storage
+import ../web/serverm, ../web/helpersm, ./commandsm, ../web/fs_storage
 {.experimental: "code_reordering".}
 
 
@@ -72,7 +72,7 @@ proc PageEl(server: Server, req: Request, state: State): string =
   fmt"""
     <html>
       <head>
-        <link rel="stylesheet" href="{server.asset_path("/twitter.css")}">
+        <link rel="stylesheet" href="{server.asset_path("/examples/twitter.css")}">
       </head>
       <body>
         {AppEl(state)}
@@ -85,7 +85,7 @@ proc PageEl(server: Server, req: Request, state: State): string =
 
 # Behavior -----------------------------------------------------------------------------------------
 var server = Server.init(ServerConfig.init(
-  assets_file_paths = @["./web/examples"])
+  assets_file_paths = @["./noclient"])
 )
 
 server.get("/", proc (req: Request): auto =

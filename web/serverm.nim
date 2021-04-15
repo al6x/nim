@@ -40,7 +40,6 @@ proc init*(
   cache_assets      = env["environment", "development"] == "production"
 ): ServerConfig =
   const script_dir = instantiation_info(full_paths = true).filename.parent_dir
-  var assets_file_paths = assets_file_paths & @[script_dir / "browser"]
   ServerConfig(
     host: host, port: port,
     data_formats: data_formats, default_format: default_format,

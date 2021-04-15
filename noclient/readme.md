@@ -1,3 +1,6 @@
+Client libarary that produces Interactive Web Applications without the need to write JavaScript. It works similar to
+Phoenix LiveView, Turbolinks, LiveWire.
+
 # How it works
 
 It's easier to start from the Client. The Client can do only one thing - execute a `Command` with `execute_command`. A Command could be triggered by user event like button click, or a Server at any moment may send some Command to the Client.
@@ -33,6 +36,7 @@ The `ActionCommand` has the `state` attribute, if it's set to true, the Client w
 
 Not supported, you need to do it yourself.
 
+- Use https://nchan.io
 - Use Browser fetch pooling technic and check for update say every 3 sec.
 - Or implement the `Transport` interface in `transport.ts` with WebSocket, currently the Transport uses `fetch`.
 - Or use separate WebSocket pusher process, written as separate Nim process or with Redis or something
