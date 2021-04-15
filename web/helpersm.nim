@@ -42,17 +42,3 @@ proc asset_path*(
 proc asset_path*[R](req: R, path: string): string =
   let config = req.config
   asset_path(path, config.assets_path, config.assets_file_paths, config.max_file_size, config.cache_assets)
-
-
-# base_assets --------------------------------------------------------------------------------------
-# TODO 2 use live reload ${useLiveReload ? `<script src="${assetPath('/livereload.js')}"></script>` : ''}
-proc base_assets*[S, R](server: S, req: R): string = fmt"""
-  <script src="{server.asset_path("/vendor/jquery-3.6.0.min.js")}"></script>
-  <script src="{server.asset_path("/vendor/morphdom-2.6.1.min.js")}"></script>
-  <script src="{server.asset_path("/client.build.js")}" type="module"></script>
-  <link rel="stylesheet" href="{server.asset_path("/styles.css")}">
-  <script>
-    window.user_token    = "{req.user_token}"
-    window.session_token = "{req.session_token}"
-  </script>
-"""

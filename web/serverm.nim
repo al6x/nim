@@ -168,9 +168,10 @@ proc post*(server: var Server, pattern: string | Regex, handler: Handler): void 
 
 # data_route ---------------------------------------------------------------------------------------
 proc add_data_route*[T](server: var Server, pattern: Regex, methd: string, handler: ApiHandler[T]): void =
+  let iserver = server
   proc data_handler(req: Request): Response =
     let data: T = handler(req)
-    data.format_as(req.format)
+    iserver.format_as(data, req.format)
 
   server.data_routes.add(pattern, methd, data_handler)
 
@@ -230,14 +231,14 @@ proc process(server: Server, req: Request): Response =
     return (
       case format_type
       of html_e:  Response.init(404, server.render_not_found_page("Route not found"))
-      of data_e:  format_error_as("Route not found", req.format)
+      of data_e:  server.format_error_as("Route not found", req.format)
       of other_e: Response.init(404, "Route not found")
     )
 
   # Finishing request initialization
   req.params = routeo.get.pattern.parse_named(req.path) & req.query
   req.data   = try:
-    (if req.format == "json": req.body else: "{}").parse_json
+    (if req.format == "json" and req.body != "": req.body else: "{}").parse_json
   except:
     return Response.init(400, "Invalid JSON body")
 
@@ -270,8 +271,8 @@ proc process(server: Server, req: Request): Response =
     of html_e:
       Response.init(500, server.render_error_page("Unexpected error", e))
     of data_e:
-      if show_errors: format_error_as(e, req.format)
-      else:           format_error_as("Unexpected error", req.format)
+      if show_errors: server.format_error_as(e, req.format)
+      else:           server.format_error_as("Unexpected error", req.format)
     of other_e:
       if show_errors: Response.init(500, fmt"{e.message}\n{e.get_stack_trace}".escape_html)
       else:           Response.init(500, "Unexpected error")
@@ -329,24 +330,24 @@ proc partial_init(_: type[Request], jreq: jester.Request): Request =
 
 
 # error pages and format ---------------------------------------------------------------------------
+# Override to use different error pages and formats
 method render_error_page*(server: Server, message: string, error: ref Exception): string  {.base.} =
   render_default_error_page(message, error, server.config.show_errors)
 
 method render_not_found_page*(_: Server, message: string): string  {.base.} =
   render_default_not_found_page(message)
 
-# Can't be defined as method because it somehow violate memory safety
-proc format_as[T](data: T, format: string): Response =
+method format_as[T](_: Server, data: T, format: string): Response {.base.} =
   if format == "json": Response.init(200, data.to_json, @[("Content-Type", "application/json")])
   else:                Response.init(500, fmt"Error, invalid format '{format}'")
 
-proc format_error_as(message: string, format: string): Response =
+method format_error_as(_: Server, message: string, format: string): Response {.base.} =
   if format == "json":
     Response.init(200, (is_error: true, message: message).to_json, @[("Content-Type", "application/json")])
   else:
     Response.init(500, fmt"Error, invalid format '{format}'")
 
-proc format_error_as(error: ref Exception, format: string): Response =
+method format_error_as(_: Server, error: ref Exception, format: string): Response {.base.} =
   if format == "json":
     let content = (is_error: true, message: error.message, stack: error.get_stack_trace).to_json
     Response.init(200, content, @[("Content-Type", "application/json")])
@@ -363,7 +364,8 @@ if is_main_module:
   )
 
   server.get("/users/:name/profile", proc(req: Request): auto =
-    respond "hi"
+    let name = req["name"]
+    respond fmt"{name} profile"
   )
 
   server.run
