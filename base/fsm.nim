@@ -59,8 +59,8 @@ proc append_line*(path, data: string): void =
   )
 
 
-# exists -------------------------------------------------------------------------------------------
-proc exists*(path: string): bool =
+# exist --------------------------------------------------------------------------------------------
+proc exist*(path: string): bool =
   try:
     discard get_file_info(path)
     true
@@ -80,7 +80,7 @@ proc delete*(path: string, recursive = false) =
   try:
     remove_file path
   except:
-    if not path.exists:
+    if not path.exist:
       return
     elif path.is_empty_dir or recursive:
       remove_dir path
