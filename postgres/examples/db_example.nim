@@ -14,7 +14,7 @@ let schema = """
     age        integer        not null
   );
   """
-db.exec schema
+db.before schema
 
 
 # SQL with `:named` parameters instead of `?`

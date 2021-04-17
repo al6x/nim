@@ -28,7 +28,7 @@ let schema = """
     age        integer        not null
   );
   """
-db.exec schema
+db.before schema
 
 
 # SQL with `:named` parameters instead of `?`
@@ -71,7 +71,7 @@ let schema = """
     primary key (id)
   );
 """
-db.exec schema
+db.before schema
 
 
 # Defining User model

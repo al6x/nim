@@ -14,7 +14,7 @@ let schema = """
     primary key (id)
   );
 """
-db.exec schema
+db.before schema
 
 
 # Defining User model

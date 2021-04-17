@@ -112,7 +112,7 @@ proc count*[T](table: DbTable[T], where: string, values: object | tuple): int =
   table.count(sql(where, values))
 
 
-# [], []= ------------------------------------------------------------------------------------------
+# [] -----------------------------------------------------------------------------------------------
 proc `[]`*[T](table: DbTable[T], id: int | string): T =
   table.find_by_id(id).get
 
@@ -138,7 +138,7 @@ if is_main_module:
       primary key (id)
     );
   """
-  db.exec schema
+  db.before schema
 
 
   # Defining User Model

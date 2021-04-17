@@ -21,8 +21,8 @@ proc log(db: Db): Log = Log.init("db", db.name)
 # Using separate storage for connections, because they need to be mutable. The Db can't be mutable
 # because it's needed to be passed around callbacks and sometimes Nim won't allow to pass mutable data
 # in callbacks.
-var connections: Table[string, DbConn]
-
+var connections:      Table[string, DbConn]
+var before_callbacks: Table[string, seq[proc: void]]
 
 # Db.init ------------------------------------------------------------------------------------------
 proc init*(
@@ -48,8 +48,8 @@ proc create*(db: Db, user = "postgres"): void =
 
 # db.drop ------------------------------------------------------------------------------------------
 proc drop*(db: Db, user = "postgres"): void =
-  # Using bash, don't know how to create db otherwise
-  db.log.info "dropp"
+  # Using bash, don't know how to db db otherwise
+  db.log.info "drop"
   let (output, code) = exec_cmd_ex fmt"dropdb -U {user} {db.name}"
   if code != 0 and fmt"""database "{db.name}" does not exist""" notin output:
     throw fmt"can't drop database {user} {db.name}"
@@ -75,6 +75,10 @@ proc connect(db: Db): DbConn
 proc with_connection*[R](db: Db, op: (DbConn) -> R): R =
   if db.id notin connections:
     connections[db.id] = db.connect()
+
+    if db.id in before_callbacks:
+      db.log.info "applying before callbacks"
+      for cb in before_callbacks[db.id]: cb()
 
   var success = false
   try:
@@ -152,6 +156,7 @@ proc get_raw*(db: Db, query: SQL, log = true): seq[seq[string]] =
 proc get_raw*(db: Db, query: string, values: object | tuple): seq[seq[string]] =
   db.get_raw(sql(query, values))
 
+
 # db.get -------------------------------------------------------------------------------------------
 proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
   db.get_raw(query, log).to(T)
@@ -175,6 +180,17 @@ proc count*(db: Db, query: string, values: object | tuple): int =
   db.count(sql(query, values))
 
 
+# db.before ----------------------------------------------------------------------------------------
+# Callbacks to be executed before any query
+proc before*(db: Db, cb: proc: void): void =
+  var list = before_callbacks[db.id, @[]]
+  list.add cb
+  before_callbacks[db.id] = list
+
+proc before*(db: Db, sql: string): void =
+  db.before(() => db.exec(sql))
+
+
 # --------------------------------------------------------------------------------------------------
 # Test ---------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------
@@ -190,7 +206,7 @@ if is_main_module:
       age  integer      not null
     );
   """
-  db.exec schema
+  db.before schema
 
   # SQL values replacements
   db.exec(
