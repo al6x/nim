@@ -2,10 +2,12 @@ PostgreSQL driver with basic ORM support.
 
 # Features
 
-- Lazy connection to save startup time
-- Auto-reconnect if connection fail
-- Support for `null` and `Option`
-- Named parameters in SQL
+- Named parameters in SQL.
+- Auto-casting between Nim and SQL types.
+- Auto-casting SQL results to Nim objects, named or unnamed tuples.
+- No explicit connection management.
+- Auto-reconnect if connection fail.
+- Support for `null` and `Option`.
 
 # Examples
 
