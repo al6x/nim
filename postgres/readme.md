@@ -21,13 +21,9 @@ let db = Db.init("nim_test")
 db.exec("""
   begin;
   drop table if exists users;
-
-  create table if not exists users(
-    id         serial         not null,
+  create table users(
     name       varchar(100)   not null,
-    age        integer        not null,
-
-    primary key (id)
+    age        integer        not null
   );
   commit;""")
 
