@@ -98,8 +98,8 @@ proc error*(message: string, exception: ref Exception): void =
 
 # Utils --------------------------------------------------------------------------------------------
 proc format_component(log: Log): string =
-  let truncated = if log.component.len > 3: log.component[0..3] else: log.component
-  fmt"{truncated.to_lower.align(4)} | "
+  let truncated = if log.component.len > 4: log.component.replace("_", "")[0..4] else: log.component
+  fmt"{truncated.to_lower.align(5)} | "
 
 
 proc format_data(log: Log): string =

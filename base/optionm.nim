@@ -23,3 +23,6 @@ func is_present*[T](o: Option[T]): bool {.inline.} = o.is_some
 
 proc get*[T](o: Option[T], otherwise: () -> T): T =
   if o.is_some: o.get else: otherwise()
+
+proc clean*[T](o: var Option[T]): void =
+  o = T.none

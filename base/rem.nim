@@ -16,7 +16,7 @@ test "match":
   assert "abc".match(re"^abc$")
   assert not "abc".match(re"d")
 
-  assert "abc".match(re"(?i)B")
+  assert "abc".match(re"(?i)B") # case insensitive
 
 # =~ and != ----------------------------------------------------------------------------------------
 proc `=~`*(s: string, r: Regex): bool = match(s, r)
@@ -57,12 +57,13 @@ test "find":
 proc parse*(r: Regex, s: string): Option[seq[string]] =
   let found = nre.match(s, r)
   if stdoptions.is_some(found):
-    to_seq(nre.items(nre.captures(stdoptions.get(found)))).map((o) => stdoptions.get(o)).some
-  else:
-    return
+    let captures = to_seq(nre.items(nre.captures(stdoptions.get(found)))).map((o) => stdoptions.get(o))
+    if captures.len > 0:
+      return captures.some
 
 test "parse":
   assert re".+ (\d+) (\d+)".parse("a 22 45") == @["22", "45"].some
+  assert re"[^;]+;".parse("drop table; create table;").is_none
 
 
 # parse_named --------------------------------------------------------------------------------------

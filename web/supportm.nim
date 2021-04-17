@@ -43,7 +43,7 @@ add_handler(VoidLogger())
 # Rewrites `"/users/:name/profile/"` as `re"/users/(?<name>[^/]+)/profile"`
 proc route_pattern_to_re*(route: string): Regex =
   var route = if route == "/": "" else: route
-  let pattern_str = route.replace(re"(:[a-z0-9]+)", proc (match: string): string =
+  let pattern_str = route.replace(re"(:[a-z0-9_]+)", proc (match: string): string =
     let name = match.replace(":", "")
     fmt"(?<{name}>[^/]+)"
   )
