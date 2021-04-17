@@ -198,7 +198,7 @@ if is_main_module:
   let db = Db.init("nim_test")
   # db.drop
 
-  let schema = """
+  db.before """
     drop table if exists users;
 
     create table users(
@@ -206,7 +206,6 @@ if is_main_module:
       age  integer      not null
     );
   """
-  db.before schema
 
   # SQL values replacements
   db.exec(

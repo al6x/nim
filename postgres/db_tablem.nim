@@ -127,7 +127,7 @@ if is_main_module:
   # Creating DB and defining schema
   let db    = Db.init("nim_test")
 
-  let schema = """
+  db.before """
     drop table if exists users;
 
     create table users(
@@ -138,7 +138,6 @@ if is_main_module:
       primary key (id)
     );
   """
-  db.before schema
 
 
   # Defining User Model

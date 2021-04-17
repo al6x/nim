@@ -20,7 +20,7 @@ let db = Db.init("nim_test")
 
 
 # Creating schema
-let schema = """
+db.before """
   drop table if exists users;
 
   create table users(
@@ -28,7 +28,6 @@ let schema = """
     age        integer        not null
   );
   """
-db.before schema
 
 
 # SQL with `:named` parameters instead of `?`
@@ -60,7 +59,7 @@ import basem, ../db_tablem
 # Creating DB and defining schema
 let db = Db.init("nim_test")
 
-let schema = """
+db.before """
   drop table if exists users;
 
   create table users(
@@ -71,7 +70,6 @@ let schema = """
     primary key (id)
   );
 """
-db.before schema
 
 
 # Defining User model
