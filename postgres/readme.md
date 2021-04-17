@@ -6,8 +6,7 @@ Made by [al6x](http://al6x.com).
 
 - Named parameters in SQL.
 - Auto-casting between Nim and SQL types, objects, tuples.
-- No explicit connection management.
-- Auto-reconnect if connection fail.
+- No explicit connection management, auto-reconnect.
 - Support for `null` and `Option`.
 
 # Db example
