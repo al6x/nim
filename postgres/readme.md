@@ -46,8 +46,3 @@ assert db.get("""
   (name: "Jim", age: 33)
 ]
 ```
-
-# Problems
-
-- When `null` returned from Postgres for the field of `string` type, there's no way to distinguish
-  it from the empty string.
