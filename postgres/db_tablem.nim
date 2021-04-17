@@ -15,9 +15,9 @@ proc table*[T](db: Db, _: type[T], name: string): DbTable[T] =
 
 
 # table.create -------------------------------------------------------------------------------------
-var sql_cache: Table[(string, string), string]
+var generated_sql_cache: Table[(string, string), string]
 
-proc create*[T](table: DbTable, o: T): void =
+proc create*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.create id={id}"
   let generate_sql = proc (): string =
     let column_names = " " & T.fields.join(",  ")
@@ -28,12 +28,12 @@ proc create*[T](table: DbTable, o: T): void =
       values
         ({named_values})
     """.dedent
-  let sql = sql_cache.mget(("create", $o), generate_sql)
-  table.db.exec(sql, o, log = false)
+  let query = generated_sql_cache.mget(("create", $T), generate_sql)
+  table.db.exec(sql(query, o), log = false)
 
 
 # table.update -------------------------------------------------------------------------------------
-proc update*[T](table: DbTable, o: T): void =
+proc update*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.update id={id}"
   let generate_sql = proc (): string =
     let setters = T.fields.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
@@ -43,12 +43,12 @@ proc update*[T](table: DbTable, o: T): void =
         {setters}
       where id = :id
     """.dedent
-  let sql = sql_cache.mget(("update", $o), generate_sql)
-  table.db.exec(sql, o, log = false)
+  let query = generated_sql_cache.mget(("update", $T), generate_sql)
+  table.db.exec(sql(query, o), log = false)
 
 
 # table.save ---------------------------------------------------------------------------------------
-proc save*[T](table: DbTable, o: T): void =
+proc save*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.save id={id}"
   let generate_sql = proc (): string =
     let column_names = " " & T.fields.join(",  ")
@@ -63,48 +63,45 @@ proc save*[T](table: DbTable, o: T): void =
       set
         {setters}
     """.dedent
-  let sql = sql_cache.mget(("save", $o), generate_sql)
-  table.db.exec(sql, o, log = false)
+  let query = generated_sql_cache.mget(("save", $T), generate_sql)
+  table.db.exec(sql(query, o), log = false)
 
 
-# table.save ---------------------------------------------------------------------------------------
-proc find*[T](table: DbTable, : T): void =
-  table.log.with((table: table.name, id: o.id)).info "{table}.save id={id}"
+# table.find ---------------------------------------------------------------------------------------
+proc find*[T](table: DbTable[T], where: SQL = "", log = true): seq[T] =
+  if log: table.log.with((table: table.name, where: $where)).info "{table}.find '{where}'"
   let generate_sql = proc (): string =
-    let column_names = " " & T.fields.join(",  ")
-    let named_values = T.fields.map((n) => fmt":{n}").join(", ")
-    let setters = T.fields.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
+    let column_names = T.fields.join(", ")
     fmt"""
-      insert into {table.name}
-        ({column_names})
-      values
-        ({named_values})
-      on conflict (id) do update
-      set
-        {setters}
-    """.dedent
-  let sql = sql_cache.mget(("save", $o), generate_sql)
-  table.db.exec(sql, o, log = false)
+      select {column_names}
+      from {table.name}""".dedent
+  let query_prefix = generated_sql_cache.mget(("find", $T), generate_sql)
+  let query = if where.query == "":
+    sql query_prefix
+  else:
+    (query: fmt"{query_prefix} where {where.query}", values: where.values)
+  table.db.get(query, T, log = false)
 
 
-# table.count ---------------------------------------------------------------------------------------
-# proc save*[T](table: DbTable, o: T): void =
-#   table.log.with((table: table.name, id: o.id)).info "{table}.save id={id}"
-#   let generate_sql = proc (): string =
-#     let column_names = " " & T.fields.join(",  ")
-#     let named_values = T.fields.map((n) => fmt":{n}").join(", ")
-#     let setters = T.fields.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
-#     fmt"""
-#       insert into {table.name}
-#         ({column_names})
-#       values
-#         ({named_values})
-#       on conflict (id) do update
-#       set
-#         {setters}
-#     """.dedent
-#   let sql = sql_cache.mget(("save", $o), generate_sql)
-#   table.db.exec(sql, o, log = false)
+# table.find_by_id ---------------------------------------------------------------------------------
+proc get*[T](table: DbTable[T], id: string | int): Option[T] =
+  table.log.with((table: table.name, id: id)).info "{table}.get {id}"
+  let found = table.find(sql("id = :id", (id: id)), log = false)
+  if found.len > 1: throw fmt"found {found.len} objects for id = '{id}'"
+  if found.is_empty: T.none else: found[0].some
+
+
+# table.count --------------------------------------------------------------------------------------
+proc count*[T](table: DbTable[T], where: SQL = ""): int =
+  table.log.with((table: table.name, where: $where)).info "{table}.count '{where}'"
+  let query_prefix = fmt"""
+    select count(*)
+    from {table.name}""".dedent
+  let query = if where.query == "":
+    sql query_prefix
+  else:
+    (query: fmt"{query_prefix} where {where.query}", values: where.values)
+  table.db.count(query, log = false)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -136,8 +133,18 @@ if is_main_module:
 
   let users = db.table(User, "users")
 
+  # Saving
   var jim = User(id: 1, name: "Jim", age: 30)
   users.save jim
 
   jim.age = 31
   users.save jim
+
+  # Find
+  assert users.find(sql("age = :age", (age: 31))) == @[jim]
+
+  # Get
+  assert users.get(1) == jim.some
+
+  # Count
+  assert users.count(sql("age = :age", (age: 31))) == 1

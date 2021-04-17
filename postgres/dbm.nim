@@ -2,8 +2,10 @@ import basem, logm
 import ./convertersm
 from osproc import exec_cmd_ex
 from postgres import nil
-import db_postgres
+from db_postgres import DbConn
 import uri
+
+export DbConn
 
 # Db -----------------------------------------------------------------------------------------------
 type Db* = ref object
@@ -38,7 +40,7 @@ proc init*(
 # db.create ----------------------------------------------------------------------------------------
 proc create*(db: Db, user = "postgres"): void =
   # Using bash, don't know how to create db otherwise
-  db.log.with((user: user)).info "create"
+  db.log.info "create"
   let (output, code) = exec_cmd_ex fmt"createdb -U {user} {db.name}"
   if code != 0 and fmt"""database "{db.name}" already exists""" in output:
     throw "can't create database {user} {name}"
@@ -47,7 +49,7 @@ proc create*(db: Db, user = "postgres"): void =
 # db.drop ------------------------------------------------------------------------------------------
 proc drop*(db: Db, user = "postgres"): void =
   # Using bash, don't know how to create db otherwise
-  db.log.with((user: user)).info "dropp"
+  db.log.info "dropp"
   let (output, code) = exec_cmd_ex fmt"dropdb -U {user} {db.name}"
   if code != 0 and fmt"""database "{db.name}" does not exist""" notin output:
     throw fmt"can't drop database {user} {db.name}"
@@ -59,7 +61,7 @@ proc close*(db: Db): void =
   let conn = connections[db.id]
   connections.del db.id
   db.log.info "close"
-  conn.close()
+  db_postgres.close(conn)
 
 
 # db.with_connection -------------------------------------------------------------------------------
@@ -74,17 +76,17 @@ proc with_connection*[R](db: Db, op: (DbConn) -> R): R =
   if db.id notin connections:
     connections[db.id] = db.connect()
 
+  var success = false
   try:
-    op(connections[db.id])
-  except Exception as e:
-    # Reconnecting if connection is broken. There's no way to determine if error was caused by
-    # broken connection or something else. So assuming that connection is broken and terminating it,
-    # it will be reconnected next time automatically.
-    try:
-      db.close
-    except Exception as e:
-      db.log.with((url: db.url)).warn("can't close connection", e)
-    throw e
+    result = op(connections[db.id])
+    success = true
+  finally:
+    if not success:
+      # Reconnecting if connection is broken. There's no way to determine if error was caused by
+      # broken connection or something else. So assuming that connection is broken and terminating it,
+      # it will be reconnected next time automatically.
+      try:                   db.close
+      except Exception as e: db.log.warn("can't close connection", e)
 
 proc with_connection*(db: Db, op: (DbConn) -> void): void =
   discard db.with_connection(proc (conn: auto): auto =
@@ -93,7 +95,7 @@ proc with_connection*(db: Db, op: (DbConn) -> void): void =
   )
 
 proc connect(db: Db): DbConn =
-  db.log.with((url: db.url)).info "connect to {url}"
+  db.log.info "connect"
   var url = init_uri()
   parse_uri(db.url, url)
   assert url.scheme == "postgresql"
@@ -112,7 +114,7 @@ proc connect(db: Db): DbConn =
       throw e
 
   # Setting encoding
-  if not connection.set_encoding(db.encoding): throw "can't set encoding"
+  if not db_postgres.set_encoding(connection, db.encoding): throw "can't set encoding"
 
   # Disabling logging https://forum.nim-lang.org/t/7801
   let stub: postgres.PQnoticeReceiver = proc (arg: pointer, res: postgres.PPGresult){.cdecl.} = discard
@@ -121,61 +123,45 @@ proc connect(db: Db): DbConn =
 
 
 # db.exec ------------------------------------------------------------------------------------------
-proc exec_fixed(connection: DbConn, sql: string) =
+proc exec_batch(connection: DbConn, query: string) =
   # https://forum.nim-lang.org/t/7804
-  var res = postgres.pqexec(connection, sql)
-  if postgres.pqResultStatus(res) != postgres.PGRES_COMMAND_OK: dbError(connection)
+  var res = postgres.pqexec(connection, query)
+  if postgres.pqResultStatus(res) != postgres.PGRES_COMMAND_OK: db_postgres.dbError(connection)
   postgres.pqclear(res)
 
-proc exec*(db: Db, sql: string, log = true): void =
-  if log: db.log.with((sql: sql)).debug "exec"
+proc exec*(db: Db, query: string, log = true): void =
+  if log: db.log.debug "exec"
   db.with_connection do (conn: auto) -> void:
-    exec_fixed(conn, sql)
+    conn.exec_batch(query)
 
-proc exec*(db: Db, sql: string, args: tuple | object, log = true): void =
-  if log: db.log.with((sql: sql)).debug "exec"
-  let (sqls, values) = sqlp(sql, args)
+proc exec*(db: Db, query: SQL, log = true): void =
+  if log: db.log.debug "exec"
   db.with_connection do (conn: auto) -> void:
-    conn.exec(db_postgres.sql(sqls), values)
+    db_postgres.exec(conn, db_postgres.sql(query.query), query.values)
 
 
 # db.get_raw ---------------------------------------------------------------------------------------
-proc get_raw*(db: Db, sql: string, log = true): seq[seq[string]] =
-  if log: db.log.with((sql: sql)).debug "get_raw"
+proc get_raw*(db: Db, query: SQL, log = true): seq[seq[string]] =
+  if log: db.log.debug "get_raw"
   db.with_connection do (conn: auto) -> auto:
-    conn.get_all_rows(db_postgres.sql(sql))
-
-proc get_raw*(db: Db, sql: string, args: tuple | object, log = true): seq[seq[string]] =
-  if log: db.log.with((sql: sql)).debug "get_raw"
-  let (sqls, values) = sqlp(sql, args)
-  db.with_connection do (conn: auto) -> auto:
-    conn.get_all_rows(db_postgres.sql(sqls), values)
+    db_postgres.get_all_rows(conn, db_postgres.sql(query.query), query.values)
 
 
 # db.get -------------------------------------------------------------------------------------------
-proc get*[T](db: Db, sql: string, _: type[T], log = true): seq[T] =
-  db.get_raw(sql, log).to(T)
-
-proc get*[T](db: Db, sql: string, args: tuple | object, _: type[T], log = true): seq[T] =
-  db.get_raw(sql, args, log).to(T)
+proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
+  db.get_raw(query, log).to(T)
 
 
 # db.count -----------------------------------------------------------------------------------------
-proc get_single_int(rows: seq[seq[string]]): int =
+proc count*(db: Db, query: SQL | string, log = true): int =
+  if log: db.log.debug "count"
+  let rows = db.get_raw(query, log = false)
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
   if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
   let row = rows[0]
   if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
   if row.len < 1: throw fmt"expected single column row, but got {row.len} columns"
   row[0].parse_int
-
-proc count*(db: Db, sql: string, log = true): int =
-  if log: db.log.with((sql: sql)).debug "count"
-  db.get_raw(sql, log = false).get_single_int
-
-proc count*(db: Db, sql: string, args: tuple | object, log = true): int =
-  if log: db.log.with((sql: sql)).debug "count"
-  db.get_raw(sql, args, log = false).get_single_int
 
 
 
@@ -197,19 +183,19 @@ if is_main_module:
   db.exec schema
 
   # SQL values replacements
-  db.exec(
+  db.exec(sql(
     "insert into users (name, age) values (:name, :age)",
     (name: "Jim", age: 30)
-  )
+  ))
   assert db.get_raw("select name, age from users order by name") == @[
     @["Jim", "30"]
   ]
 
   block: # SQL parameters
-    assert db.get_raw("""
+    assert db.get_raw(sql("""
       select name, age from users where name = :name""",
       (name: "Jim")
-    ) == @[
+    )) == @[
       @["Jim", "30"]
     ]
 
@@ -227,7 +213,7 @@ if is_main_module:
 
 
   block: # Count
-    assert db.count("select count(*) from users where age = :age", (age: 30)) == 1
+    assert db.count(sql("select count(*) from users where age = :age", (age: 30))) == 1
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:
