@@ -13,8 +13,7 @@ type Db* = ref object
   create_db_if_not_exist*: bool           # Create db if not exist
   id:                      string
 
-proc log(db_name: string): Log  = Log.init("pg_" & db_name)
-proc log(db: Db): Log  = log(db.name)
+proc log(db: Db): Log = Log.init("db", db.name)
 
 # Connections --------------------------------------------------------------------------------------
 # Using separate storage for connections, because they need to be mutable. The Db can't be mutable
@@ -39,7 +38,7 @@ proc init*(
 # db.create ----------------------------------------------------------------------------------------
 proc create*(db: Db, user = "postgres"): void =
   # Using bash, don't know how to create db otherwise
-  db.log.with((user: user)).info "creating"
+  db.log.with((user: user)).info "create"
   let (output, code) = exec_cmd_ex fmt"createdb -U {user} {db.name}"
   if code != 0 and fmt"""database "{db.name}" already exists""" in output:
     throw "can't create database {user} {name}"
@@ -48,7 +47,7 @@ proc create*(db: Db, user = "postgres"): void =
 # db.drop ------------------------------------------------------------------------------------------
 proc drop*(db: Db, user = "postgres"): void =
   # Using bash, don't know how to create db otherwise
-  db.log.with((user: user)).info "dropping"
+  db.log.with((user: user)).info "dropp"
   let (output, code) = exec_cmd_ex fmt"dropdb -U {user} {db.name}"
   if code != 0 and fmt"""database "{db.name}" does not exist""" notin output:
     throw fmt"can't drop database {user} {db.name}"
@@ -59,7 +58,7 @@ proc close*(db: Db): void =
   if db.id notin connections: return
   let conn = connections[db.id]
   connections.del db.id
-  log(db.name).with((url: db.url)).info "closing {url}"
+  db.log.info "close"
   conn.close()
 
 
@@ -69,15 +68,14 @@ proc close*(db: Db): void =
 # - Reconnect after error
 # - Automatically create database if not exist
 #
-proc connect*(db: Db): DbConn
+proc connect(db: Db): DbConn
 
-template with_connection*(db: Db, code: untyped): untyped =
+proc with_connection*[R](db: Db, op: (DbConn) -> R): R =
   if db.id notin connections:
     connections[db.id] = db.connect()
 
   try:
-    let connection {.inject.} = connections[db.id]
-    code
+    op(connections[db.id])
   except Exception as e:
     # Reconnecting if connection is broken. There's no way to determine if error was caused by
     # broken connection or something else. So assuming that connection is broken and terminating it,
@@ -85,11 +83,17 @@ template with_connection*(db: Db, code: untyped): untyped =
     try:
       db.close
     except Exception as e:
-      log(db.name).with((url: db.url)).error("can't close connection", e)
+      db.log.with((url: db.url)).warn("can't close connection", e)
     throw e
 
-proc connect*(db: Db): DbConn =
-  log(db.name).with((url: db.url)).info "connecting to {url}"
+proc with_connection*(db: Db, op: (DbConn) -> void): void =
+  discard db.with_connection(proc (conn: auto): auto =
+    op(conn)
+    true
+  )
+
+proc connect(db: Db): DbConn =
+  db.log.with((url: db.url)).info "connect to {url}"
   var url = init_uri()
   parse_uri(db.url, url)
   assert url.scheme == "postgresql"
@@ -123,73 +127,56 @@ proc exec_fixed(connection: DbConn, sql: string) =
   if postgres.pqResultStatus(res) != postgres.PGRES_COMMAND_OK: dbError(connection)
   postgres.pqclear(res)
 
-proc exec*(db: Db, sql: string): void =
-  log(db.name).with((sql: sql)).debug "exec"
-  db.with_connection:
-    exec_fixed(connection, sql)
+proc exec*(db: Db, sql: string, log = true): void =
+  if log: db.log.with((sql: sql)).debug "exec"
+  db.with_connection do (conn: auto) -> void:
+    exec_fixed(conn, sql)
 
-proc exec*(db: Db, sql: string, args: tuple | object): void =
-  log(db.name).with((sql: sql)).debug "exec"
+proc exec*(db: Db, sql: string, args: tuple | object, log = true): void =
+  if log: db.log.with((sql: sql)).debug "exec"
   let (sqls, values) = sqlp(sql, args)
-  db.with_connection:
-    connection.exec(db_postgres.sql(sqls), values)
+  db.with_connection do (conn: auto) -> void:
+    conn.exec(db_postgres.sql(sqls), values)
 
 
 # db.get_raw ---------------------------------------------------------------------------------------
-proc get_raw*(db: Db, sql: string): seq[seq[string]] =
-  log(db.name).with((sql: sql)).debug "get_raw"
-  db.with_connection:
-    connection.get_all_rows(db_postgres.sql(sql))
+proc get_raw*(db: Db, sql: string, log = true): seq[seq[string]] =
+  if log: db.log.with((sql: sql)).debug "get_raw"
+  db.with_connection do (conn: auto) -> auto:
+    conn.get_all_rows(db_postgres.sql(sql))
 
-proc get_raw*(db: Db, sql: string, args: tuple | object): seq[seq[string]] =
-  log(db.name).with((sql: sql)).debug "get_raw"
+proc get_raw*(db: Db, sql: string, args: tuple | object, log = true): seq[seq[string]] =
+  if log: db.log.with((sql: sql)).debug "get_raw"
   let (sqls, values) = sqlp(sql, args)
-  db.with_connection:
-    connection.get_all_rows(db_postgres.sql(sqls), values)
+  db.with_connection do (conn: auto) -> auto:
+    conn.get_all_rows(db_postgres.sql(sqls), values)
 
 
 # db.get -------------------------------------------------------------------------------------------
-proc get*[T](db: Db, sql: string, _: type[T]): seq[T] =
-  db.get_raw(sql).to(T)
+proc get*[T](db: Db, sql: string, _: type[T], log = true): seq[T] =
+  db.get_raw(sql, log).to(T)
 
-proc get*[T](db: Db, sql: string, args: tuple | object, _: type[T]): seq[T] =
-  db.get_raw(sql, args).to(T)
+proc get*[T](db: Db, sql: string, args: tuple | object, _: type[T], log = true): seq[T] =
+  db.get_raw(sql, args, log).to(T)
 
 
-# # --------------------------------------------------------------------------------------------------
-# # DbTable ------------------------------------------------------------------------------------------
-# # --------------------------------------------------------------------------------------------------
-# # type DbTable*[T] = ref object
-# #   name*: string
-# #   db*:   Db
+# db.count -----------------------------------------------------------------------------------------
+proc get_single_int(rows: seq[seq[string]]): int =
+  if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
+  if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
+  let row = rows[0]
+  if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
+  if row.len < 1: throw fmt"expected single column row, but got {row.len} columns"
+  row[0].parse_int
 
-# # proc `[]`*[T](table: DbTable, t: type[T], from_where: string): seq[T] =
-# #   let sql = fmt"""select {t.column_names.join(", ")} {from_where}"""
-# #   db.n_connection.get_all_rows(db_postgres.sql(sql)).to(T)
+proc count*(db: Db, sql: string, log = true): int =
+  if log: db.log.with((sql: sql)).debug "count"
+  db.get_raw(sql, log = false).get_single_int
 
-# # proc set*[T](db: Db, t: type[T], from_where: string): seq[T] =
-# #   # log(db.name).with((sql: sql, `type`: $t)).debug "get {type}"
-# #   let sql = fmt"""select {t.column_names.join(", ")} {from_where}"""
-# #   db.n_connection.get_all_rows(db_postgres.sql(sql)).to(T)
+proc count*(db: Db, sql: string, args: tuple | object, log = true): int =
+  if log: db.log.with((sql: sql)).debug "count"
+  db.get_raw(sql, args, log = false).get_single_int
 
-# # proc insert*[T](db: Db, t: type[T], from_where: string): seq[T] =
-# #   # log(db.name).with((sql: sql, `type`: $t)).debug "get {type}"
-# #   let sql = fmt"""
-# #     insert
-# #     select {t.column_names.join(", ")} {from_where}
-# #   """
-# #   db.n_connection.get_all_rows(db_postgres.sql(sql)).to(T)
-
-# # proc update*[T](db: Db, t: type[T], from_where: string): seq[T] =
-# #   # log(db.name).with((sql: sql, `type`: $t)).debug "get {type}"
-# #   let sql = fmt"""select {t.column_names.join(", ")} {from_where}"""
-# #   db.n_connection.get_all_rows(db_postgres.sql(sql)).to(T)
-
-# # #   INSERT INTO the_table (id, column_1, column_2)
-# # # VALUES (1, 'A', 'X'), (2, 'B', 'Y'), (3, 'C', 'Z')
-# # # ON CONFLICT (id) DO UPDATE
-# # #   SET column_1 = excluded.column_1,
-# # #       column_2 = excluded.column_2;
 
 
 # --------------------------------------------------------------------------------------------------
@@ -199,25 +186,23 @@ if is_main_module:
   let db = Db.init("nim_test")
   # db.drop
 
-  db.exec("""
+  let schema = """
     drop table if exists users;
 
-    create table if not exists users(
-      id         serial         not null,
-      name       varchar(100)   not null,
-      age        integer        not null,
-
-      primary key (id)
+    create table users(
+      name varchar(100) not null,
+      age  integer      not null
     );
-  """)
+  """
+  db.exec schema
 
   # SQL values replacements
   db.exec(
     "insert into users (name, age) values (:name, :age)",
-    (name: "Jim", age: 33)
+    (name: "Jim", age: 30)
   )
   assert db.get_raw("select name, age from users order by name") == @[
-    @["Jim", "33"]
+    @["Jim", "30"]
   ]
 
   block: # SQL parameters
@@ -225,20 +210,24 @@ if is_main_module:
       select name, age from users where name = :name""",
       (name: "Jim")
     ) == @[
-      @["Jim", "33"]
+      @["Jim", "30"]
     ]
 
   block: # Casting from Postges to array tuples
     let rows = db
       .get_raw("select name, age from users order by name")
       .to((string, int))
-    assert rows == @[("Jim", 33)]
+    assert rows == @[("Jim", 30)]
 
   block: # Casting from Postges to objects and named tuples
     let rows = db
       .get_raw("select name, age from users order by name")
       .to(tuple[name: string, age: int])
-    assert rows == @[(name: "Jim", age: 33)]
+    assert rows == @[(name: "Jim", age: 30)]
+
+
+  block: # Count
+    assert db.count("select count(*) from users where age = :age", (age: 30)) == 1
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:

@@ -34,7 +34,7 @@ proc from_postgres_row*[T](_: type[T], row: seq[string]): T =
 proc to*[T](rows: seq[seq[string]], _: type[T]): seq[T] =
   rows.map((row) => T.from_postgres_row(row))
 
-proc column_names*[T](_: type[T]): seq[string] =
+proc fields*[T](_: type[T]): seq[string] =
   var t: T
   for k, _ in t.field_pairs:
     result.add k

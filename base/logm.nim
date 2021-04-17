@@ -1,4 +1,4 @@
-import supportm, stringm, os, seqm, sets, docm, jsonm, rem, tablem, terminalm
+import supportm, stringm, os, seqm, sets, docm, jsonm, rem, tablem, terminalm, options
 
 todo "Alter get_env to use env.yml in current dir"
 
@@ -31,13 +31,17 @@ proc is_debug(config: LogConfig, component: string): bool =
 # Log ----------------------------------------------------------------------------------------------
 type Log* = object
   component*: string
+  id*:        Option[string]
   data*:      JsonNode
 
 
 proc init*(_: type[Log], component: string): Log =
-  Log(component: component)
+  Log(component: component, id: string.none)
+proc init*(_: type[Log], component, id: string): Log =
+  Log(component: component, id: id.some)
 
 
+proc format_id(log: Log): string
 proc format_component(log: Log): string
 proc format_data(log: Log): string
 proc format_message(log: Log, message: string): string
@@ -56,31 +60,38 @@ proc with*(log: Log, error: ref Exception): Log =
 
 
 proc debug*(log: Log, message: string): void =
-  if log_config.is_enabled(log.component, "debug"):
-    echo grey fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
+  if not log_config.is_enabled(log.component, "debug"): return
+  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
+  echo "  " & message.grey
 
 
 proc info*(log: Log, message: string): void =
-  if log_config.is_enabled(log.component, "info"):
-    let message = fmt"  {log.format_component()}{log.format_message(message)}{log.format_data()}"
-    if log_config.is_debug(log.component): echo grey message
-    else:                                  echo message
+  if not log_config.is_enabled(log.component, "info"): return
+  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
+  if log_config.is_debug(log.component): echo "  " & message.grey
+  else:                                  echo "  " & message
 
 
 proc warn*(log: Log, message: string): void =
-  if log_config.is_enabled(log.component, "warn"):
-    echo yellow fmt"W {log.format_component()}{log.format_message(message)}{log.format_data()}"
+  if not log_config.is_enabled(log.component, "warn"): return
+  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
+  echo ("W " & message).yellow
+
+proc warn*(log: Log, message: string, exception: ref Exception): void =
+  if not log_config.is_enabled(log.component, "warn"): return
+  log.warn(message)
+  stderr.write_line exception.get_stack_trace.red
 
 
 proc error*(log: Log, message: string): void =
-  if log_config.is_enabled(log.component, "error"):
-    stderr.write_line red fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
-
+  if not log_config.is_enabled(log.component, "error"): return
+  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
+  stderr.write_line ("E " & message).red
 
 proc error*(log: Log, message: string, exception: ref Exception): void =
-  if log_config.is_enabled(log.component, "error"):
-    stderr.write_line red fmt"E {log.format_component()}{log.format_message(message)}{log.format_data()}"
-    stderr.write_line red exception.get_stack_trace()
+  if not log_config.is_enabled(log.component, "error"): return
+  log.error(message)
+  stderr.write_line exception.get_stack_trace.red
 
 
 # Shortcuts ----------------------------------------------------------------------------------------
@@ -98,8 +109,17 @@ proc error*(message: string, exception: ref Exception): void =
 
 # Utils --------------------------------------------------------------------------------------------
 proc format_component(log: Log): string =
-  let truncated = if log.component.len > 4: log.component.replace("_", "")[0..4] else: log.component
-  fmt"{truncated.to_lower.align(5)} | "
+  let max_len = 4; let component = log.component
+  let truncated = if component.len > max_len: component[0..<max_len]
+  else:                                       component
+  fmt"{truncated.to_lower.align(max_len)} | "
+
+
+proc format_id(log: Log): string =
+  if log.id.is_none: return ""
+  let max_len = 7; let id = log.id.get
+  let truncated = if id.len > max_len: id[0..<max_len] else: id
+  fmt"{truncated.to_lower.align_left(max_len)} "
 
 
 proc format_data(log: Log): string =
