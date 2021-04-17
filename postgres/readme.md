@@ -5,8 +5,7 @@ Made by [al6x](http://al6x.com).
 # Features
 
 - Named parameters in SQL.
-- Auto-casting between Nim and SQL types.
-- Auto-casting SQL results to Nim objects, named or unnamed tuples.
+- Auto-casting between Nim and SQL types, objects, tuples.
 - No explicit connection management.
 - Auto-reconnect if connection fail.
 - Support for `null` and `Option`.
