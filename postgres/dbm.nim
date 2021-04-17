@@ -139,6 +139,9 @@ proc exec*(db: Db, query: SQL, log = true): void =
   db.with_connection do (conn: auto) -> void:
     db_postgres.exec(conn, db_postgres.sql(query.query), query.values)
 
+proc exec*(db: Db, query: string, values: object | tuple): void =
+  db.exec(sql(query, values))
+
 
 # db.get_raw ---------------------------------------------------------------------------------------
 proc get_raw*(db: Db, query: SQL, log = true): seq[seq[string]] =
@@ -146,10 +149,15 @@ proc get_raw*(db: Db, query: SQL, log = true): seq[seq[string]] =
   db.with_connection do (conn: auto) -> auto:
     db_postgres.get_all_rows(conn, db_postgres.sql(query.query), query.values)
 
+proc get_raw*(db: Db, query: string, values: object | tuple): seq[seq[string]] =
+  db.get_raw(sql(query, values))
 
 # db.get -------------------------------------------------------------------------------------------
 proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
   db.get_raw(query, log).to(T)
+
+proc get*[T](db: Db, query: string, values: object | tuple, _: type[T]): seq[T] =
+  db.get(sql(query, values), T)
 
 
 # db.count -----------------------------------------------------------------------------------------
@@ -163,6 +171,8 @@ proc count*(db: Db, query: SQL | string, log = true): int =
   if row.len < 1: throw fmt"expected single column row, but got {row.len} columns"
   row[0].parse_int
 
+proc count*(db: Db, query: string, values: object | tuple): int =
+  db.count(sql(query, values))
 
 
 # --------------------------------------------------------------------------------------------------
@@ -183,37 +193,32 @@ if is_main_module:
   db.exec schema
 
   # SQL values replacements
-  db.exec(sql(
+  db.exec(
     "insert into users (name, age) values (:name, :age)",
     (name: "Jim", age: 30)
-  ))
+  )
   assert db.get_raw("select name, age from users order by name") == @[
     @["Jim", "30"]
   ]
 
   block: # SQL parameters
-    assert db.get_raw(sql("""
+    assert db.get_raw("""
       select name, age from users where name = :name""",
       (name: "Jim")
-    )) == @[
+    ) == @[
       @["Jim", "30"]
     ]
 
   block: # Casting from Postges to array tuples
-    let rows = db
-      .get_raw("select name, age from users order by name")
-      .to((string, int))
+    let rows = db.get("select name, age from users order by name", (string, int))
     assert rows == @[("Jim", 30)]
 
   block: # Casting from Postges to objects and named tuples
-    let rows = db
-      .get_raw("select name, age from users order by name")
-      .to(tuple[name: string, age: int])
+    let rows = db.get("select name, age from users order by name", tuple[name: string, age: int])
     assert rows == @[(name: "Jim", age: 30)]
 
-
   block: # Count
-    assert db.count(sql("select count(*) from users where age = :age", (age: 30))) == 1
+    assert db.count("select count(*) from users where age = :age", (age: 30)) == 1
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:

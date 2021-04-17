@@ -1,6 +1,8 @@
 import basem, logm
 import ./dbm, ./convertersm
 
+export dbm
+
 # DbTable ------------------------------------------------------------------------------------------
 type DbTable*[T] = ref object
   db*:   Db
@@ -82,9 +84,12 @@ proc find*[T](table: DbTable[T], where: SQL = "", log = true): seq[T] =
     (query: fmt"{query_prefix} where {where.query}", values: where.values)
   table.db.get(query, T, log = false)
 
+proc find*[T](table: DbTable[T], where: string, values: object | tuple): seq[T] =
+  table.find(sql(where, values))
+
 
 # table.find_by_id ---------------------------------------------------------------------------------
-proc get*[T](table: DbTable[T], id: string | int): Option[T] =
+proc find_by_id*[T](table: DbTable[T], id: string | int): Option[T] =
   table.log.with((table: table.name, id: id)).info "{table}.get {id}"
   let found = table.find(sql("id = :id", (id: id)), log = false)
   if found.len > 1: throw fmt"found {found.len} objects for id = '{id}'"
@@ -102,6 +107,17 @@ proc count*[T](table: DbTable[T], where: SQL = ""): int =
   else:
     (query: fmt"{query_prefix} where {where.query}", values: where.values)
   table.db.count(query, log = false)
+
+proc count*[T](table: DbTable[T], where: string, values: object | tuple): int =
+  table.count(sql(where, values))
+
+
+# [], []= ------------------------------------------------------------------------------------------
+proc `[]`*[T](table: DbTable[T], id: int | string): T =
+  table.find_by_id(id).get
+
+proc `[]`*[T](table: DbTable[T], id: int | string, default: T): T =
+  table.find_by_id(id).get(default)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -140,11 +156,9 @@ if is_main_module:
   jim.age = 31
   users.save jim
 
-  # Find
-  assert users.find(sql("age = :age", (age: 31))) == @[jim]
+  # Find, count
+  assert users.find("age = :age", (age: 31)) == @[jim]
+  assert users.find_by_id(1)                 == jim.some
+  assert users[1]                            == jim
 
-  # Get
-  assert users.get(1) == jim.some
-
-  # Count
-  assert users.count(sql("age = :age", (age: 31))) == 1
+  assert users.count("age = :age", (age: 31)) == 1
