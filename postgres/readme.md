@@ -89,9 +89,9 @@ users.save jim
 
 
 # Find, get, count
-assert users.find("age = :age", (age: 31)) == @[jim]
-assert users.find_by_id(1)                 == jim.some
-assert users[1]                            == jim
+assert users.find(sql"age = {31}")  == @[jim]
+assert users.find_by_id(1)          == jim.some
+assert users[1]                     == jim
 
-assert users.count("age = :age", (age: 31)) == 1
+assert users.count(sql"age = {31}") == 1
 ```
