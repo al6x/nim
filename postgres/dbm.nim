@@ -166,8 +166,8 @@ proc get*[T](db: Db, query: string, values: object | tuple, _: type[T]): seq[T] 
 
 
 # db.count -----------------------------------------------------------------------------------------
-proc count*(db: Db, query: SQL | string, log = true): int =
-  if log: db.log.debug "count"
+proc get_int*(db: Db, query: SQL | string, log = true): int =
+  if log: db.log.debug "get_int"
   let rows = db.get_raw(query, log = false)
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
   if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
@@ -212,7 +212,7 @@ if is_main_module:
     "insert into users (name, age) values (:name, :age)",
     (name: "Jim", age: 30)
   )
-  assert db.get_raw("select name, age from users order by name") == @[
+  assert db.get_raw(sql"select name, age from users order by name") == @[
     @["Jim", "30"]
   ]
 
@@ -225,15 +225,15 @@ if is_main_module:
     ]
 
   block: # Casting from Postges to array tuples
-    let rows = db.get("select name, age from users order by name", (string, int))
+    let rows = db.get(sql"select name, age from users order by name", (string, int))
     assert rows == @[("Jim", 30)]
 
   block: # Casting from Postges to objects and named tuples
-    let rows = db.get("select name, age from users order by name", tuple[name: string, age: int])
+    let rows = db.get(sql"select name, age from users order by name", tuple[name: string, age: int])
     assert rows == @[(name: "Jim", age: 30)]
 
   block: # Count
-    assert db.count("select count(*) from users where age = :age", (age: 30)) == 1
+    assert db.get_int(sql"select count(*) from users where age = {30}") == 1
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:

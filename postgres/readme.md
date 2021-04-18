@@ -40,12 +40,11 @@ db.exec("""
 
 
 # Conversion to objects, named or unnamed tuples
-let rows = db.get("""
+let rows = db.get(sql"""
   select name, age
   from users
-  where age > :min_age
+  where age > {10}
   """,
-  (min_age: 10),
   tuple[name: string, age: int]
 )
 assert rows == @[(name: "Jim", age: 33)]

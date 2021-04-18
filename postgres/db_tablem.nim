@@ -67,7 +67,7 @@ proc save*[T](table: DbTable[T], o: T): void =
 
 
 # table.find ---------------------------------------------------------------------------------------
-proc find*[T](table: DbTable[T], where: SQL = "", log = true): seq[T] =
+proc find*[T](table: DbTable[T], where: SQL = sql"", log = true): seq[T] =
   if log: table.log.with((table: table.name, where: $where)).info "{table}.find '{where}'"
   let query = proc (): string =
     let column_names = T.field_names.join(", ")
@@ -86,22 +86,22 @@ proc find*[T](table: DbTable[T], where: string, values: object | tuple): seq[T] 
 # table.find_by_id ---------------------------------------------------------------------------------
 proc find_by_id*[T](table: DbTable[T], id: string | int): Option[T] =
   table.log.with((table: table.name, id: id)).info "{table}.get {id}"
-  let found = table.find(sql("id = :id", (id: id)), log = false)
+  let found = table.find(sql"id = {id}", log = false)
   if found.len > 1: throw fmt"found {found.len} objects for id = '{id}'"
   if found.is_empty: T.none else: found[0].some
 
 
 # table.count --------------------------------------------------------------------------------------
-proc count*[T](table: DbTable[T], where: SQL = ""): int =
+proc count*[T](table: DbTable[T], where: SQL = sql""): int =
   table.log.with((table: table.name, where: $where)).info "{table}.count '{where}'"
   let query_prefix = fmt"""
     select count(*)
     from {table.name}""".dedent
   let query = if where.query == "":
-    sql query_prefix
+    (query_prefix, @[])
   else:
     (query: fmt"{query_prefix} where {where.query}", values: where.values)
-  table.db.count(query, log = false)
+  table.db.get_int(query, log = false)
 
 proc count*[T](table: DbTable[T], where: string, values: object | tuple): int =
   table.count(sql(where, values))
@@ -151,8 +151,8 @@ if is_main_module:
   users.save jim
 
   # Find, count
-  assert users.find("age = :age", (age: 31)) == @[jim]
+  assert users.find(sql"age = {31}") == @[jim]
   assert users.find_by_id(1)                 == jim.some
   assert users[1]                            == jim
 
-  assert users.count("age = :age", (age: 31)) == 1
+  assert users.count(sql"age = {31}") == 1
