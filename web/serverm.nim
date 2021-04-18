@@ -7,6 +7,8 @@ from jester import nil
 from httpcore import nil
 from times as times import nil
 
+export helpersm
+
 {.experimental: "code_reordering".}
 
 proc log(): Log = Log.init "HTTP"

@@ -8,6 +8,7 @@ from terminalm as terminal import nil
 # test ---------------------------------------------------------------------------------------------
 let test_enabled_s = if "test" in env: env["test"] else: "false"
 let test_enabled   = test_enabled_s == "true"
+
 template test*(name: string, body) =
   # block:
   if test_enabled or test_enabled_s == name.to_lower:
@@ -18,7 +19,7 @@ template test*(name: string, body) =
       raise e
 
 
-# test ---------------------------------------------------------------------------------------------
+# test with group ----------------------------------------------------------------------------------
 var test_group_cache = init_table[string, string]()
 template test*(name: string, group, body) =
   block:

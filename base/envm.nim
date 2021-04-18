@@ -33,11 +33,18 @@ let env* = block:
   result
 
 
+# environment mode ---------------------------------------------------------------------------------
+let environment_mode = env.get_or_default("environment", "development")
+proc is_production*(env: Env):  bool = environment_mode == "production"
+proc is_test*(env: Env):        bool = environment_mode == "test"
+proc is_development*(env: Env): bool = environment_mode == "development"
+
+
 # parse_env_variable -------------------------------------------------------------------------------
-proc parse_string_as(v: string, _: int): int = v.parse_int
-proc parse_string_as(v: string, _: float): float = v.parse_float
-proc parse_string_as(v: string, _: string): string = v
-proc parse_string_as(v: string, _: bool): bool = v.to_lower in ["true", "yes"]
+proc parse_string_as(_: type[int],    v: string): int    = v.parse_int
+proc parse_string_as(_: type[float],  v: string): float  = v.parse_float
+proc parse_string_as(_: type[string], v: string): string = v
+proc parse_string_as(_: type[bool],   v: string): bool   = v.to_lower in ["true", "yes"]
 
 
 # parse_env ----------------------------------------------------------------------------------------
@@ -110,8 +117,8 @@ proc parse_env*[T: tuple|object](
   # Parsing and casting into object
   for k, v in o.field_pairs:
     let nk = k.normalize_key
-    if nk in options: v = parse_string_as(options[nk], v)
-    elif nk in env:   v = parse_string_as(env[nk], v)
+    if nk in options: v = parse_string_as(typeof v, options[nk])
+    elif nk in env:   v = parse_string_as(typeof v, env[nk])
 
   (o, args)
 

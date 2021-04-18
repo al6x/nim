@@ -1,4 +1,4 @@
-import basem, logm, jsonm, fsm as fs, envm, persistencem, timem
+import basem, logm, jsonm, fsm as fs, envm, ext/persistencem, timem
 {.experimental: "code_reordering".}
 
 
@@ -6,12 +6,12 @@ import basem, logm, jsonm, fsm as fs, envm, persistencem, timem
 # Simple storage with local file system as a storage
 type FsStorage*[T] = object
   path*:           string
-  expiration_sec*: int
+  expiration_sec*: Option[int]
 
 proc init*[T](
   _:               type[FsStorage[T]],
   path           = env["fs_storage_path", "./tmp/storage"],
-  expiration_sec = 30.days.seconds
+  expiration_sec = int.none
 ): FsStorage[T] =
   FsStorage[T](path: path, expiration_sec: expiration_sec)
 
@@ -31,7 +31,7 @@ func fs_path(storages: FsStorage, id: string): string =
 
 proc `[]`*[T](storages: FsStorage[T], id: string): T =
   let data = StorageData[T].read_from(storages.fs_path(id), () => StorageData.init(T.init))
-  if (Time.now.epoch - data.timestamp.epoch) < storages.expiration_sec:
+  if storages.expiration_sec.is_some and (Time.now.epoch - data.timestamp.epoch) < storages.expiration_sec.get:
     return data.storage
 
 proc `[]=`*[T](storages: FsStorage[T], id: string, storage: T) =

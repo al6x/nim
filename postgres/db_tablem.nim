@@ -1,7 +1,7 @@
-import basem, logm
-import ./dbm, ./convertersm
+import basem, logm, convertersm
+import ./dbm, ./pg_convertersm, ./sqlm
 
-export dbm
+export dbm, sqlm
 
 # DbTable ------------------------------------------------------------------------------------------
 type DbTable*[T] = ref object
@@ -17,45 +17,43 @@ proc table*[T](db: Db, _: type[T], name: string): DbTable[T] =
 
 
 # table.create -------------------------------------------------------------------------------------
-var generated_sql_cache: Table[(string, string), string]
-
 proc create*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.create id={id}"
-  let generate_sql = proc (): string =
-    let column_names = " " & T.fields.join(",  ")
-    let named_values = T.fields.map((n) => fmt":{n}").join(", ")
+  let query = proc (): string =
+    let field_names = T.field_names
+    let column_names = " " & field_names.join(",  ")
+    let named_values = field_names.map((n) => fmt":{n}").join(", ")
     fmt"""
       insert into {table.name}
         ({column_names})
       values
         ({named_values})
     """.dedent
-  let query = generated_sql_cache.mget(("create", $T), generate_sql)
-  table.db.exec(sql(query, o), log = false)
+  table.db.exec(sql(query(), o), log = false)
 
 
 # table.update -------------------------------------------------------------------------------------
 proc update*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.update id={id}"
-  let generate_sql = proc (): string =
-    let setters = T.fields.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
+  let query = proc (): string =
+    let setters = T.field_names.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
     fmt"""
       update {table.name}
       set
         {setters}
       where id = :id
     """.dedent
-  let query = generated_sql_cache.mget(("update", $T), generate_sql)
-  table.db.exec(sql(query, o), log = false)
+  table.db.exec(sql(query(), o), log = false)
 
 
 # table.save ---------------------------------------------------------------------------------------
 proc save*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.save id={id}"
-  let generate_sql = proc (): string =
-    let column_names = " " & T.fields.join(",  ")
-    let named_values = T.fields.map((n) => fmt":{n}").join(", ")
-    let setters = T.fields.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
+  let query = proc (): string =
+    let field_names = T.field_names
+    let column_names = " " & field_names.join(",  ")
+    let named_values = field_names.map((n) => fmt":{n}").join(", ")
+    let setters = field_names.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
     fmt"""
       insert into {table.name}
         ({column_names})
@@ -65,24 +63,21 @@ proc save*[T](table: DbTable[T], o: T): void =
       set
         {setters}
     """.dedent
-  let query = generated_sql_cache.mget(("save", $T), generate_sql)
-  table.db.exec(sql(query, o), log = false)
+  table.db.exec(sql(query(), o), log = false)
 
 
 # table.find ---------------------------------------------------------------------------------------
 proc find*[T](table: DbTable[T], where: SQL = "", log = true): seq[T] =
   if log: table.log.with((table: table.name, where: $where)).info "{table}.find '{where}'"
-  let generate_sql = proc (): string =
-    let column_names = T.fields.join(", ")
+  let query = proc (): string =
+    let column_names = T.field_names.join(", ")
+    let where_query = if where.query == "": "" else: fmt"where {where.query}"
     fmt"""
       select {column_names}
-      from {table.name}""".dedent
-  let query_prefix = generated_sql_cache.mget(("find", $T), generate_sql)
-  let query = if where.query == "":
-    sql query_prefix
-  else:
-    (query: fmt"{query_prefix} where {where.query}", values: where.values)
-  table.db.get(query, T, log = false)
+      from {table.name}
+      {where_query}
+    """.dedent
+  table.db.get((query: query(), values: where.values).SQL, T, log = false)
 
 proc find*[T](table: DbTable[T], where: string, values: object | tuple): seq[T] =
   table.find(sql(where, values))

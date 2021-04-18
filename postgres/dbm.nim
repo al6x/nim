@@ -1,11 +1,11 @@
 import basem, logm
-import ./convertersm
+import ./pg_convertersm, ./sqlm
 from osproc import exec_cmd_ex
 from postgres import nil
 from db_postgres import DbConn
 import uri
 
-export DbConn
+export sqlm, DbConn
 
 # Db -----------------------------------------------------------------------------------------------
 type Db* = ref object
@@ -159,7 +159,7 @@ proc get_raw*(db: Db, query: string, values: object | tuple): seq[seq[string]] =
 
 # db.get -------------------------------------------------------------------------------------------
 proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
-  db.get_raw(query, log).to(T)
+  T.from_postgres db.get_raw(query, log)
 
 proc get*[T](db: Db, query: string, values: object | tuple, _: type[T]): seq[T] =
   db.get(sql(query, values), T)

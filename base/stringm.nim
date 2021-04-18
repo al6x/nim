@@ -52,3 +52,8 @@ proc split4*(s: string, by: string): (string, string, string, string) =
   let list = s.split(by)
   assert list.len == 4, fmt"expected 4 but found {list.len} elements after splitting {s} by {by}"
   (list[0], list[1], list[2], list[3])
+
+
+# format -------------------------------------------------------------------------------------------
+proc format*(n: float | int, digits = 2): string =
+  format_float(n, format = ff_decimal, precision = digits)
