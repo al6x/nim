@@ -17,12 +17,12 @@ db.before """
 
 
 # SQL with `:named` parameters instead of `?`
-db.exec("""
+db.exec(sql("""
   insert into users ( name,  age)
   values            (:name, :age)
   """,
   (name: "Jim", age: 33)
-)
+))
 
 
 # Conversion to objects, named or unnamed tuples
@@ -34,3 +34,7 @@ let rows = db.get(sql"""
   tuple[name: string, age: int]
 )
 assert rows == @[(name: "Jim", age: 33)]
+
+
+# Count
+assert db.get_one(sql"select count(*) from users", int) == 1

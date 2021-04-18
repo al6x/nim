@@ -66,9 +66,9 @@ proc save*[T](table: DbTable[T], o: T): void =
   table.db.exec(sql(query(), o), log = false)
 
 
-# table.find ---------------------------------------------------------------------------------------
-proc find*[T](table: DbTable[T], where: SQL = sql"", log = true): seq[T] =
-  if log: table.log.with((table: table.name, where: $where)).info "{table}.find '{where}'"
+# table.get ----------------------------------------------------------------------------------------
+proc get*[T](table: DbTable[T], where: SQL = sql"", log = true): seq[T] =
+  if log: table.log.with((table: table.name, where: $where)).info "{table}.get '{where}'"
   let query = proc (): string =
     let column_names = T.field_names.join(", ")
     let where_query = if where.query == "": "" else: fmt"where {where.query}"
@@ -79,16 +79,19 @@ proc find*[T](table: DbTable[T], where: SQL = sql"", log = true): seq[T] =
     """.dedent
   table.db.get((query: query(), values: where.values).SQL, T, log = false)
 
-proc find*[T](table: DbTable[T], where: string, values: object | tuple): seq[T] =
-  table.find(sql(where, values))
+proc get*[T](table: DbTable[T], where: string, values: object | tuple): seq[T] =
+  table.get(sql(where, values))
 
 
-# table.find_by_id ---------------------------------------------------------------------------------
-proc find_by_id*[T](table: DbTable[T], id: string | int): Option[T] =
-  table.log.with((table: table.name, id: id)).info "{table}.get {id}"
-  let found = table.find(sql"id = {id}", log = false)
-  if found.len > 1: throw fmt"found {found.len} objects for id = '{id}'"
+# table.get_one -----------------------------------------------------------------------------------
+proc get_one*[T](table: DbTable[T], where: SQL = sql"", log = true): Option[T] =
+  if log: table.log.with((table: table.name, where: $where)).info "{table}.get_one '{where}'"
+  let found = table.get(where, log = false)
+  if found.len > 1: throw fmt"expected one but found {found.len} objects"
   if found.is_empty: T.none else: found[0].some
+
+proc get_one*[T](table: DbTable[T], id: string | int): Option[T] =
+  table.get_one(sql"id = {id}")
 
 
 # table.count --------------------------------------------------------------------------------------
@@ -101,18 +104,23 @@ proc count*[T](table: DbTable[T], where: SQL = sql""): int =
     (query_prefix, @[])
   else:
     (query: fmt"{query_prefix} where {where.query}", values: where.values)
-  table.db.get_int(query, log = false)
+  table.db.get_one(query, int, log = false)
 
 proc count*[T](table: DbTable[T], where: string, values: object | tuple): int =
   table.count(sql(where, values))
 
 
+# table.has ----------------------------------------------------------------------------------------
+proc has*[T](table: DbTable[T], where: SQL = sql""): int =
+  table.count(where) > 0
+
+
 # [] -----------------------------------------------------------------------------------------------
 proc `[]`*[T](table: DbTable[T], id: int | string): T =
-  table.find_by_id(id).get
+  table.get_one(id).get
 
 proc `[]`*[T](table: DbTable[T], id: int | string, default: T): T =
-  table.find_by_id(id).get(default)
+  table.get_one(id).get(default)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -150,9 +158,9 @@ if is_main_module:
   jim.age = 31
   users.save jim
 
-  # Find, count
-  assert users.find(sql"age = {31}") == @[jim]
-  assert users.find_by_id(1)                 == jim.some
-  assert users[1]                            == jim
+  # Get, count
+  assert users.get(sql"age = {31}") == @[jim]
+  assert users.get_one(1)           == jim.some
+  assert users[1]                    == jim
 
   assert users.count(sql"age = {31}") == 1

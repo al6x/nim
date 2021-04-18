@@ -143,41 +143,33 @@ proc exec*(db: Db, query: SQL, log = true): void =
   db.with_connection do (conn: auto) -> void:
     db_postgres.exec(conn, db_postgres.sql(query.query), query.values)
 
-proc exec*(db: Db, query: string, values: object | tuple): void =
-  db.exec(sql(query, values))
 
-
-# db.get_raw ---------------------------------------------------------------------------------------
-proc get_raw*(db: Db, query: SQL, log = true): seq[seq[string]] =
-  if log: db.log.debug "get_raw"
+# db.get ------------------------------------------------------------------------------------------
+proc get*(db: Db, query: SQL, log = true): seq[seq[string]] =
+  if log: db.log.debug "get"
   db.with_connection do (conn: auto) -> auto:
     db_postgres.get_all_rows(conn, db_postgres.sql(query.query), query.values)
 
-proc get_raw*(db: Db, query: string, values: object | tuple): seq[seq[string]] =
-  db.get_raw(sql(query, values))
-
-
-# db.get -------------------------------------------------------------------------------------------
 proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
-  T.from_postgres db.get_raw(query, log)
-
-proc get*[T](db: Db, query: string, values: object | tuple, _: type[T]): seq[T] =
-  db.get(sql(query, values), T)
+  T.from_postgres db.get(query, log = log)
 
 
-# db.count -----------------------------------------------------------------------------------------
-proc get_int*(db: Db, query: SQL | string, log = true): int =
-  if log: db.log.debug "get_int"
-  let rows = db.get_raw(query, log = false)
+# db.get_one --------------------------------------------------------------------------------------
+proc get_one*(db: Db, query: SQL | string, log = true): seq[string] =
+  if log: db.log.debug "get_one"
+  let rows = db.get(query, log = false)
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
   if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
-  let row = rows[0]
-  if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
-  if row.len < 1: throw fmt"expected single column row, but got {row.len} columns"
-  row[0].parse_int
+  rows[0]
 
-proc count*(db: Db, query: string, values: object | tuple): int =
-  db.count(sql(query, values))
+proc get_one*[T](db: Db, query: SQL | string, _: type[T], log = true): T =
+  let row = db.get_one(query, log = false)
+  when T is object | tuple:
+    T.from_postgres row
+  else:
+    if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
+    if row.len < 1: throw fmt"expected single column row, but got {row.len} columns"
+    T.from_postgres row[0]
 
 
 # db.before ----------------------------------------------------------------------------------------
@@ -208,24 +200,27 @@ if is_main_module:
   """
 
   # SQL values replacements
-  db.exec(
+  db.exec(sql(
     "insert into users (name, age) values (:name, :age)",
     (name: "Jim", age: 30)
-  )
-  assert db.get_raw(sql"select name, age from users order by name") == @[
+  ))
+  assert db.get(
+    sql"select name, age from users order by name"
+  ) == @[
     @["Jim", "30"]
   ]
 
   block: # SQL parameters
-    assert db.get_raw("""
-      select name, age from users where name = :name""",
-      (name: "Jim")
+    assert db.get(
+      sql"""select name, age from users where name = {"Jim"}"""
     ) == @[
       @["Jim", "30"]
     ]
 
   block: # Casting from Postges to array tuples
-    let rows = db.get(sql"select name, age from users order by name", (string, int))
+    let rows = db.get(
+      sql"select name, age from users order by name", (string, int)
+    )
     assert rows == @[("Jim", 30)]
 
   block: # Casting from Postges to objects and named tuples
@@ -233,7 +228,7 @@ if is_main_module:
     assert rows == @[(name: "Jim", age: 30)]
 
   block: # Count
-    assert db.get_int(sql"select count(*) from users where age = {30}") == 1
+    assert db.get_one(sql"select count(*) from users where age = {30}", int) == 1
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:

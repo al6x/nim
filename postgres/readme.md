@@ -31,12 +31,12 @@ db.before """
 
 
 # SQL with `:named` parameters instead of `?`
-db.exec("""
+db.exec(sql("""
   insert into users ( name,  age)
   values            (:name, :age)
   """,
   (name: "Jim", age: 33)
-)
+))
 
 
 # Conversion to objects, named or unnamed tuples
@@ -48,6 +48,10 @@ let rows = db.get(sql"""
   tuple[name: string, age: int]
 )
 assert rows == @[(name: "Jim", age: 33)]
+
+
+# Count
+assert db.get_one(sql"select count(*) from users", int) == 1
 ```
 
 # ORM example
@@ -89,8 +93,8 @@ users.save jim
 
 
 # Find, get, count
-assert users.find(sql"age = {31}")  == @[jim]
-assert users.find_by_id(1)          == jim.some
+assert users.get(sql"age = {31}")   == @[jim]
+assert users.get_one(1)             == jim.some
 assert users[1]                     == jim
 
 assert users.count(sql"age = {31}") == 1
