@@ -2,4 +2,4 @@ import rpc/rpcm
 
 proc pi*(): float = cfun pi
 
-proc multiply*(a, b): float = cfun multiply
+proc multiply*(a: todo, b: todo): float = cfun multiply

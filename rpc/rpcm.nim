@@ -63,30 +63,32 @@ macro cfun*(fn: typed) =
 
 
 var rserver* = Server.init(port = 5000)
-var generated_cfuns*: seq[string] = @["import rpc/rpcm"]
+
+type CFun* = tuple[name: string, args: seq[(string, string)], rtype: string]
+var sfuns_definitions*: seq[CFun]
 
 macro sfun*(fn: typed): void =
   # fn.tree_repr()
 
   # Generating client functions
-  let generated_cfun = block:
+  let sfun_definition: CFun = block:
     let (fname, args, rtype) = get_name_args_and_return_type(fn)
-    let args_s = args.map((a) => $a).join(", ")
-    fmt"""proc {fname}*({args_s}): {rtype} = cfun {fname}"""
+    let args_s = args.map(proc (name: auto): auto = ($name, "todo"))
+    ($fname, args_s, $rtype)
 
   if fn.kind == nnkProcDef:
     # Used as pragma `{.sfun.}`
     let thefn = fn[0]
     let fname = thefn.str_val
     quote do:
-      generated_cfuns.add `generated_cfun`
+      sfuns_definitions.add `sfun_definition`
       sfun_impl(`fname`, `thefn`)
       `fn`
   else:
     # Used as macro `sfun fn`
     let fname = fn.str_val
     quote do:
-      generated_cfuns.add `generated_cfun`
+      sfuns_definitions.add `sfun_definition`
       sfun_impl(`fname`, `fn`)
 
 proc sfun_impl*[R](fn: string, op: proc: R): void =
@@ -113,4 +115,9 @@ proc sfun_impl*[A, B, C, R](fn: string, op: proc(a: A, b: B, c: C): R): void =
   )
 
 proc generate_cfuns*(fname: string): void =
-  fs.write(fname, generated_cfuns.join("\n\n"))
+  let funcs_s = sfuns_definitions.map(proc (sfun: auto): auto =
+    let args_s = sfun.args.map((arg) => fmt"{arg[0]}: {arg[1]}").join(", ")
+    fmt"""proc {sfun.name}*({args_s}): {sfun.rtype} = cfun {sfun.name}"""
+  )
+  let code = "import rpc/rpcm\n\n" & funcs_s.join("\n\n")
+  fs.write(fname, code)
