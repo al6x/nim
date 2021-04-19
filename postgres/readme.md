@@ -107,3 +107,9 @@ assert users.count(sql"age = {31}") == 1
 - Another Streaming PostgreSQL Supabase https://github.com/supabase/supabase
 - TypeScript in-memory SQL DB https://github.com/agershun/alasql and https://github.com/oguimbal/pg-mem
 - Deno Postgres Driver https://github.com/denodrivers/postgres
+
+# License
+
+MIT
+
+Please keep "Made by http://al6x.com" line in readme if you fork it.

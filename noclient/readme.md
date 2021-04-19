@@ -1,6 +1,8 @@
 Client libarary that produces Interactive Web Applications without the need to write JavaScript. It works similar to
 Phoenix LiveView, Turbolinks, LiveWire.
 
+Made by [al6x](http://al6x.com).
+
 # How it works
 
 It's easier to start from the Client. The Client can do only one thing - execute a `Command` with `execute_command`. A Command could be triggered by user event like button click, or a Server at any moment may send some Command to the Client.
@@ -53,3 +55,9 @@ It could be done with Nim `async` or with Redis with stateless Nim processes and
 No it is not. Such approach known for many years and works fast and well (see https://hey.com). There are special cases when you can't do that, for example if you want to react on every keypress, such cases should be handled manually.
 
 It is possible to optimise the update and do the DIFF on the Server (like Phoenix Elixir LiveView), so that only changed parts would be re-rendered and sent over network. It could be done in the future, but it's not needed, even non-optimised approach works surprisingly well.
+
+# License
+
+MIT
+
+Please keep "Made by http://al6x.com" line in readme if you fork it.

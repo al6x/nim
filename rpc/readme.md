@@ -62,3 +62,9 @@ efficient way with TCP and asyncdispatch, and, I haven't published it to Nimble 
 - Networking https://nim-lang.org/docs/asyncnet.html
 - Serialization https://github.com/treeform/jsony https://github.com/disruptek/frosty
   https://github.com/treeform/flatty
+
+# License
+
+MIT
+
+Please keep "Made by http://al6x.com" line in readme if you fork it.
