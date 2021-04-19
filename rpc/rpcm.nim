@@ -120,4 +120,6 @@ proc generate_cfuns*(fname: string): void =
     fmt"""proc {sfun.name}*({args_s}): {sfun.rtype} = cfun {sfun.name}"""
   )
   let code = "import rpc/rpcm\n\n" & funcs_s.join("\n\n")
-  fs.write(fname, code)
+  # Avoiding writing file if it's the same
+  if fs.read_optional(fname).get("") != code:
+    fs.write(fname, code)
