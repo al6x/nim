@@ -1,4 +1,5 @@
 import basem, jsonm, httpm, web/serverm
+from fs import nil
 
 export jsonm, httpm
 
@@ -110,3 +111,6 @@ proc sfun_impl*[A, B, C, R](fn: string, op: proc(a: A, b: B, c: C): R): void =
     let (a, b, c) = (req.data["a"].to(A), req.data["b"].to(B), req.data["c"].to(C))
     op(a, b, c)
   )
+
+proc generate_cfuns*(fname: string): void =
+  fs.write(fname, generated_cfuns.join("\n\n"))
