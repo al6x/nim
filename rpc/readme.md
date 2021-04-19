@@ -7,6 +7,7 @@ Possible usages:
   - Or with Karax
   - Or for writing Server networking apps in Nim or Node.JS
 - Write function declarations, copy it to Client and Server and implement with `rcall` `rexpose` macros.
+- Use function declaration to synchronize function definition between server and client.
 
 Libraries to use:
 
