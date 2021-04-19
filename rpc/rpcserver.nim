@@ -4,6 +4,4 @@ proc pi: float {.sfun.} = 3.14
 
 proc multiply(a, b: float): float {.sfun.} = a * b
 
-echo multiply(pi(), 2)
-
 rserver.run
