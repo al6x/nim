@@ -99,3 +99,11 @@ assert users[1]                     == jim
 
 assert users.count(sql"age = {31}") == 1
 ```
+
+# Notes
+
+- Use https://github.com/supabase/realtime + TCP exec string API for Notification Streams and
+  Non-blocking Nim PostgreSQL driver. Or maybe use Deno?
+- Another Streaming PostgreSQL Supabase https://github.com/supabase/supabase
+- TypeScript in-memory SQL DB https://github.com/agershun/alasql and https://github.com/oguimbal/pg-mem
+- Deno Postgres Driver https://github.com/denodrivers/postgres
