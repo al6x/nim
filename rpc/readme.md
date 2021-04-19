@@ -15,6 +15,10 @@ Made by [al6x](http://al6x.com)
 - Generate Nim Client Function for Java/Node/Elixir REST API with `cfun`.
 - [todo] Generate TypeScript/Java/Node/Elixir Client from Nim Server.
 
+# TODO
+
+- [todo] Implement more efficient networking with `asyncdispatch`, `TCP` and Nim native serialisation.
+
 # Example
 
 Nim Server, exposing `pi` and `multiply` functions.
