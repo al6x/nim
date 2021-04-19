@@ -17,30 +17,30 @@ proc cfun_impl*[A, B, R](fn: string, a: A, b: B, tr: type[R]): R =
 proc cfun_impl*[A, B, C, R](fn: string, a: A, b: B, c: C, tr: type[R]): R =
   cfun_send(fn, (a: a, b: b, c: c), tr)
 
-macro cfun*(fn: typed) =
-  template get_name_args_and_return_type: (string, seq[NimNode], NimNode) =
-    # Getting argument names and return type for fn
-    let impl = get_impl(fn.symbol)
-    var fsignature: seq[NimNode]
-    let formal_params = impl.find_child(it.kind == nnkFormalParams)
-    if formal_params.len == 1:
-      for formal_param in formal_params:
-        # For function without arguments
-        if formal_param.kind == nnkSym:
-          fsignature.add(formal_param)
-    else:
-      for formal_param in formal_params:
-        # For function with arguments
-        if formal_param.kind != nnkIdentDefs:
-          continue
-        for param in formal_param:
-          if param.kind != nnkEmpty:
-            # fsignature.add(param.symbol.`$`)
-            fsignature.add(param)
-    (impl[0].symbol.`$`, fsignature[0..^2], fsignature[^1])
+proc get_name_args_and_return_type(impl: NimNode): (string, seq[NimNode], NimNode) =
+  # p impl.tree_repr()
+  # Getting argument names and return type for fn
+  var fsignature: seq[NimNode]
+  let formal_params = impl.find_child(it.kind == nnkFormalParams)
+  if formal_params.len == 1:
+    for formal_param in formal_params:
+      # For function without arguments
+      if formal_param.kind == nnkSym:
+        fsignature.add(formal_param)
+  else:
+    for formal_param in formal_params:
+      # For function with arguments
+      if formal_param.kind != nnkIdentDefs:
+        continue
+      for param in formal_param:
+        if param.kind != nnkEmpty:
+          # fsignature.add(param.symbol.`$`)
+          fsignature.add(param)
+  (impl[0].symbol.`$`, fsignature[0..^2], fsignature[^1])
 
+macro cfun*(fn: typed) =
   # Generating code
-  let (fname, args, rtype) = get_name_args_and_return_type()
+  let (fname, args, rtype) = get_name_args_and_return_type(get_impl(fn.symbol))
   if args.len == 0:
     quote do:
       return cfun_impl(`fname`, type `rtype`)
@@ -62,20 +62,30 @@ macro cfun*(fn: typed) =
 
 
 var rserver* = Server.init(port = 5000)
+var generated_cfuns*: seq[string]
 
 macro sfun*(fn: typed): void =
-  # echo fn.treeRepr()
+  # fn.tree_repr()
+
+  # Generating client functions
+  let generated_cfun = block:
+    let (fname, args, rtype) = get_name_args_and_return_type(fn)
+    let args_s = args.map((a) => $a).join(", ")
+    fmt"""proc {fname}*({args_s}): {rtype} = cfun {fname}"""
+
   if fn.kind == nnkProcDef:
     # Used as pragma `{.sfun.}`
     let thefn = fn[0]
     let fname = thefn.str_val
     quote do:
+      generated_cfuns.add `generated_cfun`
       sfun_impl(`fname`, `thefn`)
       `fn`
   else:
     # Used as macro `sfun fn`
     let fname = fn.str_val
     quote do:
+      generated_cfuns.add `generated_cfun`
       sfun_impl(`fname`, `fn`)
 
 proc sfun_impl*[R](fn: string, op: proc: R): void =
