@@ -71,6 +71,7 @@ macro sfun*(fn: typed): void =
     let fname = thefn.str_val
     quote do:
       sfun_impl(`fname`, `thefn`)
+      `fn`
   else:
     # Used as macro `sfun fn`
     let fname = fn.str_val
