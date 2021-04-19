@@ -11,4 +11,4 @@ Made by [al6x](http://al6x.com).
 
 MIT
 
-Please keep "Made by http://al6x.com" line in readme if you fork it.
+Please keep "Initial version made by http://al6x.com" line in readme if you fork it.

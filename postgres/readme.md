@@ -112,4 +112,4 @@ assert users.count(sql"age = {31}") == 1
 
 MIT
 
-Please keep "Made by http://al6x.com" line in readme if you fork it.
+Please keep "Initial version made by http://al6x.com" line in readme if you fork it.

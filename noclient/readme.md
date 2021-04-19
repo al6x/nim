@@ -60,4 +60,4 @@ It is possible to optimise the update and do the DIFF on the Server (like Phoeni
 
 MIT
 
-Please keep "Made by http://al6x.com" line in readme if you fork it.
+Please keep "Initial version made by http://al6x.com" line in readme if you fork it.
