@@ -1,7 +1,7 @@
 import basem, jsonm, httpm, web/serverm
 from fs import nil
 
-export jsonm, httpm
+export jsonm, httpm, serverm
 
 proc cfun_send*[D, R](fn: string, data: D, _: type[R]): R =
   http_post[R](fmt"http://localhost:5000/rpc/{fn}?format=json", data.to_json, timeout_sec = 2)
@@ -63,7 +63,7 @@ macro cfun*(fn: typed) =
 
 
 var rserver* = Server.init(port = 5000)
-var generated_cfuns*: seq[string]
+var generated_cfuns*: seq[string] = @["import rpc/rpcm"]
 
 macro sfun*(fn: typed): void =
   # fn.tree_repr()

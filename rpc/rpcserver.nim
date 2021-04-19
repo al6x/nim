@@ -1,4 +1,4 @@
-import ./rpcm, web/serverm
+import rpc/rpcm
 
 proc pi: float {.sfun.} = 3.14
 

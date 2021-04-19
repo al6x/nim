@@ -24,7 +24,7 @@ Made by [al6x](http://al6x.com)
 Nim Server, exposing `pi` and `multiply` functions.
 
 ```Nim
-import ./rpcm, web/serverm
+import rpc/rpcm
 
 proc pi: float {.sfun.} = 3.14
 
@@ -36,7 +36,7 @@ rserver.run
 Nim Client, multiplying `pi` by `2`.
 
 ```Nim
-import ./rpcm
+import rpc/rpcm
 
 proc pi: float = cfun pi
 
