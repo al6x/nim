@@ -50,6 +50,11 @@ Also available as REST JSON API
 curl --request POST --data '{"a":4,"b":2}' http://localhost:5000/rpc/multiply?format=json
 ```
 
+# Current status
+
+It's already working, but needs some refactoring and implementing the network transport in a more
+efficient way with TCP and asyncdispatch, and, I haven't published it to Nimble yet.
+
 # Notes
 
 - Networking https://nim-lang.org/docs/asyncnet.html
