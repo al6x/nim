@@ -1,4 +1,4 @@
-Simple RPC, call remote Nim functions as if it's usual function
+Simple RPC, call remote Nim functions as if its local
 
 [Video Demo, 10min](https://youtu.be/KUb15vva0vw)
 
