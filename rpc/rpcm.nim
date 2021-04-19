@@ -64,9 +64,18 @@ macro cfun*(fn: typed) =
 var rserver* = Server.init(port = 5000)
 
 macro sfun*(fn: typed): void =
-  let fname = fn.str_val()
-  quote do:
-    sfun_impl(`fname`, `fn`)
+  # echo fn.treeRepr()
+  if fn.kind == nnkProcDef:
+    # Used as pragma `{.sfun.}`
+    let thefn = fn[0]
+    let fname = thefn.str_val
+    quote do:
+      sfun_impl(`fname`, `thefn`)
+  else:
+    # Used as macro `sfun fn`
+    let fname = fn.str_val
+    quote do:
+      sfun_impl(`fname`, `fn`)
 
 proc sfun_impl*[R](fn: string, op: proc: R): void =
   rserver.post_data(fmt"/rpc/{fn}", proc (req: Request): auto =

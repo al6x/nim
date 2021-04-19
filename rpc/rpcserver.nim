@@ -1,10 +1,8 @@
 import ./rpcm, web/serverm
 
-proc pi: float = 3.14
-sfun pi
+proc pi: float {.sfun.} = 3.14
 
-proc multiply(a, b: float): float = a * b
-sfun multiply
+proc multiply(a, b: float): float {.sfun.} = a * b
 
 rserver.run
 

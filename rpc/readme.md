@@ -26,11 +26,9 @@ Nim Server, exposing `pi` and `multiply` functions.
 ```Nim
 import ./rpcm, web/serverm
 
-proc pi: float = 3.14
-sfun pi
+proc pi: float {.sfun.} = 3.14
 
-proc multiply(a, b: float): float = a * b
-sfun multiply
+proc multiply(a, b: float): float {.sfun.} = a * b
 
 rserver.run
 ```
@@ -62,4 +60,5 @@ efficient way with TCP and asyncdispatch, and, I haven't published it to Nimble 
 # Notes
 
 - Networking https://nim-lang.org/docs/asyncnet.html
-- Serialization https://github.com/treeform/jsony https://github.com/treeform/flatty
+- Serialization https://github.com/treeform/jsony https://github.com/disruptek/frosty
+  https://github.com/treeform/flatty
