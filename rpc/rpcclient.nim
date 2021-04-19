@@ -1,7 +1,7 @@
 import ./rpcm
 
 proc pi: float = cfun pi
-proc multiply(a, b: int): int = cfun multiply
 
-echo pi()
-echo multiply(4, 2)
+proc multiply(a, b: float): float = cfun multiply
+
+echo multiply(pi(), 2)
