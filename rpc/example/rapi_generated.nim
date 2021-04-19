@@ -1,4 +1,4 @@
-import rpc/rpcm 
+import rpc/rpcm
 
 proc pi*(): float = cfun pi
 
