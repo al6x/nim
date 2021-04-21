@@ -1,4 +1,4 @@
-import asyncdispatch, options, os
+import asyncdispatch, options, os, strformat, re
 from ./net_asyncm as net_async import nil
 
 {.experimental: "code_reordering".}
@@ -6,26 +6,32 @@ from ./net_asyncm as net_async import nil
 # receive ------------------------------------------------------------------------------------------
 proc receive*(url: string): string =
   # Auto-reconnects and waits untill it gets the message
-  wait_for net_async.receive(url)
+  try:
+    wait_for net_async.receive(url)
+  except Exception as e:
+    # Higher level messages and getting rid of messy async stack trace
+    throw fmt"can't receive from {url}, " & e.msg.clean_async_error
 
 
 # send ---------------------------------------------------------------------------------------------
 proc send*(url: string, message: string, wait = true): void =
   # If wait is true waiting for response
-  if wait: wait_for     net_async.send(url, message)
-  else:    async_ignore net_async.emit(url, message)
-
-
-# emit ---------------------------------------------------------------------------------------------
-proc emit*(url: string, message: string): void =
-  # Don't wait till message is delivered and ignores if it's success or fail.
-  async_check net_async.emit(url, message)
+  try:
+    if wait: wait_for     net_async.send(url, message)
+    else:    async_ignore net_async.emit(url, message)
+  except Exception as e:
+    # Higher level messages and getting rid of messy async stack trace
+    throw fmt"can't send to {url}, " & e.msg.clean_async_error
 
 
 # call ---------------------------------------------------------------------------------------------
 proc call*(url: string, message: string): string =
   # Send message and waits for reply
-  wait_for net_async.call(url, message)
+  try:
+    wait_for net_async.call(url, message)
+  except Exception as e:
+    # Higher level messages and getting rid of messy async stack trace
+    throw fmt"can't call {url}, " & e.msg.clean_async_error
 
 
 # receive ------------------------------------------------------------------------------------------
@@ -37,12 +43,18 @@ proc receive*(url: string, handler: MessageHandler) =
   net_async.receive(url, async_handler)
 
 
-# async_ignore -------------------------------------------------------------------------------------
+# Helpers ------------------------------------------------------------------------------------------
+
 proc ignore_future[T](future: Future[T]): Future[void] {.async.} =
   try:    await future
   except: discard
 proc async_ignore[T](future: Future[T]) =
   async_check ignore_future(future)
+
+template throw(message: string) = raise newException(Exception, message)
+
+proc clean_async_error(error: string): string =
+  error.replace(re"\nAsync traceback:[\s\S]+", "")
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -58,7 +70,7 @@ if is_main_module:
         echo "processing"
         return "some result".some
       else:
-        raise new_exception(Exception, "unknown message" & "message")
+        throw "unknown message" & message
     receive("tcp://localhost:4000", handle)
 
   proc client =
