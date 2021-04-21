@@ -3,6 +3,20 @@ from ./net_asyncm as net_async import nil
 
 {.experimental: "code_reordering".}
 
+# Helpers ------------------------------------------------------------------------------------------
+
+proc ignore_future[T](future: Future[T]): Future[void] {.async.} =
+  try:    await future
+  except: discard
+proc async_ignore[T](future: Future[T]) =
+  async_check ignore_future(future)
+
+template throw(message: string) = raise newException(Exception, message)
+
+proc clean_async_error(error: string): string =
+  error.replace(re"\nAsync traceback:[\s\S]+", "")
+
+
 # receive ------------------------------------------------------------------------------------------
 proc receive*(url: string): string =
   # Auto-reconnects and waits untill it gets the message
@@ -41,20 +55,6 @@ proc receive*(url: string, handler: MessageHandler) =
   proc async_handler(message: string): Future[Option[string]] {.async.} =
     return handler(message)
   net_async.receive(url, async_handler)
-
-
-# Helpers ------------------------------------------------------------------------------------------
-
-proc ignore_future[T](future: Future[T]): Future[void] {.async.} =
-  try:    await future
-  except: discard
-proc async_ignore[T](future: Future[T]) =
-  async_check ignore_future(future)
-
-template throw(message: string) = raise newException(Exception, message)
-
-proc clean_async_error(error: string): string =
-  error.replace(re"\nAsync traceback:[\s\S]+", "")
 
 
 # Test ---------------------------------------------------------------------------------------------
