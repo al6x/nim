@@ -10,7 +10,7 @@ proc receive*(url: string): string =
     wait_for net_async.receive(url)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
-    throw fmt"can't receive from {url}, " & e.msg.clean_async_error
+    throw fmt"can't receive from {url}, {e.msg.clean_async_error}"
 
 
 # send ---------------------------------------------------------------------------------------------
@@ -21,7 +21,7 @@ proc send*(url: string, message: string, wait = true): void =
     else:    async_ignore net_async.emit(url, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
-    throw fmt"can't send to {url}, " & e.msg.clean_async_error
+    throw fmt"can't send to {url}, {e.msg.clean_async_error}"
 
 
 # call ---------------------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ proc call*(url: string, message: string): string =
     wait_for net_async.call(url, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
-    throw fmt"can't call {url}, " & e.msg.clean_async_error
+    throw fmt"can't call {url}, {e.msg.clean_async_error}"
 
 
 # receive ------------------------------------------------------------------------------------------
