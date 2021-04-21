@@ -10,8 +10,10 @@ proc receive*(url: string): string =
 
 
 # send ---------------------------------------------------------------------------------------------
-proc send*(url: string, message: string): void =
-  wait_for net_async.send(url, message)
+proc send*(url: string, message: string, wait = true): void =
+  # If wait is true waiting for response
+  if wait: wait_for     net_async.send(url, message)
+  else:    async_ignore net_async.emit(url, message)
 
 
 # emit ---------------------------------------------------------------------------------------------
@@ -35,10 +37,16 @@ proc receive*(url: string, handler: MessageHandler) =
   net_async.receive(url, async_handler)
 
 
+# async_ignore -------------------------------------------------------------------------------------
+proc ignore_future[T](future: Future[T]): Future[void] {.async.} =
+  try:    await future
+  except: discard
+proc async_ignore[T](future: Future[T]) =
+  async_check ignore_future(future)
+
+
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  let address = "tcp://localhost:4000"
-
   proc server =
     echo "server started"
     proc handle (message: string): Option[string] =
@@ -51,13 +59,13 @@ if is_main_module:
         return "some result".some
       else:
         raise new_exception(Exception, "unknown message" & "message")
-    receive(address, handle)
+    receive("tcp://localhost:4000", handle)
 
   proc client =
     echo "client started"
-    echo address.call("process")
-    address.emit "quit"
-    wait_for sleep_async 10 # Otherwise program quit immediatelly and emit won't be delivered
+    let server = "tcp://localhost:4000"
+    echo server.call("process")
+    server.send "quit"
 
   case param_str(1)
   of "server": server()

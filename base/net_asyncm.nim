@@ -60,7 +60,7 @@ proc receive*(url: string): Future[string] {.async.} =
 
 # send ---------------------------------------------------------------------------------------------
 proc send*(url: string, message: string): Future[void] {.async.} =
-  # Send message without reply
+  # Send message, if acknowledge without reply
   let (is_error, error, socket) = await connect(url)
   if is_error: throw error
   var success = false
