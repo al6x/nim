@@ -18,7 +18,7 @@ Made by [al6x](http://al6x.com)
 
 # TODO
 
-- [todo] No server or client, every node is both server and client
+- [todo] No server or client, every node is both server and client. No RPC, just nexport/nimport
 - [todo] Implement more efficient networking with `asyncdispatch`, `TCP` and Nim native serialisation.
 
 # Example

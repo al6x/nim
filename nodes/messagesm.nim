@@ -7,43 +7,43 @@ export nodem
 {.experimental: "code_reordering".}
 
 # receive ------------------------------------------------------------------------------------------
-proc receive*(name: Node): string =
+proc receive*(node: Node): string =
   # Auto-reconnects and waits untill it gets the message
   try:
-    wait_for ma.receive(name)
+    wait_for ma.receive(node)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
-    throw fmt"can't receive from {name}, {e.msg.clean_async_error}"
+    throw fmt"can't receive from {node}, {e.msg.clean_async_error}"
 
 
 # send ---------------------------------------------------------------------------------------------
-proc send*(name: Node, message: string, wait = true): void =
+proc send*(node: Node, message: string, wait = true): void =
   # If wait is true waiting for response
   try:
-    if wait: wait_for     ma.send(name, message)
-    else:    async_ignore ma.emit(name, message)
+    if wait: wait_for     ma.send(node, message)
+    else:    async_ignore ma.emit(node, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
-    throw fmt"can't send to {name}, {e.msg.clean_async_error}"
+    throw fmt"can't send to {node}, {e.msg.clean_async_error}"
 
 
 # call ---------------------------------------------------------------------------------------------
-proc call*(name: Node, message: string): string =
+proc call*(node: Node, message: string): string =
   # Send message and waits for reply
   try:
-    wait_for ma.call(name, message)
+    wait_for ma.call(node, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
-    throw fmt"can't call {name}, {e.msg.clean_async_error}"
+    throw fmt"can't call {node}, {e.msg.clean_async_error}"
 
 
 # on_receive ---------------------------------------------------------------------------------------
 type MessageHandler* = proc (message: string): Option[string]
 
-proc on_receive*(name: Node, handler: MessageHandler) =
+proc on_receive*(node: Node, handler: MessageHandler) =
   proc async_handler(message: string): Future[Option[string]] {.async.} =
     return handler(message)
-  ma.on_receive(name, async_handler)
+  ma.on_receive(node, async_handler)
 
 
 # Test ---------------------------------------------------------------------------------------------

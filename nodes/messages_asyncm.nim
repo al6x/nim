@@ -1,4 +1,4 @@
-import asyncdispatch, strutils, options, uri, tables, hashes, ./nodem, ./supportm
+import asyncdispatch, strutils, strformat, options, uri, tables, hashes, ./nodem, ./supportm
 from asyncnet import AsyncSocket
 from os import param_str
 
@@ -36,14 +36,14 @@ proc receive_message(
 
 # receive ------------------------------------------------------------------------------------------
 const delay_ms = 100
-proc receive*(name: Node): Future[string] {.async.} =
+proc receive*(node: Node): Future[string] {.async.} =
   # Auto-reconnects and waits untill it gets the message
   var success = false
   try:
     # Handling connection errors and auto-reconnecting
     while true:
       let socket = block:
-        let (is_error, error, socket) = await connect name
+        let (is_error, error, socket) = await connect node
         if is_error:
           await sleep_async delay_ms
           continue
@@ -56,13 +56,13 @@ proc receive*(name: Node): Future[string] {.async.} =
       return message
   finally:
     # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(name)
+    if not success: await disconnect(node)
 
 
 # send ---------------------------------------------------------------------------------------------
-proc send*(name: Node, message: string): Future[void] {.async.} =
+proc send*(node: Node, message: string): Future[void] {.async.} =
   # Send message, if acknowledge without reply
-  let (is_error, error, socket) = await connect(name)
+  let (is_error, error, socket) = await connect(node)
   if is_error: throw error
   var success = false
   try:
@@ -70,26 +70,26 @@ proc send*(name: Node, message: string): Future[void] {.async.} =
     success = true
   finally:
     # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(name)
+    if not success: await disconnect(node)
 
 
 # emit ---------------------------------------------------------------------------------------------
-proc emit*(name: Node, message: string): Future[void] {.async.} =
+proc emit*(node: Node, message: string): Future[void] {.async.} =
   # Emit message without reply and don't check if it's delivered or not, never fails
-  let (is_error, _, socket) = await connect(name)
+  let (is_error, _, socket) = await connect(node)
   if not is_error:
     try:
       await socket.send_message(message)
     except:
       # Closing socket on any error, it will be auto-reconnected
-      await disconnect(name)
+      await disconnect(node)
 
 
 # call ---------------------------------------------------------------------------------------------
-proc call*(name: Node, message: string): Future[string] {.async.} =
+proc call*(node: Node, message: string): Future[string] {.async.} =
   # Send message and waits for reply
   let socket = block:
-    let (is_error, error, socket) = await connect(name)
+    let (is_error, error, socket) = await connect(node)
     if is_error: throw error
     socket
   var success = false
@@ -104,28 +104,28 @@ proc call*(name: Node, message: string): Future[string] {.async.} =
     return reply
   finally:
     # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(name)
+    if not success: await disconnect(node)
 
 
 # on_receive ---------------------------------------------------------------------------------------
-type AsyncMessageHandler* = proc (message: string): Future[Option[string]]
+type MessageHandler* = proc (message: string): Future[Option[string]]
+type SelfHandler* = proc: Future[void]
 
-proc on_receive*(name: Node, handler: AsyncMessageHandler) =
-  async_check process(name, handler)
-  run_forever()
+let default_self = proc: Future[void] {.async.} = discard
 
-proc process*(name: Node, handler: AsyncMessageHandler): Future[void] {.async.} =
-  let (scheme, host, port) = parse_url name.to_url
+proc run*(node: Node, handler: MessageHandler, self: SelfHandler = default_self): Future[void] {.async.} =
+  let (scheme, host, port) = parse_url node.to_url
   if scheme != "tcp": throw "only TCP supported"
   var server = asyncnet.new_async_socket()
   asyncnet.bind_addr(server, Port(port), host)
   asyncnet.listen(server)
 
+  async_check self()
   while true:
     let client = await asyncnet.accept(server)
     async_check process_client(client, handler)
 
-proc process_client(client: AsyncSocket, handler: AsyncMessageHandler) {.async.} =
+proc process_client(client: AsyncSocket, handler: MessageHandler) {.async.} =
   try:
     while not asyncnet.is_closed(client):
       let (is_error, is_closed, error, message_id, message) = await client.receive_message
@@ -143,8 +143,8 @@ proc process_client(client: AsyncSocket, handler: AsyncMessageHandler) {.async.}
 # autoconnect --------------------------------------------------------------------------------------
 # Auto-connect for sockets, maybe also add auto-disconnect if it's not used for a while
 var sockets: Table[string, AsyncSocket]
-proc connect(name: Node): Future[tuple[is_error: bool, error: string, socket: AsyncSocket]] {.async.} =
-  let url = name.to_url
+proc connect(node: Node): Future[tuple[is_error: bool, error: string, socket: AsyncSocket]] {.async.} =
+  let url = node.to_url
   if url notin sockets:
     let (scheme, host, port) = url.parse_url
     if scheme != "tcp": throw "only TCP supported"
@@ -158,8 +158,8 @@ proc connect(name: Node): Future[tuple[is_error: bool, error: string, socket: As
 
 
 # disconnect ---------------------------------------------------------------------------------------
-proc disconnect*(name: Node): Future[void] {.async.} =
-  let url = name.to_url
+proc disconnect*(node: Node): Future[void] {.async.} =
+  let url = node.to_url
   if url in sockets:
     let socket = sockets[url]
     try:     asyncnet.close(socket)
@@ -169,29 +169,34 @@ proc disconnect*(name: Node): Future[void] {.async.} =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  let example = Node("example")
-  nodes_names[example] = "tcp://localhost:4000"
+  let (a, b) = (Node("a"), Node("b"))
 
-  proc server =
-    echo "server started"
-    proc handle (message: string): Future[Option[string]] {.async.} =
+  proc start(node: Node, dependent: Node) =
+    proc log(msg: string) = echo fmt"node {node} {msg}"
+
+    proc self: Future[void] {.async.} =
+      while true:
+        log "heartbeat"
+        try:
+          let dstate = await dependent.call("state")
+          log fmt"state of dependent: {dstate}"
+        except:
+          discard
+        await sleep_async 1000
+
+    proc on_receive(message: string): Future[Option[string]] {.async.} =
       case message
+      of "state": # Handles `call`, with reply
+        return fmt"{node} ok".some
       of "quit":    # Hanldes `send`, without reply
-        echo "quitting"
+        log "quitting"
         quit()
-      of "process": # Handles `call`, with reply
-        echo "processing"
-        return "some result".some
       else:
         throw "unknown message" & message
-    example.on_receive(handle)
 
-  proc client: Future[void] {.async.} =
-    echo "client started"
-    echo await example.call("process")
-    await example.send "quit"
+    log "started"
+    async_check node.run(on_receive, self)
 
-  case param_str(1)
-  of "server": server()
-  of "client": wait_for client()
-  else:        echo "wrong argument, expected client or server"
+  start(a, b)
+  start(b, a)
+  run_forever()
