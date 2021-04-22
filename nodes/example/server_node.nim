@@ -1,6 +1,6 @@
 import nodes/rpcm
 
-let math = NodeName("math")
+let math = Node("math")
 
 proc pi: float {.nexport: math.} = 3.14
 

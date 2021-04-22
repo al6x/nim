@@ -66,7 +66,7 @@ test "fn_signature":
 
 
 # nexport ------------------------------------------------------------------------------------------
-macro nexport*(node: NodeName, fn: typed) =
+macro nexport*(node: Node, fn: typed) =
   # Export function as node function, so it would be possible to call it remotely from other nodes
 
   let fsign = fn_signature(fn)
@@ -92,7 +92,7 @@ macro nexport*(node: NodeName, fn: typed) =
 type NFHandler = proc (args: JsonNode): JsonNode # can throw errors
 
 type NexportedFunction = ref object
-  node:    NodeName
+  node:    Node
   fsign:   FnSignatureS
   handler: NFHandler
 var nexported_functions: Table[string, NexportedFunction]
@@ -103,25 +103,25 @@ proc full_name(s: FnSignatureS): string =
   let args_s = s[1].map((arg) => fmt"{arg[0].normalize}: {arg[1].normalize}").join(", ")
   fmt"{s[0].normalize}({args_s}): {s[2].normalize}"
 
-proc nexport_function*[R](node: NodeName, fsign: FnSignatureS, fn: proc: R): void =
+proc nexport_function*[R](node: Node, fsign: FnSignatureS, fn: proc: R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 0
     %fn()
   nexported_functions[fsign.full_name] = NexportedFunction(node: node, fsign: fsign, handler: nfhandler)
 
-proc nexport_function*[A, R](node: NodeName, fsign: FnSignatureS, fn: proc(a: A): R): void =
+proc nexport_function*[A, R](node: Node, fsign: FnSignatureS, fn: proc(a: A): R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 1
     %fn(args[0].to(A))
   nexported_functions[fsign.full_name] = NexportedFunction(node: node, fsign: fsign, handler: nfhandler)
 
-proc nexport_function*[A, B, R](node: NodeName, fsign: FnSignatureS, fn: proc(a: A, b: B): R): void =
+proc nexport_function*[A, B, R](node: Node, fsign: FnSignatureS, fn: proc(a: A, b: B): R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 2
     %fn(args[0].to(A), args[1].to(B))
   nexported_functions[fsign.full_name] = NexportedFunction(node: node, fsign: fsign, handler: nfhandler)
 
-proc nexport_function*[A, B, C, R](node: NodeName, fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): R): void =
+proc nexport_function*[A, B, C, R](node: Node, fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 3
     %fn(args[0].to(A), args[1].to(B), args[2].to(C))
@@ -142,12 +142,12 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
   except Exception as e:
     return (is_error: true, message: e.msg).`%`.`$`.some
 
-proc run*(node: NodeName) =
+proc run*(node: Node) =
   node.on_receive nexport_handler
 
 
 # nimport ------------------------------------------------------------------------------------------
-macro nimport*(node: NodeName, fn: typed) =
+macro nimport*(node: Node, fn: typed) =
   # Import remote function from remote node to be able to call it
 
   let fsign  = fn_signature(fn)
@@ -177,26 +177,26 @@ macro nimport*(node: NodeName, fn: typed) =
 
 
 # call_nimported_function -----------------------------------------------------------------------------
-proc call_nimported_function(node: NodeName, fname: string, args: JsonNode): JsonNode =
+proc call_nimported_function(node: Node, fname: string, args: JsonNode): JsonNode =
   assert args.kind == JArray
   let res = wait_for node.call((fname: fname, args: args).`%`.`$`)
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   data["result"]
 
-proc call_nimported_function*[R](node: NodeName, fname: string, rtype: type[R]): R =
+proc call_nimported_function*[R](node: Node, fname: string, rtype: type[R]): R =
   let args = newJArray()
   call_nimported_function(node, fname, args).to(R)
 
-proc call_nimported_function*[A, R](node: NodeName, fname: string, a: A, tr: type[R]): R =
+proc call_nimported_function*[A, R](node: Node, fname: string, a: A, tr: type[R]): R =
   let args = newJArray(); args.add %a
   call_nimported_function(node, fname, args).to(R)
 
-proc call_nimported_function*[A, B, R](node: NodeName, fname: string, a: A, b: B, tr: type[R]): R =
+proc call_nimported_function*[A, B, R](node: Node, fname: string, a: A, b: B, tr: type[R]): R =
   let args = newJArray(); args.add %a; args.add %b;
   call_nimported_function(node, fname, args).to(R)
 
-proc call_nimported_function*[A, B, C, R](node: NodeName, fname: string, a: A, b: B, c: C, tr: type[R]): R =
+proc call_nimported_function*[A, B, C, R](node: Node, fname: string, a: A, b: B, c: C, tr: type[R]): R =
   let args = newJArray(); args.add %a; args.add %b; args.add %c
   call_nimported_function(node, fname, args).to(R)
 
@@ -211,13 +211,13 @@ proc generate_nimport*(fname: string, prepend = default_prepend): void =
   var statements: seq[string]
   statements.add $prepend
 
-  var declared_nodes: HashSet[NodeName]
+  var declared_nodes: HashSet[Node]
   for nfn in nexported_functions.values:
     let (node, fsign) = (nfn.node, nfn.fsign)
 
     # Declaring node
     if node notin declared_nodes:
-      statements.add fmt"""let {node}* = NodeName("{node}")"""
+      statements.add fmt"""let {node}* = Node("{node}")"""
       declared_nodes.incl node
 
     # Declaring function

@@ -7,7 +7,7 @@ export nodem
 {.experimental: "code_reordering".}
 
 # receive ------------------------------------------------------------------------------------------
-proc receive*(name: NodeName): string =
+proc receive*(name: Node): string =
   # Auto-reconnects and waits untill it gets the message
   try:
     wait_for ma.receive(name)
@@ -17,7 +17,7 @@ proc receive*(name: NodeName): string =
 
 
 # send ---------------------------------------------------------------------------------------------
-proc send*(name: NodeName, message: string, wait = true): void =
+proc send*(name: Node, message: string, wait = true): void =
   # If wait is true waiting for response
   try:
     if wait: wait_for     ma.send(name, message)
@@ -28,7 +28,7 @@ proc send*(name: NodeName, message: string, wait = true): void =
 
 
 # call ---------------------------------------------------------------------------------------------
-proc call*(name: NodeName, message: string): string =
+proc call*(name: Node, message: string): string =
   # Send message and waits for reply
   try:
     wait_for ma.call(name, message)
@@ -40,7 +40,7 @@ proc call*(name: NodeName, message: string): string =
 # on_receive ---------------------------------------------------------------------------------------
 type MessageHandler* = proc (message: string): Option[string]
 
-proc on_receive*(name: NodeName, handler: MessageHandler) =
+proc on_receive*(name: Node, handler: MessageHandler) =
   proc async_handler(message: string): Future[Option[string]] {.async.} =
     return handler(message)
   ma.on_receive(name, async_handler)
@@ -48,7 +48,7 @@ proc on_receive*(name: NodeName, handler: MessageHandler) =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  let example = NodeName("example")
+  let example = Node("example")
   nodes_names[example] = "tcp://localhost:4000"
 
   proc server =
