@@ -40,11 +40,8 @@ echo multiply(pi(), 2)
 # => 6.28
 ```
 
-Also available as REST JSON API
+Also available as REST JSON API, see `nodem/httpm.nim`
 
-```
-curl --request POST --data '{"a":4,"b":2}' http://localhost:5000/rpc/multiply?format=json
-```
 
 # TODO
 
