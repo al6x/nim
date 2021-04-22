@@ -53,7 +53,7 @@ proc save*[T](table: DbTable[T], o: T): void =
     let field_names = T.field_names
     let column_names = " " & field_names.join(",  ")
     let named_values = field_names.map((n) => fmt":{n}").join(", ")
-    let setters = field_names.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
+    let setters = field_names.filter((n) => n != "id").map((n) => fmt"{n} = excluded.{n}").join(", ")
     fmt"""
       insert into {table.name}
         ({column_names})

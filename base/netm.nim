@@ -11,7 +11,7 @@ proc ignore_future[T](future: Future[T]): Future[void] {.async.} =
 proc async_ignore[T](future: Future[T]) =
   async_check ignore_future(future)
 
-template throw(message: string) = raise newException(Exception, message)
+template throw(message: string) = raise new_exception(Exception, message)
 
 proc clean_async_error(error: string): string =
   error.replace(re"\nAsync traceback:[\s\S]+", "")
@@ -70,7 +70,7 @@ if is_main_module:
         echo "processing"
         return "some result".some
       else:
-        throw "unknown message" & message
+        throw fmt"unknown message {message}"
     receive("tcp://localhost:4000", handle)
 
   proc client =
