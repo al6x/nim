@@ -19,7 +19,7 @@ Made by [al6x](http://al6x.com)
 
 # Example
 
-Math Node, exposing `pi` and `multiply` functions.
+Math Node, exporting `pi` and `multiply` for calling from other remote nodes.
 
 ```Nim
 import nodem
