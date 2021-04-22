@@ -10,6 +10,5 @@ proc self: Future[void] {.async.} =
     await sleep_async 1000
   echo "Feedback from user: " & feedback()
 
-if is_main_module:
-  async_check self()
-  Address("greeting").run
+async_check self()
+Address("greeting").run

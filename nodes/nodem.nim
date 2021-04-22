@@ -1,7 +1,7 @@
 import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, os
 import ./supportm, ./addressm, ./messages_asyncm
 
-export json, addressm
+export json, addressm, parent_dir, on_receive
 
 # fn_signature -------------------------------------------------------------------------------------
 type FnSignature = (NimNode, seq[(NimNode, NimNode, NimNode)], NimNode)
@@ -233,7 +233,9 @@ proc generate_nimport*(address: Address, folder: string, prepend = default_prepe
 
 
 # run ----------------------------------------------------------------------------------------------
-proc run*(address: Address, generate_nimport = "") =
-  if generate_nimport != "": generate_nimport(address, generate_nimport)
+template run*(address: Address, generate = false) =
+  if generate:
+    const script_dir = instantiation_info(full_paths = true).filename.parent_dir
+    generate_nimport(address, script_dir)
   wait_for address.on_receive(nexport_handler)
   run_forever()
