@@ -1,6 +1,6 @@
 import asyncdispatch, options, os, strformat, tables
 import ./supportm, ./addressm
-from ./messages_asyncm as ma import nil
+from ./amessagesm as msa import nil
 
 export addressm
 
@@ -11,8 +11,8 @@ export addressm
 proc send*(address: Address, message: string, wait = true): void =
   # If wait is true waiting for response
   try:
-    if wait: wait_for     ma.send(address, message)
-    else:    async_ignore ma.send(address, message)
+    if wait: wait_for     msa.send(address, message)
+    else:    async_ignore msa.send(address, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
     throw fmt"can't send to {address}, {e.msg.clean_async_error}"
@@ -22,7 +22,7 @@ proc send*(address: Address, message: string, wait = true): void =
 proc call*(address: Address, message: string): string =
   # Send message and waits for reply
   try:
-    wait_for ma.call(address, message)
+    wait_for msa.call(address, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
     throw fmt"can't call {address}, {e.msg.clean_async_error}"
@@ -34,7 +34,7 @@ type MessageHandler* = proc (message: string): Option[string]
 proc on_receive*(address: Address, handler: MessageHandler) =
   proc async_handler(message: string): Future[Option[string]] {.async.} =
     return handler(message)
-  wait_for ma.on_receive(address, async_handler)
+  wait_for msa.on_receive(address, async_handler)
   run_forever()
 
 
@@ -72,7 +72,7 @@ if is_main_module:
 # proc receive*(node: Address): string =
 #   # Auto-reconnects and waits untill it gets the message
 #   try:
-#     wait_for ma.receive(node)
+#     wait_for msa.receive(node)
 #   except Exception as e:
 #     # Higher level messages and getting rid of messy async stack trace
 #     throw fmt"can't receive from {node}, {e.msg.clean_async_error}"

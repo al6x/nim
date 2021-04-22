@@ -1,6 +1,6 @@
 version     = "1.0.0"
-author      = "Alex Craft"
-description = "Call remote Nim functions as if it's local."
+author      = "Alex Craft http://al6x.com"
+description = "Call remote Nim functions as if it's local"
 license     = "MIT"
 
 srcDir = "."
