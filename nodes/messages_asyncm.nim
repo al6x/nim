@@ -75,8 +75,9 @@ proc call*(address: Address, message: string): Future[string] {.async.} =
 type MessageHandler* = proc (message: string): Future[Option[string]]
 
 proc on_receive*(address: Address, handler: MessageHandler): Future[void] {.async.} =
-  let (scheme, host, port) = parse_url address.to_url
+  let (scheme, host, port, path) = parse_url address.to_url
   if scheme != "tcp": throw "only TCP supported"
+  if path != "": throw "wrong path"
   var server = asyncnet.new_async_socket()
   asyncnet.set_sock_opt(server, OptReuseAddr, true)
   asyncnet.bind_addr(server, Port(port), host)
@@ -107,8 +108,9 @@ var sockets: Table[string, AsyncSocket]
 proc connect(address: Address): Future[tuple[is_error: bool, error: string, socket: AsyncSocket]] {.async.} =
   let url = address.to_url
   if url notin sockets:
-    let (scheme, host, port) = url.parse_url
+    let (scheme, host, port, path) = url.parse_url
     if scheme != "tcp": throw "only TCP supported"
+    if path != "": throw "wrong path"
     var socket = asyncnet.new_async_socket()
     try:
       await asyncnet.connect(socket, host, Port(port))
@@ -164,7 +166,6 @@ if is_main_module:
   start(a, b)
   start(b, a)
   run_forever()
-
 
 # receive ------------------------------------------------------------------------------------------
 # const delay_ms = 100

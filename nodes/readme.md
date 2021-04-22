@@ -6,43 +6,35 @@ Made by [al6x](http://al6x.com)
 
 # Features
 
-- RPC between Nim Processes.
-- Multi dispatch supported.
+- RPC between Nim Processes, with multi dispatch
 - REST API for React.JS / Karax, no need to define REST API and routes explicitly.
 - Sync Client and Server Functions via functions declaration file.
-- [todo] Auto generate Nim Client from Nim Server.
-- Format negotiation, for Nim Clients Server respond with TCP and Nim fast serialization format, for
-  REST API with JSON over HTTP, MessagePack also could be supported.
-- Generate Nim Client Function for Java/Node/Elixir REST API with `cfun`.
-- [todo] Generate TypeScript/Java/Node/Elixir Client from Nim Server.
-
-# TODO
-
-- [todo] No server or client, every node is both server and client. No RPC, just nexport/nimport
-- [todo] Implement more efficient networking with `asyncdispatch`, `TCP` and Nim native serialisation.
+- Generate Nim Client from Nim Server.
+- Generate Nim Client Function for Java/Node/Elixir REST API with `nimport`.
+- [todo] Generate TypeScript/Java/Node/Elixir Client functions from Nim Server.
+- There's no server or client, every node is both server and client. No RPC, just nexport/nimport
+- No urls, use node names, like `red_node` or `math_service`.
+- Efficient networking with `asyncdispatch` and `TCP`.
+- REST API and Browser support, function could be called via REST API
 
 # Example
 
-Nim Server, exposing `pi` and `multiply` functions.
+Math Node, exposing `pi` and `multiply` functions.
 
 ```Nim
-import rpc/rpcm
+import nodem
 
-proc pi: float {.sfun.} = 3.14
+proc pi: float {.nexport.} = 3.14
 
-proc multiply(a, b: float): float {.sfun.} = a * b
+proc multiply(a, b: float): float {.nexport.} = a * b
 
-rserver.run
+Address("math").run true
 ```
 
-Nim Client, multiplying `pi` by `2`.
+User Node, calling functions on remote Math Node
 
 ```Nim
-import rpc/rpcm
-
-proc pi: float = cfun pi
-
-proc multiply(a, b: float): float = cfun multiply
+import ./mathi
 
 echo multiply(pi(), 2)
 # => 6.28
@@ -54,14 +46,12 @@ Also available as REST JSON API
 curl --request POST --data '{"a":4,"b":2}' http://localhost:5000/rpc/multiply?format=json
 ```
 
-# Current status
+# TODO
 
-It's already working (there's a bug in `cfun` macro it incorrectly getting function argument and return types...), but needs some refactoring and implementing the network transport in a more
-efficient way with TCP and asyncdispatch, and, I haven't published it to Nimble yet.
+- Support for `http://host:port/prefix` Addresses, also it would enable format negotiation
 
 # Notes
 
-- Networking https://nim-lang.org/docs/asyncnet.html
 - Serialization https://github.com/treeform/jsony https://github.com/disruptek/frosty
   https://github.com/treeform/flatty
 

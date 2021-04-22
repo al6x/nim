@@ -15,10 +15,10 @@ proc clean_async_error*(error: string): string =
   error.replace(re"\nAsync traceback:[\s\S]+", "")
 
 
-proc parse_url*(url: string): tuple[scheme: string, host: string, port: int] =
+proc parse_url*(url: string): tuple[scheme: string, host: string, port: int, path: string] =
   var parsed = init_uri()
   parse_uri(url, parsed)
-  (parsed.scheme, parsed.hostname, parsed.port.parse_int)
+  (parsed.scheme, parsed.hostname, parsed.port.parse_int, parsed.path)
 
 
 proc `%`*[T: tuple](o: T): JsonNode =

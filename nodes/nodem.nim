@@ -142,6 +142,21 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
     return (is_error: true, message: e.msg).`%`.`$`.some
 
 
+# nexport_handler ----------------------------------------------------------------------------------
+proc nexport_handler_http*(req: string): Future[Option[string]] {.async.} =
+  # Use it to start as RPC server
+  try:
+    let data = req.parse_json
+    let (fname, args) = (data["fname"].get_str, data["args"])
+    if fname notin nexported_functions: throw fmt"no server function '{fname}'"
+    let nfn = nexported_functions[fname]
+    let res = nfn.handler(args)
+    discard %((a: 1))
+    return (is_error: false, result: res).`%`.`$`.some
+  except Exception as e:
+    return (is_error: true, message: e.msg).`%`.`$`.some
+
+
 # nimport ------------------------------------------------------------------------------------------
 macro nimport*(address: string, fn: typed) =
   # Import remote function from remote address to be able to call it
