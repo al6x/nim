@@ -4,6 +4,32 @@ Simple RPC, call remote Nim functions as if its local
 
 Made by [al6x](http://al6x.com)
 
+# Example
+
+Exporting `pi` and `multiply` functions as remote functions:
+
+```Nim
+import nodem
+
+proc pi: float {.nexport.} = 3.14
+
+proc multiply(a, b: float): float {.nexport.} = a * b
+
+Address("math").run true
+```
+
+Calling remote functions in another Nim process:
+
+```Nim
+import ./mathi
+
+echo multiply(pi(), 2)
+# => 6.28
+```
+
+See `math_example` and `greeting_example`, remote functions also available via REST JSON API,
+see `nodem/httpm.nim`.
+
 # Features
 
 - RPC between Nim Processes, with multi dispatch
@@ -16,32 +42,6 @@ Made by [al6x](http://al6x.com)
 - No urls, use node names, like `red_node` or `math_service`.
 - Efficient networking with `asyncdispatch` and `TCP`.
 - REST API and Browser support, function could be called via REST API
-
-# Example
-
-Math Node, exporting `pi` and `multiply` for calling from other remote nodes.
-
-```Nim
-import nodem
-
-proc pi: float {.nexport.} = 3.14
-
-proc multiply(a, b: float): float {.nexport.} = a * b
-
-Address("math").run true
-```
-
-User Node, calling functions on remote Math Node
-
-```Nim
-import ./mathi
-
-echo multiply(pi(), 2)
-# => 6.28
-```
-
-Also available as REST JSON API, see `nodem/httpm.nim`
-
 
 # Notes
 
