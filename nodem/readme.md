@@ -9,13 +9,15 @@ Made by [al6x](http://al6x.com)
 Exporting `pi` and `multiply` as remote functions:
 
 ```Nim
-import nodem
+import nodem, asyncdispatch
 
 proc pi: float {.nexport.} = 3.14
 
 proc multiply(a, b: float): float {.nexport.} = a * b
 
-Address("math").run true
+proc plus(a, b: float): Future[float] {.async, nexport.} = return a + b
+
+Address("math").run(generate = true)
 ```
 
 Calling remote functions in another Nim process:
@@ -25,10 +27,17 @@ import ./mathi
 
 echo multiply(pi(), 2)
 # => 6.28
+
+echo wait_for plus(1, 2)
+# => 3
 ```
 
 See `math_example` and `greeting_example`, remote functions also available via REST JSON API,
 see `nodem/httpm.nim`.
+
+# Async example
+
+For simultaneous, nested, circular calls check `greeting_example`.
 
 # Features
 
@@ -49,7 +58,6 @@ see `nodem/httpm.nim`.
 # TODO
 
 - TypeScript and Erlang Node
-- Async Functions, maybe with simple helper like `nimport(fn, async = true)`
 
 # Notes
 
