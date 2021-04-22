@@ -1,5 +1,5 @@
 import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, os
-import ./supportm, ./addressm, ./amessagesm
+import ./nodes/supportm, ./nodes/addressm, ./amessagesm
 
 export json, addressm, parent_dir, on_receive
 

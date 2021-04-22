@@ -1,5 +1,5 @@
 import asyncdispatch, options, os, strformat, tables
-import ./supportm, ./addressm
+import ./nodes/supportm, ./nodes/addressm
 from ./amessagesm as msa import nil
 
 export addressm
