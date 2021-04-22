@@ -6,15 +6,6 @@ export nodem
 
 {.experimental: "code_reordering".}
 
-# receive ------------------------------------------------------------------------------------------
-proc receive*(node: Node): string =
-  # Auto-reconnects and waits untill it gets the message
-  try:
-    wait_for ma.receive(node)
-  except Exception as e:
-    # Higher level messages and getting rid of messy async stack trace
-    throw fmt"can't receive from {node}, {e.msg.clean_async_error}"
-
 
 # send ---------------------------------------------------------------------------------------------
 proc send*(node: Node, message: string, wait = true): void =
@@ -75,3 +66,13 @@ if is_main_module:
   of "server": server()
   of "client": client()
   else:        echo "wrong argument, expected client or server"
+
+
+# receive ------------------------------------------------------------------------------------------
+# proc receive*(node: Node): string =
+#   # Auto-reconnects and waits untill it gets the message
+#   try:
+#     wait_for ma.receive(node)
+#   except Exception as e:
+#     # Higher level messages and getting rid of messy async stack trace
+#     throw fmt"can't receive from {node}, {e.msg.clean_async_error}"

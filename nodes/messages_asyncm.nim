@@ -34,31 +34,6 @@ proc receive_message(
   return (false, false, "", message_id, message)
 
 
-# receive ------------------------------------------------------------------------------------------
-const delay_ms = 100
-proc receive*(node: Node): Future[string] {.async.} =
-  # Auto-reconnects and waits untill it gets the message
-  var success = false
-  try:
-    # Handling connection errors and auto-reconnecting
-    while true:
-      let socket = block:
-        let (is_error, error, socket) = await connect node
-        if is_error:
-          await sleep_async delay_ms
-          continue
-        socket
-      let (is_error, is_closed, error, _, message) = await socket.receive_message
-      if is_error or is_closed:
-        await sleep_async delay_ms
-        continue
-      success = true
-      return message
-  finally:
-    # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(node)
-
-
 # send ---------------------------------------------------------------------------------------------
 proc send*(node: Node, message: string): Future[void] {.async.} =
   # Send message, if acknowledge without reply
@@ -71,18 +46,6 @@ proc send*(node: Node, message: string): Future[void] {.async.} =
   finally:
     # Closing socket on any error, it will be auto-reconnected
     if not success: await disconnect(node)
-
-
-# # emit ---------------------------------------------------------------------------------------------
-# proc emit*(node: Node, message: string): Future[void] {.async.} =
-#   # Emit message without reply and don't check if it's delivered or not, never fails
-#   let (is_error, _, socket) = await connect(node)
-#   if not is_error:
-#     try:
-#       await socket.send_message(message)
-#     except:
-#       # Closing socket on any error, it will be auto-reconnected
-#       await disconnect(node)
 
 
 # call ---------------------------------------------------------------------------------------------
@@ -110,7 +73,7 @@ proc call*(node: Node, message: string): Future[string] {.async.} =
 # on_receive ---------------------------------------------------------------------------------------
 type MessageHandler* = proc (message: string): Future[Option[string]]
 
-proc run*(node: Node, handler: MessageHandler): Future[void] {.async.} =
+proc on_receive*(node: Node, handler: MessageHandler): Future[void] {.async.} =
   let (scheme, host, port) = parse_url node.to_url
   if scheme != "tcp": throw "only TCP supported"
   var server = asyncnet.new_async_socket()
@@ -194,8 +157,33 @@ if is_main_module:
 
     log "started"
     async_check self()
-    async_check node.run(on_receive)
+    async_check node.on_receive(on_receive)
 
   start(a, b)
   start(b, a)
   run_forever()
+
+
+# receive ------------------------------------------------------------------------------------------
+# const delay_ms = 100
+# proc receive*(node: Node): Future[string] {.async.} =
+#   # Auto-reconnects and waits untill it gets the message
+#   var success = false
+#   try:
+#     # Handling connection errors and auto-reconnecting
+#     while true:
+#       let socket = block:
+#         let (is_error, error, socket) = await connect node
+#         if is_error:
+#           await sleep_async delay_ms
+#           continue
+#         socket
+#       let (is_error, is_closed, error, _, message) = await socket.receive_message
+#       if is_error or is_closed:
+#         await sleep_async delay_ms
+#         continue
+#       success = true
+#       return message
+#   finally:
+#     # Closing socket on any error, it will be auto-reconnected
+#     if not success: await disconnect(node)
