@@ -1,4 +1,5 @@
-import nodem
-export nodem
+import nodem, asyncdispatch
+export nodem, asyncdispatch
 
-proc feedback*(): string = nimport("user", feedback)
+proc user_name*(): Future[string] {.async.} =
+  return await nimport_async("user", user_name)

@@ -32,9 +32,9 @@ see `nodem/httpm.nim`.
 
 # Features
 
-- Call **remote function as local**, with multi dispatch
+- **Call remote function as local**, with multi dispatch
 - REST API for React.JS / Karax, no need to define REST API and routes explicitly.
-- Sync Client and Server Functions via functions declaration file.
+- Match Client and Server Functions via functions declaration file.
 - Generate Nim Client from Nim Server.
 - Generate Nim Client Function for Java/Node/Elixir REST API with `nimport`.
 - [todo] Generate TypeScript/Java/Node/Elixir Client functions from Nim Server.
@@ -43,6 +43,13 @@ see `nodem/httpm.nim`.
 - **No connection**, connection will be crated automatically on demand, and re-connect if needed.
 - Plain, simple code, even though internally async networking is used. Optionally, you can use async.
 - REST API and Browser support, function could be called via REST API
+- With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
+- Should be **really fast** if used with async functions.
+
+# TODO
+
+- TypeScript and Erlang Node
+- Async Functions, maybe with simple helper like `nimport(fn, async = true)`
 
 # Notes
 

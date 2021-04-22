@@ -1,14 +1,15 @@
-import ./useri, asyncdispatch
+import ./useri, nodem/supportm
 
-var service_used = false
-proc hi(name: string): string {.nexport.} =
-  service_used = true
-  "Hi " & name
+proc say_hi*(prefix: string): Future[string] {.async, nexport.} =
+  let name = await user_name() # Circular calls
+  return prefix & " " & name
 
 proc self: Future[void] {.async.} =
-  while not service_used:
+  while true:
     await sleep_async 1000
-  echo "Feedback from user: " & feedback()
+    try:
+      echo "user name is: " & (await user_name())
+    except:
+      echo "can't get user name"
 
-async_check self()
-Address("greeting").run
+Address("greeting").run self
