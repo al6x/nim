@@ -73,16 +73,16 @@ proc send*(node: Node, message: string): Future[void] {.async.} =
     if not success: await disconnect(node)
 
 
-# emit ---------------------------------------------------------------------------------------------
-proc emit*(node: Node, message: string): Future[void] {.async.} =
-  # Emit message without reply and don't check if it's delivered or not, never fails
-  let (is_error, _, socket) = await connect(node)
-  if not is_error:
-    try:
-      await socket.send_message(message)
-    except:
-      # Closing socket on any error, it will be auto-reconnected
-      await disconnect(node)
+# # emit ---------------------------------------------------------------------------------------------
+# proc emit*(node: Node, message: string): Future[void] {.async.} =
+#   # Emit message without reply and don't check if it's delivered or not, never fails
+#   let (is_error, _, socket) = await connect(node)
+#   if not is_error:
+#     try:
+#       await socket.send_message(message)
+#     except:
+#       # Closing socket on any error, it will be auto-reconnected
+#       await disconnect(node)
 
 
 # call ---------------------------------------------------------------------------------------------
@@ -109,18 +109,14 @@ proc call*(node: Node, message: string): Future[string] {.async.} =
 
 # on_receive ---------------------------------------------------------------------------------------
 type MessageHandler* = proc (message: string): Future[Option[string]]
-type SelfHandler* = proc: Future[void]
 
-let default_self = proc: Future[void] {.async.} = discard
-
-proc run*(node: Node, handler: MessageHandler, self: SelfHandler = default_self): Future[void] {.async.} =
+proc run*(node: Node, handler: MessageHandler): Future[void] {.async.} =
   let (scheme, host, port) = parse_url node.to_url
   if scheme != "tcp": throw "only TCP supported"
   var server = asyncnet.new_async_socket()
   asyncnet.bind_addr(server, Port(port), host)
   asyncnet.listen(server)
 
-  async_check self()
   while true:
     let client = await asyncnet.accept(server)
     async_check process_client(client, handler)
@@ -172,7 +168,7 @@ if is_main_module:
   # Two nodes working simultaneously and exchanging messages, there's no client or server
   let (a, b) = (Node("a"), Node("b"))
 
-  proc start(node: Node, dependent: Node): Future[void] {.async.} =
+  proc start(node: Node, dependent: Node) =
     proc log(msg: string) = echo fmt"node {node} {msg}"
 
     proc self: Future[void] {.async.} =
@@ -184,6 +180,7 @@ if is_main_module:
         except:
           log "failed" # a going to fail first time, because b is not started yet
         await sleep_async 1000
+      await dependent.send("quit")
 
     proc on_receive(message: string): Future[Option[string]] {.async.} =
       case message
@@ -196,8 +193,9 @@ if is_main_module:
         throw fmt"unknown message {message}"
 
     log "started"
-    await node.run(on_receive, self)
+    async_check self()
+    async_check node.run(on_receive)
 
-  async_check start(a, b)
-  async_check start(b, a)
+  start(a, b)
+  start(b, a)
   run_forever()
