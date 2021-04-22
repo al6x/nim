@@ -4,7 +4,7 @@ import json, uri, strutils, os, asyncdispatch, re
 proc ignore_future*[T](future: Future[T]): Future[void] {.async.} =
   try:    await future
   except: discard
-proc async_ignore[T](future: Future[T]) =
+proc async_ignore*[T](future: Future[T]) =
   async_check ignore_future(future)
 
 
