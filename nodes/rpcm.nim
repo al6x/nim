@@ -69,9 +69,8 @@ test "fn_signature":
 macro nexport*(node: NodeName, fn: typed) =
   # Export function as node function, so it would be possible to call it remotely from other nodes
 
-  let fsign      = fn_signature(fn)
-  let fsymb      = fsign[0]
-  let fsigns     = fsign.to_s
+  let fsign = fn_signature(fn)
+  let (fsymb, fsigns) = (fsign[0], fsign.to_s)
 
   for arg in fsign[1]:
     if arg[2].kind != nnk_empty:
@@ -148,11 +147,9 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
 macro nimport*(node: NodeName, fn: typed) =
   # Import remote function from remote node to be able to call it
 
-  let fsign      = fn_signature(fn)
-  let fsigns     = fsign.to_s
-  let full_name  = fsigns.full_name
-  let args       = fsign[1]
-  let rtype      = fsign[2]
+  let fsign  = fn_signature(fn)
+  let fsigns = fsign.to_s
+  let (full_name, args, rtype) = (fsigns.full_name, fsign[1], fsign[2])
 
   # Generating code
   case args.len:
@@ -160,15 +157,15 @@ macro nimport*(node: NodeName, fn: typed) =
     quote do:
       return call_nimported_function(`node`, `full_name`, typeof `rtype`)
   of 1:
-    let a = args[0]
+    let a = args[0][0]
     quote do:
       return call_nimported_function(`node`, `full_name`, `a`, typeof `rtype`)
   of 2:
-    let (a, b) = (args[0], args[1])
+    let (a, b) = (args[0][0], args[1][0])
     quote do:
       return call_nimported_function(`node`, `full_name`, `a`, `b`, typeof `rtype`)
   of 3:
-    let (a, b, c) = (args[0], args[1], args[2])
+    let (a, b, c) = (args[0][0], args[1][0], args[2][0])
     quote do:
       return call_nimported_function(`node`, `full_name`, `a`, `b`, `c`, typeof `rtype`)
   else:

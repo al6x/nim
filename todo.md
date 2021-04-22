@@ -1,0 +1,6 @@
+- remove find, because it connected with `in`
+- add server names to net
+- rename net to nodes
+- args as list
+- unhandled exception: Address already in use
+- remove `fsymb`
