@@ -43,10 +43,6 @@ echo multiply(pi(), 2)
 Also available as REST JSON API, see `nodem/httpm.nim`
 
 
-# TODO
-
-- Support for `http://host:port/prefix` Addresses, also it would enable format negotiation
-
 # Notes
 
 - Serialization https://github.com/treeform/jsony https://github.com/disruptek/frosty
