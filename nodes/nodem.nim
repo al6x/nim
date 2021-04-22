@@ -127,7 +127,7 @@ proc nexport_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: 
   nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
 
 
-# run ----------------------------------------------------------------------------------------------
+# nexport_handler ----------------------------------------------------------------------------------
 proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
   # Use it to start as RPC server
   try:
@@ -140,10 +140,6 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
     return (is_error: false, result: res).`%`.`$`.some
   except Exception as e:
     return (is_error: true, message: e.msg).`%`.`$`.some
-
-proc run*(address: Address) =
-  wait_for address.on_receive(nexport_handler)
-  run_forever()
 
 
 # nimport ------------------------------------------------------------------------------------------
@@ -234,3 +230,10 @@ proc generate_nimport*(address: Address, folder: string, prepend = default_prepe
 
   if existing_code != code:
     write_file(path, code)
+
+
+# run ----------------------------------------------------------------------------------------------
+proc run*(address: Address, generate_nimport = "") =
+  if generate_nimport != "": generate_nimport(address, generate_nimport)
+  wait_for address.on_receive(nexport_handler)
+  run_forever()
