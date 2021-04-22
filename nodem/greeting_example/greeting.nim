@@ -1,7 +1,7 @@
 import ./useri, nodem/supportm
 
 proc say_hi*(prefix: string): Future[string] {.async, nexport.} =
-  let name = await user_name() # Circular calls
+  let name = await user_name() # Nested, circular call
   return prefix & " " & name
 
 proc self: Future[void] {.async.} =

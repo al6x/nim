@@ -37,7 +37,7 @@ see `nodem/httpm.nim`.
 
 # Async example
 
-For simultaneous, nested, circular calls check `greeting_example`.
+For simultaneous, nested, circular calls and nodes working as both client and server check `greeting_example`.
 
 # Features
 
