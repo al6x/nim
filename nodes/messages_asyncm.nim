@@ -1,4 +1,5 @@
 import asyncdispatch, strutils, strformat, options, uri, tables, hashes, ./addressm, ./supportm
+from net import OptReuseAddr
 from asyncnet import AsyncSocket
 from os import param_str
 
@@ -77,6 +78,7 @@ proc on_receive*(address: Address, handler: MessageHandler): Future[void] {.asyn
   let (scheme, host, port) = parse_url address.to_url
   if scheme != "tcp": throw "only TCP supported"
   var server = asyncnet.new_async_socket()
+  asyncnet.set_sock_opt(server, OptReuseAddr, true)
   asyncnet.bind_addr(server, Port(port), host)
   asyncnet.listen(server)
 
