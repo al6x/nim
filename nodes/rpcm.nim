@@ -128,7 +128,7 @@ proc nexport_function*[A, B, C, R](node: NodeName, fsign: FnSignatureS, fn: proc
   nexported_functions[fsign.full_name] = NexportedFunction(node: node, fsign: fsign, handler: nfhandler)
 
 
-# nexport_handler ----------------------------------------------------------------------------------
+# run ----------------------------------------------------------------------------------------------
 proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
   # Use it to start as RPC server
   try:
@@ -141,6 +141,9 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
     return (is_error: false, result: res).`%`.`$`.some
   except Exception as e:
     return (is_error: true, message: e.msg).`%`.`$`.some
+
+proc run*(node: NodeName) =
+  node.on_receive nexport_handler
 
 
 # nimport ------------------------------------------------------------------------------------------

@@ -14,5 +14,7 @@ proc `==`*(a, b: NodeName): bool = a.string == b.string
 var nodes_names*: Table[NodeName, string]
 
 proc to_url*(name: NodeName): string =
-  if name notin nodes_names: throw fmt"no url for node name '{name}'"
+  if name notin nodes_names:
+    # Assuming it's localhost and deriving port in range 6000-7000
+    nodes_names[name] = fmt"tcp://localhost:{6000 + (name.string.hash.int mod 1000)}"
   nodes_names[name]
