@@ -142,7 +142,8 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
     return (is_error: true, message: e.msg).`%`.`$`.some
 
 proc run*(node: Node) =
-  node.on_receive nexport_handler
+  wait_for node.run(nexport_handler)
+  run_forever()
 
 
 # nimport ------------------------------------------------------------------------------------------
@@ -226,7 +227,7 @@ proc generate_nimport*(node: Node, folder: string, prepend = default_prepend): v
   let code = statements.join("\n\n")
 
   # Avoiding writing file if it's the same
-  let path = folder / fmt"{node}.nim"
+  let path = folder / fmt"{node}i.nim"
   let existing_code =
     try: read_file(path)
     except: ""

@@ -169,19 +169,20 @@ proc disconnect*(node: Node): Future[void] {.async.} =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
+  # Two nodes working simultaneously and exchanging messages, there's no client or server
   let (a, b) = (Node("a"), Node("b"))
 
-  proc start(node: Node, dependent: Node) =
+  proc start(node: Node, dependent: Node): Future[void] {.async.} =
     proc log(msg: string) = echo fmt"node {node} {msg}"
 
     proc self: Future[void] {.async.} =
-      while true:
+      for _ in 1..3:
         log "heartbeat"
         try:
           let dstate = await dependent.call("state")
           log fmt"state of dependent: {dstate}"
         except:
-          discard
+          log "failed" # a going to fail first time, because b is not started yet
         await sleep_async 1000
 
     proc on_receive(message: string): Future[Option[string]] {.async.} =
@@ -192,11 +193,11 @@ if is_main_module:
         log "quitting"
         quit()
       else:
-        throw "unknown message" & message
+        throw fmt"unknown message {message}"
 
     log "started"
-    async_check node.run(on_receive, self)
+    await node.run(on_receive, self)
 
-  start(a, b)
-  start(b, a)
+  async_check start(a, b)
+  async_check start(b, a)
   run_forever()
