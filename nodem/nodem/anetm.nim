@@ -1,4 +1,4 @@
-import asyncdispatch, strutils, strformat, options, uri, tables, hashes, ./nodes/addressm, ./nodes/supportm
+import asyncdispatch, strutils, strformat, options, uri, tables, hashes, ./addressm, ./supportm
 from net import OptReuseAddr
 from asyncnet import AsyncSocket
 from os import param_str
