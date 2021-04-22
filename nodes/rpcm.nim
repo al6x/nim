@@ -1,7 +1,7 @@
-import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, ./supportm
-import ./node_namem, ./net_asyncm
+import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets
+import ./supportm, ./nodem, ./messages_asyncm
 
-export json, node_namem
+export json, nodem
 
 # fn_signature -------------------------------------------------------------------------------------
 type FnSignature = (NimNode, seq[(NimNode, NimNode, NimNode)], NimNode)

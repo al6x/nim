@@ -1,29 +1,16 @@
-import asyncdispatch, options, os, strformat, re, tables, node_namem
-from ./net_asyncm as net_async import nil
+import asyncdispatch, options, os, strformat, tables
+import ./supportm, ./nodem
+from ./messages_asyncm as ma import nil
 
-export node_namem
+export nodem
 
 {.experimental: "code_reordering".}
-
-# Helpers ------------------------------------------------------------------------------------------
-
-proc ignore_future[T](future: Future[T]): Future[void] {.async.} =
-  try:    await future
-  except: discard
-proc async_ignore[T](future: Future[T]) =
-  async_check ignore_future(future)
-
-template throw(message: string) = raise new_exception(Exception, message)
-
-proc clean_async_error(error: string): string =
-  error.replace(re"\nAsync traceback:[\s\S]+", "")
-
 
 # receive ------------------------------------------------------------------------------------------
 proc receive*(name: NodeName): string =
   # Auto-reconnects and waits untill it gets the message
   try:
-    wait_for net_async.receive(name)
+    wait_for ma.receive(name)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
     throw fmt"can't receive from {name}, {e.msg.clean_async_error}"
@@ -33,8 +20,8 @@ proc receive*(name: NodeName): string =
 proc send*(name: NodeName, message: string, wait = true): void =
   # If wait is true waiting for response
   try:
-    if wait: wait_for     net_async.send(name, message)
-    else:    async_ignore net_async.emit(name, message)
+    if wait: wait_for     ma.send(name, message)
+    else:    async_ignore ma.emit(name, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
     throw fmt"can't send to {name}, {e.msg.clean_async_error}"
@@ -44,7 +31,7 @@ proc send*(name: NodeName, message: string, wait = true): void =
 proc call*(name: NodeName, message: string): string =
   # Send message and waits for reply
   try:
-    wait_for net_async.call(name, message)
+    wait_for ma.call(name, message)
   except Exception as e:
     # Higher level messages and getting rid of messy async stack trace
     throw fmt"can't call {name}, {e.msg.clean_async_error}"
@@ -56,7 +43,7 @@ type MessageHandler* = proc (message: string): Option[string]
 proc on_receive*(name: NodeName, handler: MessageHandler) =
   proc async_handler(message: string): Future[Option[string]] {.async.} =
     return handler(message)
-  net_async.on_receive(name, async_handler)
+  ma.on_receive(name, async_handler)
 
 
 # Test ---------------------------------------------------------------------------------------------

@@ -1,8 +1,8 @@
-import asyncdispatch, strutils, options, uri, tables, hashes, node_namem, ./supportm
+import asyncdispatch, strutils, options, uri, tables, hashes, ./nodem, ./supportm
 from asyncnet import AsyncSocket
 from os import param_str
 
-export node_namem, asyncdispatch
+export nodem, asyncdispatch
 
 {.experimental: "code_reordering".}
 

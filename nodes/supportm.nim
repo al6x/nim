@@ -1,15 +1,24 @@
-import json, uri, strutils, os
+import json, uri, strutils, os, asyncdispatch, re
 
 
-# parse_url ----------------------------------------------------------------------------------------
+proc ignore_future*[T](future: Future[T]): Future[void] {.async.} =
+  try:    await future
+  except: discard
+proc async_ignore[T](future: Future[T]) =
+  async_check ignore_future(future)
+
+
+template throw*(message: string) = raise new_exception(Exception, message)
+
+
+proc clean_async_error*(error: string): string =
+  error.replace(re"\nAsync traceback:[\s\S]+", "")
+
+
 proc parse_url*(url: string): tuple[scheme: string, host: string, port: int] =
   var parsed = init_uri()
   parse_uri(url, parsed)
   (parsed.scheme, parsed.hostname, parsed.port.parse_int)
-
-
-# throw --------------------------------------------------------------------------------------------
-template throw*(message: string) = raise newException(Exception, message)
 
 
 proc `%`*[T: tuple](o: T): JsonNode =
@@ -17,7 +26,6 @@ proc `%`*[T: tuple](o: T): JsonNode =
   for k, v in o.field_pairs: result[k] = %v
 
 
-# test ---------------------------------------------------------------------------------------------
 let test_enabled_s = get_env("test", "false")
 let test_enabled   = test_enabled_s == "true"
 

@@ -1,4 +1,5 @@
-import tables, hashes, strformat, ./supportm
+import tables, hashes, strformat
+import ./supportm
 
 export tables, hashes
 

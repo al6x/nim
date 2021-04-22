@@ -1,4 +1,4 @@
-import nodes/rpcm, nodes/net_asyncm
+import nodes/rpcm, nodes/messages_asyncm
 
 let math = NodeName("math")
 
