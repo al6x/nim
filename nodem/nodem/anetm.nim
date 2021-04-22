@@ -115,6 +115,8 @@ proc connect(address: Address): Future[tuple[is_error: bool, error: string, sock
     try:
       await asyncnet.connect(socket, host, Port(port))
     except Exception as e:
+      try:    asyncnet.close(socket)
+      except: discard
       return (true, e.msg, socket)
     sockets[url] = socket
   return (false, "", sockets[url])

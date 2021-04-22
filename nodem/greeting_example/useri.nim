@@ -1,3 +1,4 @@
+# Auto-generated code, do not edit
 import nodem, asyncdispatch
 export nodem, asyncdispatch
 

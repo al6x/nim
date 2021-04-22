@@ -1,10 +1,12 @@
 import ./useri, nodem/supportm
 
 proc say_hi*(prefix: string): Future[string] {.async, nexport.} =
-  let name = await user_name() # Nested, circular call
+  # Nested circular call, calling `user_name` while user still waits for `say_hi`
+  let name = await user_name()
   return prefix & " " & name
 
 proc self: Future[void] {.async.} =
+  # Node works as server, exposing `say_hi` and client asking for `user_name`
   while true:
     await sleep_async 1000
     try:
@@ -12,4 +14,5 @@ proc self: Future[void] {.async.} =
     except:
       echo "can't get user name"
 
+# The `useri.nim` have to be generated manually, because it has circular dependency
 Address("greeting").run self

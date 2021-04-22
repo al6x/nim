@@ -362,7 +362,7 @@ template run*(address: Address, self: proc: Future[void], generate = false) =
   # first starting the loop, because self could initiate have backward `self -> remote -> self` call
   # so the self-node-loop needs to be available before self.
   async_check address.on_receive(nexport_handler)
-  # await sleep_sync 1
+  wait_for sleep_async 10
   async_check self()
   run_forever()
 
