@@ -40,6 +40,11 @@ See `math_example`, remote functions also available via REST JSON API, see `node
 
 For nodes working as both client and server simultaneously with nested, circular calls check `greeting_example`.
 
+# Messaging example
+
+The underlying network transport provided by `nodem/anetm`, tiny Erlang-like networking messaging. It could be
+useful when RPC is not needed and sending just messages is enough, there's example at the end of the file.
+
 # Features
 
 - **Call remote function as local**, with multi dispatch.
