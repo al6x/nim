@@ -42,7 +42,7 @@ For nodes working as both client and server simultaneously with nested, circular
 
 # Features
 
-- **Call remote function as local**, with multi dispatch
+- **Call remote function as local**, with multi dispatch.
 - REST API for React.JS / Karax, no need to define REST API and routes explicitly.
 - Match Client and Server Functions via functions declaration file.
 - Generate Nim Client from Nim Server.
@@ -52,14 +52,13 @@ For nodes working as both client and server simultaneously with nested, circular
 - **Use node names** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`.
 - **No connection**, connection will be crated automatically on demand, and re-connect if needed.
 - Plain, simple code, even though internally async networking is used. Optionally, you can use async.
-- REST API and Browser support, function could be called via REST API
+- REST API and Browser support, function could be called via REST API.
 - With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
 - Should be **really fast** if used with async functions.
 
 # TODO
 
-- TypeScript and Erlang Node
-- Move `generate` out of `run`
+- TypeScript and Elixir integration.
 
 # Notes
 
