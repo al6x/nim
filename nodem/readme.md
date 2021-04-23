@@ -15,17 +15,20 @@ proc pi: float {.nexport.} = 3.14
 
 proc multiply(a, b: float): float {.nexport.} = a * b
 
-proc plus(a, b: float): Future[float] {.async, nexport.} = return a + b
+proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y
 
-let address = Address("math") # address is just `distinct string`
-address.generate_nimport
-address.run
+let math = Address("math") # address is just `distinct string`
+# math.define "tcp://localhost:4000" # optional, will be auto-set
+math.generate_nimport
+math.run
 ```
 
 And calling it from another process:
 
 ```Nim
 import ./mathi
+
+# math.define "tcp://localhost:4000" # optional, will be auto-set
 
 echo multiply(pi(), 2)
 # => 6.28
@@ -40,6 +43,10 @@ See `math_example`, remote functions also available via REST JSON API, see `node
 
 For nodes working as both client and server simultaneously with nested, circular calls check `greeting_example`.
 
+While async is faster, and in some cases very much faster, in many cases it's not give much speed improvements
+and only adds more complexity. If in doubt, it's better to avoid it, and use it only for special cases,
+when you know that it's really needed.
+
 # Messaging example
 
 The underlying network transport provided by `nodem/anetm`, tiny Erlang-like networking messaging. It could be
@@ -47,23 +54,74 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 
 # Features
 
-- **Call remote function as local**, with multi dispatch.
+- **Call remote function as local**.
+- There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
+- **Use addresses** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
+- **No connection**, connection will be created automatically on demand, and re-connect if needed.
+- Idempotent timeouts, waiting for node to get running.
+- Plain, simple code, even though internally async networking is used. Using async also possible.
+- REST API and Browser support, function could be called via REST API, [todo] with auto-generated TypeScript API.
+- With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
+- Should be **really fast** if used with async functions.
 - REST API for React.JS / Karax, no need to define REST API and routes explicitly.
 - Match Client and Server Functions via functions declaration file.
 - Generate Nim Client from Nim Server.
 - Generate Nim Client Function for Java/Node/Elixir REST API with `nimport`.
 - [todo] Generate TypeScript/Java/Node/Elixir Client functions from Nim Server.
-- There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
-- **Use node names** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`.
-- **No connection**, connection will be crated automatically on demand, and re-connect if needed.
-- Plain, simple code, even though internally async networking is used. Optionally, you can use async.
-- REST API and Browser support, function could be called via REST API.
-- With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
-- Should be **really fast** if used with async functions.
+- Auto-versioning, signature of remote functions validated to match the local function, via `full_name`.
+
+# Features if used with Elixir-bridge
+
+The **main use case is to communicate between Nim processes**. It's also possible to communicte with other
+languages. One special case is Elixir-birdge, giving Nim access to excellent Elixir IO runtime and capabilities.
+
+*Elixir-bridge is worik in progress, once it's done, these features will be available*.
+
+CPU-fast Nim with IO-fast Elixir working as Team. Write 97% of code in Nim and get capabilities and IO speed of
+Elixir at the cost of writing only 3% of code in Elixir. Mostly the standard code that could be searched and
+copy-pasted.
+
+Using Elixir like PostgreSQL or MongoDB, but for IO.
+
+- All complex IO over Elixir, sql, net file storage, net binaries, realtime streaming, web-sockets.
+- Fast net binaries, as the binary data handled by Elixir, only ref managed by Nim.
+- Access to tons of excellent, fast, fully async drivers, via Elixir.
+- Use simple single-threaded development model. As CPU-bound parallelism is solved well by single-threaded multiple
+  Nim nodes, processes. And most IO-bound parallelism would be handled by Elixir. There should be relatively
+  small set of use cases where you need to use async.
+- Fast compile time for Nim, as you don't have dependencies like MongoDB or PostgreSQL drivers etc.
+
+# Why and how I'm using it
+
+Nim has small memory footprint and is CPU-fast. Nim doesn't have good parallel capabilities yet, and while it
+has async-IO and it's fast it's not good enough. Async is machine-level code, like C, nobody uses it if
+there is a better choice, or special case (Node.JS no exception, there's just no other choice in JS).
+
+I want those features right now. **Simple parallel Nim code** and **simple and fast IO** with
+**rich features and protocol** support. This library allows for me to
+**travel into the future and get those features right now** (when I finish the Elixir bridge).
+
+It's like using PostgreSQL, who cares if it's written in Nim or C or Go, it's just a black box you talk to
+over network, I think Web IO is the same. And implementing fast Web Server in Nim or 10k Realtime Streaming via
+WebSockets feels like reinventing PostgreSQL, waste of time. The Elixir-bridge is such PostgreSQL for Web and IO.
+
+I want to create user products. Not spend my time on things like: realtime streaming, auth, rate-limits,
+binary storage, Browser-IO integrations, server robustness, DB-access, scaling, MQ, caching, and so on and on.
+Elixir-bridge provides all those features for Nim.
+
+It spawn X single threaded Nim nodes for CPU parralelism. And uses Elixir-bridge for simple and fast
+IO, drivers and protocols. Avoiding Nim-drivers and using Elixir-bridge instead for things like MongoDB etc. should
+also help to keep Nim nodes memory footprint small.
 
 # TODO
 
+- Multi dispatch.
 - TypeScript and Elixir integration.
+- Use address in generated code
+- add timeout `withTimeout` and remove self.
+- Add support for defaults.
+- Add overload example
+
 
 # Notes
 

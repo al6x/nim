@@ -8,8 +8,7 @@ proc user_name*(): Future[string] {.async, nexport.} =
 proc self: Future[void] {.async.} =
   echo await say_hi("Hi")
   # => Hi Alex
+async_check self()
 
-
-let address = Address("user")
-address.generate_nimport
-address.run self
+let user = Address("user")
+user.run

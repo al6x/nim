@@ -13,7 +13,8 @@ proc self: Future[void] {.async.} =
       echo "user name is: " & (await user_name())
     except:
       echo "can't get user name"
+async_check self()
 
-# The `useri.nim` have to be generated manually, because it has circular dependency
-let address = Address("greeting")
-address.run self
+let greeting = Address("greeting")
+greeting.generate_nimport
+greeting.run

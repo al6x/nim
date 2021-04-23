@@ -2,11 +2,13 @@
 import nodem, asyncdispatch
 export nodem, asyncdispatch
 
+let math* = Address("math")
+
+proc plus*(x: float, y: float): Future[float] {.async.} =
+  return await nimport_async(math, plus)
+
 proc multiply*(a: float, b: float): float =
-  nimport("math", multiply)
+  nimport(math, multiply)
 
 proc pi*(): float =
-  nimport("math", pi)
-
-proc plus*(a: float, b: float): Future[float] {.async.} =
-  return await nimport_async("math", plus)
+  nimport(math, pi)

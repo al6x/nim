@@ -4,8 +4,9 @@ proc pi: float {.nexport.} = 3.14
 
 proc multiply(a, b: float): float {.nexport.} = a * b
 
-proc plus(a, b: float): Future[float] {.async, nexport.} = return a + b
+proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y
 
-let address = Address("math") # address is just `distinct string`
-address.generate_nimport
-address.run
+let math = Address("math") # address is just `distinct string`
+# math.define "tcp://localhost:4000" # optional, will be auto-set
+math.generate_nimport
+math.run

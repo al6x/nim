@@ -1,5 +1,5 @@
 import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, os
-import ./nodem/supportm, ./nodem/addressm, ./nodem/anetm
+import ./nodem/supportm, ./nodem/addressm, ./nodem/netm
 
 export json, addressm, parent_dir, on_receive
 
@@ -20,7 +20,10 @@ proc fn_signature(fn_raw: NimNode): FnSignature =
   let fn_impl = case fn_raw.kind
   of nnk_sym:      fn_raw.get_impl
   of nnk_proc_def: fn_raw
-  else:            throw fmt"{invalid_usage}, {fn_raw.kind}"
+  else:
+    # echo nnkClosedSymChoice
+    echo fn_raw.get_impl
+    throw fmt"{invalid_usage}, {fn_raw.kind}"
   # echo fn_impl.tree_repr()
 
   let fname = fn_impl.name
@@ -210,7 +213,7 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
 
 
 # nimport ------------------------------------------------------------------------------------------
-macro nimport*(address: string, fn: typed): typed =
+macro nimport*(address: Address, fn: typed): typed =
   # Import remote function from remote address to be able to call it
 
   let fsign  = fn_signature(fn)
@@ -239,7 +242,7 @@ macro nimport*(address: string, fn: typed): typed =
     quote do:
       raise new_exception(Exception, "not supported, please update the code to suppor it")
 
-macro nimport_async*(address: string, fn: typed): Future[typed] =
+macro nimport_async*(address: Address, fn: typed): Future[typed] =
   # Import remote function from remote address to be able to call it
 
   let fsign  = fn_signature(fn)
@@ -270,33 +273,33 @@ macro nimport_async*(address: string, fn: typed): Future[typed] =
 
 
 # call_nimported_function -----------------------------------------------------------------------------
-proc call_nimported_function(address: string, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
+proc call_nimported_function(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
   assert args.kind == JArray
-  let res = await Address(address).call((fname: fname, args: args).`%`.`$`)
+  let res = await address.call((fname: fname, args: args).`%`.`$`)
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
 
 proc call_nimported_function*[R](
-  address: string, fname: string, rtype: type[R]
+  address: Address, fname: string, rtype: type[R]
 ): Future[R] {.async.} =
   let args = newJArray()
   return (await call_nimported_function(address, fname, args)).to(R)
 
 proc call_nimported_function*[A, R](
-  address: string, fname: string, a: A, tr: type[R]
+  address: Address, fname: string, a: A, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a
   return (await call_nimported_function(address, fname, args)).to(R)
 
 proc call_nimported_function*[A, B, R](
-  address: string, fname: string, a: A, b: B, tr: type[R]
+  address: Address, fname: string, a: A, b: B, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b;
   return (await call_nimported_function(address, fname, args)).to(R)
 
 proc call_nimported_function*[A, B, C, R](
-  address: string, fname: string, a: A, b: B, c: C, tr: type[R]
+  address: Address, fname: string, a: A, b: B, c: C, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b; args.add %c
   return (await call_nimported_function(address, fname, args)).to(R)
@@ -312,27 +315,27 @@ proc generate_nimport_impl*(address: Address, folder: string, prepend = default_
   var statements: seq[string]
   statements.add $prepend
 
-  # var declared_addresses: HashSet[string]
+  var declared_addresses: HashSet[Address]
   for nfn in nexported_functions.values:
     let fsign = nfn.fsign
 
-    # # Declaring address
-    # if address notin declared_addresses:
-    #   statements.add fmt"""let {address}* = Node("{address}")"""
-    #   declared_addresses.incl address
+    # Declaring address
+    if address notin declared_addresses:
+      statements.add fmt"""let {address}* = Address("{address}")"""
+      declared_addresses.incl address
 
     # Declaring function
     if fsign[3]: # async
       let args_s = fsign[1].map((arg) => fmt"{arg[0]}: {arg[1]}").join(", ")
       statements.add(
         fmt"""proc {fsign[0]}*({args_s}): Future[{fsign[2]}]""" & " {.async.} =\n" &
-        fmt"""  return await nimport_async("{address}", {fsign[0]})"""
+        fmt"""  return await nimport_async({address}, {fsign[0]})"""
       )
     else: # sync
       let args_s = fsign[1].map((arg) => fmt"{arg[0]}: {arg[1]}").join(", ")
       statements.add(
         fmt"""proc {fsign[0]}*({args_s}): {fsign[2]} =""" & "\n" &
-        fmt"""  nimport("{address}", {fsign[0]})"""
+        fmt"""  nimport({address}, {fsign[0]})"""
       )
 
   let code = statements.join("\n\n")
@@ -352,19 +355,8 @@ template generate_nimport*(address: Address, prepend = default_prepend): void =
 
 
 # run ----------------------------------------------------------------------------------------------
-template run*(address: Address, generate = false) =
+proc run*(address: Address) =
   wait_for address.on_receive(nexport_handler)
-  run_forever()
-
-template run*(address: Address, self: proc: Future[void], generate = false) =
-  if generate:
-    const script_dir = instantiation_info(full_paths = true).filename.parent_dir
-    generate_nimport(address, script_dir)
-  # first starting the loop, because self could initiate have backward `self -> remote -> self` call
-  # so the self-node-loop needs to be available before self.
-  async_check address.on_receive(nexport_handler)
-  wait_for sleep_async 10
-  async_check self()
   run_forever()
 
 

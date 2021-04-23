@@ -1,4 +1,5 @@
-import json, uri, strutils, os, asyncdispatch, re
+import json, uri, strutils, os, asyncdispatch, re, sugar
+from times as nt import nil
 
 
 proc ignore_future*[T](future: Future[T]): Future[void] {.async.} =
@@ -37,3 +38,8 @@ template test*(name: string, body) =
     except Exception as e:
       echo "test '", name.to_lower, "' failed"
       raise e
+
+
+proc timer_ms*(): (proc (): int) =
+  let started_at = nt.utc(nt.now())
+  () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
