@@ -9,4 +9,7 @@ proc self: Future[void] {.async.} =
   echo await say_hi("Hi")
   # => Hi Alex
 
-Address("user").run(self, generate = true)
+
+let address = Address("user")
+address.generate_nimport
+address.run self

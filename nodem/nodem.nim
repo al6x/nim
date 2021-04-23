@@ -308,7 +308,7 @@ const default_prepend = """
 import nodem, asyncdispatch
 export nodem, asyncdispatch"""
 
-proc generate_nimport*(address: Address, folder: string, prepend = default_prepend): void =
+proc generate_nimport_impl*(address: Address, folder: string, prepend = default_prepend): void =
   var statements: seq[string]
   statements.add $prepend
 
@@ -346,12 +346,13 @@ proc generate_nimport*(address: Address, folder: string, prepend = default_prepe
   if existing_code != code:
     write_file(path, code)
 
+template generate_nimport*(address: Address, prepend = default_prepend): void =
+  const script_dir = instantiation_info(full_paths = true).filename.parent_dir
+  generate_nimport_impl(address, script_dir, prepend)
+
 
 # run ----------------------------------------------------------------------------------------------
 template run*(address: Address, generate = false) =
-  if generate:
-    const script_dir = instantiation_info(full_paths = true).filename.parent_dir
-    generate_nimport(address, script_dir)
   wait_for address.on_receive(nexport_handler)
   run_forever()
 

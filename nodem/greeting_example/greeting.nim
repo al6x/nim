@@ -15,4 +15,5 @@ proc self: Future[void] {.async.} =
       echo "can't get user name"
 
 # The `useri.nim` have to be generated manually, because it has circular dependency
-Address("greeting").run self
+let address = Address("greeting")
+address.run self
