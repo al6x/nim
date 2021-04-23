@@ -6,7 +6,7 @@ Made by [al6x](http://al6x.com)
 
 # Example
 
-Exporting `pi` and `multiply` as remote functions:
+Exporting some functions as available over network:
 
 ```Nim
 import nodem, asyncdispatch
@@ -22,7 +22,7 @@ address.generate_nimport
 address.run
 ```
 
-Calling remote functions in another Nim process:
+And calling it from another process:
 
 ```Nim
 import ./mathi
@@ -34,8 +34,7 @@ echo wait_for plus(1, 2)
 # => 3
 ```
 
-See `math_example` and `greeting_example`, remote functions also available via REST JSON API,
-see `nodem/httpm.nim`.
+See `math_example`, remote functions also available via REST JSON API, see `nodem/httpm.nim`.
 
 # Async example
 
