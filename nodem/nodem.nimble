@@ -1,4 +1,4 @@
-version     = "1.0.0"
+version     = "1.1.0"
 author      = "Alex Craft http://al6x.com"
 description = "Call remote Nim functions as if it's local"
 license     = "MIT"
