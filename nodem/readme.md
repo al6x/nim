@@ -81,37 +81,14 @@ CPU-fast Nim with IO-fast Elixir working as Team. Write 97% of code in Nim and g
 Elixir at the cost of writing only 3% of code in Elixir. Mostly the standard code that could be searched and
 copy-pasted.
 
-Using Elixir like PostgreSQL or MongoDB, but for IO.
+Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 
-- All complex IO over Elixir, sql, net file storage, net binaries, realtime streaming, web-sockets.
-- Fast net binaries, as the binary data handled by Elixir, only ref managed by Nim.
+- Advanced IO without effort with Elixir. Realtime streaming, auth, rate-limits, binary storage, Browser-IO integrations, robust networking, DB-access, scaling, MQ, caching, and so on and on.
+- Fast binary IO, as the binary data handled by Elixir, only ref managed by Nim.
 - Access to tons of excellent, fast, fully async drivers, via Elixir.
-- Use simple single-threaded development model. As CPU-bound parallelism is solved well by single-threaded multiple
-  Nim nodes, processes. And most IO-bound parallelism would be handled by Elixir. There should be relatively
-  small set of use cases where you need to use async.
+- Use simple single-threaded development model. As CPU-bound parallelism is solved well by single-threaded
+  multiple Nim nodes, processes. And most IO-bound parallelism would be handled by Elixir.
 - Fast compile time for Nim, as you don't have dependencies like MongoDB or PostgreSQL drivers etc.
-
-# Why and how I'm using it
-
-Nim has small memory footprint and is CPU-fast. Nim doesn't have good parallel capabilities yet, and while it
-has async-IO and it's fast it's not good enough. Async is machine-level code, like C, nobody uses it if
-there is a better choice, or special case (Node.JS no exception, there's just no other choice in JS).
-
-I want those features right now. **Simple parallel Nim code** and **simple and fast IO** with
-**rich features and protocol** support. This library allows for me to
-**travel into the future and get those features right now** (when I finish the Elixir bridge).
-
-It's like using PostgreSQL, who cares if it's written in Nim or C or Go, it's just a black box you talk to
-over network, I think Web IO is the same. And implementing fast Web Server in Nim or 10k Realtime Streaming via
-WebSockets feels like reinventing PostgreSQL, waste of time. The Elixir-bridge is such PostgreSQL for Web and IO.
-
-I want to create user products. Not spend my time on things like: realtime streaming, auth, rate-limits,
-binary storage, Browser-IO integrations, server robustness, DB-access, scaling, MQ, caching, and so on and on.
-Elixir-bridge provides all those features for Nim.
-
-It spawn X single threaded Nim nodes for CPU parralelism. And uses Elixir-bridge for simple and fast
-IO, drivers and protocols. Avoiding Nim-drivers and using Elixir-bridge instead for things like MongoDB etc. should
-also help to keep Nim nodes memory footprint small.
 
 # TODO
 
