@@ -112,7 +112,7 @@ macro nexport*(fn: typed) =
 
 # nexported_functions ------------------------------------------------------------------------------
 type NFHandler = proc (args: JsonNode): Future[JsonNode] # can throw errors
-type NFParser = proc (args: seq[string]): JsonNode # can throw errors, used in HTTP
+type NFParser = proc (list: seq[string], map: Table[string, string]): JsonNode # can throw errors, used in HTTP
 
 type NexportedFunction = ref object
   fsign:    FnSignatureS
@@ -144,56 +144,76 @@ proc from_string_if_exists*[T](_: type[T], s: string): T =
   when compiles(T.from_string(s)): T.from_string s
   else:                            throw fmt"provide '{$T}.from_string' conversion"
 
+
+# build_parser -------------------------------------------------------------------------------------
+proc build_parser0(fsign: FnSignatureS): NFParser =
+  proc parser(list: seq[string], map: Table[string, string]): JsonNode =
+    assert list.len + map.len == 0
+    let json = newJArray()
+    json
+  return parser
+
+proc build_parser1[A](fsign: FnSignatureS): NFParser =
+  proc parser(list: seq[string], map: Table[string, string]): JsonNode =
+    template raw(i: int): string =
+      if i < list.len: list[i] else: map[fsign[1][i][0]]
+    assert list.len + map.len == 1
+    let json = newJArray()
+    json.add %(A.from_string_if_exists raw(0))
+    json
+  return parser
+
+proc build_parser2[A, B](fsign: FnSignatureS): NFParser =
+  proc parser(list: seq[string], map: Table[string, string]): JsonNode =
+    template raw(i: int): string =
+      if i < list.len: list[i] else: map[fsign[1][i][0]]
+    assert list.len + map.len == 2
+    let json = newJArray()
+    json.add %(A.from_string_if_exists raw(0))
+    json.add %(B.from_string_if_exists raw(1))
+    json
+  return parser
+
+proc build_parser3[A, B, C](fsign: FnSignatureS): NFParser =
+  proc parser(list: seq[string], map: Table[string, string]): JsonNode =
+    template raw(i: int): string =
+      if i < list.len: list[i] else: map[fsign[1][i][0]]
+    assert list.len + map.len == 3
+    let json = newJArray()
+    json.add %(A.from_string_if_exists raw(0))
+    json.add %(B.from_string_if_exists raw(1))
+    json.add %(B.from_string_if_exists raw(2))
+    json
+  return parser
+
 # nexport_async_function ---------------------------------------------------------------------------
 proc nexport_async_function*[R](fsign: FnSignatureS, fn: proc: Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 0
     let r = await fn()
     return %(is_error: false, result: r)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 0
-    let json = newJArray()
-    json
-  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: parser).register
+  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser0(fsign)).register
 
 proc nexport_async_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 1
     let r = await fn(args[0].to(A))
     return %(is_error: false, result: r)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 1
-    let json = newJArray()
-    json.add %(A.from_string_if_exists args[0])
-    json
-  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: parser).register
+  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser1[A](fsign)).register
 
 proc nexport_async_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 2
     let r = await fn(args[0].to(A), args[1].to(B))
     return %(is_error: false, result: r)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 2
-    let json = newJArray()
-    json.add %(A.from_string_if_exists args[0])
-    json.add %(B.from_string_if_exists args[1])
-    json
-  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: parser).register
+  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser2[A, B](fsign)).register
 
 proc nexport_async_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 3
     let r = await fn(args[0].to(A), args[1].to(B), args[2].to(C))
     return %(is_error: false, result: r)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 3
-    let json = newJArray();
-    json.add %(A.from_string_if_exists args[0])
-    json.add %(B.from_string_if_exists args[1])
-    json.add %(C.from_string_if_exists args[2])
-    json
-  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: parser).register
+  NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser3[A, B, C](fsign)).register
 
 
 # nexport_async_function ---------------------------------------------------------------------------
@@ -212,10 +232,7 @@ proc nexport_function*[R](fsign: FnSignatureS, fn: proc: R): void =
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 0
-    let json = newJArray();
-    json
+  let parser = build_parser0(fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
 proc nexport_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): R): void =
@@ -226,11 +243,7 @@ proc nexport_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): R): void =
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 1
-    let json = newJArray()
-    json.add %(A.from_string_if_exists args[0])
-    json
+  let parser = build_parser1[A](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
 proc nexport_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): R): void =
@@ -241,12 +254,7 @@ proc nexport_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): R): v
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 2
-    let json = newJArray()
-    json.add %(A.from_string_if_exists args[0])
-    json.add %(B.from_string_if_exists args[1])
-    json
+  let parser = build_parser2[A, B](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
 proc nexport_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): R): void =
@@ -257,13 +265,7 @@ proc nexport_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: 
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  proc parser(args: seq[string]): JsonNode =
-    assert args.len == 3
-    let json = newJArray()
-    json.add %(A.from_string_if_exists args[0])
-    json.add %(B.from_string_if_exists args[1])
-    json.add %(C.from_string_if_exists args[2])
-    json
+  let parser = build_parser3[A, B, C](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
 
@@ -282,14 +284,16 @@ proc nexport_handler_async*(req: string): Future[Option[string]] {.async.} =
   except Exception as e:
     return (is_error: true, message: e.msg).`%`.`$`.some
 
-proc nexport_handler_with_parser_async*(fname: string, req: seq[string]): Future[Option[string]] {.async.} =
+proc nexport_handler_with_parser_async*(
+  fname: string, list: seq[string], map: Table[string, string]
+): Future[Option[string]] {.async.} =
   # Use it to start as RPC server
   try:
     let nfn =
       if   fname in nexported_functions:         nexported_functions[fname]
       elif fname in nexported_functions_aliases: nexported_functions_aliases[fname]
       else:                                      throw fmt"no nexported function '{fname}'"
-    let data = nfn.parser req
+    let data = nfn.parser(list, map)
     let res = await nfn.handler(data)
     return res.`%`.`$`.some
   except Exception as e:

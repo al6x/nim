@@ -132,7 +132,8 @@ Nimported functions use async IO only if they are async.
 
 **HTTP Features:**
 
-- **Auto-mapping** `fn(a, b)` -> `fn/a/b`, no need for router.
+- **Auto-routing** `/fn/a/b` -> `fn(a, b)`, no need for router.
+- Both **positional and named arguments** supported `/fn/a/b`, or `/fn?a=a&b=b` or `/fn/a?b=b`.
 - **Auto-parsing** from `querystring` stirng into correct argument types.
 - By default only POST allowed, GET needs to be explicitly enabled, for security reasons.
 - Is **fast**, as async HTTP server is used.

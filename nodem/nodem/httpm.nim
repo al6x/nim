@@ -1,6 +1,7 @@
-import asyncdispatch, options, strformat, strutils, ./supportm, re, sets, json, ../nodem
+import asyncdispatch, options, strformat, strutils, sequtils, uri, re, sets, json
 from asynchttpserver as asynchttp import nil
 import httpcore
+import ./supportm, ../nodem, ./http_support
 
 # Parsers ------------------------------------------------------------------------------------------
 proc from_string*(_: type[string], s: string): string = s
@@ -58,9 +59,11 @@ proc receive_http*(
       case req.reqMethod
       of HttpGet:
         var parts = req.url.path.replace(re"^/", "").split("/")
-        let (fname, args) = (parts[0], parts[1..^1])
+        let (fname, args_list) = (parts[0], parts[1..^1])
+        var args_map: Table[string, string]
+        for k, v in req.url.query.decode_query: args_map[k] = v
         if fname notin allow_get_set: await req.error("not allowed as GET")
-        let reply = await nexport_handler_with_parser_async(fname, args)
+        let reply = await nexport_handler_with_parser_async(fname, args_list, args_map)
         await req.success reply.get("{}")
       of HttpPost:
         let message = req.body
