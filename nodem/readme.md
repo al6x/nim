@@ -96,7 +96,6 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 
 # TODO
 
-- Use sync `call` in sync client, to avoid messy async error messages.
 - TypeScript and Elixir integration.
 - Add support for defaults.
 
