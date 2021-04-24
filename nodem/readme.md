@@ -130,14 +130,14 @@ messages and fast IO.
 
 Nimported functions use async IO only if they are async.
 
-# HTTP Features
+**HTTP Features:**
 
 - **Auto-mapping** `fn(a, b)` -> `fn/a/b`, no need for router.
 - **Auto-parsing** from `querystring` stirng into correct argument types.
-- By default only POST allowed, GET needs to be explicitly enabled, to improve security.
-- Is **fast** as async HTTP server is used.
+- By default only POST allowed, GET needs to be explicitly enabled, for security reasons.
+- Is **fast**, as async HTTP server is used.
 
-Other features:
+**Other features:**
 
 - Match Client and Server Functions via functions declaration file.
 - Generate Nim Client from Nim Server.
