@@ -84,7 +84,7 @@ Other features:
 - Auto-versioning, signature of remote functions validated to match the local function, via `full_name`.
 - Idempotent timeouts, waiting for node to get running.
 
-# Features if used with Elixir-bridge
+# If used with Elixir-bridge
 
 The **main use case is to communicate between Nim processes**. It's also possible to communicte with other
 languages. One special case is Elixir-birdge, giving Nim access to excellent Elixir IO runtime and capabilities.
