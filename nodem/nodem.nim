@@ -396,3 +396,4 @@ template generate_nimport*(address: Address): void =
 # run ----------------------------------------------------------------------------------------------
 proc run*(address: Address) =
   async_check address.receive_async(nexport_handler_async)
+  run_forever()

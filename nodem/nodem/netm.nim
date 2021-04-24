@@ -1,8 +1,9 @@
-import asyncdispatch, strutils, strformat, options, uri, tables, hashes, times
+import asyncdispatch except with_timeout
+import strutils, strformat, options, uri, tables, hashes, times
 from net import OptReuseAddr
 from asyncnet import AsyncSocket
 from os import param_str
-import ./addressm, ./supportm
+import ./addressm, ./supportm, ./asyncm
 
 export addressm, asyncdispatch
 
@@ -29,9 +30,12 @@ proc connect(
       try:
         let left_ms = timeout_ms - tic()
         if left_ms > 0:
-          if await asyncnet.connect(socket, host, Port(port)).with_timeout(left_ms):
+          try:
+            await asyncnet.connect(socket, host, Port(port)).timeout(left_ms)
             sockets[url] = socket
             break
+          except:
+            discard
         else:
           await asyncnet.connect(socket, host, Port(port))
           sockets[url] = socket
@@ -97,8 +101,7 @@ proc send_async*(address: Address, message: string, timeout_ms: int): Future[voi
   try:
     let left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    if not await socket.get.send_message_async(message).with_timeout(left_ms):
-      throw "send timed out"
+    await socket.get.send_message_async(message).timeout(left_ms)
     success = true
   finally:
     # Closing socket on any error, it will be auto-reconnected
@@ -140,15 +143,12 @@ proc call_async*(address: Address, message: string, timeout_ms: int): Future[str
     # Sending
     var left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    if not await socket.get.send_message_async(message, id).with_timeout(left_ms):
-      throw "send timed out"
+    await socket.get.send_message_async(message, id).timeout(left_ms)
 
     # Receiving
     left_ms = timeout_ms - tic()
     if left_ms <= 0: throw "receive timed out"
-    let receivedf = socket.get.receive_message_async
-    if not await receivedf.with_timeout(left_ms): throw "receive timed out"
-    let (is_closed, reply_id, reply) = await receivedf
+    let (is_closed, reply_id, reply) = await socket.get.receive_message_async.timeout(left_ms)
 
     if is_closed: throw "socket closed"
     if reply_id != id: throw "wrong reply id for call"
@@ -204,8 +204,7 @@ proc process_client_async(
         quit 1
 
       if reply.is_some:
-        if not await send_message_async(client, reply.get, message_id).with_timeout(timeout_ms):
-          throw "replying to client is timed out"
+        await send_message_async(client, reply.get, message_id).timeout(timeout_ms)
   except Exception as e:
     on_net_error(e)
   finally:

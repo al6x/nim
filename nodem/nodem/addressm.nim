@@ -17,7 +17,7 @@ type AddressImpl* = tuple
 # Define mapping between addresses and urls
 var addresses: Table[Address, AddressImpl]
 
-proc define*(address: Address, url: string, timeout = 500): void =
+proc define*(address: Address, url: string, timeout = 2000): void =
   addresses[address] = (url, timeout)
 
 proc get*(address: Address): AddressImpl =

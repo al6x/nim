@@ -1,6 +1,6 @@
 # Optional helpers for async, you don't have to use it with `nodem`
 import ./supportm
-import asyncdispatch except async_check, with_timeout
+import asyncdispatch
 
 export asyncdispatch except async_check, with_timeout
 export clean_async_error
@@ -14,7 +14,15 @@ proc spawn*[T](future: Future[T], check = true) =
   if check: asyncdispatch.async_check future
   else:     asyncdispatch.async_check ignore_future(future)
 
-# with_timeout -------------------------------------------------------------------------------------
-proc with_timeout*[T](future: Future[T], error = "timed out"): Future[void] {.async.} =
-  if await asyncdispatch.with_timeout(future): return await future
-  else:                                        throw error
+# timeout ------------------------------------------------------------------------------------------
+proc timeout*[T](future: Future[T], timeout_ms: int, message = "timed out"): Future[T] {.async.} =
+  if await asyncdispatch.with_timeout(future, timeout_ms):
+    return await future
+  else:
+    throw message
+
+proc timeout*(future: Future[void], timeout_ms: int, message = "timed out"): Future[void] {.async.} =
+  if await asyncdispatch.with_timeout(future, timeout_ms):
+    return
+  else:
+    raise new_exception(Exception, message)

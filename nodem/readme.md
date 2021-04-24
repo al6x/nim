@@ -9,7 +9,7 @@ Made by [al6x](http://al6x.com)
 Exporting some functions as available over network:
 
 ```Nim
-import asyncdispatch, nodem, nodem/httpm
+import asyncdispatch, nodem
 
 proc pi: float {.nexport.} = 3.14
 
@@ -18,13 +18,12 @@ proc multiply(a, b: string): string {.nexport.} = a & b # Multi dispatch support
 
 proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported
 
-let math* = Address("math") # address is just `distinct string`
-# math.define "tcp://localhost:4000" # optional, will be auto-set
-
 if is_main_module:
+  let math = Address("math") # address is just `distinct string`
+  # math.define "tcp://localhost:4000" # optional, will be auto-set
+
   math.generate_nimport
   math.run
-  run_forever()
 ```
 
 And calling it from another process:
