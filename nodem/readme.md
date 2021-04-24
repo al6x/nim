@@ -14,7 +14,7 @@ import nodem, asyncdispatch
 proc pi: float {.nexport.} = 3.14
 
 proc multiply(a, b: float): float {.nexport.} = a * b
-proc multiply(a, b: string): string {.nexport.} = a & b
+proc multiply(a, b: string): string {.nexport.} = a & b # Multi dispatch supported
 
 proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y
 
@@ -34,7 +34,7 @@ import ./mathi
 echo multiply(pi(), 2)
 # => 6.28
 
-echo multiply("A", "x") # Multi dispatch supported
+echo multiply("A", "x")
 # => Ax
 
 echo wait_for plus(1, 2)
