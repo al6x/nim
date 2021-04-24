@@ -1,4 +1,4 @@
-import ./useri, nodem/supportm
+import ./useri
 
 proc say_hi*(prefix: string): Future[string] {.async, nexport.} =
   # Nested circular call, calling `user_name` while user still waits for `say_hi`

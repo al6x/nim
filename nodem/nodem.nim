@@ -266,6 +266,10 @@ proc call_nexport_fn*[R](address: Address, fname: string, rtype: type[R]): R =
   let args = newJArray()
   call_nexport_fn(address, fname, args).to(R)
 
+proc call_nexport_fn*[A, R](address: Address, fname: string, a: A, tr: type[R]): R =
+  let args = newJArray(); args.add %a;
+  call_nexport_fn(address, fname, args).to(R)
+
 proc call_nexport_fn*[A, B, R](address: Address, fname: string, a: A, b: B, tr: type[R]): R =
   let args = newJArray(); args.add %a; args.add %b;
   call_nexport_fn(address, fname, args).to(R)
@@ -282,6 +286,12 @@ proc call_nexport_fn_async(address: Address, fname: string, args: JsonNode): Fut
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
+
+proc call_nexport_fn_async*[R](
+  address: Address, fname: string, tr: type[R]
+): Future[R] {.async.} =
+  let args = newJArray();
+  return (await call_nexport_fn_async(address, fname, args)).to(R)
 
 proc call_nexport_fn_async*[A, R](
   address: Address, fname: string, a: A, tr: type[R]
