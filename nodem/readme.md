@@ -14,6 +14,7 @@ import nodem, asyncdispatch
 proc pi: float {.nexport.} = 3.14
 
 proc multiply(a, b: float): float {.nexport.} = a * b
+proc multiply(a, b: string): string {.nexport.} = a & b
 
 proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y
 
@@ -33,8 +34,11 @@ import ./mathi
 echo multiply(pi(), 2)
 # => 6.28
 
+echo multiply("A", "x") # Multi dispatch supported
+# => Ax
+
 echo wait_for plus(1, 2)
-# => 3
+# # => 3
 ```
 
 See `math_example`, remote functions also available via REST JSON API, see `nodem/httpm.nim`.
