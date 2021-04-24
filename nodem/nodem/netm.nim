@@ -89,9 +89,8 @@ proc receive_message(
 
 
 # send ---------------------------------------------------------------------------------------------
-proc send*(address: Address, message: string): Future[void] {.async.} =
-  # Send message, if acknowledge without reply
-  let (_, timeout_ms) = address.get
+proc send*(address: Address, message: string, timeout_ms: int): Future[void] {.async.} =
+  # Send message
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
   let tic = timer_ms()
   let (is_error, error, socket) = await connect(address)
@@ -107,11 +106,14 @@ proc send*(address: Address, message: string): Future[void] {.async.} =
     # Closing socket on any error, it will be auto-reconnected
     if not success: await disconnect(address)
 
+proc send*(address: Address, message: string): Future[void] =
+  let (_, timeout_ms) = address.get
+  send(address, message, timeout_ms)
+
 
 # call ---------------------------------------------------------------------------------------------
-proc call*(address: Address, message: string): Future[string] {.async.} =
+proc call*(address: Address, message: string, timeout_ms: int): Future[string] {.async.} =
   # Send message and waits for reply
-  let (_, timeout_ms) = address.get
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   let tic = timer_ms()
@@ -145,6 +147,10 @@ proc call*(address: Address, message: string): Future[string] {.async.} =
   finally:
     # Closing socket on any error, it will be auto-reconnected
     if not success: await disconnect(address)
+
+proc call*(address: Address, message: string): Future[string] =
+  let (_, timeout_ms) = address.get
+  call(address, message, timeout_ms)
 
 
 # on_receive ---------------------------------------------------------------------------------------

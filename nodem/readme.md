@@ -54,7 +54,7 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 
 # Features
 
-- **Call remote function as local**.
+- **Call remote function as local, with multi-dispatch**.
 - There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
 - **Use addresses** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
 - **No connection**, connection will be created automatically on demand, and re-connect if needed.
@@ -91,6 +91,14 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 - Fast compile time for Nim, as you don't have dependencies like MongoDB or PostgreSQL drivers etc.
 
 # TODO
+
+remove async pragma from client functions
+
+fix async errors
+
+use nimport + discard and rewrite functions to support multimethods
+
+try using same nimport for both async and non async
 
 - Multi dispatch.
 - TypeScript and Elixir integration.

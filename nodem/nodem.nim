@@ -1,4 +1,4 @@
-import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, os
+import json, tables, strutils, strformat, sequtils, sugar, macros, options, os
 import ./nodem/supportm, ./nodem/addressm, ./nodem/netm
 
 export json, addressm, parent_dir, on_receive
@@ -112,28 +112,6 @@ macro nexport*(fn: typed) =
     else:
       throw fmt"invalid usage, if you think it's a valid case please update the code to suppor it, {fn.kind}"
 
-# macro anexport*(fn: typed) =
-#   # Export function as remotelly called function, so it would be possible to call it from other nodes
-
-#   let fsign = fn_signature(fn)
-#   let (fsymb, fsigns) = (fsign[0], fsign.to_s)
-
-#   for arg in fsign[1]:
-#     if arg[2].kind != nnk_empty:
-#       throw "defaults not supported yet, please consider updating the code to support it"
-
-#   case fn.kind
-#   of nnk_proc_def: # Used as pragma `{.sfun.}`
-#     quote do:
-#       anexport_function(`fsigns`, `fsymb`)
-#       `fn`
-#   of nnk_sym: # Used as macro `sfun fn`
-#     quote do:
-#       discard
-#       # anexport_function(`fsigns`, `fsymb`)
-#   else:
-#     throw fmt"invalid usage, if you think it's a valid case please update the code to suppor it, {fn.kind}"
-
 
 # nexport_function ---------------------------------------------------------------------------------
 type NFHandler = proc (args: JsonNode): Future[JsonNode] # can throw errors
@@ -141,7 +119,7 @@ type NFHandler = proc (args: JsonNode): Future[JsonNode] # can throw errors
 type NexportedFunction = ref object
   fsign:   FnSignatureS
   handler: NFHandler
-var nexported_functions: Table[string, NexportedFunction]
+var nexported_functions: OrderedTable[string, NexportedFunction]
 
 proc full_name(s: FnSignatureS): string =
   # Full name with argument types and return values, needed to support multiple dispatch
@@ -212,131 +190,130 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
     return (is_error: true, message: e.msg).`%`.`$`.some
 
 
-# nimport ------------------------------------------------------------------------------------------
-macro nimport*(address: Address, fn: typed): typed =
+# nimport_from -------------------------------------------------------------------------------------
+macro nimport_from*(address: Address, fn: typed): typed =
   # Import remote function from remote address to be able to call it
 
   let fsign  = fn_signature(fn)
+  let (fname, args, rtype, is_async) = fsign
   let fsigns = fsign.to_s
-  let (full_name, args, rtype, is_async) = (fsigns.full_name, fsign[1], fsign[2], fsign[3])
+  let full_name = fsigns.full_name
 
   # Generating code
-  if is_async: throw "use `nimport_async` for async"
-  case args.len:
-  of 0:
-    quote do:
-      return wait_for call_nimported_function(`address`, `full_name`, typeof `rtype`)
-  of 1:
-    let a = args[0][0]
-    quote do:
-      return wait_for call_nimported_function(`address`, `full_name`, `a`, typeof `rtype`)
-  of 2:
-    let (a, b) = (args[0][0], args[1][0])
-    quote do:
-      return wait_for call_nimported_function(`address`, `full_name`, `a`, `b`, typeof `rtype`)
-  of 3:
-    let (a, b, c) = (args[0][0], args[1][0], args[2][0])
-    quote do:
-      return wait_for call_nimported_function(`address`, `full_name`, `a`, `b`, `c`, typeof `rtype`)
+  if is_async:
+    case args.len:
+    of 0:
+      quote do:
+        proc `fname`*(): Future[`rtype`] =
+          `address`.call_nexport_fn(`full_name`, typeof `rtype`)
+    of 1:
+      let (a, at, _) = args[0]
+      quote do:
+        proc `fname`*(`a`: `at`): Future[`rtype`] =
+          `address`.call_nexport_fn(`full_name`, `a`, typeof `rtype`)
+    of 2:
+      let (a, at, _) = args[0]; let (b, bt, _) = args[1]
+      quote do:
+        proc `fname`*(`a`: `at`, `b`: `bt`): Future[`rtype`] =
+          `address`.call_nexport_fn(`full_name`, `a`, `b`, typeof `rtype`)
+    of 3:
+      let (a, at, _) = args[0]; let (b, bt, _) = args[1]; let (c, ct, _) = args[2]
+      quote do:
+        proc `fname`*(`a`: `at`, `b`: `bt`, `c`: `ct`): Future[`rtype`] =
+          `address`.call_nexport_fn(`full_name`, `a`, `b`, `c`, typeof `rtype`)
+    else:
+      quote do:
+        raise new_exception(Exception, "not supported, please update the code to suppor it")
   else:
-    quote do:
-      raise new_exception(Exception, "not supported, please update the code to suppor it")
-
-macro nimport_async*(address: Address, fn: typed): Future[typed] =
-  # Import remote function from remote address to be able to call it
-
-  let fsign  = fn_signature(fn)
-  let fsigns = fsign.to_s
-  let (full_name, args, rtype, is_async) = (fsigns.full_name, fsign[1], fsign[2], fsign[3])
-
-  # Generating code
-  if not is_async: throw "use `nimport` for sync"
-  case args.len:
-  of 0:
-    quote do:
-      call_nimported_function(`address`, `full_name`, typeof `rtype`)
-  of 1:
-    let a = args[0][0]
-    quote do:
-      call_nimported_function(`address`, `full_name`, `a`, typeof `rtype`)
-  of 2:
-    let (a, b) = (args[0][0], args[1][0])
-    quote do:
-      call_nimported_function(`address`, `full_name`, `a`, `b`, typeof `rtype`)
-  of 3:
-    let (a, b, c) = (args[0][0], args[1][0], args[2][0])
-    quote do:
-      call_nimported_function(`address`, `full_name`, `a`, `b`, `c`, typeof `rtype`)
-  else:
-    quote do:
-      raise new_exception(Exception, "not supported, please update the code to suppor it")
+    case args.len:
+    of 0:
+      quote do:
+        proc `fname`*(): `rtype` =
+          wait_for `address`.call_nexport_fn(`full_name`, typeof `rtype`)
+    of 1:
+      let (a, at, _) = args[0]
+      quote do:
+        proc `fname`*(`a`: `at`): `rtype` =
+          wait_for `address`.call_nexport_fn(`full_name`, `a`, typeof `rtype`)
+    of 2:
+      let (a, at, _) = args[0]; let (b, bt, _) = args[1]
+      quote do:
+        proc `fname`*(`a`: `at`, `b`: `bt`): `rtype` =
+          wait_for `address`.call_nexport_fn(`full_name`, `a`, `b`, typeof `rtype`)
+    of 3:
+      let (a, at, _) = args[0]; let (b, bt, _) = args[1]; let (c, ct, _) = args[2]
+      quote do:
+        proc `fname`*(`a`: `at`, `b`: `bt`, `c`: `ct`): `rtype` =
+          wait_for `address`.call_nexport_fn(`full_name`, `a`, `b`, `c`, typeof `rtype`)
+    else:
+      quote do:
+        raise new_exception(Exception, "not supported, please update the code to suppor it")
 
 
-# call_nimported_function -----------------------------------------------------------------------------
-proc call_nimported_function(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
+# call_nexport_fn -----------------------------------------------------------------------------
+proc call_nexport_fn(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
   assert args.kind == JArray
   let res = await address.call((fname: fname, args: args).`%`.`$`)
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
 
-proc call_nimported_function*[R](
+proc call_nexport_fn*[R](
   address: Address, fname: string, rtype: type[R]
 ): Future[R] {.async.} =
   let args = newJArray()
-  return (await call_nimported_function(address, fname, args)).to(R)
+  return (await call_nexport_fn(address, fname, args)).to(R)
 
-proc call_nimported_function*[A, R](
+proc call_nexport_fn*[A, R](
   address: Address, fname: string, a: A, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a
-  return (await call_nimported_function(address, fname, args)).to(R)
+  return (await call_nexport_fn(address, fname, args)).to(R)
 
-proc call_nimported_function*[A, B, R](
+proc call_nexport_fn*[A, B, R](
   address: Address, fname: string, a: A, b: B, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b;
-  return (await call_nimported_function(address, fname, args)).to(R)
+  return (await call_nexport_fn(address, fname, args)).to(R)
 
-proc call_nimported_function*[A, B, C, R](
+proc call_nexport_fn*[A, B, C, R](
   address: Address, fname: string, a: A, b: B, c: C, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b; args.add %c
-  return (await call_nimported_function(address, fname, args)).to(R)
+  return (await call_nexport_fn(address, fname, args)).to(R)
 
 
 # generate_nimport ---------------------------------------------------------------------------------
-const default_prepend = """
-# Auto-generated code, do not edit
-import nodem, asyncdispatch
-export nodem, asyncdispatch"""
-
-proc generate_nimport_impl*(address: Address, folder: string, prepend = default_prepend): void =
+proc generate_nimport*(
+  folder:   string,
+  address:  Address,
+  as_async: Option[bool],
+  prepend:  Option[string]
+): void =
+  # Generates nimported functions
+  # By default sync/async would be same as in nexported function, it could be changed with `as_async`
   var statements: seq[string]
-  statements.add $prepend
 
-  var declared_addresses: HashSet[Address]
+  # Addin imports and address
+  let default_prepend = fmt"""
+    # Auto-generated code, do not edit
+    import nodem, asyncdispatch
+    export nodem, asyncdispatch
+
+    let {address}* = Address("{address}")""".dedent
+  statements.add prepend.get(default_prepend)
+
+  # Addin nexported functions
   for nfn in nexported_functions.values:
     let fsign = nfn.fsign
-
-    # Declaring address
-    if address notin declared_addresses:
-      statements.add fmt"""let {address}* = Address("{address}")"""
-      declared_addresses.incl address
+    let is_async = as_async.get fsign[3]
 
     # Declaring function
-    if fsign[3]: # async
-      let args_s = fsign[1].map((arg) => fmt"{arg[0]}: {arg[1]}").join(", ")
-      statements.add(
-        fmt"""proc {fsign[0]}*({args_s}): Future[{fsign[2]}]""" & " {.async.} =\n" &
-        fmt"""  return await nimport_async({address}, {fsign[0]})"""
-      )
+    let args_s = fsign[1].map((arg) => fmt"{arg[0]}: {arg[1]}").join(", ")
+    statements.add if is_async:
+      fmt"proc {fsign[0]}*({args_s}): Future[{fsign[2]}]" & " {.nimport_from: " & $address & ".} = discard"
     else: # sync
-      let args_s = fsign[1].map((arg) => fmt"{arg[0]}: {arg[1]}").join(", ")
-      statements.add(
-        fmt"""proc {fsign[0]}*({args_s}): {fsign[2]} =""" & "\n" &
-        fmt"""  nimport({address}, {fsign[0]})"""
-      )
+      fmt"proc {fsign[0]}*({args_s}): {fsign[2]}" & " {.nimport_from: " & $address & ".} = discard"
 
   let code = statements.join("\n\n")
 
@@ -349,28 +326,16 @@ proc generate_nimport_impl*(address: Address, folder: string, prepend = default_
   if existing_code != code:
     write_file(path, code)
 
-template generate_nimport*(address: Address, prepend = default_prepend): void =
-  const script_dir = instantiation_info(full_paths = true).filename.parent_dir
-  generate_nimport_impl(address, script_dir, prepend)
+template generate_nimport*(address: Address, as_async: bool): void =
+  let folder = instantiation_info(full_paths = true).filename.parent_dir
+  generate_nimport(folder, address, as_async.some, string.none)
+
+template generate_nimport*(address: Address): void =
+  let folder = instantiation_info(full_paths = true).filename.parent_dir
+  generate_nimport(folder, address, bool.none, string.none)
 
 
 # run ----------------------------------------------------------------------------------------------
 proc run*(address: Address) =
   wait_for address.on_receive(nexport_handler)
   run_forever()
-
-
-
-# # nexport_handler ----------------------------------------------------------------------------------
-# proc nexport_handler_http*(req: string): Future[Option[string]] {.async.} =
-#   # Use it to start as RPC server
-#   try:
-#     let data = req.parse_json
-#     let (fname, args) = (data["fname"].get_str, data["args"])
-#     if fname notin nexported_functions: throw fmt"no server function '{fname}'"
-#     let nfn = nexported_functions[fname]
-#     let res = nfn.handler(args)
-#     discard %((a: 1))
-#     return (is_error: false, result: res).`%`.`$`.some
-#   except Exception as e:
-#     return (is_error: true, message: e.msg).`%`.`$`.some

@@ -5,5 +5,8 @@ import ./mathi
 echo multiply(pi(), 2)
 # => 6.28
 
+echo multiply("A", "x") # Multi dispatch supported
+# => Ax
+
 echo wait_for plus(1, 2)
-# => 3
+# # => 3

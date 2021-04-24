@@ -4,5 +4,4 @@ export nodem, asyncdispatch
 
 let user* = Address("user")
 
-proc user_name*(): Future[string] {.async.} =
-  return await nimport_async(user, user_name)
+proc user_name*(): Future[string] {.nimport_from: user.} = discard
