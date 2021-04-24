@@ -1,6 +1,6 @@
 Simple RPC, call remote Nim functions as if its local
 
-[Video Demo, 10min](https://youtu.be/KUb15vva0vw)
+[Video Demo, 10min, a bit outdated, for previous version](https://youtu.be/KUb15vva0vw)
 
 Made by [al6x](http://al6x.com)
 
@@ -43,7 +43,7 @@ echo wait_for plus(1, 2)
 # math.define "tcp://localhost:4000" # optional, will be auto-set
 ```
 
-See `math_example`, remote functions.
+See `examples/math`.
 
 Also available via REST JSON API with [todo] auto-generated TypeScript/LangXXX client functions
 
@@ -56,11 +56,11 @@ http://localhost:8000
 # => {"is_error":false,"result":6.28}
 ```
 
-see `math_with_http.nim`.
+see `examples/math_with_http.nim`.
 
 # Async example
 
-For nodes working as both client and server simultaneously with nested, circular calls check `greeting_example`.
+For nodes working as both client and server simultaneously with nested, circular calls check `examples/greeting`.
 
 While async is faster, and in some cases very much faster, in many cases it's not give much speed improvements
 and only adds more complexity. If in doubt, it's better to avoid it, and use it only for special cases,
