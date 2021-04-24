@@ -71,11 +71,7 @@ echo wait_for plus(1, 2)
 # math.define "tcp://localhost:4000" # optional, will be auto-set
 ```
 
-See `examples/math`.
-
-# HTTP Export
-
-Also available via REST JSON API with [todo] auto-generated TypeScript/LangXXX client functions
+Or calling via HTTP, [todo] with auto-generated TypeScript/LangXXX client functions
 
 ```Bash
 curl \
