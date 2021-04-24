@@ -9,49 +9,54 @@ export addressm, asyncdispatch
 
 
 # autoconnect --------------------------------------------------------------------------------------
+proc connect_without_concurrent_usage(url: string, timeout_ms: int): Future[AsyncSocket] {.async.} =
+  let (scheme, host, port, path) = url.parse_url
+  if scheme != "tcp": throw "only TCP supported"
+  if path != "": throw "wrong path"
+
+  # Waiting for timeout
+  let tic = timer_ms()
+  while true:
+    var socket = asyncnet.new_async_socket()
+    try:
+      let left_ms = timeout_ms - tic()
+      if left_ms > 0:
+        await asyncnet.connect(socket, host, Port(port)).timeout(left_ms)
+      else:
+        await asyncnet.connect(socket, host, Port(port))
+      return socket
+    except Exception as e:
+      try:    asyncnet.close(socket)
+      except: discard
+
+    let delay_time_ms = 20
+    let left_ms = timeout_ms - tic()
+    if left_ms <= delay_time_ms:
+      throw "Timed out, connection closed"
+    else:
+      await sleep_async delay_time_ms
+
 var sockets: Table[string, AsyncSocket]
-proc connect(
-  address: Address
-): Future[tuple[is_error: bool, error: string, socket: Option[AsyncSocket]]] {.async.} =
+var connect_in_progress: Table[string, Future[AsyncSocket]]
+# Preventing multiple concurrent attempts to open same socket
+
+proc connect(address: Address, timeout_ms: int): Future[AsyncSocket] {.async.} =
   # Auto-connect for sockets, if not available wait's till connection would be available with timeout,
   # maybe also add auto-disconnect if it's not used for a while
-
-  let (url, timeout_ms) = address.get
+  let (url, _) = address.get
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
-  if url notin sockets:
-    let (scheme, host, port, path) = url.parse_url
-    if scheme != "tcp": throw "only TCP supported"
-    if path != "": throw "wrong path"
 
-    # Waiting for timeout
-    let tic = timer_ms()
-    while true:
-      var socket = asyncnet.new_async_socket()
-      try:
-        let left_ms = timeout_ms - tic()
-        if left_ms > 0:
-          try:
-            await asyncnet.connect(socket, host, Port(port)).timeout(left_ms)
-            sockets[url] = socket
-            break
-          except:
-            discard
-        else:
-          await asyncnet.connect(socket, host, Port(port))
-          sockets[url] = socket
-          break
-      except Exception as e:
-        try:    asyncnet.close(socket)
-        except: discard
+  if url in sockets: return sockets[url]
 
-      let delay_time_ms = 20
-      let left_ms = timeout_ms - tic()
-      if left_ms <= delay_time_ms:
-        return (true, "Timed out, connection closed", AsyncSocket.none)
-      else:
-        await sleep_async delay_time_ms
-
-  return (false, "", sockets[url].some)
+  # Preventing simultaneous connection to the same socket
+  if url in connect_in_progress: return await connect_in_progress[url]
+  try:
+    let r = connect_without_concurrent_usage(url, timeout_ms)
+    connect_in_progress[url] = r
+    sockets[url] = await r
+  finally:
+    connect_in_progress.del url
+  return sockets[url]
 
 
 # disconnect ---------------------------------------------------------------------------------------
@@ -95,13 +100,12 @@ proc send_async*(address: Address, message: string, timeout_ms: int): Future[voi
   # Send message
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
   let tic = timer_ms()
-  let (is_error, error, socket) = await connect(address)
-  if is_error: throw error
+  let socket = await connect(address, timeout_ms)
   var success = false
   try:
     let left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    await socket.get.send_message_async(message).timeout(left_ms)
+    await socket.send_message_async(message).timeout(left_ms)
     success = true
   finally:
     # Closing socket on any error, it will be auto-reconnected
@@ -110,6 +114,7 @@ proc send_async*(address: Address, message: string, timeout_ms: int): Future[voi
 proc send_async*(address: Address, message: string): Future[void] =
   let (_, timeout_ms) = address.get
   send_async(address, message, timeout_ms)
+
 
 # send ---------------------------------------------------------------------------------------------
 proc send*(address: Address, message: string, timeout_ms: int): void =
@@ -131,10 +136,7 @@ proc call_async*(address: Address, message: string, timeout_ms: int): Future[str
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   let tic = timer_ms()
-  let socket = block:
-    let (is_error, error, socket) = await connect(address)
-    if is_error: throw error
-    socket
+  let socket = await connect(address, timeout_ms)
 
   var success = false
   try:
@@ -143,12 +145,12 @@ proc call_async*(address: Address, message: string, timeout_ms: int): Future[str
     # Sending
     var left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    await socket.get.send_message_async(message, id).timeout(left_ms)
+    await socket.send_message_async(message, id).timeout(left_ms)
 
     # Receiving
     left_ms = timeout_ms - tic()
     if left_ms <= 0: throw "receive timed out"
-    let (is_closed, reply_id, reply) = await socket.get.receive_message_async.timeout(left_ms)
+    let (is_closed, reply_id, reply) = await socket.receive_message_async.timeout(left_ms)
 
     if is_closed: throw "socket closed"
     if reply_id != id: throw "wrong reply id for call"
