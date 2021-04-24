@@ -55,5 +55,5 @@ proc split4*(s: string, by: string): (string, string, string, string) =
 
 
 # format -------------------------------------------------------------------------------------------
-proc format*(n: float | int, digits = 2): string =
-  format_float(n, format = ff_decimal, precision = digits)
+proc format*(n: float | int, precision = 2): string =
+  format_float(n, format = ff_decimal, precision = precision)

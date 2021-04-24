@@ -2,13 +2,6 @@ import json, uri, strutils, os, asyncdispatch, re, sugar
 from times as nt import nil
 
 
-proc ignore_future*[T](future: Future[T]): Future[void] {.async.} =
-  try:    await future
-  except: discard
-proc async_ignore*[T](future: Future[T]) =
-  async_check ignore_future(future)
-
-
 template throw*(message: string) = raise new_exception(Exception, message)
 
 
