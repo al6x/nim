@@ -62,25 +62,27 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 - There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
 - **Use addresses** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
 - **No connection**, connection will be created automatically on demand, and re-connect if needed.
-- Idempotent timeouts, waiting for node to get running.
-- Plain, simple code, even though internally async networking is used. Using async also possible.
-- REST API and Browser support, function could be called via REST API, [todo] with auto-generated TypeScript API.
-- With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
 - Is **fast** as async-IO used.
 - Is **fast for sync functions too**, as they also use async-IO underneath, see note below.
-- Clean error messages, without huge async stack traces, for sync functions, even if they use async underneath.
+- **Clean error messages**, without messy async stack traces.
+- REST API and Browser support, function could be called via REST API, [todo] with auto-generated TypeScript API.
+- With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
 - REST API for React.JS / Karax, no need to define REST API and routes explicitly.
-- Match Client and Server Functions via functions declaration file.
-- Generate Nim Client from Nim Server.
-- Generate Nim Client Function for Java/Node/Elixir REST API with `nimport`.
-- [todo] Generate TypeScript/Java/Node/Elixir Client functions from Nim Server.
-- Auto-versioning, signature of remote functions validated to match the local function, via `full_name`.
 
 Nexported functions both sync and async always use async-IO and never block the network. This makes it
 possible to build fast in-memory servers like Redis, having both simple sync functions with clean error
 messages and fast IO.
 
 Nimported functions use async IO only if they are async.
+
+Other features:
+
+- Match Client and Server Functions via functions declaration file.
+- Generate Nim Client from Nim Server.
+- Generate Nim Client Function for Java/Node/Elixir REST API with `nimport`.
+- [todo] Generate TypeScript/Java/Node/Elixir Client functions from Nim Server.
+- Auto-versioning, signature of remote functions validated to match the local function, via `full_name`.
+- Idempotent timeouts, waiting for node to get running.
 
 # Features if used with Elixir-bridge
 
