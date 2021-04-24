@@ -78,7 +78,7 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 
 Nexported functions both sync and async always use async-IO and never block the network. Nimported functions
 use async io only if they are async. This makes it possible to build fast in-memory servers like Redis,
-having both simple sync functions and fast IO.
+having both simple sync functions with clean error messages and fast IO.
 
 # Features if used with Elixir-bridge
 
