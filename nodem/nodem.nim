@@ -205,22 +205,22 @@ macro nimport_from*(address: Address, fn: typed): typed =
     of 0:
       quote do:
         proc `fname`*(): Future[`rtype`] =
-          `address`.call_nexport_fn(`full_name`, typeof `rtype`)
+          `address`.call_nexport_fn_async(`full_name`, typeof `rtype`)
     of 1:
       let (a, at, _) = args[0]
       quote do:
         proc `fname`*(`a`: `at`): Future[`rtype`] =
-          `address`.call_nexport_fn(`full_name`, `a`, typeof `rtype`)
+          `address`.call_nexport_fn_async(`full_name`, `a`, typeof `rtype`)
     of 2:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`): Future[`rtype`] =
-          `address`.call_nexport_fn(`full_name`, `a`, `b`, typeof `rtype`)
+          `address`.call_nexport_fn_async(`full_name`, `a`, `b`, typeof `rtype`)
     of 3:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]; let (c, ct, _) = args[2]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`, `c`: `ct`): Future[`rtype`] =
-          `address`.call_nexport_fn(`full_name`, `a`, `b`, `c`, typeof `rtype`)
+          `address`.call_nexport_fn_async(`full_name`, `a`, `b`, `c`, typeof `rtype`)
     else:
       quote do:
         raise new_exception(Exception, "not supported, please update the code to suppor it")
@@ -229,59 +229,77 @@ macro nimport_from*(address: Address, fn: typed): typed =
     of 0:
       quote do:
         proc `fname`*(): `rtype` =
-          wait_for `address`.call_nexport_fn(`full_name`, typeof `rtype`)
+          `address`.call_nexport_fn(`full_name`, typeof `rtype`)
     of 1:
       let (a, at, _) = args[0]
       quote do:
         proc `fname`*(`a`: `at`): `rtype` =
-          wait_for `address`.call_nexport_fn(`full_name`, `a`, typeof `rtype`)
+          `address`.call_nexport_fn(`full_name`, `a`, typeof `rtype`)
     of 2:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`): `rtype` =
-          wait_for `address`.call_nexport_fn(`full_name`, `a`, `b`, typeof `rtype`)
+          `address`.call_nexport_fn(`full_name`, `a`, `b`, typeof `rtype`)
     of 3:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]; let (c, ct, _) = args[2]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`, `c`: `ct`): `rtype` =
-          wait_for `address`.call_nexport_fn(`full_name`, `a`, `b`, `c`, typeof `rtype`)
+          `address`.call_nexport_fn(`full_name`, `a`, `b`, `c`, typeof `rtype`)
     else:
       quote do:
         raise new_exception(Exception, "not supported, please update the code to suppor it")
 
 
-# call_nexport_fn -----------------------------------------------------------------------------
-proc call_nexport_fn(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
+# call_nexport_fn ----------------------------------------------------------------------------------
+proc call_nexport_fn(address: Address, fname: string, args: JsonNode): JsonNode =
+  assert args.kind == JArray
+  let res = try:
+    wait_for address.call((fname: fname, args: args).`%`.`$`)
+  except Exception as e:
+    # Cleaning messy async error
+    throw fmt"can't call '{address}.{fname}', {e.msg.clean_async_error}"
+  let data = res.parse_json
+  if data["is_error"].get_bool: throw data["message"].get_str
+  data["result"]
+
+proc call_nexport_fn*[R](address: Address, fname: string, rtype: type[R]): R =
+  let args = newJArray()
+  call_nexport_fn(address, fname, args).to(R)
+
+proc call_nexport_fn*[A, B, R](address: Address, fname: string, a: A, b: B, tr: type[R]): R =
+  let args = newJArray(); args.add %a; args.add %b;
+  call_nexport_fn(address, fname, args).to(R)
+
+proc call_nexport_fn*[A, B, C, R](address: Address, fname: string, a: A, b: B, c: C, tr: type[R]): R =
+  let args = newJArray(); args.add %a; args.add %b; args.add %c
+  call_nexport_fn(address, fname, args).to(R)
+
+
+# call_nexport_fn_async -----------------------------------------------------------------------------
+proc call_nexport_fn_async(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
   assert args.kind == JArray
   let res = await address.call((fname: fname, args: args).`%`.`$`)
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
 
-proc call_nexport_fn*[R](
-  address: Address, fname: string, rtype: type[R]
-): Future[R] {.async.} =
-  let args = newJArray()
-  return (await call_nexport_fn(address, fname, args)).to(R)
-
-proc call_nexport_fn*[A, R](
+proc call_nexport_fn_async*[A, R](
   address: Address, fname: string, a: A, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a
-  return (await call_nexport_fn(address, fname, args)).to(R)
+  return (await call_nexport_fn_async(address, fname, args)).to(R)
 
-proc call_nexport_fn*[A, B, R](
+proc call_nexport_fn_async*[A, B, R](
   address: Address, fname: string, a: A, b: B, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b;
-  return (await call_nexport_fn(address, fname, args)).to(R)
+  return (await call_nexport_fn_async(address, fname, args)).to(R)
 
-proc call_nexport_fn*[A, B, C, R](
+proc call_nexport_fn_async*[A, B, C, R](
   address: Address, fname: string, a: A, b: B, c: C, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b; args.add %c
-  return (await call_nexport_fn(address, fname, args)).to(R)
-
+  return (await call_nexport_fn_async(address, fname, args)).to(R)
 
 # generate_nimport ---------------------------------------------------------------------------------
 proc generate_nimport*(

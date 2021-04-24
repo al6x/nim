@@ -96,21 +96,9 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 
 # TODO
 
-remove async pragma from client functions
-
-fix async errors
-
-use nimport + discard and rewrite functions to support multimethods
-
-try using same nimport for both async and non async
-
-- Multi dispatch.
+- Use sync `call` in sync client, to avoid messy async error messages.
 - TypeScript and Elixir integration.
-- Use address in generated code
-- add timeout `withTimeout` and remove self.
 - Add support for defaults.
-- Add overload example
-
 
 # Notes
 
