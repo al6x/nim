@@ -1,8 +1,34 @@
-import asyncdispatch, options, strformat, ./supportm, re, sets, json
+import asyncdispatch, options, strformat, strutils, ./supportm, re, sets, json, ../nodem
 from asynchttpserver as asynchttp import nil
 import httpcore
 
+# Parsers ------------------------------------------------------------------------------------------
+proc from_string*(_: type[string], s: string): string = s
+proc from_string*(_: type[int],    s: string): int    = s.parse_int
+proc from_string*(_: type[float],  s: string): float  = s.parse_float
+proc from_string*(_: type[bool],   s: string): bool   =
+  case s.to_lower
+  of "yes", "true", "t":  true
+  of "no",  "false", "f": false
+  else: throw fmt"invalid bool '{v}'"
+
+proc from_string*[T](_: type[Option[T]], s: string): Option[T] =
+  if s == "": T.none else: T.from_string(s).some
+
+# proc from_string*(_: type[Time],   s: string): Time   = Time.init s
+# proc from_string*[T](_: type[T], row: seq[string]): T =
+#   var i = 0
+#   for _, v in result.field_pairs:
+#     v = from_string(typeof v, row[i])
+#     i += 1
+
+# Helpers ------------------------------------------------------------------------------------------
+
 type HttpMessageHandler* = proc (message: string): Future[Option[string]]
+type HttpMessageHandlerWithParser* = proc (fname: string, req: seq[string]): Future[Option[string]]
+
+proc default_handler_wiht_parser(fname: string, req: seq[string]): Future[Option[string]] {.async.} =
+  throw "not provided"
 
 let headers = asynchttp.new_http_headers({"Content-type": "application/json; charset=utf-8"})
 
@@ -15,8 +41,7 @@ proc success(req: asynchttp.Request, message: string): Future[void] =
 # receive_http -------------------------------------------------------------------------------------
 proc receive_http*(
   url:       string,
-  handler:   HttpMessageHandler,
-  allow_get: seq[string]   = @[]
+  allow_get: seq[string] = @[]
 ): Future[void] {.async.} =
   # Use as example and modify to your needs.
   # Funcion need to be specifically allowed as GET because of security reasons.
@@ -32,15 +57,14 @@ proc receive_http*(
     try:
       case req.reqMethod
       of HttpGet:
-        let fname = req.url.path.replace(re"^/", "")
+        var parts = req.url.path.replace(re"^/", "").split("/")
+        let (fname, args) = (parts[0], parts[1..^1])
         if fname notin allow_get_set: await req.error("not allowed as GET")
-        let args: seq[string] = @[]
-        let message = $(%((fn: fname, args: args)))
-        let reply = await handler(message)
+        let reply = await nexport_handler_with_parser_async(fname, args)
         await req.success reply.get("{}")
       of HttpPost:
         let message = req.body
-        let reply = await handler(message)
+        let reply = await nexport_handler_async(message)
         await req.success reply.get("{}")
       else:
         await req.error "method not allowed"
@@ -51,20 +75,20 @@ proc receive_http*(
 
 
 # test ---------------------------------------------------------------------------------------------
-if is_main_module: # Testing http
-  # curl http://localhost:8000/tick
-  # curl http://localhost:8000/ping
-  # curl --request POST --data ping http://localhost:8000
+# if is_main_module: # Testing http
+#   # curl http://localhost:8000/tick
+#   # curl http://localhost:8000/ping
+#   # curl --request POST --data ping http://localhost:8000
 
-  proc receive(message: string): Future[Option[string]] {.async.} =
-    case message
-    of "ping": # Handles `call`, with reply
-      echo "ping"
-      return "pong".some
-    of "tick":    # Hanldes `send`, without reply
-      echo "tick"
-    else:
-      throw fmt"unknown message {message}"
+#   proc receive(message: string): Future[Option[string]] {.async.} =
+#     case message
+#     of "ping": # Handles `call`, with reply
+#       echo "ping"
+#       return "pong".some
+#     of "tick":    # Hanldes `send`, without reply
+#       echo "tick"
+#     else:
+#       throw fmt"unknown message {message}"
 
-  async_check receive_http("http://localhost:8000", receive)
-  run_forever()
+#   async_check receive_http("http://localhost:8000", receive)
+#   run_forever()

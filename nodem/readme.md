@@ -43,6 +43,8 @@ echo wait_for plus(1, 2)
 # math.define "tcp://localhost:4000" # optional, will be auto-set
 ```
 
+# HTTP Export
+
 See `examples/math`.
 
 Also available via REST JSON API with [todo] auto-generated TypeScript/LangXXX client functions
@@ -90,6 +92,13 @@ messages and fast IO.
 
 Nimported functions use async IO only if they are async.
 
+# HTTP Features
+
+- **Auto-mapping** `fn(a, b)` -> `fn/a/b`, no need for router.
+- **Auto-parsing** from `querystring` stirng into correct argument types.
+- By default only POST allowed, GET needs to be explicitly enabled, to improve security.
+- Is **fast** as async HTTP server is used.
+
 Other features:
 
 - Match Client and Server Functions via functions declaration file.
@@ -125,6 +134,8 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 - TypeScript and Elixir integration.
 - Add support for defaults.
 - HTTP example with autocast from querystring and POST strings
+- Redis in X lines
+- Web Server in 5 lines of Nim
 
 # Notes
 
