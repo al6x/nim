@@ -93,7 +93,7 @@ curl \
 http://localhost:8000
 echo
 
-# => {"is_error":false,"result":6.28}
+# # => {"is_error":false,"result":6.28}
 ```
 
 see `examples/math`.
