@@ -4,6 +4,32 @@ Simple RPC, call remote Nim functions as if its local
 
 Made by [al6x](http://al6x.com)
 
+# Simple example
+
+Exporting some functions as available over network:
+
+```Nim
+import nodem
+
+proc multiply(a, b: float): float {.nexport.} = a * b
+
+if is_main_module:
+  let server = Address("server")
+  server.generate_nimport
+  server.run
+```
+
+And calling it from another process:
+
+```Nim
+import ./serveri
+
+echo multiply(3, 2)
+# => 6
+```
+
+See `examples/simple`.
+
 # Example
 
 Exporting some functions as available over network:

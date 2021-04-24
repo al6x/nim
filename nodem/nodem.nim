@@ -115,10 +115,11 @@ type NFHandler = proc (args: JsonNode): Future[JsonNode] # can throw errors
 type NFParser = proc (args: seq[string]): JsonNode # can throw errors, used in HTTP
 
 type NexportedFunction = ref object
-  fsign:   FnSignatureS
-  handler: NFHandler
-  parser:  NFParser
+  fsign:    FnSignatureS
+  handler:  NFHandler
+  parser:   NFParser
 var nexported_functions: OrderedTable[string, NexportedFunction]
+var nexported_functions_aliases: OrderedTable[string, NexportedFunction]
 
 proc full_name(s: FnSignatureS): string =
   # Full name with argument types and return values, needed to support multiple dispatch
@@ -131,13 +132,13 @@ proc register(nf: NexportedFunction): void =
   if full_name in nexported_functions: throw fmt"duplicate nexported function {full_name}"
   nexported_functions[full_name] = nf
 
-  # Additionally registering shortcut with name only, if there's no overrided version
+  # Additionally registering alias with name only, if there's no overrided version
   let name = nf.fsign[0]
-  if name in nexported_functions:
+  if name in nexported_functions_aliases:
     # There are overrided versions, removing short name
-    nexported_functions.del name
+    nexported_functions_aliases.del name
   else:
-    nexported_functions[name] = nf
+    nexported_functions_aliases[name] = nf
 
 proc from_string_if_exists*[T](_: type[T], s: string): T =
   when compiles(T.from_string(s)): T.from_string s
@@ -272,8 +273,10 @@ proc nexport_handler_async*(req: string): Future[Option[string]] {.async.} =
   try:
     let data = req.parse_json
     let (fname, args) = (data["fn"].get_str, data["args"])
-    if fname notin nexported_functions: throw fmt"no server function '{fname}'"
-    let nfn = nexported_functions[fname]
+    let nfn =
+      if   fname in nexported_functions:         nexported_functions[fname]
+      elif fname in nexported_functions_aliases: nexported_functions[fname]
+      else:                                      throw fmt"no nexported function '{fname}'"
     let res = await nfn.handler(args)
     return res.`%`.`$`.some
   except Exception as e:
@@ -283,7 +286,10 @@ proc nexport_handler_with_parser_async*(fname: string, req: seq[string]): Future
   # Use it to start as RPC server
   try:
     if fname notin nexported_functions: throw fmt"no server function '{fname}'"
-    let nfn = nexported_functions[fname]
+    let nfn =
+      if   fname in nexported_functions:         nexported_functions[fname]
+      elif fname in nexported_functions_aliases: nexported_functions[fname]
+      else:                                      throw fmt"no nexported function '{fname}'"
     let data = nfn.parser req
     let res = await nfn.handler(data)
     return res.`%`.`$`.some
