@@ -74,11 +74,13 @@ echo wait_for plus(1, 2)
 Or calling via HTTP, [todo] with auto-generated TypeScript/LangXXX client functions
 
 ```Bash
-curl http://localhost:8000/plus/1/2
+curl http://localhost:8000/plus/1?y=2
 echo
 
 # => {"is_error":false,"result":3.14}
-# Note that arguments were auto casted to correct types
+#
+# - Arguments were auto casted to correct types.
+# - Both positional and named arguments supported.
 
 curl http://localhost:8000/plus/1/a
 echo
