@@ -121,8 +121,10 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 
 # TODO
 
+- Add deserialise from strings handler to FnHandler
 - TypeScript and Elixir integration.
 - Add support for defaults.
+- HTTP example with autocast from querystring and POST strings
 
 # Notes
 

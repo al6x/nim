@@ -124,6 +124,19 @@ proc full_name(s: FnSignatureS): string =
   let args_s = s[1].map((arg) => fmt"{arg[0].normalize}: {arg[1].normalize}").join(", ")
   fmt"{s[0].normalize}({args_s}): {s[2].normalize}"
 
+proc register(nf: NexportedFunction): void =
+  let full_name = nf.fsign.full_name
+  if full_name in nexported_functions: throw fmt"duplicate nexported function {full_name}"
+  nexported_functions[full_name] = nf
+
+  # Additionally registering shortcut with name only, if there's no overrided version
+  let name = nf.fsign[0]
+  if name in nexported_functions:
+    # There are overrided versions, removing short name
+    nexported_functions.del name
+  else:
+    nexported_functions[name] = nf
+
 
 # nexport_async_function ---------------------------------------------------------------------------
 proc nexport_async_function*[R](fsign: FnSignatureS, fn: proc: Future[R]): void =
@@ -131,28 +144,28 @@ proc nexport_async_function*[R](fsign: FnSignatureS, fn: proc: Future[R]): void 
     assert args.kind == JArray and args.len == 0
     let r = await fn()
     return %(is_error: false, result: r)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+  NexportedFunction(fsign: fsign, handler: nfhandler_async).register
 
 proc nexport_async_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 1
     let r = await fn(args[0].to(A))
     return %(is_error: false, result: r)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+  NexportedFunction(fsign: fsign, handler: nfhandler_async).register
 
 proc nexport_async_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 2
     let r = await fn(args[0].to(A), args[1].to(B))
     return %(is_error: false, result: r)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+  NexportedFunction(fsign: fsign, handler: nfhandler_async).register
 
 proc nexport_async_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 3
     let r = await fn(args[0].to(A), args[1].to(B), args[2].to(C))
     return %(is_error: false, result: r)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+  NexportedFunction(fsign: fsign, handler: nfhandler_async).register
 
 
 # nexport_async_function ---------------------------------------------------------------------------
@@ -171,7 +184,7 @@ proc nexport_function*[R](fsign: FnSignatureS, fn: proc: R): void =
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
+  NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler).register
 
 proc nexport_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
@@ -181,7 +194,7 @@ proc nexport_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): R): void =
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
+  NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler).register
 
 proc nexport_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
@@ -191,7 +204,7 @@ proc nexport_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): R): v
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
+  NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler).register
 
 proc nexport_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
@@ -201,7 +214,7 @@ proc nexport_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: 
       %(is_error: false, result: r)
     except Exception as e:
       %(is_error: true, message: e.msg)
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
+  NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler).register
 
 
 # nexport_handler ----------------------------------------------------------------------------------
