@@ -41,7 +41,20 @@ echo wait_for plus(1, 2)
 # => 3
 ```
 
-See `math_example`, remote functions also available via REST JSON API, see `nodem/httpm.nim`.
+See `math_example`, remote functions.
+
+Also available via REST JSON API with [todo] auto-generated TypeScript/LangXXX client functions
+
+```Nim
+curl \
+--request POST \
+--data '{"fn":"multiply(a: float, b: float): float","args":[3.14,2.0]}' \
+http://localhost:8000
+
+# => {"is_error":false,"result":6.28}
+```
+
+see `math_with_http.nim`.
 
 # Async example
 

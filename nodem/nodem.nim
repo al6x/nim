@@ -20,10 +20,7 @@ proc fn_signature(fn_raw: NimNode): FnSignature =
   let fn_impl = case fn_raw.kind
   of nnk_sym:      fn_raw.get_impl
   of nnk_proc_def: fn_raw
-  else:
-    # echo nnkClosedSymChoice
-    echo fn_raw.get_impl
-    throw fmt"{invalid_usage}, {fn_raw.kind}"
+  else:            throw fmt"{invalid_usage}, {fn_raw.kind}"
   # echo fn_impl.tree_repr()
 
   let fname = fn_impl.name
@@ -212,7 +209,7 @@ proc nexport_handler_async*(req: string): Future[Option[string]] {.async.} =
   # Use it to start as RPC server
   try:
     let data = req.parse_json
-    let (fname, args) = (data["fname"].get_str, data["args"])
+    let (fname, args) = (data["fn"].get_str, data["args"])
     if fname notin nexported_functions: throw fmt"no server function '{fname}'"
     let nfn = nexported_functions[fname]
     let res = await nfn.handler(args)
@@ -285,7 +282,7 @@ macro nimport_from*(address: Address, fn: typed): typed =
 proc call_nexport_fn(address: Address, fname: string, args: JsonNode): JsonNode =
   assert args.kind == JArray
   let res = try:
-    address.call((fname: fname, args: args).`%`.`$`)
+    address.call((fn: fname, args: args).`%`.`$`)
   except Exception as e:
     throw fmt"can't call '{address}.{fname}', {e.msg}"
   let data = res.parse_json
@@ -313,7 +310,7 @@ proc call_nexport_fn*[A, B, C, R](address: Address, fname: string, a: A, b: B, c
 proc call_nexport_fn_async(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
   assert args.kind == JArray
   let res = try:
-    await address.call_async((fname: fname, args: args).`%`.`$`)
+    await address.call_async((fn: fname, args: args).`%`.`$`)
   except Exception as e:
     throw fmt"can't call '{address}.{fname}', {e.msg}"
   let data = res.parse_json
@@ -398,5 +395,4 @@ template generate_nimport*(address: Address): void =
 
 # run ----------------------------------------------------------------------------------------------
 proc run*(address: Address) =
-  wait_for address.receive_async(nexport_handler_async)
-  run_forever()
+  async_check address.receive_async(nexport_handler_async)
