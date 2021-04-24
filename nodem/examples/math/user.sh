@@ -1,3 +1,5 @@
+#!/bin/bash
+
 curl http://localhost:8000/plus/1/2
 echo
 
@@ -17,4 +19,4 @@ curl \
 http://localhost:8000
 echo
 
-# => {"is_error":false,"result":6.28}
+# # => {"is_error":false,"result":6.28}

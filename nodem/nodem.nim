@@ -275,7 +275,7 @@ proc nexport_handler_async*(req: string): Future[Option[string]] {.async.} =
     let (fname, args) = (data["fn"].get_str, data["args"])
     let nfn =
       if   fname in nexported_functions:         nexported_functions[fname]
-      elif fname in nexported_functions_aliases: nexported_functions[fname]
+      elif fname in nexported_functions_aliases: nexported_functions_aliases[fname]
       else:                                      throw fmt"no nexported function '{fname}'"
     let res = await nfn.handler(args)
     return res.`%`.`$`.some
@@ -285,10 +285,9 @@ proc nexport_handler_async*(req: string): Future[Option[string]] {.async.} =
 proc nexport_handler_with_parser_async*(fname: string, req: seq[string]): Future[Option[string]] {.async.} =
   # Use it to start as RPC server
   try:
-    if fname notin nexported_functions: throw fmt"no server function '{fname}'"
     let nfn =
       if   fname in nexported_functions:         nexported_functions[fname]
-      elif fname in nexported_functions_aliases: nexported_functions[fname]
+      elif fname in nexported_functions_aliases: nexported_functions_aliases[fname]
       else:                                      throw fmt"no nexported function '{fname}'"
     let data = nfn.parser req
     let res = await nfn.handler(data)
