@@ -9,4 +9,4 @@ echo multiply("A", "x")
 # => Ax
 
 echo wait_for plus(1, 2)
-# # => 3
+# => 3

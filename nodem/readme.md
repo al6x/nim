@@ -38,7 +38,7 @@ echo multiply("A", "x")
 # => Ax
 
 echo wait_for plus(1, 2)
-# # => 3
+# => 3
 ```
 
 See `math_example`, remote functions also available via REST JSON API, see `nodem/httpm.nim`.
