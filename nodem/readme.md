@@ -9,7 +9,7 @@ Made by [al6x](http://al6x.com)
 Exporting some functions as available over network:
 
 ```Nim
-import asyncdispatch, nodem
+import asyncdispatch, nodem, nodem/httpm
 
 proc pi: float {.nexport.} = 3.14
 
@@ -19,11 +19,13 @@ proc multiply(a, b: string): string {.nexport.} = a & b # Multi dispatch support
 proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported
 
 if is_main_module:
-  let math = Address("math") # address is just `distinct string`
-  # math.define "tcp://localhost:4000" # optional, will be auto-set
+  let math = Address("math") # Address is just `distinct string`
+  # math.define "tcp://localhost:4000" # Optional, will be auto-set
+
+  async_check receive_http("http://localhost:8000", allow_get = @["plus"]) # Optional, for HTTP
 
   math.generate_nimport
-  math.run
+  math.run # for TCP
 ```
 
 And calling it from another process:
@@ -43,22 +45,35 @@ echo wait_for plus(1, 2)
 # math.define "tcp://localhost:4000" # optional, will be auto-set
 ```
 
-# HTTP Export
-
 See `examples/math`.
+
+# HTTP Export
 
 Also available via REST JSON API with [todo] auto-generated TypeScript/LangXXX client functions
 
-```Nim
+```Bash
 curl \
 --request POST \
 --data '{"fn":"multiply(a: float, b: float): float","args":[3.14,2.0]}' \
 http://localhost:8000
+echo
 
 # => {"is_error":false,"result":6.28}
+
+# Also available with shorter name
+
+curl http://localhost:8000/plus/1/2
+echo
+
+# => {"is_error":false,"result":3.14}
+
+curl http://localhost:8000/plus/1/a
+echo
+
+# = {"is_error":true,"message":"invalid float: a"}
 ```
 
-see `examples/math_with_http.nim`.
+see `examples/math`.
 
 # Async example
 
