@@ -76,9 +76,11 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 - [todo] Generate TypeScript/Java/Node/Elixir Client functions from Nim Server.
 - Auto-versioning, signature of remote functions validated to match the local function, via `full_name`.
 
-Nexported functions both sync and async always use async-IO and never block the network. Nimported functions
-use async io only if they are async. This makes it possible to build fast in-memory servers like Redis,
-having both simple sync functions with clean error messages and fast IO.
+Nexported functions both sync and async always use async-IO and never block the network. This makes it
+possible to build fast in-memory servers like Redis, having both simple sync functions with clean error
+messages and fast IO.
+
+Nimported functions use async IO only if they are async.
 
 # Features if used with Elixir-bridge
 
