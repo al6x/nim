@@ -64,32 +64,30 @@ proc disconnect*(address: Address): Future[void] {.async.} =
 var id_counter: int64 = 0
 proc next_id: int64 = id_counter += 1
 
-proc send_message(socket: AsyncSocket, message: string, message_id = next_id()): Future[void] {.async.} =
+proc send_message_async(socket: AsyncSocket, message: string, message_id = next_id()): Future[void] {.async.} =
   await asyncnet.send(socket, ($(message.len.int8)).align_left(8))
   await asyncnet.send(socket, ($message_id).align_left(64))
   await asyncnet.send(socket, message)
 
-proc receive_message(
+proc receive_message_async(
   socket: AsyncSocket
-): Future[tuple[is_error: bool, is_closed: bool, error: string, message_id: int, message: string]] {.async.} =
-  template return_error(error: string) = return (true, true, error, -1, "")
-
+): Future[tuple[is_closed: bool, message_id: int, message: string]] {.async.} =
   let message_length_s = await asyncnet.recv(socket, 8)
-  if message_length_s == "": return (false, true, "", -1, "") # Socket disconnected
-  if message_length_s.len != 8: return_error("socket error, wrong size for message length")
+  if message_length_s == "": return (true, -1, "") # Socket disconnected
+  if message_length_s.len != 8: throw "socket error, wrong size for message length"
   let message_length = message_length_s.replace(" ", "").parse_int
 
   let message_id_s = await asyncnet.recv(socket, 64)
-  if message_id_s.len != 64: return_error("socket error, wrong size for message_id")
+  if message_id_s.len != 64: throw "socket error, wrong size for message_id"
   let message_id = message_id_s.replace(" ", "").parse_int
 
   let message = await asyncnet.recv(socket, message_length)
-  if message.len != message_length: return_error("socket error, wrong size for message")
-  return (false, false, "", message_id, message)
+  if message.len != message_length: throw "socket error, wrong size for message"
+  return (false, message_id, message)
 
 
-# send ---------------------------------------------------------------------------------------------
-proc send*(address: Address, message: string, timeout_ms: int): Future[void] {.async.} =
+# send_async ---------------------------------------------------------------------------------------
+proc send_async*(address: Address, message: string, timeout_ms: int): Future[void] {.async.} =
   # Send message
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
   let tic = timer_ms()
@@ -99,20 +97,33 @@ proc send*(address: Address, message: string, timeout_ms: int): Future[void] {.a
   try:
     let left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    if not await socket.get.send_message(message).with_timeout(left_ms):
+    if not await socket.get.send_message_async(message).with_timeout(left_ms):
       throw "send timed out"
     success = true
   finally:
     # Closing socket on any error, it will be auto-reconnected
     if not success: await disconnect(address)
 
-proc send*(address: Address, message: string): Future[void] =
+proc send_async*(address: Address, message: string): Future[void] =
+  let (_, timeout_ms) = address.get
+  send_async(address, message, timeout_ms)
+
+# send ---------------------------------------------------------------------------------------------
+proc send*(address: Address, message: string, timeout_ms: int): void =
+  # Send message
+  try:
+    wait_for address.send_async(message, timeout_ms)
+  except Exception as e:
+    # Cleaning messy async error
+    throw fmt"can't send to '{address}', {e.msg.clean_async_error}"
+
+proc send*(address: Address, message: string): void =
   let (_, timeout_ms) = address.get
   send(address, message, timeout_ms)
 
 
-# call ---------------------------------------------------------------------------------------------
-proc call*(address: Address, message: string, timeout_ms: int): Future[string] {.async.} =
+# call_async ---------------------------------------------------------------------------------------
+proc call_async*(address: Address, message: string, timeout_ms: int): Future[string] {.async.} =
   # Send message and waits for reply
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
@@ -129,17 +140,16 @@ proc call*(address: Address, message: string, timeout_ms: int): Future[string] {
     # Sending
     var left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    if not await socket.get.send_message(message, id).with_timeout(left_ms):
+    if not await socket.get.send_message_async(message, id).with_timeout(left_ms):
       throw "send timed out"
 
     # Receiving
     left_ms = timeout_ms - tic()
     if left_ms <= 0: throw "receive timed out"
-    let receivedf = socket.get.receive_message
+    let receivedf = socket.get.receive_message_async
     if not await receivedf.with_timeout(left_ms): throw "receive timed out"
-    let (is_error, is_closed, error, reply_id, reply) = await receivedf
+    let (is_closed, reply_id, reply) = await receivedf
 
-    if is_error: throw error
     if is_closed: throw "socket closed"
     if reply_id != id: throw "wrong reply id for call"
     success = true
@@ -148,30 +158,68 @@ proc call*(address: Address, message: string, timeout_ms: int): Future[string] {
     # Closing socket on any error, it will be auto-reconnected
     if not success: await disconnect(address)
 
-proc call*(address: Address, message: string): Future[string] =
+proc call_async*(address: Address, message: string): Future[string] =
+  let (_, timeout_ms) = address.get
+  call_async(address, message, timeout_ms)
+
+
+# call ---------------------------------------------------------------------------------------------
+proc call*(address: Address, message: string, timeout_ms: int): string =
+  # Send message and waits for reply
+  try:
+    wait_for address.call_async(message, timeout_ms)
+  except Exception as e:
+    # Cleaning messy async error
+    throw fmt"can't call '{address}', {e.msg.clean_async_error}"
+
+proc call*(address: Address, message: string): string =
   let (_, timeout_ms) = address.get
   call(address, message, timeout_ms)
 
 
-# on_receive ---------------------------------------------------------------------------------------
-type MessageHandler* = proc (message: string): Future[Option[string]]
+# receive_async ------------------------------------------------------------------------------------
+type OnMessageAsync* = proc (message: string): Future[Option[string]]
+type OnNetError*     = proc (e: ref Exception): void # mostly for logging
 
-proc process_client(client: AsyncSocket, handler: MessageHandler, timeout_ms: int) {.async.} =
+proc process_client_async(
+  client:           AsyncSocket,
+  on_message_async: OnMessageAsync,
+  on_net_error:     OnNetError,
+  timeout_ms:       int,
+) {.async.} =
+  # Messages received and send async with both sync/async handlers, so there's no waiting for networking.
   try:
     while not asyncnet.is_closed(client):
-      let (is_error, is_closed, error, message_id, message) = await client.receive_message
-      if is_error: throw error
+      let (is_closed, message_id, message) = await client.receive_message_async
       if is_closed: break
-      let reply = await handler(message)
+
+      let reply = try:
+        await on_message_async(message)
+      except Exception as e:
+        # If exception happens in the handler itself quitting, it should be handled
+        # in `on_message` with try/except
+        stderr.write_line "unhandled exception in recieve_async, quitting"
+        stderr.write_line e.msg
+        stderr.write_line e.get_stack_trace
+        quit 1
+
       if reply.is_some:
-        if not await send_message(client, reply.get, message_id).with_timeout(timeout_ms):
+        if not await send_message_async(client, reply.get, message_id).with_timeout(timeout_ms):
           throw "replying to client is timed out"
+  except Exception as e:
+    on_net_error(e)
   finally:
     # Ensuring socket is closed
     try:    asyncnet.close(client)
     except: discard
 
-proc on_receive*(address: Address, handler: MessageHandler): Future[void] {.async.} =
+proc on_net_error_default(e: ref Exception): void = echo e.msg
+
+proc receive_async*(
+  address:      Address,
+  on_message:   OnMessageAsync,
+  on_net_error: OnNetError = on_net_error_default
+): Future[void] {.async.} =
   let (url, timeout_ms) = address.get
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
@@ -185,7 +233,36 @@ proc on_receive*(address: Address, handler: MessageHandler): Future[void] {.asyn
 
   while true:
     let client = await asyncnet.accept(server)
-    async_check process_client(client, handler, timeout_ms)
+    async_check process_client_async(client, on_message, on_net_error, timeout_ms)
+
+
+# receive ------------------------------------------------------------------------------------------
+type OnMessage* = proc (message: string): Option[string]
+
+proc receive*(
+  address:      Address,
+  on_message:   OnMessage,
+  on_net_error: OnNetError = on_net_error_default
+): void =
+  # While the handler itsel is sync, the messages received and send async, so there's no
+  # waiting for networking.
+
+  proc on_message_with_error_handling(message: string): Option[string] =
+    try:
+      on_message message
+    except Exception as e:
+      # If exception happens in the handler itself quitting, it should be handled
+      # in `on_message` with try/except
+      stderr.write_line "unhandled exception in recieve, quitting"
+      stderr.write_line e.msg
+      stderr.write_line e.get_stack_trace
+      quit 1
+
+  proc on_message_async(message: string): Future[Option[string]] {.async.} =
+    # The `on_message_with_error_handling` have to be separate proc to avoid messy async stack trace
+    return on_message_with_error_handling(message)
+
+  wait_for receive_async(address, on_message_async, on_net_error)
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -196,15 +273,15 @@ if is_main_module:
   proc start(self: Address, other: Address) =
     proc log(msg: string) = echo fmt"node {self} {msg}"
 
-    proc on_self: Future[void] {.async.} =
+    proc main: Future[void] {.async.} =
       for _ in 1..3:
         log "heartbeat"
-        let dstate = await other.call("state")
+        let dstate = await other.call_async("state")
         log fmt"state of other: {dstate}"
         await sleep_async 1000
-      await other.send("quit")
+      await other.send_async("quit")
 
-    proc on_receive(message: string): Future[Option[string]] {.async.} =
+    proc on_message(message: string): Future[Option[string]] {.async.} =
       case message
       of "state": # Handles `call`, with reply
         return fmt"{self} ok".some
@@ -214,13 +291,16 @@ if is_main_module:
       else:
         throw fmt"unknown message {message}"
 
+    proc on_error(e: ref Exception): void = echo e.msg
+
     log "started"
-    async_check on_self()
-    async_check self.on_receive(on_receive)
+    async_check main()
+    async_check self.receive_async(on_message, on_error)
 
   start(a, b)
   start(b, a)
   run_forever()
+
 
 # receive ------------------------------------------------------------------------------------------
 # const delay_ms = 100
@@ -245,3 +325,20 @@ if is_main_module:
 #   finally:
 #     # Closing socket on any error, it will be auto-reconnected
 #     if not success: await disconnect(node)
+
+
+# if is_main_module:
+#   # Clean error on server
+#   let server = Address("server")
+#   proc run_server =
+#     proc on_message(message: string): Option[string] =
+#       throw "some error"
+#     server.receive(on_message)
+
+#   proc run_client =
+#     server.send "some message"
+
+#   case param_str(1)
+#   of "server": run_server()
+#   of "client": run_client()
+#   else:        throw "unknown command"

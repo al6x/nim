@@ -5,10 +5,10 @@ import ./greetingi
 proc user_name*(): Future[string] {.async, nexport.} =
   return "Alex"
 
-proc self: Future[void] {.async.} =
+proc main: Future[void] {.async.} =
   echo await say_hi("Hi")
   # => Hi Alex
-async_check self()
+async_check main()
 
 let user = Address("user")
 user.run

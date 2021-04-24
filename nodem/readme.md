@@ -66,13 +66,19 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 - Plain, simple code, even though internally async networking is used. Using async also possible.
 - REST API and Browser support, function could be called via REST API, [todo] with auto-generated TypeScript API.
 - With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
-- Should be **really fast** if used with async functions.
+- Is **fast** as async-IO used.
+- Is **fast for sync functions too**, as they also use async-IO underneath, see note below.
+- Clean error messages, without huge async stack traces, for sync functions, even if they use async underneath.
 - REST API for React.JS / Karax, no need to define REST API and routes explicitly.
 - Match Client and Server Functions via functions declaration file.
 - Generate Nim Client from Nim Server.
 - Generate Nim Client Function for Java/Node/Elixir REST API with `nimport`.
 - [todo] Generate TypeScript/Java/Node/Elixir Client functions from Nim Server.
 - Auto-versioning, signature of remote functions validated to match the local function, via `full_name`.
+
+Nexported functions both sync and async always use async-IO and never block the network. Nimported functions
+use async io only if they are async. This makes it possible to build fast in-memory servers like Redis,
+having both simple sync functions and fast IO.
 
 # Features if used with Elixir-bridge
 

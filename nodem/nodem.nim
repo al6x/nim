@@ -1,7 +1,7 @@
 import json, tables, strutils, strformat, sequtils, sugar, macros, options, os
 import ./nodem/supportm, ./nodem/addressm, ./nodem/netm
 
-export json, addressm, parent_dir, on_receive
+export json, addressm, parent_dir, receive_async
 
 # fn_signature -------------------------------------------------------------------------------------
 type FnSignature = (NimNode, seq[(NimNode, NimNode, NimNode)], NimNode, bool)
@@ -93,11 +93,11 @@ macro nexport*(fn: typed) =
     case fn.kind
     of nnk_proc_def: # Used as pragma `{.sfun.}`
       quote do:
-        nexport_function(`fsigns`, `fsymb`)
+        nexport_async_function(`fsigns`, `fsymb`)
         `fn`
     of nnk_sym: # Used as macro `sfun fn`
       quote do:
-        nexport_function(`fsigns`, `fsymb`)
+        nexport_async_function(`fsigns`, `fsymb`)
     else:
       throw fmt"invalid usage, if you think it's a valid case please update the code to suppor it, {fn.kind}"
   else:
@@ -113,7 +113,7 @@ macro nexport*(fn: typed) =
       throw fmt"invalid usage, if you think it's a valid case please update the code to suppor it, {fn.kind}"
 
 
-# nexport_function ---------------------------------------------------------------------------------
+# nexported_functions ------------------------------------------------------------------------------
 type NFHandler = proc (args: JsonNode): Future[JsonNode] # can throw errors
 
 type NexportedFunction = ref object
@@ -127,57 +127,88 @@ proc full_name(s: FnSignatureS): string =
   let args_s = s[1].map((arg) => fmt"{arg[0].normalize}: {arg[1].normalize}").join(", ")
   fmt"{s[0].normalize}({args_s}): {s[2].normalize}"
 
-proc nexport_function*[R](fsign: FnSignatureS, fn: proc: R): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
-    assert args.kind == JArray and args.len == 0
-    return %fn()
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
 
-proc nexport_function*[R](fsign: FnSignatureS, fn: proc: Future[R]): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
+# nexport_async_function ---------------------------------------------------------------------------
+proc nexport_async_function*[R](fsign: FnSignatureS, fn: proc: Future[R]): void =
+  proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 0
-    return %(await fn())
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
+    let r = await fn()
+    return %(is_error: false, result: r)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+
+proc nexport_async_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): Future[R]): void =
+  proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
+    assert args.kind == JArray and args.len == 1
+    let r = await fn(args[0].to(A))
+    return %(is_error: false, result: r)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+
+proc nexport_async_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): Future[R]): void =
+  proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
+    assert args.kind == JArray and args.len == 2
+    let r = await fn(args[0].to(A), args[1].to(B))
+    return %(is_error: false, result: r)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+
+proc nexport_async_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): Future[R]): void =
+  proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
+    assert args.kind == JArray and args.len == 3
+    let r = await fn(args[0].to(A), args[1].to(B), args[2].to(C))
+    return %(is_error: false, result: r)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler_async)
+
+
+# nexport_async_function ---------------------------------------------------------------------------
+# Such complicated wrappers to provide clean error messages without the async stack trace mess
+
+proc to_async_handler(handler_sync: proc (args: JsonNode): JsonNode): NFHandler =
+  proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
+    return handler_sync(args)
+  return nfhandler_async
+
+proc nexport_function*[R](fsign: FnSignatureS, fn: proc: R): void =
+  proc safe_nfhandler(args: JsonNode): JsonNode =
+    assert args.kind == JArray and args.len == 0
+    try:
+      let r = fn()
+      %(is_error: false, result: r)
+    except Exception as e:
+      %(is_error: true, message: e.msg)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
 
 proc nexport_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): R): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
+  proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 1
-    return %fn(args[0].to(A))
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
-
-proc nexport_function*[A, R](fsign: FnSignatureS, fn: proc(a: A): Future[R]): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
-    assert args.kind == JArray and args.len == 1
-    return %(await fn(args[0].to(A)))
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
+    try:
+      let r = fn(args[0].to(A))
+      %(is_error: false, result: r)
+    except Exception as e:
+      %(is_error: true, message: e.msg)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
 
 proc nexport_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): R): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
+  proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 2
-    return %fn(args[0].to(A), args[1].to(B))
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
-
-proc nexport_function*[A, B, R](fsign: FnSignatureS, fn: proc(a: A, b: B): Future[R]): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
-    assert args.kind == JArray and args.len == 2
-    return %(await fn(args[0].to(A), args[1].to(B)))
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
+    try:
+      let r = fn(args[0].to(A), args[1].to(B))
+      %(is_error: false, result: r)
+    except Exception as e:
+      %(is_error: true, message: e.msg)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
 
 proc nexport_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): R): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
+  proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 3
-    return %fn(args[0].to(A), args[1].to(B), args[2].to(C))
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
-
-proc nexport_function*[A, B, C, R](fsign: FnSignatureS, fn: proc(a: A, b: B, c: C): Future[R]): void =
-  proc nfhandler(args: JsonNode): Future[JsonNode] {.async.} =
-    assert args.kind == JArray and args.len == 3
-    return %(await fn(args[0].to(A), args[1].to(B), args[2].to(C)))
-  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: nfhandler)
+    try:
+      let r = fn(args[0].to(A), args[1].to(B), args[2].to(C))
+      %(is_error: false, result: r)
+    except Exception as e:
+      %(is_error: true, message: e.msg)
+  nexported_functions[fsign.full_name] = NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler)
 
 
 # nexport_handler ----------------------------------------------------------------------------------
-proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
+proc nexport_handler_async*(req: string): Future[Option[string]] {.async.} =
   # Use it to start as RPC server
   try:
     let data = req.parse_json
@@ -185,7 +216,7 @@ proc nexport_handler*(req: string): Future[Option[string]] {.async.} =
     if fname notin nexported_functions: throw fmt"no server function '{fname}'"
     let nfn = nexported_functions[fname]
     let res = await nfn.handler(args)
-    return (is_error: false, result: res).`%`.`$`.some
+    return res.`%`.`$`.some
   except Exception as e:
     return (is_error: true, message: e.msg).`%`.`$`.some
 
@@ -254,10 +285,9 @@ macro nimport_from*(address: Address, fn: typed): typed =
 proc call_nexport_fn(address: Address, fname: string, args: JsonNode): JsonNode =
   assert args.kind == JArray
   let res = try:
-    wait_for address.call((fname: fname, args: args).`%`.`$`)
+    address.call((fname: fname, args: args).`%`.`$`)
   except Exception as e:
-    # Cleaning messy async error
-    throw fmt"can't call '{address}.{fname}', {e.msg.clean_async_error}"
+    throw fmt"can't call '{address}.{fname}', {e.msg}"
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   data["result"]
@@ -282,7 +312,10 @@ proc call_nexport_fn*[A, B, C, R](address: Address, fname: string, a: A, b: B, c
 # call_nexport_fn_async -----------------------------------------------------------------------------
 proc call_nexport_fn_async(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
   assert args.kind == JArray
-  let res = await address.call((fname: fname, args: args).`%`.`$`)
+  let res = try:
+    await address.call_async((fname: fname, args: args).`%`.`$`)
+  except Exception as e:
+    throw fmt"can't call '{address}.{fname}', {e.msg}"
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
@@ -365,5 +398,5 @@ template generate_nimport*(address: Address): void =
 
 # run ----------------------------------------------------------------------------------------------
 proc run*(address: Address) =
-  wait_for address.on_receive(nexport_handler)
+  wait_for address.receive_async(nexport_handler_async)
   run_forever()
