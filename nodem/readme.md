@@ -118,7 +118,8 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 - **Call remote function as local, with multi-dispatch**.
 - There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
 - **Use names** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
-- **No connection**, connection will be created automatically on demand, and re-connect if needed.
+- **No connections**, connections managed automatically, connected, disconnected if not used, re-connected
+  in case of error.
 - Is **fast** as async-IO used.
 - Is **fast for sync functions too**, as they also use async-IO underneath, see note below.
 - **Clean error messages**, without messy async stack traces.

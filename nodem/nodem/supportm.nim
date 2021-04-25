@@ -28,11 +28,10 @@ template test*(name: string, body) =
       echo "test '", name.to_lower, "' failed"
       raise e
 
-
-proc timer_ms*(): (proc (): int) =
+type Timer* = proc: int
+proc timer_ms*(): Timer =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
-
 
 # type Fallible*[T] = object
 #   case is_error*: bool

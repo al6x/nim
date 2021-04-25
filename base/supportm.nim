@@ -112,11 +112,12 @@ test "error_type":
   assert "No security definition has been found :not_found".error_type == "not_found"
 
 
-# timer_sec ----------------------------------------------------------------------------------------
-proc timer_sec*(): (proc (): int) =
+# timer --------------------------------------------------------------------------------------------
+type Timer* = proc: int
+proc timer_sec*(): Timer =
   let started_at = nt.utc(nt.now())
   () => nt.in_seconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 
-proc timer_ms*(): (proc (): int) =
+proc timer_ms*(): Timer =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int

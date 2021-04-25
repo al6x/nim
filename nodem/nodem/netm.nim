@@ -1,4 +1,4 @@
-import strutils, strformat, options, uri, tables, hashes, times
+import strutils, strformat, options, uri, tables, hashes
 from net import OptReuseAddr
 from asyncnet import AsyncSocket
 from os import param_str
@@ -35,8 +35,8 @@ proc connect_without_concurrent_usage(url: string, timeout_ms: int): Future[Asyn
     else:
       await sleep_async delay_time_ms
 
-var sockets: Table[string, AsyncSocket]
-var connect_in_progress: Table[string, Future[AsyncSocket]]
+var sockets: Table[Node, AsyncSocket]
+var connect_in_progress: Table[Node, Future[AsyncSocket]]
 # Preventing multiple concurrent attempts to open same socket
 
 proc connect(node: Node, timeout_ms: int): Future[AsyncSocket] {.async.} =
@@ -45,28 +45,43 @@ proc connect(node: Node, timeout_ms: int): Future[AsyncSocket] {.async.} =
   let (url, _) = node.get
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
-  if url in sockets: return sockets[url]
+  if node in sockets: return sockets[node]
 
   # Preventing simultaneous connection to the same socket
-  if url in connect_in_progress: return await connect_in_progress[url]
+  if node in connect_in_progress: return await connect_in_progress[node]
   try:
     let r = connect_without_concurrent_usage(url, timeout_ms)
-    connect_in_progress[url] = r
-    sockets[url] = await r
+    connect_in_progress[node] = r
+    sockets[node] = await r
   finally:
-    connect_in_progress.del url
-  return sockets[url]
+    connect_in_progress.del node
+  return sockets[node]
 
 
 # disconnect ---------------------------------------------------------------------------------------
-proc disconnect*(node: Node): Future[void] {.async.} =
-  let (url, _) = node.get
-  if url in sockets:
-    let socket = sockets[url]
+proc disconnect*(node: Node): void =
+  if node in sockets:
+    let socket = sockets[node]
     try:     asyncnet.close(socket)
     except:  discard
-    finally: sockets.del url
+    finally: sockets.del node
 
+
+# auto_disconn -------------------------------------------------------------------------------------
+var was_used: Table[Node, bool]
+proc auto_disconnect(_: AsyncFD): bool {.gcsafe.} =
+  # Disconnecting unused
+  for node, used in was_used:
+    if not used: node.disconnect
+
+  # Reseting usage state
+  was_used = init_table[Node, bool]()
+  for node, _ in sockets:
+    was_used[node] = false
+
+  false # True for one use callbacks
+
+add_timer(5 * 60 * 1000, false, auto_disconnect) # Disconnect if node is not used for 5 minutes
 
 # send_message, receive_message --------------------------------------------------------------------
 var id_counter: int64 = 0
@@ -96,10 +111,12 @@ proc receive_message_async(
 
 # send_async ---------------------------------------------------------------------------------------
 proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.async.} =
+  was_used[node] = true
+
   # Send message
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
   let tic = timer_ms()
-  let socket = await connect(node, timeout_ms)
+  let socket = await node.connect(timeout_ms)
   var success = false
   try:
     let left_ms = timeout_ms - tic() # some time could be used by `connect`
@@ -108,11 +125,11 @@ proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.a
     success = true
   finally:
     # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(node)
+    if not success: node.disconnect
 
 proc send_async*(node: Node, message: string): Future[void] =
   let (_, timeout_ms) = node.get
-  send_async(node, message, timeout_ms)
+  node.send_async(message, timeout_ms)
 
 
 # send ---------------------------------------------------------------------------------------------
@@ -126,16 +143,18 @@ proc send*(node: Node, message: string, timeout_ms: int): void =
 
 proc send*(node: Node, message: string): void =
   let (_, timeout_ms) = node.get
-  send(node, message, timeout_ms)
+  node.send(message, timeout_ms)
 
 
 # call_async ---------------------------------------------------------------------------------------
 proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {.async.} =
+  was_used[node] = true
+
   # Send message and waits for reply
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   let tic = timer_ms()
-  let socket = await connect(node, timeout_ms)
+  let socket = await node.connect(timeout_ms)
 
   var success = false
   try:
@@ -157,11 +176,11 @@ proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {
     return reply
   finally:
     # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(node)
+    if not success: node.disconnect
 
 proc call_async*(node: Node, message: string): Future[string] =
   let (_, timeout_ms) = node.get
-  call_async(node, message, timeout_ms)
+  node.call_async(message, timeout_ms)
 
 
 # call ---------------------------------------------------------------------------------------------
@@ -175,7 +194,7 @@ proc call*(node: Node, message: string, timeout_ms: int): string =
 
 proc call*(node: Node, message: string): string =
   let (_, timeout_ms) = node.get
-  call(node, message, timeout_ms)
+  node.call(message, timeout_ms)
 
 
 # receive_async ------------------------------------------------------------------------------------
@@ -262,7 +281,7 @@ proc receive*(
     # The `on_message_with_error_handling` have to be separate proc to avoid messy async stack trace
     return on_message_with_error_handling(message)
 
-  wait_for receive_async(node, on_message_async, on_net_error)
+  wait_for node.receive_async(on_message_async, on_net_error)
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -327,18 +346,18 @@ if is_main_module:
 #     if not success: await disconnect(node)
 
 
-# if is_main_module:
-#   # Clean error on server
-#   let server = Node("server")
-#   proc run_server =
-#     proc on_message(message: string): Option[string] =
-#       throw "some error"
-#     server.receive(on_message)
+if is_main_module:
+  # Clean error on server
+  let server = Node("server")
+  proc run_server =
+    proc on_message(message: string): Option[string] =
+      throw "some error"
+    server.receive(on_message)
 
-#   proc run_client =
-#     server.send "some message"
+  proc run_client =
+    server.send "some message"
 
-#   case param_str(1)
-#   of "server": run_server()
-#   of "client": run_client()
-#   else:        throw "unknown command"
+  case param_str(1)
+  of "server": run_server()
+  of "client": run_client()
+  else:        throw "unknown command"
