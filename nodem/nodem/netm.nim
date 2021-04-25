@@ -1,4 +1,4 @@
-import strutils, strformat, options, uri, tables, hashes
+import strutils, strformat, options, uri, tables, hashes, sets
 from net import OptReuseAddr
 from asyncnet import AsyncSocket
 from os import param_str
@@ -68,20 +68,14 @@ proc disconnect*(node: Node): void =
 
 
 # auto_disconn -------------------------------------------------------------------------------------
-var was_used: Table[Node, bool]
-proc auto_disconnect(_: AsyncFD): bool {.gcsafe.} =
-  # Disconnecting unused
-  for node, used in was_used:
-    if not used: node.disconnect
-
-  # Reseting usage state
-  was_used = init_table[Node, bool]()
+var was_used: HashSet[Node]
+proc auto_disconnect() =
   for node, _ in sockets:
-    was_used[node] = false
+    if node notin was_used: node.disconnect
+  was_used.clear
 
-  false # True for one use callbacks
-
-add_timer(5 * 60 * 1000, false, auto_disconnect) # Disconnect if node is not used for 5 minutes
+# Disconnect if node is not used for 5 minutes
+add_timer(5 * 60 * 1000, auto_disconnect, false)
 
 # send_message, receive_message --------------------------------------------------------------------
 var id_counter: int64 = 0
@@ -111,7 +105,7 @@ proc receive_message_async(
 
 # send_async ---------------------------------------------------------------------------------------
 proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.async.} =
-  was_used[node] = true
+  was_used.incl node
 
   # Send message
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
@@ -148,7 +142,7 @@ proc send*(node: Node, message: string): void =
 
 # call_async ---------------------------------------------------------------------------------------
 proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {.async.} =
-  was_used[node] = true
+  was_used.incl node
 
   # Send message and waits for reply
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
