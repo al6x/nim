@@ -1,12 +1,8 @@
-import json, uri, strutils, os, asyncdispatch, re, sugar
+import json, uri, strutils, os, re, sugar
 from times as nt import nil
 
 
 template throw*(message: string) = raise new_exception(Exception, message)
-
-
-proc clean_async_error*(error: string): string =
-  error.replace(re"\nAsync traceback:[\s\S]+", "")
 
 
 proc parse_url*(url: string): tuple[scheme: string, host: string, port: int, path: string] =

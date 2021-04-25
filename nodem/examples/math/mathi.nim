@@ -1,8 +1,8 @@
 # Auto-generated code, do not edit
-import nodem, asyncdispatch
-export nodem, asyncdispatch
+import nodem
+export nodem
 
-let math* = Address("math")
+let math* = Node("math")
 
 proc pi*(): float {.nimport_from: math.} = discard
 

@@ -1,11 +1,10 @@
-import asyncdispatch except with_timeout
 import strutils, strformat, options, uri, tables, hashes, times
 from net import OptReuseAddr
 from asyncnet import AsyncSocket
 from os import param_str
-import ./addressm, ./supportm, ./asyncm
+import ./net_nodem, ./supportm, ./asyncm
 
-export addressm, asyncdispatch
+export net_nodem, asyncm
 
 
 # autoconnect --------------------------------------------------------------------------------------
@@ -21,7 +20,7 @@ proc connect_without_concurrent_usage(url: string, timeout_ms: int): Future[Asyn
     try:
       let left_ms = timeout_ms - tic()
       if left_ms > 0:
-        await asyncnet.connect(socket, host, Port(port)).timeout(left_ms)
+        await asyncnet.connect(socket, host, Port(port)).with_timeout(left_ms)
       else:
         await asyncnet.connect(socket, host, Port(port))
       return socket
@@ -40,10 +39,10 @@ var sockets: Table[string, AsyncSocket]
 var connect_in_progress: Table[string, Future[AsyncSocket]]
 # Preventing multiple concurrent attempts to open same socket
 
-proc connect(address: Address, timeout_ms: int): Future[AsyncSocket] {.async.} =
+proc connect(node: Node, timeout_ms: int): Future[AsyncSocket] {.async.} =
   # Auto-connect for sockets, if not available wait's till connection would be available with timeout,
   # maybe also add auto-disconnect if it's not used for a while
-  let (url, _) = address.get
+  let (url, _) = node.get
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   if url in sockets: return sockets[url]
@@ -60,8 +59,8 @@ proc connect(address: Address, timeout_ms: int): Future[AsyncSocket] {.async.} =
 
 
 # disconnect ---------------------------------------------------------------------------------------
-proc disconnect*(address: Address): Future[void] {.async.} =
-  let (url, _) = address.get
+proc disconnect*(node: Node): Future[void] {.async.} =
+  let (url, _) = node.get
   if url in sockets:
     let socket = sockets[url]
     try:     asyncnet.close(socket)
@@ -96,47 +95,47 @@ proc receive_message_async(
 
 
 # send_async ---------------------------------------------------------------------------------------
-proc send_async*(address: Address, message: string, timeout_ms: int): Future[void] {.async.} =
+proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.async.} =
   # Send message
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
   let tic = timer_ms()
-  let socket = await connect(address, timeout_ms)
+  let socket = await connect(node, timeout_ms)
   var success = false
   try:
     let left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    await socket.send_message_async(message).timeout(left_ms)
+    await socket.send_message_async(message).with_timeout(left_ms)
     success = true
   finally:
     # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(address)
+    if not success: await disconnect(node)
 
-proc send_async*(address: Address, message: string): Future[void] =
-  let (_, timeout_ms) = address.get
-  send_async(address, message, timeout_ms)
+proc send_async*(node: Node, message: string): Future[void] =
+  let (_, timeout_ms) = node.get
+  send_async(node, message, timeout_ms)
 
 
 # send ---------------------------------------------------------------------------------------------
-proc send*(address: Address, message: string, timeout_ms: int): void =
+proc send*(node: Node, message: string, timeout_ms: int): void =
   # Send message
   try:
-    wait_for address.send_async(message, timeout_ms)
+    wait_for node.send_async(message, timeout_ms)
   except Exception as e:
     # Cleaning messy async error
-    throw fmt"can't send to '{address}', {e.msg.clean_async_error}"
+    throw fmt"can't send to '{node}', {e.msg.clean_async_error}"
 
-proc send*(address: Address, message: string): void =
-  let (_, timeout_ms) = address.get
-  send(address, message, timeout_ms)
+proc send*(node: Node, message: string): void =
+  let (_, timeout_ms) = node.get
+  send(node, message, timeout_ms)
 
 
 # call_async ---------------------------------------------------------------------------------------
-proc call_async*(address: Address, message: string, timeout_ms: int): Future[string] {.async.} =
+proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {.async.} =
   # Send message and waits for reply
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   let tic = timer_ms()
-  let socket = await connect(address, timeout_ms)
+  let socket = await connect(node, timeout_ms)
 
   var success = false
   try:
@@ -145,12 +144,12 @@ proc call_async*(address: Address, message: string, timeout_ms: int): Future[str
     # Sending
     var left_ms = timeout_ms - tic() # some time could be used by `connect`
     if left_ms <= 0: throw "send timed out"
-    await socket.send_message_async(message, id).timeout(left_ms)
+    await socket.send_message_async(message, id).with_timeout(left_ms)
 
     # Receiving
     left_ms = timeout_ms - tic()
     if left_ms <= 0: throw "receive timed out"
-    let (is_closed, reply_id, reply) = await socket.receive_message_async.timeout(left_ms)
+    let (is_closed, reply_id, reply) = await socket.receive_message_async.with_timeout(left_ms)
 
     if is_closed: throw "socket closed"
     if reply_id != id: throw "wrong reply id for call"
@@ -158,25 +157,25 @@ proc call_async*(address: Address, message: string, timeout_ms: int): Future[str
     return reply
   finally:
     # Closing socket on any error, it will be auto-reconnected
-    if not success: await disconnect(address)
+    if not success: await disconnect(node)
 
-proc call_async*(address: Address, message: string): Future[string] =
-  let (_, timeout_ms) = address.get
-  call_async(address, message, timeout_ms)
+proc call_async*(node: Node, message: string): Future[string] =
+  let (_, timeout_ms) = node.get
+  call_async(node, message, timeout_ms)
 
 
 # call ---------------------------------------------------------------------------------------------
-proc call*(address: Address, message: string, timeout_ms: int): string =
+proc call*(node: Node, message: string, timeout_ms: int): string =
   # Send message and waits for reply
   try:
-    wait_for address.call_async(message, timeout_ms)
+    wait_for node.call_async(message, timeout_ms)
   except Exception as e:
     # Cleaning messy async error
-    throw fmt"can't call '{address}', {e.msg.clean_async_error}"
+    throw fmt"can't call '{node}', {e.msg.clean_async_error}"
 
-proc call*(address: Address, message: string): string =
-  let (_, timeout_ms) = address.get
-  call(address, message, timeout_ms)
+proc call*(node: Node, message: string): string =
+  let (_, timeout_ms) = node.get
+  call(node, message, timeout_ms)
 
 
 # receive_async ------------------------------------------------------------------------------------
@@ -206,7 +205,7 @@ proc process_client_async(
         quit 1
 
       if reply.is_some:
-        await send_message_async(client, reply.get, message_id).timeout(timeout_ms)
+        await send_message_async(client, reply.get, message_id).with_timeout(timeout_ms)
   except Exception as e:
     on_net_error(e)
   finally:
@@ -217,11 +216,11 @@ proc process_client_async(
 proc on_net_error_default(e: ref Exception): void = echo e.msg
 
 proc receive_async*(
-  address:      Address,
+  node:      Node,
   on_message:   OnMessageAsync,
   on_net_error: OnNetError = on_net_error_default
 ): Future[void] {.async.} =
-  let (url, timeout_ms) = address.get
+  let (url, timeout_ms) = node.get
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   let (scheme, host, port, path) = parse_url url
@@ -234,14 +233,14 @@ proc receive_async*(
 
   while true:
     let client = await asyncnet.accept(server)
-    async_check process_client_async(client, on_message, on_net_error, timeout_ms)
+    spawn_async process_client_async(client, on_message, on_net_error, timeout_ms)
 
 
 # receive ------------------------------------------------------------------------------------------
 type OnMessage* = proc (message: string): Option[string]
 
 proc receive*(
-  address:      Address,
+  node:      Node,
   on_message:   OnMessage,
   on_net_error: OnNetError = on_net_error_default
 ): void =
@@ -263,15 +262,15 @@ proc receive*(
     # The `on_message_with_error_handling` have to be separate proc to avoid messy async stack trace
     return on_message_with_error_handling(message)
 
-  wait_for receive_async(address, on_message_async, on_net_error)
+  wait_for receive_async(node, on_message_async, on_net_error)
 
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
   # Two nodes working simultaneously and exchanging messages, there's no client or server
-  let (a, b) = (Address("a"), Address("b"))
+  let (a, b) = (Node("a"), Node("b"))
 
-  proc start(self: Address, other: Address) =
+  proc start(self: Node, other: Node) =
     proc log(msg: string) = echo fmt"node {self} {msg}"
 
     proc main: Future[void] {.async.} =
@@ -295,8 +294,8 @@ if is_main_module:
     proc on_error(e: ref Exception): void = echo e.msg
 
     log "started"
-    async_check main()
-    async_check self.receive_async(on_message, on_error)
+    spawn_async main()
+    spawn_async self.receive_async(on_message, on_error)
 
   start(a, b)
   start(b, a)
@@ -305,7 +304,7 @@ if is_main_module:
 
 # receive ------------------------------------------------------------------------------------------
 # const delay_ms = 100
-# proc receive*(node: Address): Future[string] {.async.} =
+# proc receive*(node: Node): Future[string] {.async.} =
 #   # Auto-reconnects and waits untill it gets the message
 #   var success = false
 #   try:
@@ -330,7 +329,7 @@ if is_main_module:
 
 # if is_main_module:
 #   # Clean error on server
-#   let server = Address("server")
+#   let server = Node("server")
 #   proc run_server =
 #     proc on_message(message: string): Option[string] =
 #       throw "some error"

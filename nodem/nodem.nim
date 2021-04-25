@@ -1,7 +1,7 @@
 import json, tables, strutils, strformat, sequtils, sugar, macros, options, os
-import ./nodem/supportm, ./nodem/addressm, ./nodem/netm
+import ./nodem/supportm, ./nodem/netm
 
-export json, addressm, parent_dir, receive_async
+export json, parent_dir, receive_async, netm
 
 # fn_signature -------------------------------------------------------------------------------------
 type FnSignature = (NimNode, seq[(NimNode, NimNode, NimNode)], NimNode, bool)
@@ -300,8 +300,8 @@ proc nexport_handler_with_parser_async*(
     return (is_error: true, message: e.msg).`%`.`$`.some
 
 # nimport_from -------------------------------------------------------------------------------------
-macro nimport_from*(address: Address, fn: typed): typed =
-  # Import remote function from remote address to be able to call it
+macro nimport_from*(node: Node, fn: typed): typed =
+  # Import remote function from remote node to be able to call it
 
   let fsign  = fn_signature(fn)
   let (fname, args, rtype, is_async) = fsign
@@ -314,22 +314,22 @@ macro nimport_from*(address: Address, fn: typed): typed =
     of 0:
       quote do:
         proc `fname`*(): Future[`rtype`] =
-          `address`.call_nexport_fn_async(`full_name`, typeof `rtype`)
+          `node`.call_nexport_fn_async(`full_name`, typeof `rtype`)
     of 1:
       let (a, at, _) = args[0]
       quote do:
         proc `fname`*(`a`: `at`): Future[`rtype`] =
-          `address`.call_nexport_fn_async(`full_name`, `a`, typeof `rtype`)
+          `node`.call_nexport_fn_async(`full_name`, `a`, typeof `rtype`)
     of 2:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`): Future[`rtype`] =
-          `address`.call_nexport_fn_async(`full_name`, `a`, `b`, typeof `rtype`)
+          `node`.call_nexport_fn_async(`full_name`, `a`, `b`, typeof `rtype`)
     of 3:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]; let (c, ct, _) = args[2]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`, `c`: `ct`): Future[`rtype`] =
-          `address`.call_nexport_fn_async(`full_name`, `a`, `b`, `c`, typeof `rtype`)
+          `node`.call_nexport_fn_async(`full_name`, `a`, `b`, `c`, typeof `rtype`)
     else:
       quote do:
         raise new_exception(Exception, "not supported, please update the code to suppor it")
@@ -338,94 +338,94 @@ macro nimport_from*(address: Address, fn: typed): typed =
     of 0:
       quote do:
         proc `fname`*(): `rtype` =
-          `address`.call_nexport_fn(`full_name`, typeof `rtype`)
+          `node`.call_nexport_fn(`full_name`, typeof `rtype`)
     of 1:
       let (a, at, _) = args[0]
       quote do:
         proc `fname`*(`a`: `at`): `rtype` =
-          `address`.call_nexport_fn(`full_name`, `a`, typeof `rtype`)
+          `node`.call_nexport_fn(`full_name`, `a`, typeof `rtype`)
     of 2:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`): `rtype` =
-          `address`.call_nexport_fn(`full_name`, `a`, `b`, typeof `rtype`)
+          `node`.call_nexport_fn(`full_name`, `a`, `b`, typeof `rtype`)
     of 3:
       let (a, at, _) = args[0]; let (b, bt, _) = args[1]; let (c, ct, _) = args[2]
       quote do:
         proc `fname`*(`a`: `at`, `b`: `bt`, `c`: `ct`): `rtype` =
-          `address`.call_nexport_fn(`full_name`, `a`, `b`, `c`, typeof `rtype`)
+          `node`.call_nexport_fn(`full_name`, `a`, `b`, `c`, typeof `rtype`)
     else:
       quote do:
         raise new_exception(Exception, "not supported, please update the code to suppor it")
 
 
 # call_nexport_fn ----------------------------------------------------------------------------------
-proc call_nexport_fn(address: Address, fname: string, args: JsonNode): JsonNode =
+proc call_nexport_fn(node: Node, fname: string, args: JsonNode): JsonNode =
   assert args.kind == JArray
   let res = try:
-    address.call((fn: fname, args: args).`%`.`$`)
+    node.call((fn: fname, args: args).`%`.`$`)
   except Exception as e:
-    throw fmt"can't call '{address}.{fname}', {e.msg}"
+    throw fmt"can't call '{node}.{fname}', {e.msg}"
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   data["result"]
 
-proc call_nexport_fn*[R](address: Address, fname: string, rtype: type[R]): R =
+proc call_nexport_fn*[R](node: Node, fname: string, rtype: type[R]): R =
   let args = newJArray()
-  call_nexport_fn(address, fname, args).to(R)
+  call_nexport_fn(node, fname, args).to(R)
 
-proc call_nexport_fn*[A, R](address: Address, fname: string, a: A, tr: type[R]): R =
+proc call_nexport_fn*[A, R](node: Node, fname: string, a: A, tr: type[R]): R =
   let args = newJArray(); args.add %a;
-  call_nexport_fn(address, fname, args).to(R)
+  call_nexport_fn(node, fname, args).to(R)
 
-proc call_nexport_fn*[A, B, R](address: Address, fname: string, a: A, b: B, tr: type[R]): R =
+proc call_nexport_fn*[A, B, R](node: Node, fname: string, a: A, b: B, tr: type[R]): R =
   let args = newJArray(); args.add %a; args.add %b;
-  call_nexport_fn(address, fname, args).to(R)
+  call_nexport_fn(node, fname, args).to(R)
 
-proc call_nexport_fn*[A, B, C, R](address: Address, fname: string, a: A, b: B, c: C, tr: type[R]): R =
+proc call_nexport_fn*[A, B, C, R](node: Node, fname: string, a: A, b: B, c: C, tr: type[R]): R =
   let args = newJArray(); args.add %a; args.add %b; args.add %c
-  call_nexport_fn(address, fname, args).to(R)
+  call_nexport_fn(node, fname, args).to(R)
 
 
 # call_nexport_fn_async -----------------------------------------------------------------------------
-proc call_nexport_fn_async(address: Address, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
+proc call_nexport_fn_async(node: Node, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
   assert args.kind == JArray
   let res = try:
-    await address.call_async((fn: fname, args: args).`%`.`$`)
+    await node.call_async((fn: fname, args: args).`%`.`$`)
   except Exception as e:
-    throw fmt"can't call '{address}.{fname}', {e.msg}"
+    throw fmt"can't call '{node}.{fname}', {e.msg}"
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
 
 proc call_nexport_fn_async*[R](
-  address: Address, fname: string, tr: type[R]
+  node: Node, fname: string, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray();
-  return (await call_nexport_fn_async(address, fname, args)).to(R)
+  return (await call_nexport_fn_async(node, fname, args)).to(R)
 
 proc call_nexport_fn_async*[A, R](
-  address: Address, fname: string, a: A, tr: type[R]
+  node: Node, fname: string, a: A, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a
-  return (await call_nexport_fn_async(address, fname, args)).to(R)
+  return (await call_nexport_fn_async(node, fname, args)).to(R)
 
 proc call_nexport_fn_async*[A, B, R](
-  address: Address, fname: string, a: A, b: B, tr: type[R]
+  node: Node, fname: string, a: A, b: B, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b;
-  return (await call_nexport_fn_async(address, fname, args)).to(R)
+  return (await call_nexport_fn_async(node, fname, args)).to(R)
 
 proc call_nexport_fn_async*[A, B, C, R](
-  address: Address, fname: string, a: A, b: B, c: C, tr: type[R]
+  node: Node, fname: string, a: A, b: B, c: C, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %a; args.add %b; args.add %c
-  return (await call_nexport_fn_async(address, fname, args)).to(R)
+  return (await call_nexport_fn_async(node, fname, args)).to(R)
 
 # generate_nimport ---------------------------------------------------------------------------------
 proc generate_nimport*(
   folder:   string,
-  address:  Address,
+  node:  Node,
   as_async: Option[bool],
   prepend:  Option[string]
 ): void =
@@ -433,13 +433,13 @@ proc generate_nimport*(
   # By default sync/async would be same as in nexported function, it could be changed with `as_async`
   var statements: seq[string]
 
-  # Addin imports and address
+  # Addin imports and node
   let default_prepend = fmt"""
     # Auto-generated code, do not edit
-    import nodem, asyncdispatch
-    export nodem, asyncdispatch
+    import nodem
+    export nodem
 
-    let {address}* = Address("{address}")""".dedent
+    let {node}* = Node("{node}")""".dedent
   statements.add prepend.get(default_prepend)
 
   # Addin nexported functions
@@ -450,14 +450,14 @@ proc generate_nimport*(
     # Declaring function
     let args_s = fsign[1].map((arg) => fmt"{arg[0]}: {arg[1]}").join(", ")
     statements.add if is_async:
-      fmt"proc {fsign[0]}*({args_s}): Future[{fsign[2]}]" & " {.nimport_from: " & $address & ".} = discard"
+      fmt"proc {fsign[0]}*({args_s}): Future[{fsign[2]}]" & " {.nimport_from: " & $node & ".} = discard"
     else: # sync
-      fmt"proc {fsign[0]}*({args_s}): {fsign[2]}" & " {.nimport_from: " & $address & ".} = discard"
+      fmt"proc {fsign[0]}*({args_s}): {fsign[2]}" & " {.nimport_from: " & $node & ".} = discard"
 
   let code = statements.join("\n\n")
 
   # Avoiding writing file if it's the same
-  let path = folder / fmt"{address}i.nim"
+  let path = folder / fmt"{node}i.nim"
   let existing_code =
     try: read_file(path)
     except: ""
@@ -465,16 +465,16 @@ proc generate_nimport*(
   if existing_code != code:
     write_file(path, code)
 
-template generate_nimport*(address: Address, as_async: bool): void =
+template generate_nimport*(node: Node, as_async: bool): void =
   let folder = instantiation_info(full_paths = true).filename.parent_dir
-  generate_nimport(folder, address, as_async.some, string.none)
+  generate_nimport(folder, node, as_async.some, string.none)
 
-template generate_nimport*(address: Address): void =
+template generate_nimport*(node: Node): void =
   let folder = instantiation_info(full_paths = true).filename.parent_dir
-  generate_nimport(folder, address, bool.none, string.none)
+  generate_nimport(folder, node, bool.none, string.none)
 
 
 # run ----------------------------------------------------------------------------------------------
-proc run*(address: Address) =
-  async_check address.receive_async(nexport_handler_async)
+proc run*(node: Node) =
+  spawn_async node.receive_async(nexport_handler_async)
   run_forever()

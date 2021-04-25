@@ -10,5 +10,5 @@ proc main: Future[void] {.async.} =
   # => Hi Alex
 async_check main()
 
-let user = Address("user")
+let user = Node("user")
 user.run

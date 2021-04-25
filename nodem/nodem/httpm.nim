@@ -1,4 +1,4 @@
-import asyncdispatch, options, strformat, strutils, sequtils, uri, re, sets, json
+import options, strformat, strutils, sequtils, uri, re, sets, json
 from asynchttpserver as asynchttp import nil
 import httpcore
 import ./supportm, ../nodem, ./http_support
@@ -39,8 +39,9 @@ proc error(req: asynchttp.Request, message: string): Future[void] =
 proc success(req: asynchttp.Request, message: string): Future[void] =
   asynchttp.respond(req, Http200, message, headers)
 
-# receive_http -------------------------------------------------------------------------------------
-proc receive_http*(
+# run_http -----------------------------------------------------------------------------------------
+proc run_http*(
+  _:         Node,
   url:       string,
   allow_get: seq[string] = @[]
 ): Future[void] {.async.} =

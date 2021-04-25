@@ -15,6 +15,6 @@ proc main: Future[void] {.async.} =
       echo "can't get user name"
 async_check main()
 
-let greeting = Address("greeting")
+let greeting = Node("greeting")
 greeting.generate_nimport
 greeting.run

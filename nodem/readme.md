@@ -14,7 +14,7 @@ import nodem
 proc multiply(a, b: float): float {.nexport.} = a * b
 
 if is_main_module:
-  let server = Address("server")
+  let server = Node("server")
   server.generate_nimport
   server.run
 ```
@@ -35,7 +35,7 @@ See `examples/simple`.
 Exporting some functions as available over network:
 
 ```Nim
-import asyncdispatch, nodem, nodem/httpm
+import nodem, nodem/httpm
 
 proc pi: float {.nexport.} = 3.14
 
@@ -45,7 +45,7 @@ proc multiply(a, b: string): string {.nexport.} = a & b # Multi dispatch support
 proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported
 
 if is_main_module:
-  let math = Address("math") # Address is just `distinct string`
+  let math = Node("math") # Node is just `distinct string`
   # math.define "tcp://localhost:4000" # Optional, will be auto-set
 
   async_check receive_http("http://localhost:8000", allow_get = @["plus"]) # Optional, for HTTP
@@ -117,7 +117,7 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 
 - **Call remote function as local, with multi-dispatch**.
 - There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
-- **Use addresses** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
+- **Use names** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
 - **No connection**, connection will be created automatically on demand, and re-connect if needed.
 - Is **fast** as async-IO used.
 - Is **fast for sync functions too**, as they also use async-IO underneath, see note below.
@@ -171,11 +171,12 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 
 # TODO
 
+- Close unused TCP after 5 min
 - Add deserialise from strings handler to FnHandler
 - TypeScript and Elixir integration.
 - Add support for defaults.
 - HTTP example with autocast from querystring and POST strings
-- Redis in X lines
+- Redis in X lines, counts / cache / pub-sub
 - Web Server in 5 lines of Nim
 
 # Notes

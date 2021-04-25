@@ -1,7 +1,7 @@
 # Have to be generated manually, because of the circular dependency
-import nodem, asyncdispatch
-export nodem, asyncdispatch
+import nodem
+export nodem
 
-let user* = Address("user")
+let user* = Node("user")
 
 proc user_name*(): Future[string] {.nimport_from: user.} = discard
