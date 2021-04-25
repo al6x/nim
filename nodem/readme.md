@@ -110,7 +110,7 @@ when you know that it's really needed.
 
 # Messaging example
 
-The underlying network transport provided by `nodem/anetm`, tiny Erlang-like networking messaging. It could be
+The underlying network transport provided by `nodem/netm`, tiny Erlang-like networking messaging. It could be
 useful when RPC is not needed and sending just messages is enough, there's example at the end of the file.
 
 # Features
@@ -118,8 +118,7 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 - **Call remote function as local, with multi-dispatch**.
 - There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
 - **Use names** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
-- **No connections**, connections managed automatically, connected, disconnected if not used, re-connected
-  in case of error.
+- **No connections**, managed automatically, connect, re-connect, disconnected if not used.
 - Is **fast** as async-IO used.
 - Is **fast for sync functions too**, as they also use async-IO underneath, see note below.
 - **Clean error messages**, without messy async stack traces.
