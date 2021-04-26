@@ -381,93 +381,93 @@ macro nimport*(fn: typed): typed =
         raise new_exception(Exception, "not supported, please update the code to suppor it")
   else:
     case args.len:
-    of 0:
+    of 1:
       let (n, nt, _) = args[0]
       quote do:
         proc `fname`*(`n`: `nt`): `rtype` =
-          call_nexport_fn(`full_name`, `n`: `nt`, typeof `rtype`)
-    of 1:
+          call_nexport_fn(`full_name`, `n`, typeof `rtype`)
+    of 2:
       let (n, nt, _) = args[0]; let (a, at, _) = args[1]
       quote do:
         proc `fname`*(`n`: `nt`, `a`: `at`): `rtype` =
-          call_nexport_fn(`full_name`, `n`: `nt`, `a`, typeof `rtype`)
-    of 2:
+          call_nexport_fn(`full_name`, `n`, `a`, typeof `rtype`)
+    of 3:
       let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]
       quote do:
         proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`): `rtype` =
-          call_nexport_fn(`full_name`, `n`: `nt`, `a`, `b`, typeof `rtype`)
-    of 3:
+          call_nexport_fn(`full_name`, `n`, `a`, `b`, typeof `rtype`)
+    of 4:
       let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]; let (c, ct, _) = args[3]
       quote do:
         proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`, `c`: `ct`): `rtype` =
-          node.call_nexport_fn(`full_name`, `n`: `nt`, `a`, `b`, `c`, typeof `rtype`)
+          call_nexport_fn(`full_name`, `n`, `a`, `b`, `c`, typeof `rtype`)
     else:
       quote do:
         raise new_exception(Exception, "not supported, please update the code to suppor it")
 
 
 # call_nexport_fn ----------------------------------------------------------------------------------
-proc call_nexport_fn(node: Node, fname: string, args: JsonNode): JsonNode =
+proc call_nexport_fn[N](fname: string, n: N, args: JsonNode): JsonNode =
   assert args.kind == JArray
   let res = try:
-    node.call((fn: fname, args: args).`%`.`$`)
+    n.call((fn: fname, args: args).`%`.`$`)
   except Exception as e:
-    throw fmt"can't call '{node}.{fname}', {e.msg}"
+    throw fmt"can't call '{n}.{fname}', {e.msg}"
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   data["result"]
 
-proc call_nexport_fn*[N, R](node: Node, fname: string, n: N, rtype: type[R]): R =
+proc call_nexport_fn*[N, R](fname: string, n: N, rtype: type[R]): R =
   let args = newJArray(); args.add %(n.id);
-  call_nexport_fn(node, fname, args).to(R)
+  call_nexport_fn(fname, n, args).to(R)
 
-proc call_nexport_fn*[N, A, R](node: Node, fname: string, n: N, a: A, tr: type[R]): R =
+proc call_nexport_fn*[N, A, R](fname: string, n: N, a: A, tr: type[R]): R =
   let args = newJArray(); args.add %(n.id);args.add %a;
-  call_nexport_fn(node, fname, args).to(R)
+  call_nexport_fn(fname, n, args).to(R)
 
-proc call_nexport_fn*[N, A, B, R](node: Node, fname: string, n: N, a: A, b: B, tr: type[R]): R =
+proc call_nexport_fn*[N, A, B, R](fname: string, n: N, a: A, b: B, tr: type[R]): R =
   let args = newJArray(); args.add %(n.id);args.add %a; args.add %b;
-  call_nexport_fn(node, fname, args).to(R)
+  call_nexport_fn(fname, n, args).to(R)
 
-proc call_nexport_fn*[N, A, B, C, R](node: Node, fname: string, n: N, a: A, b: B, c: C, tr: type[R]): R =
+proc call_nexport_fn*[N, A, B, C, R](fname: string, n: N, a: A, b: B, c: C, tr: type[R]): R =
   let args = newJArray(); args.add %(n.id);args.add %a; args.add %b; args.add %c
-  call_nexport_fn(node, fname, args).to(R)
+  call_nexport_fn(fname, n, args).to(R)
 
 
 # call_nexport_fn_async -----------------------------------------------------------------------------
-proc call_nexport_fn_async(node: Node, fname: string, args: JsonNode): Future[JsonNode] {.async.} =
+proc call_nexport_fn_async[N](fname: string, n: N, args: JsonNode): Future[JsonNode] {.async.} =
   assert args.kind == JArray
   let res = try:
-    await node.call_async((fn: fname, args: args).`%`.`$`)
+    await n.call_async((fn: fname, args: args).`%`.`$`)
   except Exception as e:
-    throw fmt"can't call '{node}.{fname}', {e.msg}"
+    throw fmt"can't call '{n}.{fname}', {e.msg}"
   let data = res.parse_json
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
 
 proc call_nexport_fn_async*[N, R](
-  node: Node, fname: string, n: N, tr: type[R]
+  fname: string, n: N, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id)
-  return (await call_nexport_fn_async(node, fname, args)).to(R)
+  return (await call_nexport_fn_async(fname, n, args)).to(R)
 
 proc call_nexport_fn_async*[N, A, R](
-  node: Node, fname: string, n: N, a: A, tr: type[R]
+  fname: string, n: N, a: A, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id); args.add %a
-  return (await call_nexport_fn_async(node, fname, args)).to(R)
+  return (await call_nexport_fn_async(fname, n, args)).to(R)
 
 proc call_nexport_fn_async*[N, A, B, R](
-  node: Node, fname: string, n: N, a: A, b: B, tr: type[R]
+  fname: string, n: N, a: A, b: B, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id); args.add %a; args.add %b;
-  return (await call_nexport_fn_async(node, fname, args)).to(R)
+  return (await call_nexport_fn_async(fname, n, args)).to(R)
 
 proc call_nexport_fn_async*[N, A, B, C, R](
-  node: Node, fname: string, n: N, a: A, b: B, c: C, tr: type[R]
+  fname: string, n: N, a: A, b: B, c: C, tr: type[R]
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id); args.add %a; args.add %b; args.add %c
-  return (await call_nexport_fn_async(node, fname, args)).to(R)
+  return (await call_nexport_fn_async(fname, n, args)).to(R)
 
 # generate_nimport ---------------------------------------------------------------------------------
 # proc generate_nimport*(
