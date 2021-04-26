@@ -1,13 +1,11 @@
-# Auto-generated code, do not edit
 import nodem
-export nodem
 
-let math* = Node("math")
+type MathNode* = ref object of Node
+proc math_node(id: string): MathNode = MathNode(id: id)
 
-proc pi*(): float {.nimport_from: math.} = discard
+proc pi(_: MathNode): float {.nexport.} = 3.14
 
-proc multiply*(a: float, b: float): float {.nimport_from: math.} = discard
+proc multiply(_: MathNode, a, b: float): float {.nexport.} = a * b
+proc multiply(_: MathNode, a, b: string): string {.nexport.} = a & b # Multi dispatch supported
 
-proc multiply*(a: string, b: string): string {.nimport_from: math.} = discard
-
-proc plus*(x: float, y: float): Future[float] {.nimport_from: math.} = discard
+proc plus(_: MathNode, x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported

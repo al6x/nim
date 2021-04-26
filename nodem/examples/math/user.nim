@@ -1,12 +1,14 @@
-import ./mathi
+include ./mathi
 
-echo multiply(pi(), 2)
+let math = "math".math_node
+
+echo math.multiply(math.pi(), 2)
 # => 6.28
 
-echo multiply("A", "x")
+echo math.multiply("A", "x")
 # => Ax
 
-echo wait_for plus(1, 2)
+echo wait_for math.plus(1, 2)
 # => 3
 
 # math.define "tcp://localhost:4000" # optional, will be auto-set

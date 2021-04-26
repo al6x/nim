@@ -33,18 +33,9 @@ proc timer_ms*(): Timer =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 
-# type Fallible*[T] = object
-#   case is_error*: bool
-#   of true:
-#     message*: string
-#   of false:
-#     value*: T
+proc quit*(e: ref Exception) =
+  stderr.write_line e.msg
+  stderr.write_line e.get_stack_trace
+  quit 1
 
-# func is_error*[T](e: Fallible[T]): bool = e.is_error
-
-# func get*[T](e: Fallible[T]): T =
-#   if e.is_error: throw(e.message) else: e.value
-
-# func error*(T: type, message: string): Fallible[T] = Fallible[T](is_error: true, message: message)
-
-# func success*[T](value: T): Fallible[T] = Fallible[T](is_error: false, value: value)
+const p* = echo

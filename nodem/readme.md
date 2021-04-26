@@ -169,15 +169,27 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
   multiple Nim nodes, processes. And most IO-bound parallelism would be handled by Elixir.
 - Fast compile time for Nim, as you don't have dependencies like MongoDB or PostgreSQL drivers etc.
 
+# Performance
+
+The main use case is hundreds of nodes in local network exchanging lots of small messages.
+
+Current limitations and possible areas for improvements:
+
+- Messages passed by copying, could be improved with move semantics.
+- std/json used for serialisation, faster serialization could be used.
+- Two TCP sockets used for communication, it's possible to use only one, but it would complicate the
+  implementation, and it shouldn't matter, as there are only couple of hundreds of nodes not thousands.
+
 # TODO
 
-- Close unused TCP after 5 min
+- Use tpc instead of nodes for netm
 - Add deserialise from strings handler to FnHandler
 - TypeScript and Elixir integration.
 - Add support for defaults.
 - HTTP example with autocast from querystring and POST strings
 - Redis in X lines, counts / cache / pub-sub
 - Web Server in 5 lines of Nim
+- Manager to start/restart
 
 # Notes
 

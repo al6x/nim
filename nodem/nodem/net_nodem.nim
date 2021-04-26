@@ -1,27 +1,46 @@
-import tables, hashes, strformat
+import tables, hashes, strformat, json, options
 import ./supportm
 
 export tables, hashes
 
-type Node* = distinct string
-# Refer to nodes by node instead of urls, like `"red_node"` instead of `"tcp://localhost:4000"`
+let default_timeout_ms = 2000
+type NodeDefinition* = ref object
+  url*:        string
+  timeout_ms*: int
 
-proc `$`*(node: Node): string = node.string
-proc hash*(node: Node): Hash = node.string.hash
-proc `==`*(a, b: Node): bool = a.string == b.string
+type Node* = ref object of RootObj
+  # Refer to nodes by node instead of urls, like `"red_node"` instead of `"tcp://localhost:4000"`
+  # Nodes usually not defined immediately, but at runtime config,
+  # immediately defined nodes are usually for temporarry.
+  id*:  string
+  def:  Option[NodeDefinition]
 
-type NodeImpl* = tuple
-  url:        string
-  timeout_ms: int
+proc node*(id: string): Node =
+  Node(id: id)
 
-# Define mapping between nodees and urls
-var nodees: Table[Node, NodeImpl]
+proc node*(id: string, url: string, timeout_ms = default_timeout_ms): Node =
+  Node(id: id, def: NodeDefinition(url: url, timeout_ms: timeout_ms).some)
 
-proc define*(node: Node, url: string, timeout = 2000): void =
-  nodees[node] = (url, timeout)
+proc `$`*(node: Node): string = node.id
+proc hash*(node: Node): Hash = node.id.hash
+proc `==`*(a, b: Node): bool = a.id == b.id
 
-proc get*(node: Node): NodeImpl =
-  if node notin nodees:
+var nodes_definitions*: Table[Node, NodeDefinition]
+
+proc define*(node: Node, url: string, timeout_ms = default_timeout_ms): void =
+  nodes_definitions[node] = NodeDefinition(url: url, timeout_ms: timeout_ms)
+
+proc definition*(node: Node): NodeDefinition =
+  if node.def.is_some: return node.def.get
+  if node notin nodes_definitions:
     # Assuming it's localhost and deriving port in range 6000-7000
-    node.define fmt"tcp://localhost:{6000 + (node.string.hash.int mod 1000)}"
-  nodees[node]
+    node.define fmt"tcp://localhost:{6000 + (node.id.hash.int mod 1000)}"
+  nodes_definitions[node]
+
+proc `%`*(node: Node): JsonNode =
+  if node.def.is_some: %node
+  else:                %(node.id)
+
+proc node_from_json*[N](_: type[N], json: JsonNode): N =
+  if json.kind == JString: N(id: json.get_str)
+  else:                    json.to(N)

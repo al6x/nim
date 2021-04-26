@@ -6,8 +6,27 @@ export asyncdispatch except async_check, with_timeout, add_timer
 
 
 # spawn_async --------------------------------------------------------------------------------------
+proc ignore_exceptions*[T](future: Future[T]): Future[T] {.async.} =
+  try:    await future
+  except: discard
+
+proc ignore_exceptions*(future: Future[void]): Future[void] {.async.} =
+  try:    await future
+  except: discard
+
 proc spawn_async*[T](future: Future[T], check = true) =
-  asyncdispatch.async_check future
+  if check: asyncdispatch.async_check future
+  else:     asyncdispatch.async_check future.ignore_exceptions
+
+proc spawn_async*[T](afn: proc: Future[T], check = true) =
+  proc on_next_tick {.gcsafe.} =
+    if check: asyncdispatch.async_check afn()
+    else:
+      try:
+        asyncdispatch.async_check afn().ignore_exceptions
+      except:
+        discard
+  asyncdispatch.call_soon on_next_tick
 
 
 # timeout ------------------------------------------------------------------------------------------

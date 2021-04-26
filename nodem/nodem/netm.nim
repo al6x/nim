@@ -42,7 +42,7 @@ var connect_in_progress: Table[Node, Future[AsyncSocket]]
 proc connect(node: Node, timeout_ms: int): Future[AsyncSocket] {.async.} =
   # Auto-connect for sockets, if not available wait's till connection would be available with timeout,
   # maybe also add auto-disconnect if it's not used for a while
-  let (url, _) = node.get
+  let url = node.definition.url
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   if node in sockets: return sockets[node]
@@ -122,8 +122,7 @@ proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.a
     if not success: node.disconnect
 
 proc send_async*(node: Node, message: string): Future[void] =
-  let (_, timeout_ms) = node.get
-  node.send_async(message, timeout_ms)
+  node.send_async(message, node.definition.timeout_ms)
 
 
 # send ---------------------------------------------------------------------------------------------
@@ -136,8 +135,7 @@ proc send*(node: Node, message: string, timeout_ms: int): void =
     throw fmt"can't send to '{node}', {e.msg.clean_async_error}"
 
 proc send*(node: Node, message: string): void =
-  let (_, timeout_ms) = node.get
-  node.send(message, timeout_ms)
+  node.send(message, node.definition.timeout_ms)
 
 
 # call_async ---------------------------------------------------------------------------------------
@@ -173,8 +171,7 @@ proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {
     if not success: node.disconnect
 
 proc call_async*(node: Node, message: string): Future[string] =
-  let (_, timeout_ms) = node.get
-  node.call_async(message, timeout_ms)
+  node.call_async(message, node.definition.timeout_ms)
 
 
 # call ---------------------------------------------------------------------------------------------
@@ -187,8 +184,7 @@ proc call*(node: Node, message: string, timeout_ms: int): string =
     throw fmt"can't call '{node}', {e.msg.clean_async_error}"
 
 proc call*(node: Node, message: string): string =
-  let (_, timeout_ms) = node.get
-  node.call(message, timeout_ms)
+  node.call(message, node.definition.timeout_ms)
 
 
 # receive_async ------------------------------------------------------------------------------------
@@ -233,7 +229,7 @@ proc receive_async*(
   on_message:   OnMessageAsync,
   on_net_error: OnNetError = on_net_error_default
 ): Future[void] {.async.} =
-  let (url, timeout_ms) = node.get
+  let (url, timeout_ms) = (node.definition.url, node.definition.timeout_ms)
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
 
   let (scheme, host, port, path) = parse_url url
@@ -281,7 +277,7 @@ proc receive*(
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
   # Two nodes working simultaneously and exchanging messages, there's no client or server
-  let (a, b) = (Node("a"), Node("b"))
+  let (a, b) = (node"a", node"b")
 
   proc start(self: Node, other: Node) =
     proc log(msg: string) = echo fmt"node {self} {msg}"
@@ -340,18 +336,18 @@ if is_main_module:
 #     if not success: await disconnect(node)
 
 
-if is_main_module:
-  # Clean error on server
-  let server = Node("server")
-  proc run_server =
-    proc on_message(message: string): Option[string] =
-      throw "some error"
-    server.receive(on_message)
+# if is_main_module:
+#   # Clean error on server
+#   let server = Node("server")
+#   proc run_server =
+#     proc on_message(message: string): Option[string] =
+#       throw "some error"
+#     server.receive(on_message)
 
-  proc run_client =
-    server.send "some message"
+#   proc run_client =
+#     server.send "some message"
 
-  case param_str(1)
-  of "server": run_server()
-  of "client": run_client()
-  else:        throw "unknown command"
+#   case param_str(1)
+#   of "server": run_server()
+#   of "client": run_client()
+#   else:        throw "unknown command"

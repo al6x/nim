@@ -15,7 +15,7 @@ echo
 
 curl \
 --request POST \
---data '{"fn":"multiply(a: float, b: float): float","args":[3.14,2.0]}' \
+--data '{"fn":"multiply(node: MathNode, a: float, b: float): float","args":["math",3.14,2.0]}' \
 http://localhost:8000
 echo
 

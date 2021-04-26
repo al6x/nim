@@ -40,8 +40,7 @@ proc success(req: asynchttp.Request, message: string): Future[void] =
   asynchttp.respond(req, Http200, message, headers)
 
 # run_http -----------------------------------------------------------------------------------------
-proc run_http*(
-  _:         Node,
+proc run_node_http_adapter*(
   url:       string,
   allow_get: seq[string] = @[]
 ): Future[void] {.async.} =
@@ -63,9 +62,11 @@ proc run_http*(
         let (fname, args_list) = (parts[0], parts[1..^1])
         var args_map: Table[string, string]
         for k, v in req.url.query.decode_query: args_map[k] = v
-        if fname notin allow_get_set: await req.error("not allowed as GET")
-        let reply = await nexport_handler_with_parser_async(fname, args_list, args_map)
-        await req.success reply.get("{}")
+        if fname notin allow_get_set:
+          await req.error("not allowed as GET")
+        else:
+          let reply = await nexport_handler_with_parser_async(fname, args_list, args_map)
+          await req.success reply.get("{}")
       of HttpPost:
         let message = req.body
         let reply = await nexport_handler_async(message)
