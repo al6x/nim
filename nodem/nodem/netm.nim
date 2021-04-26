@@ -1,4 +1,4 @@
-import strutils, strformat, options, uri, tables, hashes, sets
+import strutils, strformat, options, uri, tables, hashes, sets, sugar
 from net import OptReuseAddr
 from asyncnet import AsyncSocket
 from os import param_str
@@ -6,76 +6,22 @@ import ./net_nodem, ./supportm, ./asyncm
 
 export net_nodem, asyncm
 
-
-# autoconnect --------------------------------------------------------------------------------------
-proc connect_without_concurrent_usage(url: string, timeout_ms: int): Future[AsyncSocket] {.async.} =
-  let (scheme, host, port, path) = url.parse_url
-  if scheme != "tcp": throw "only TCP supported"
-  if path != "": throw "wrong path"
-
-  # Waiting for timeout
-  let tic = timer_ms()
-  while true:
-    var socket = asyncnet.new_async_socket()
-    try:
-      let left_ms = timeout_ms - tic()
-      if left_ms > 0:
-        await asyncnet.connect(socket, host, Port(port)).with_timeout(left_ms)
-      else:
-        await asyncnet.connect(socket, host, Port(port))
-      return socket
-    except Exception as e:
-      try:    asyncnet.close(socket)
-      except: discard
-
-    let delay_time_ms = 20
-    let left_ms = timeout_ms - tic()
-    if left_ms <= delay_time_ms:
-      throw "Timed out, connection closed"
-    else:
-      await sleep_async delay_time_ms
-
 var sockets: Table[Node, AsyncSocket]
-var connect_in_progress: Table[Node, Future[AsyncSocket]]
-# Preventing multiple concurrent attempts to open same socket
 
-proc connect(node: Node, timeout_ms: int): Future[AsyncSocket] {.async.} =
-  # Auto-connect for sockets, if not available wait's till connection would be available with timeout,
-  # maybe also add auto-disconnect if it's not used for a while
-  let url = node.definition.url
-  if timeout_ms <= 0: throw "tiemout should be greather than zero"
+type ReceivedMessage = tuple[is_closed: bool, message_id: int, message: string]
+var receivers: Table[Node, TableRef[int64, Future[ReceivedMessage]]]
+# Messages received from socket via receiver, to make it possible to receive message by specific ID
 
-  if node in sockets: return sockets[node]
+# clean_receivers ----------------------------------------------------------------------------------
+proc clean_receivers(node: Node, op: proc (f: Future[ReceivedMessage]): void) =
+  if node in receivers:
+    if receivers[node].len > 100:
+      throw "more than 100 receivers, could be not destroyed properly, if you are sure it's ok uncomment that"
+    for _, future in receivers[node]:
+      if not future.finished:
+        call_soon proc {.gcsafe.} = op(future)
+    receivers.del node
 
-  # Preventing simultaneous connection to the same socket
-  if node in connect_in_progress: return await connect_in_progress[node]
-  try:
-    let r = connect_without_concurrent_usage(url, timeout_ms)
-    connect_in_progress[node] = r
-    sockets[node] = await r
-  finally:
-    connect_in_progress.del node
-  return sockets[node]
-
-
-# disconnect ---------------------------------------------------------------------------------------
-proc disconnect*(node: Node): void =
-  if node in sockets:
-    let socket = sockets[node]
-    try:     asyncnet.close(socket)
-    except:  discard
-    finally: sockets.del node
-
-
-# auto_disconn -------------------------------------------------------------------------------------
-var was_used: HashSet[Node]
-proc auto_disconnect() =
-  for node, _ in sockets:
-    if node notin was_used: node.disconnect
-  was_used.clear
-
-# Disconnect if node is not used for 5 minutes
-add_timer(5 * 60 * 1000, auto_disconnect, false)
 
 # send_message, receive_message --------------------------------------------------------------------
 var id_counter: int64 = 0
@@ -90,7 +36,6 @@ proc send_message_async(
   await asyncnet.send(socket, ($message_id).align_left(int64_slen))
   await asyncnet.send(socket, message)
 
-type ReceivedMessage = tuple[is_closed: bool, message_id: int, message: string]
 proc receive_message_async(socket: AsyncSocket): Future[ReceivedMessage] {.async.} =
   let message_length_s = await asyncnet.recv(socket, int32_slen)
   if message_length_s == "": return (true, -1, "") # Socket disconnected
@@ -105,16 +50,122 @@ proc receive_message_async(socket: AsyncSocket): Future[ReceivedMessage] {.async
   if message.len != message_length: throw "socket error, wrong size for message"
   return (false, message_id, message)
 
-proc receive_message_async(socket: AsyncSocket, message_id: int64): Future[ReceivedMessage] {.async.} =
+proc receive_message_async(
+  node: Node, socket: AsyncSocket, message_id: int64, timeout_ms: int
+): Future[ReceivedMessage] =
+  # Receive message with specific ID
+  #
   # Should handle case when async fn a called, then async fn b called, and b respond before a
+  var f = new_future[ReceivedMessage]()
 
-  # TODO 2 wait for message with sepcific ID, currently there's a bug if async fn a called,
-  # then async fn b called, and b respond before a there going to be wrong receive message.
-  let resp = await socket.receive_message_async
-  if not resp.is_closed and resp.message_id != message_id:
-    throw "wrong message_id, known bug, will be fixed someday"
+  sleep_async(timeout_ms).add_callback proc {.gcsafe.} =
+    if not f.finished: f.fail(new_exception(Exception, "timed out"))
+    receivers[node].del message_id
 
-  return resp
+  if node notin receivers: receivers[node] = new_table[int64, Future[ReceivedMessage]]()
+  receivers[node][message_id] = f
+  f
+
+
+# autoconnect --------------------------------------------------------------------------------------
+proc add_receiver(node: Node, socket: AsyncSocket): void =
+  # Messages received from socket via receiver, to make it possible to receive message by specific ID
+  proc cb(f: Future[ReceivedMessage]): void {.gcsafe.} =
+    assert f.finished
+    if f.failed:
+      clean_receivers(node, (r: Future[ReceivedMessage]) => r.fail(f.error))
+      return
+
+    let resp = f.read
+    if resp.is_closed: # socket is closed
+      clean_receivers(node, (r: Future[ReceivedMessage]) => r.complete(resp))
+      return
+
+    if node in receivers and resp.message_id in receivers[node]:
+      let future = receivers[node][resp.message_id]
+      receivers[node].del resp.message_id
+      assert not future.finished
+      future.complete(resp)
+    else:
+      # Receiver timed out and was deleted
+      discard
+
+    # Registering again
+    call_soon proc = socket.receive_message_async.add_callback(cb)
+  socket.receive_message_async.add_callback(cb)
+
+proc connect_without_concurrent_usage(node: Node, url: string, timeout_ms: int): Future[AsyncSocket] {.async.} =
+  let (scheme, host, port, path) = url.parse_url
+  if scheme != "tcp": throw "only TCP supported"
+  if path != "": throw "wrong path"
+
+  # Waiting for timeout
+  let tic = timer_ms()
+  while true:
+    var socket = asyncnet.new_async_socket()
+    try:
+      let left_ms = timeout_ms - tic()
+      if left_ms > 0:
+        await asyncnet.connect(socket, host, Port(port)).with_timeout(left_ms)
+      else:
+        await asyncnet.connect(socket, host, Port(port))
+      add_receiver(node, socket)
+      return socket
+    except Exception as e:
+      try:    asyncnet.close(socket)
+      except: discard
+
+    let delay_time_ms = 20
+    let left_ms = timeout_ms - tic()
+    if left_ms <= delay_time_ms:
+      throw "Timed out, connection closed"
+    else:
+      await sleep_async delay_time_ms
+
+var connect_in_progress: Table[Node, Future[AsyncSocket]]
+# Preventing multiple concurrent attempts to open same socket
+
+proc connect(node: Node, timeout_ms: int): Future[AsyncSocket] {.async.} =
+  # Auto-connect for sockets, if not available wait's till connection would be available with timeout,
+  # maybe also add auto-disconnect if it's not used for a while
+  let url = node.definition.url
+  if timeout_ms <= 0: throw "tiemout should be greather than zero"
+
+  if node in sockets: return sockets[node]
+
+  # Preventing simultaneous connection to the same socket
+  if node in connect_in_progress: return await connect_in_progress[node]
+  try:
+    let r = connect_without_concurrent_usage(node, url, timeout_ms)
+    connect_in_progress[node] = r
+    sockets[node] = await r
+  finally:
+    connect_in_progress.del node
+  return sockets[node]
+
+
+# disconnect ---------------------------------------------------------------------------------------
+proc disconnect*(node: Node): void =
+  if node in sockets:
+    let socket = sockets[node]
+    try:     asyncnet.close(socket)
+    except:  discard
+    finally:
+      clean_receivers(node, proc (future: Future[ReceivedMessage]): void =
+        future.complete((is_closed: true, message_id: -1, message: ""))
+      )
+      sockets.del node
+
+
+# auto_disconn -------------------------------------------------------------------------------------
+var was_used: HashSet[Node]
+proc auto_disconnect() =
+  for node, _ in sockets:
+    if node notin was_used: node.disconnect
+  was_used.clear
+
+# Disconnect if node is not used for 5 minutes
+add_timer(5 * 60 * 1000, auto_disconnect, false)
 
 # send_async ---------------------------------------------------------------------------------------
 proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.async.} =
@@ -173,7 +224,7 @@ proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {
     # Receiving
     left_ms = timeout_ms - tic()
     if left_ms <= 0: throw "receive timed out"
-    let (is_closed, reply_id, reply) = await socket.receive_message_async(id).with_timeout(left_ms)
+    let (is_closed, reply_id, reply) = await receive_message_async(node, socket, id, left_ms)
 
     if is_closed: throw "socket closed"
     if reply_id != id: throw "wrong reply id for call"
