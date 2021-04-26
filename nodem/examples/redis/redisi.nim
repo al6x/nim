@@ -1,21 +1,19 @@
-# Auto-generated code, do not edit
-import nodem
-export nodem
+import nodem, options
 
-let redis* = Node("redis")
+type RedisNode* = ref object of Node
+proc redis_node*(id: string): RedisNode = RedisNode(id: id)
 
-proc inc_counter*(counter: string): void {.nimport_from: redis.} = discard
+# Counters ------------------------------------------------
+proc inc_counter*(_: RedisNode, counter: string): void {.nimport.} = discard
+proc get_counter*(_: RedisNode, counter: string): int {.nimport.} = discard
+proc del_counter*(_: RedisNode, counter: string): void {.nimport.} = discard
 
-proc get_counter*(counter: string): int {.nimport_from: redis.} = discard
+# K/V store -----------------------------------------------
+proc get*(_: RedisNode, k: string): Option[string] {.nimport.} = discard
+proc set*(_: RedisNode, k: string, v: string): void {.nimport.} = discard
 
-proc del_counter*(counter: string): void {.nimport_from: redis.} = discard
-
-proc get_cache*(k: string): Option[string] {.nimport_from: redis.} = discard
-
-proc set_cache*(k: string, v: string): void {.nimport_from: redis.} = discard
-
-proc subscribe*(topic: string, self: Node): void {.nimport_from: redis.} = discard
-
-proc unsubscribe*(topic: string, self: Node): void {.nimport_from: redis.} = discard
-
-proc publish*(topic: string, price: float): void {.nimport_from: redis.} = discard
+# Pub/Sub -------------------------------------------------
+proc subscribe*(_: RedisNode, listener: Node, topic: string): void {.nimport.} = discard
+proc unsubscribe*(_: RedisNode, listener: Node, topic: string): void {.nimport.} = discard
+proc unsubscribe*(_: RedisNode, listener: Node): void {.nimport.} = discard
+proc publish*(_: RedisNode, topic: string, message: string): void {.nimport.} = discard

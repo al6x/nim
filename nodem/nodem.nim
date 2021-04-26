@@ -198,7 +198,7 @@ proc build_parser3[A, B, C](fsign: FnSignatureS): NFParser =
 proc nexport_async_function*[N, R](fsign: FnSignatureS, fn: proc(n: N): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 0
-    let r = await fn(N.node_from_json(args[0]))
+    let r = await fn(N(id: args[0].get_str))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser0(fsign)).register
 
@@ -209,7 +209,7 @@ proc nexport_async_function*[N](fsign: FnSignatureS, fn: proc(n: N): Future[void
 proc nexport_async_function*[N, A, R](fsign: FnSignatureS, fn: proc(n: N, a: A): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 2
-    let r = await fn(N.node_from_json(args[0]), args[1].to(A))
+    let r = await fn(N(id: args[0].get_str), args[1].to(A))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser1[A](fsign)).register
 
@@ -220,7 +220,7 @@ proc nexport_async_function*[N, A](fsign: FnSignatureS, fn: proc(n: N, a: A): Fu
 proc nexport_async_function*[N, A, B, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 3
-    let r = await fn(N.node_from_json(args[0]), args[1].to(A), args[2].to(B))
+    let r = await fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser2[A, B](fsign)).register
 
@@ -233,7 +233,7 @@ proc nexport_async_function*[N, A, B, C, R](
 ): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 4
-    let r = await fn(N.node_from_json(args[0]), args[1].to(A), args[2].to(B), args[3].to(C))
+    let r = await fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B), args[3].to(C))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser3[A, B, C](fsign)).register
 
@@ -263,7 +263,7 @@ proc to_async_handler(handler_sync: proc (args: JsonNode): JsonNode): NFHandler 
 proc nexport_function*[N, R](fsign: FnSignatureS, fn: proc(n: N): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 1
-    nf_handler_safe_reply: fn(N.node_from_json(args[0]))
+    nf_handler_safe_reply: fn(N(id: args[0].get_str))
   let parser = build_parser0(fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -273,7 +273,7 @@ proc nexport_function*[N](fsign: FnSignatureS, fn: proc(n: N): void): void = # F
 proc nexport_function*[N, A, R](fsign: FnSignatureS, fn: proc(n: N, a: A): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 2
-    nf_handler_safe_reply: fn(N.node_from_json(args[0]), args[1].to(A))
+    nf_handler_safe_reply: fn(N(id: args[0].get_str), args[1].to(A))
   let parser = build_parser1[A](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -284,7 +284,7 @@ proc nexport_function*[N, A](fsign: FnSignatureS, fn: proc(n: N, a: A): void): v
 proc nexport_function*[N, A, B, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 3
-    nf_handler_safe_reply: fn(N.node_from_json(args[0]), args[1].to(A), args[2].to(B))
+    nf_handler_safe_reply: fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B))
   let parser = build_parser2[A, B](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -295,7 +295,7 @@ proc nexport_function*[N, A, B](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B):
 proc nexport_function*[N, A, B, C, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B, c: C): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 4
-    nf_handler_safe_reply: fn(N.node_from_json(args[0]), args[1].to(A), args[2].to(B), args[3].to(C))
+    nf_handler_safe_reply: fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B), args[3].to(C))
   let parser = build_parser3[A, B, C](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -355,55 +355,107 @@ macro nimport*(fn: typed): typed =
 
   # Generating code
   if is_async:
-    case args.len:
-    of 1:
-      let (n, nt, _) = args[0]
-      quote do:
-        proc `fname`*(`n`: `nt`): Future[`rtype`] =
-          call_nexport_fn_async(`full_name`, `n`, typeof `rtype`)
-    of 2:
-      let (n, nt, _) = args[0]; let (a, at, _) = args[1];
-      quote do:
-        proc `fname`*(`n`: `nt`, `a`: `at`): Future[`rtype`] =
-          call_nexport_fn_async(`full_name`, `n`, `a`, typeof `rtype`)
-    of 3:
-      let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]
-      quote do:
-        proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`): Future[`rtype`] =
-          call_nexport_fn_async(`full_name`, `n`, `a`, `b`, typeof `rtype`)
-    of 4:
-      let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]; let (c, ct, _) = args[3]
-      quote do:
-        proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`, `c`: `ct`): Future[`rtype`] =
-          call_nexport_fn_async(`full_name`, `n`, `a`, `b`, `c`, typeof `rtype`)
+    if rtype.kind == nnkSym and rtype.str_val == "void":
+      case args.len:
+      of 1:
+        let (n, nt, _) = args[0]
+        quote do:
+          proc `fname`*(`n`: `nt`): Future[void] =
+            call_nexport_fn_void_async(`full_name`, `n`)
+      of 2:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1];
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`): Future[void] =
+            call_nexport_fn_void_async(`full_name`, `n`, `a`)
+      of 3:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`): Future[void] =
+            call_nexport_fn_void_async(`full_name`, `n`, `a`, `b`)
+      of 4:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]; let (c, ct, _) = args[3]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`, `c`: `ct`): Future[void] =
+            call_nexport_fn_void_async(`full_name`, `n`, `a`, `b`, `c`)
+      else:
+        quote do:
+          raise new_exception(Exception, "not supported, please update the code to suppor it")
     else:
-      quote do:
-        raise new_exception(Exception, "not supported, please update the code to suppor it")
+      case args.len:
+      of 1:
+        let (n, nt, _) = args[0]
+        quote do:
+          proc `fname`*(`n`: `nt`): Future[`rtype`] =
+            call_nexport_fn_async(`full_name`, `n`, typeof `rtype`)
+      of 2:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1];
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`): Future[`rtype`] =
+            call_nexport_fn_async(`full_name`, `n`, `a`, typeof `rtype`)
+      of 3:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`): Future[`rtype`] =
+            call_nexport_fn_async(`full_name`, `n`, `a`, `b`, typeof `rtype`)
+      of 4:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]; let (c, ct, _) = args[3]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`, `c`: `ct`): Future[`rtype`] =
+            call_nexport_fn_async(`full_name`, `n`, `a`, `b`, `c`, typeof `rtype`)
+      else:
+        quote do:
+          raise new_exception(Exception, "not supported, please update the code to suppor it")
   else:
-    case args.len:
-    of 1:
-      let (n, nt, _) = args[0]
-      quote do:
-        proc `fname`*(`n`: `nt`): `rtype` =
-          call_nexport_fn(`full_name`, `n`, typeof `rtype`)
-    of 2:
-      let (n, nt, _) = args[0]; let (a, at, _) = args[1]
-      quote do:
-        proc `fname`*(`n`: `nt`, `a`: `at`): `rtype` =
-          call_nexport_fn(`full_name`, `n`, `a`, typeof `rtype`)
-    of 3:
-      let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]
-      quote do:
-        proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`): `rtype` =
-          call_nexport_fn(`full_name`, `n`, `a`, `b`, typeof `rtype`)
-    of 4:
-      let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]; let (c, ct, _) = args[3]
-      quote do:
-        proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`, `c`: `ct`): `rtype` =
-          call_nexport_fn(`full_name`, `n`, `a`, `b`, `c`, typeof `rtype`)
+    if rtype.kind == nnkSym and rtype.str_val == "void":
+      case args.len:
+      of 1:
+        let (n, nt, _) = args[0]
+        quote do:
+          proc `fname`*(`n`: `nt`): void =
+            call_nexport_fn_void(`full_name`, `n`)
+      of 2:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`): void =
+            call_nexport_fn_void(`full_name`, `n`, `a`)
+      of 3:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`): void =
+            call_nexport_fn_void(`full_name`, `n`, `a`, `b`)
+      of 4:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]; let (c, ct, _) = args[3]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`, `c`: `ct`): void =
+            call_nexport_fn_void(`full_name`, `n`, `a`, `b`, `c`)
+      else:
+        quote do:
+          raise new_exception(Exception, "not supported, please update the code to suppor it")
     else:
-      quote do:
-        raise new_exception(Exception, "not supported, please update the code to suppor it")
+      case args.len:
+      of 1:
+        let (n, nt, _) = args[0]
+        quote do:
+          proc `fname`*(`n`: `nt`): `rtype` =
+            call_nexport_fn(`full_name`, `n`, typeof `rtype`)
+      of 2:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`): `rtype` =
+            call_nexport_fn(`full_name`, `n`, `a`, typeof `rtype`)
+      of 3:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`): `rtype` =
+            call_nexport_fn(`full_name`, `n`, `a`, `b`, typeof `rtype`)
+      of 4:
+        let (n, nt, _) = args[0]; let (a, at, _) = args[1]; let (b, bt, _) = args[2]; let (c, ct, _) = args[3]
+        quote do:
+          proc `fname`*(`n`: `nt`, `a`: `at`, `b`: `bt`, `c`: `ct`): `rtype` =
+            call_nexport_fn(`full_name`, `n`, `a`, `b`, `c`, typeof `rtype`)
+      else:
+        quote do:
+          raise new_exception(Exception, "not supported, please update the code to suppor it")
 
 
 # call_nexport_fn ----------------------------------------------------------------------------------
@@ -422,16 +474,29 @@ proc call_nexport_fn*[N, R](fname: string, n: N, rtype: type[R]): R =
   call_nexport_fn(fname, n, args).to(R)
 
 proc call_nexport_fn*[N, A, R](fname: string, n: N, a: A, tr: type[R]): R =
-  let args = newJArray(); args.add %(n.id);args.add %a;
+  let args = newJArray(); args.add %(n.id); args.add %a;
   call_nexport_fn(fname, n, args).to(R)
 
 proc call_nexport_fn*[N, A, B, R](fname: string, n: N, a: A, b: B, tr: type[R]): R =
-  let args = newJArray(); args.add %(n.id);args.add %a; args.add %b;
+  let args = newJArray(); args.add %(n.id); args.add %a; args.add %b;
   call_nexport_fn(fname, n, args).to(R)
 
 proc call_nexport_fn*[N, A, B, C, R](fname: string, n: N, a: A, b: B, c: C, tr: type[R]): R =
-  let args = newJArray(); args.add %(n.id);args.add %a; args.add %b; args.add %c
+  let args = newJArray(); args.add %(n.id); args.add %a; args.add %b; args.add %c
   call_nexport_fn(fname, n, args).to(R)
+
+
+proc call_nexport_fn_void*[N](fname: string, n: N): void =
+  discard call_nexport_fn(fname, n, string)
+
+proc call_nexport_fn_void*[N, A](fname: string, n: N, a: A): void =
+  discard call_nexport_fn(fname, n, a, string)
+
+proc call_nexport_fn_void*[N, A, B](fname: string, n: N, a: A, b: B): void =
+  discard call_nexport_fn(fname, n, a, b, string)
+
+proc call_nexport_fn_void*[N, A, B, C](fname: string, n: N, a: A, b: B, c: C): void =
+  discard call_nexport_fn(fname, n, a, b, c, string)
 
 
 # call_nexport_fn_async -----------------------------------------------------------------------------
@@ -445,21 +510,16 @@ proc call_nexport_fn_async[N](fname: string, n: N, args: JsonNode): Future[JsonN
   if data["is_error"].get_bool: throw data["message"].get_str
   return data["result"]
 
-proc call_nexport_fn_async*[N, R](
-  fname: string, n: N, tr: type[R]
-): Future[R] {.async.} =
+
+proc call_nexport_fn_async*[N, R](fname: string, n: N, tr: type[R]): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id)
   return (await call_nexport_fn_async(fname, n, args)).to(R)
 
-proc call_nexport_fn_async*[N, A, R](
-  fname: string, n: N, a: A, tr: type[R]
-): Future[R] {.async.} =
+proc call_nexport_fn_async*[N, A, R](fname: string, n: N, a: A, tr: type[R]): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id); args.add %a
   return (await call_nexport_fn_async(fname, n, args)).to(R)
 
-proc call_nexport_fn_async*[N, A, B, R](
-  fname: string, n: N, a: A, b: B, tr: type[R]
-): Future[R] {.async.} =
+proc call_nexport_fn_async*[N, A, B, R](fname: string, n: N, a: A, b: B, tr: type[R]): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id); args.add %a; args.add %b;
   return (await call_nexport_fn_async(fname, n, args)).to(R)
 
@@ -468,6 +528,19 @@ proc call_nexport_fn_async*[N, A, B, C, R](
 ): Future[R] {.async.} =
   let args = newJArray(); args.add %(n.id); args.add %a; args.add %b; args.add %c
   return (await call_nexport_fn_async(fname, n, args)).to(R)
+
+
+proc call_nexport_fn_void_async*[N](fname: string, n: N): Future[void] {.async.} =
+  discard await call_nexport_fn_async(fname, n, string)
+
+proc call_nexport_fn_void_async*[N, A](fname: string, n: N, a: A): Future[void] {.async.} =
+  discard await call_nexport_fn_async(fname, n, a, string)
+
+proc call_nexport_fn_void_async*[N, A, B](fname: string, n: N, a: A, b: B): Future[void] {.async.} =
+  discard await call_nexport_fn_async(fname, n, a, b, string)
+
+proc call_nexport_fn_void_async*[N, A, B, C](fname: string, n: N, a: A, b: B, c: C): Future[void] {.async.} =
+  discard await call_nexport_fn_async(fname, n, a, b, c, string)
 
 # generate_nimport ---------------------------------------------------------------------------------
 # proc generate_nimport*(

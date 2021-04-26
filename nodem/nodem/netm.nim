@@ -81,27 +81,40 @@ add_timer(5 * 60 * 1000, auto_disconnect, false)
 var id_counter: int64 = 0
 proc next_id: int64 = id_counter += 1
 
-proc send_message_async(socket: AsyncSocket, message: string, message_id = next_id()): Future[void] {.async.} =
-  await asyncnet.send(socket, ($(message.len.int8)).align_left(8))
-  await asyncnet.send(socket, ($message_id).align_left(64))
+let int32_slen = ($(int32.high)).len
+let int64_slen = ($(int64.high)).len
+proc send_message_async(
+  socket: AsyncSocket, message: string, message_id: int64 = next_id()
+): Future[void] {.async.} =
+  await asyncnet.send(socket, ($(message.len.int64)).align_left(int32_slen))
+  await asyncnet.send(socket, ($message_id).align_left(int64_slen))
   await asyncnet.send(socket, message)
 
-proc receive_message_async(
-  socket: AsyncSocket
-): Future[tuple[is_closed: bool, message_id: int, message: string]] {.async.} =
-  let message_length_s = await asyncnet.recv(socket, 8)
+type ReceivedMessage = tuple[is_closed: bool, message_id: int, message: string]
+proc receive_message_async(socket: AsyncSocket): Future[ReceivedMessage] {.async.} =
+  let message_length_s = await asyncnet.recv(socket, int32_slen)
   if message_length_s == "": return (true, -1, "") # Socket disconnected
-  if message_length_s.len != 8: throw "socket error, wrong size for message length"
+  if message_length_s.len != int32_slen: throw "socket error, wrong size for message length"
   let message_length = message_length_s.replace(" ", "").parse_int
 
-  let message_id_s = await asyncnet.recv(socket, 64)
-  if message_id_s.len != 64: throw "socket error, wrong size for message_id"
+  let message_id_s = await asyncnet.recv(socket, int64_slen)
+  if message_id_s.len != int64_slen: throw "socket error, wrong size for message_id"
   let message_id = message_id_s.replace(" ", "").parse_int
 
   let message = await asyncnet.recv(socket, message_length)
   if message.len != message_length: throw "socket error, wrong size for message"
   return (false, message_id, message)
 
+proc receive_message_async(socket: AsyncSocket, message_id: int64): Future[ReceivedMessage] {.async.} =
+  # Should handle case when async fn a called, then async fn b called, and b respond before a
+
+  # TODO 2 wait for message with sepcific ID, currently there's a bug if async fn a called,
+  # then async fn b called, and b respond before a there going to be wrong receive message.
+  let resp = await socket.receive_message_async
+  if not resp.is_closed and resp.message_id != message_id:
+    throw "wrong message_id, known bug, will be fixed someday"
+
+  return resp
 
 # send_async ---------------------------------------------------------------------------------------
 proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.async.} =
@@ -160,7 +173,7 @@ proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {
     # Receiving
     left_ms = timeout_ms - tic()
     if left_ms <= 0: throw "receive timed out"
-    let (is_closed, reply_id, reply) = await socket.receive_message_async.with_timeout(left_ms)
+    let (is_closed, reply_id, reply) = await socket.receive_message_async(id).with_timeout(left_ms)
 
     if is_closed: throw "socket closed"
     if reply_id != id: throw "wrong reply id for call"

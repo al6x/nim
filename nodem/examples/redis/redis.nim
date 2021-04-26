@@ -1,96 +1,95 @@
-import nodem, options, sugar, sequtils, sets
+import nodem, nodem/httpm, options, sugar, sequtils, sets
 
 
-# Client API ----------------------------------------------
-# proc inc_counter*(counter: string): void
-# proc get_counter*(counter: string): int
-# proc del_counter*(counter: string): void
-
-# proc get_cache*(k: string): Option[string]
-# proc set_cache*(k: string, v: string): void
-
-# proc subscribe*(node: Node, topic: string): void
-# proc unsubscribe*(node: Node, topic: string): void
-# proc publish*(topic: string, message: string): void
-
-proc notify(node: Node, message: string): Future[void]
+type RedisNode* = ref object of Node
+proc redis_node(id: string): RedisNode = RedisNode(id: id)
 
 # Counters ------------------------------------------------
 var counters: CountTable[string]
-proc inc_counter*(counter: string): void {.nexport.} =
+proc inc_counter*(_: RedisNode, counter: string): void {.nexport.} =
   counters.inc counter
 
-proc get_counter*(counter: string): int {.nexport.} =
+proc get_counter*(_: RedisNode, counter: string): int {.nexport.} =
   counters[counter]
 
-proc del_counter*(counter: string): void {.nexport.} =
+proc del_counter*(_: RedisNode, counter: string): void {.nexport.} =
   counters.del counter
 
 
-# Cache ---------------------------------------------------
-var cache: Table[string, string]
-proc get_cache*(k: string): Option[string] {.nexport.} =
-  if k in cache: cache[k].some else: string.none
+# K/V store -----------------------------------------------
+var kvstore: Table[string, string]
+proc get*(_: RedisNode, k: string): Option[string] {.nexport.} =
+  if k in kvstore: kvstore[k].some else: string.none
 
-proc set_cache*(k: string, v: string): void {.nexport.} =
-  cache[k] = v
+proc set*(_: RedisNode, k: string, v: string): void {.nexport.} =
+  kvstore[k] = v
 
 
 # Pub/Sub -------------------------------------------------
 var last_messages: Table[string, string]        # topic -> message
-var subscribers:   Table[string, seq[Node]]     # topic -> subscribers
+var subscribers:   Table[string, HashSet[Node]]     # topic -> subscribers
 var notify_queue:  Table[Node, HashSet[string]] # subscriber -> updated topics
 var running_notifiers: HashSet[Node]
 
-proc subscribe*(node: Node, topic: string): void {.nexport.} =
-  var listeners = subscribers.get_or_default(topic, @[])
-  if node notin listeners: listeners.add node
+proc subscribe(listener: Node, topic: string): void =
+  if topic notin subscribers: subscribers[topic] = init_hash_set[Node]()
+  if listener notin subscribers[topic]: subscribers[topic].incl listener
 
-proc unsubscribe*(node: Node, topic: string): void {.nexport.} =
+proc subscribe*(_: RedisNode, listener: Node, topic: string): void {.nexport.} =
+  subscribe(listener, topic)
+
+proc unsubscribe(listener: Node, topic: string): void {.nexport.} =
   if topic notin subscribers: return
-  let listeners = subscribers[topic].filter((n) => n != node)
-  if listeners.len > 0: subscribers[topic] = listeners
-  else:                 subscribers.del topic
+  var list = subscribers[topic]
+  list.excl listener
+  if list.len == 0: subscribers.del topic
 
-proc unsubscribe*(node: Node): void {.nexport.} =
-  for topic, nodes in subscribers:
-    subscribers[topic] = nodes.filter((n) => n != node)
+proc unsubscribe*(_: RedisNode, listener: Node, topic: string): void {.nexport.} =
+  unsubscribe(listener, topic)
+
+proc unsubscribe(listener: Node): void =
+  for topic, _ in subscribers: unsubscribe(listener, topic)
+proc unsubscribe*(_: RedisNode, listener: Node): void {.nexport.} =
+  listener.unsubscribe
 
 # Calling `notify` on the listener node.
-proc notify(node: Node, message: string): Future[void] {.nimport.} = discard
+proc notify(listener: Node, topic: string, message: string): Future[void] {.async, nimport.} = discard
 
-proc get_any[T](hset: HashSet[T]): T =
-  for v in hset: return v
-  raise new_exception(Exception, "set is empty")
-
-proc run_notifier(node: Node): Future[void] {.async.} =
+proc run_notifier(listener: Node): Future[void] {.async.} =
   # Each subscriber has its own async notifier to handle different
   # network speed and timeouts
   while true:
-    var updated_topics = notify_queue[node]
-    if updated_topics.len == 0:
-      notify_queue.del node
+    if notify_queue[listener].len == 0:
+      notify_queue.del listener
       break
+    let topic = notify_queue[listener].pop
     try:
-      let topic = updated_topics.get_any
-      await node.notify last_messages[topic]
-      updated_topics.excl topic
+      await listener.notify(topic, last_messages[topic])
     except:
-      running_notifiers.excl node
-      node.unsubscribe
+      running_notifiers.excl listener
+      unsubscribe(listener)
       break
-  running_notifiers.excl node
+  running_notifiers.excl listener
 
-proc publish*(topic: string, message: string): void {.nexport.} =
+proc publish_impl(topic: string, message: string): void =
   last_messages[topic] = message
-  for node in subscribers[topic]:
-    if node notin notify_queue: notify_queue[node] = init_hash_set[string]()
-    notify_queue[node].incl topic
-    if node notin running_notifiers: spawn_async () => node.run_notifier()
+  if topic notin subscribers: return
+  for listener in subscribers[topic]:
+    if listener notin notify_queue: notify_queue[listener] = init_hash_set[string]()
+    notify_queue[listener].incl topic
+    let l = listener
+    if listener notin running_notifiers: spawn_async () => l.run_notifier()
+
+proc publish*(node: RedisNode, topic: string, message: string): void {.nexport.} =
+  publish_impl(topic, message)
 
 
-# Run -----------------------------------------------------
-if is_main_module:
-  let redis = Node("redis")
-  redis.generate_nimport
-  redis.run
+# Running Math node ---------------------------------------
+let redis = redis_node"redis"
+# redis.define  "tcp://localhost:4000" # Optional, will be auto-set
+
+catch_node_errors = false
+spawn_async redis.run
+spawn_async run_node_http_adapter("http://localhost:8000", @["get"]) # Optional, for HTTP
+echo "redis started"
+run_forever()

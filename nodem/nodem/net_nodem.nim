@@ -27,20 +27,32 @@ proc `==`*(a, b: Node): bool = a.id == b.id
 
 var nodes_definitions*: Table[Node, NodeDefinition]
 
+# proc is_defined*(node: Node): bool =
+#   node.def.is_some
+
 proc define*(node: Node, url: string, timeout_ms = default_timeout_ms): void =
   nodes_definitions[node] = NodeDefinition(url: url, timeout_ms: timeout_ms)
 
+# proc define*[N](node: N): N =
+#   if node.is_defined: node
+#   else:               N(id: node.id, def: node.definition.some)
+
 proc definition*(node: Node): NodeDefinition =
-  if node.def.is_some: return node.def.get
+  if node.def.is_some:
+    if node in nodes_definitions and node.def.get != nodes_definitions[node]:
+      throw "node {node.id} definition doesn't match"
+    return node.def.get
   if node notin nodes_definitions:
     # Assuming it's localhost and deriving port in range 6000-7000
     node.define fmt"tcp://localhost:{6000 + (node.id.hash.int mod 1000)}"
   nodes_definitions[node]
 
-proc `%`*(node: Node): JsonNode =
-  if node.def.is_some: %node
-  else:                %(node.id)
 
-proc node_from_json*[N](_: type[N], json: JsonNode): N =
-  if json.kind == JString: N(id: json.get_str)
-  else:                    json.to(N)
+proc `%`*(node: Node): JsonNode =
+  # Always define node when converting to JSON
+  %(id: node.id, def: node.definition.some)
+
+
+# proc node_from_json*[N](_: type[N], json: JsonNode): N =
+#   if json.kind == JString: N(id: json.get_str)
+#   else:                    json.to(N)
