@@ -27,8 +27,8 @@ echo node"server".plus(3, 2)
 # => 5
 ```
 
-See `examples/rpc_in_10_lines`. Note that client functions could be auto-generated, making client even
-shorter.
+Connect/disconnect/reconnect handled automatically. Also, the client functions could be auto-generated,
+making the client code even shorter. See `examples/rpc_in_10_lines`.
 
 # Web Server in 5 lines of Nim
 
