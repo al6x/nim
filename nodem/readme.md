@@ -27,7 +27,7 @@ echo node"server".plus(3, 2)
 # => 5
 ```
 
-See `examples/rpc_in_10_lines`.
+See `examples/rpc_in_10_lines`. With [todo] auto generated TypeScript Client API.
 
 # Web Server in 5 lines of Nim
 
