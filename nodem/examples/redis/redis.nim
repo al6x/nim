@@ -90,6 +90,6 @@ if is_main_module:
 
   # catch_node_errors = false
   spawn_async redis.run
-  spawn_async run_node_http_adapter("http://localhost:8000", @["get", "get_counter"]) # Optional, for HTTP
+  spawn_async redis.run_http("http://localhost:8000", @["get", "get_counter"]) # Optional, for HTTP
   echo "redis started"
   run_forever()

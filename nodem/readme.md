@@ -50,7 +50,7 @@ if is_main_module:
   generate_nimports "./nodem/examples/math/mathi.nim" # Optional
 
   spawn_async math.run
-  spawn_async run_node_http_adapter("http://localhost:8000", @["plus"]) # Optional, for HTTP
+  spawn_async math.run_http("http://localhost:8000", @["plus"]) # Optional, for HTTP
 
   echo "math node started"
   run_forever()

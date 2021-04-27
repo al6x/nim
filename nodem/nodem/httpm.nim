@@ -40,7 +40,8 @@ proc success(req: asynchttp.Request, message: string): Future[void] =
   asynchttp.respond(req, Http200, message, headers)
 
 # run_http -----------------------------------------------------------------------------------------
-proc run_node_http_adapter*(
+proc run_http*(
+  node:      Node,
   url:       string,
   allow_get: seq[string] = @[]
 ): Future[void] {.async.} =
