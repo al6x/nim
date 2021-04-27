@@ -1,4 +1,4 @@
-version     = "1.2.0"
+version     = "1.3.0"
 author      = "Alex Craft http://al6x.com"
 description = "Call remote functions as local"
 license     = "MIT"
