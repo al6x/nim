@@ -125,7 +125,7 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 
 # Features
 
-- **Call remote function as local, with multi-dispatch**.
+- **Call remote function as local**, with multi-dispatch, exceptions, async support.
 - There's **no server or client**, every node is both server and client. No RPC, just nexport/nimport.
 - **Use names** like `red_node` or `math`, avoid explicit URLs `tcp://localhost:6000`, like IoC.
 - **No connections**, managed automatically, connect, re-connect, disconnected if not used.
