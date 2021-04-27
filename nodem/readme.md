@@ -27,7 +27,8 @@ echo node"server".plus(3, 2)
 # => 5
 ```
 
-See `examples/rpc_in_10_lines`. With [todo] auto generated TypeScript Client API.
+See `examples/rpc_in_10_lines`. Note that client functions could be auto-generated, making client even
+shorter.
 
 # Web Server in 5 lines of Nim
 
@@ -46,7 +47,8 @@ node"server".run_http_forever("http://localhost:8000", true)
 # - Both positional and named arguments supported.
 ```
 
-See `examples/web_server_in_5_lines`.
+See `examples/web_server_in_5_lines`. Note, [todo] the client HTTP API could be generated in
+TypeScript Client API.
 
 # Math example
 
