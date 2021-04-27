@@ -161,6 +161,8 @@ messages and fast IO.
 
 Nimported functions use async IO only if they are async.
 
+Design inspired by **Erlang Actors**.
+
 **HTTP Features:**
 
 - **Auto-routing** `/fn/a/b` -> `fn(a, b)`, no need for router.
