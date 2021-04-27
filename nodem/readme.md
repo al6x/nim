@@ -34,7 +34,7 @@ echo node"server".plus(3, 2)
 Connect/disconnect/reconnect handled automatically. Also, the client functions could be auto-generated,
 making the client code even shorter. See `examples/rpc_in_10_lines`.
 
-# Web Server in 5 lines of Nim
+# REST API in 5 lines of Nim
 
 ```Nim
 import nodem, nodem/httpm
@@ -155,7 +155,7 @@ useful when RPC is not needed and sending just messages is enough, there's examp
 - **No connections**, managed automatically, connect, re-connect, disconnected if not used.
 - Is **fast** as async-IO used.
 - Is **fast for sync functions too**, as they also use async-IO underneath, see note below.
-- **Clean error messages**, without messy async stack traces.
+- **Clean error messages**, without huge async stack traces.
 - REST API and Browser support, function could be called via REST API, [todo] with auto-generated TypeScript API.
 - With async calls possible **simultaneous, nested, circular calls** like `a -> b -> a`.
 - REST API for React.JS / Karax, no need to define REST API and routes explicitly.
@@ -207,7 +207,7 @@ Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
 
 # Performance
 
-The main use case is hundreds of nodes in local network exchanging lots of small messages.
+The main use case is tens or hundreds of nodes in local network exchanging lots of small messages.
 
 Current limitations and possible areas for improvements:
 
