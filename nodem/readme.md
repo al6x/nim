@@ -47,8 +47,7 @@ node"server".run_http_forever("http://localhost:8000", true)
 # - Both positional and named arguments supported.
 ```
 
-See `examples/web_server_in_5_lines`. Note, [todo] the client HTTP API could be generated in
-TypeScript Client API.
+See `examples/web_server_in_5_lines`. Note, [todo] the HTTP Client API could be auto-generated in TypeScript.
 
 # Math example
 
