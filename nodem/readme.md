@@ -1,6 +1,6 @@
 # Call remote function as local
 
-[Video Demo, RPC in 10 and REST API in 5 lines of Nim, 3min](https://youtu.be/FktqYymIeoo)
+Video Demo [RPC in 10 and REST API in 5 lines of Nim, 3min](https://youtu.be/FktqYymIeoo)
 
 ```
 nimble install nodem
