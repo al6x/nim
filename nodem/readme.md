@@ -1,6 +1,10 @@
 # Call remote function as local
 
-[Video Demo, 10min, a bit outdated, for previous version](https://youtu.be/KUb15vva0vw)
+[Video Demo, RPC in 10 and REST API in 5 lines of Nim, 3min](https://youtu.be/FktqYymIeoo)
+
+```
+nimble install nodem
+```
 
 Made by [al6x](http://al6x.com), I do Statstics, Visualization, Finance
 
@@ -214,7 +218,6 @@ Current limitations and possible areas for improvements:
 
 # TODO
 
-- RPC in 10 and Web Server in 5 lines of Nim
 - TypeScript and Elixir integration.
 - [low] Add support for defaults.
 - [low] Manager to start/restart
