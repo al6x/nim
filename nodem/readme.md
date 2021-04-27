@@ -214,11 +214,10 @@ Current limitations and possible areas for improvements:
 
 # TODO
 
-- Code generation
-- TypeScript and Elixir integration.
-- Add support for defaults.
 - RPC in 10 and Web Server in 5 lines of Nim
-- Manager to start/restart
+- TypeScript and Elixir integration.
+- [low] Add support for defaults.
+- [low] Manager to start/restart
 
 # Notes
 
