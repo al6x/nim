@@ -1,6 +1,6 @@
 include ./mathi
 
-let math = math_node"math"
+let math = node"math"
 
 echo math.multiply(math.pi(), 2)
 # => 6.28

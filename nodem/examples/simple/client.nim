@@ -1,4 +1,6 @@
-import ./serveri
+import nodem
 
-echo multiply(3, 2)
-# => 6
+proc plus*(node: Node, a: float, b: float): float {.nimport.} = discard
+
+echo node"server".plus(3, 2)
+# => 5

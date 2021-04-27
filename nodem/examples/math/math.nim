@@ -1,21 +1,20 @@
 import nodem, nodem/httpm
 
-type MathNode* = ref object of Node
-proc math_node(id: string): MathNode = MathNode(id: id)
+proc pi(_: Node): float {.nexport.} = 3.14
 
-# Math node impl ------------------------------------------
-proc pi(_: MathNode): float {.nexport.} = 3.14
+proc multiply(_: Node, a, b: float): float {.nexport.} = a * b
+proc multiply(_: Node, a, b: string): string {.nexport.} = a & b # Multi dispatch supported
 
-proc multiply(_: MathNode, a, b: float): float {.nexport.} = a * b
-proc multiply(_: MathNode, a, b: string): string {.nexport.} = a & b # Multi dispatch supported
+proc plus(_: Node, x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported
 
-proc plus(_: MathNode, x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported
+if is_main_module:
+  let math = node"math"
+  # math.define "tcp://localhost:4000" # Optional, will be auto-set
 
-# Running Math node ---------------------------------------
-let math = math_node"math"
-# math.define  "tcp://localhost:4000" # Optional, will be auto-set
+  generate_nimports "./nodem/examples/math/mathi.nim" # Optional
 
-spawn_async math.run
-spawn_async run_node_http_adapter("http://localhost:8000", @["plus"]) # Optional, for HTTP
-echo "math node started"
-run_forever()
+  spawn_async math.run
+  spawn_async run_node_http_adapter("http://localhost:8000", @["plus"]) # Optional, for HTTP
+
+  echo "math node started"
+  run_forever()

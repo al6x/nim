@@ -1,4 +1,4 @@
-import json, uri, strutils, os, re, sugar
+import json, uri, strutils, os, re, sugar, tables
 from times as nt import nil
 
 
@@ -39,3 +39,9 @@ proc quit*(e: ref Exception) =
   quit 1
 
 const p* = echo
+
+proc values*[K, V](table: Table[K, V] | ref Table[K, V]): seq[V] =
+  for v in table.values: result.add v
+
+proc values*[K, V](table: OrderedTable[K, V] | ref OrderedTable[K, V]): seq[V] =
+  for v in table.values: result.add v

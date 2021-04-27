@@ -60,7 +60,7 @@ proc receive_message_async(
 
   sleep_async(timeout_ms).add_callback proc {.gcsafe.} =
     if not f.finished: f.fail(new_exception(Exception, "timed out"))
-    receivers[node].del message_id
+    if node in receivers: receivers[node].del message_id
 
   if node notin receivers: receivers[node] = new_table[int64, Future[ReceivedMessage]]()
   receivers[node][message_id] = f
@@ -289,7 +289,7 @@ proc process_client_async(
 proc on_net_error_default(e: ref Exception): void = echo e.msg
 
 proc receive_async*(
-  node:      Node,
+  node:         Node,
   on_message:   OnMessageAsync,
   on_net_error: OnNetError = on_net_error_default
 ): Future[void] {.async.} =

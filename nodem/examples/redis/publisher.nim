@@ -1,5 +1,10 @@
-import nodem, ./redisi, options
+import nodem, os, ./redisi
 
 let redis = redis_node"redis"
 
-redis.publish("updates", "some news")
+while true:
+  try:
+    redis.publish("updates", "some news")
+  except:
+    discard
+  sleep 1000

@@ -4,68 +4,72 @@ Simple RPC, call remote Nim functions as if its local
 
 Made by [al6x](http://al6x.com)
 
-# Simple example
+# Example
 
 Exporting some functions as available over network:
 
 ```Nim
 import nodem
 
-proc multiply(a, b: float): float {.nexport.} = a * b
+proc plus(_: Node, a, b: float): float {.nexport.} = a + b
 
-if is_main_module:
-  let server = Node("server")
-  server.generate_nimport
-  server.run
+node"server".run_forever
 ```
 
 And calling it from another process:
 
 ```Nim
-import ./serveri
+import nodem
 
-echo multiply(3, 2)
-# => 6
+proc plus*(node: Node, a: float, b: float): float {.nimport.} = discard
+
+echo node"server".plus(3, 2)
+# => 5
 ```
 
 See `examples/simple`.
 
-# Example
+# Math example
 
 Exporting some functions as available over network:
 
 ```Nim
 import nodem, nodem/httpm
 
-proc pi: float {.nexport.} = 3.14
+proc pi(_: Node): float {.nexport.} = 3.14
 
-proc multiply(a, b: float): float {.nexport.} = a * b
-proc multiply(a, b: string): string {.nexport.} = a & b # Multi dispatch supported
+proc multiply(_: Node, a, b: float): float {.nexport.} = a * b
+proc multiply(_: Node, a, b: string): string {.nexport.} = a & b # Multi dispatch supported
 
-proc plus(x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported
+proc plus(_: Node, x, y: float): Future[float] {.async, nexport.} = return x + y # Async supported
 
 if is_main_module:
-  let math = Node("math")
-  # math.define  "tcp://localhost:4000" # Optional, will be auto-set
+  let math = node"math"
+  # math.define "tcp://localhost:4000" # Optional, will be auto-set
 
-  math.generate_nimport
+  generate_nimports "./nodem/examples/math/mathi.nim" # Optional
 
-  spawn_async math.run_http("http://localhost:8000", @["plus"]) # Optional, for HTTP
-  math.run
+  spawn_async math.run
+  spawn_async run_node_http_adapter("http://localhost:8000", @["plus"]) # Optional, for HTTP
+
+  echo "math node started"
+  run_forever()
 ```
 
 And calling it from another process:
 
 ```Nim
-import ./mathi
+include ./mathi
 
-echo multiply(pi(), 2)
+let math = node"math"
+
+echo math.multiply(math.pi(), 2)
 # => 6.28
 
-echo multiply("A", "x")
+echo math.multiply("A", "x")
 # => Ax
 
-echo wait_for plus(1, 2)
+echo wait_for math.plus(1, 2)
 # => 3
 
 # math.define "tcp://localhost:4000" # optional, will be auto-set
@@ -91,7 +95,7 @@ echo
 
 curl \
 --request POST \
---data '{"fn":"multiply(a: float, b: float): float","args":[3.14,2.0]}' \
+--data '{"fn":"multiply(node: Node, a: float, b: float): float","args":["math",3.14,2.0]}' \
 http://localhost:8000
 echo
 
@@ -100,7 +104,13 @@ echo
 
 see `examples/math`.
 
+# Redis in 100 lines
+
+See `examples/redis`
+
 # Async example
+
+[TODO] outdated, needs to be updated.
 
 For nodes working as both client and server simultaneously with nested, circular calls check `examples/greeting`.
 
@@ -182,12 +192,9 @@ Current limitations and possible areas for improvements:
 
 # TODO
 
-- Use tpc instead of nodes for netm
-- Add deserialise from strings handler to FnHandler
+- Code generation
 - TypeScript and Elixir integration.
 - Add support for defaults.
-- HTTP example with autocast from querystring and POST strings
-- Redis in X lines, counts / cache / pub-sub
 - Web Server in 5 lines of Nim
 - Manager to start/restart
 
