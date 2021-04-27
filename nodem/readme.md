@@ -4,7 +4,7 @@ Simple RPC, call remote Nim functions as if its local
 
 Made by [al6x](http://al6x.com)
 
-# Example
+# RPC in 10 lines of Nim
 
 Exporting some functions as available over network:
 
@@ -27,7 +27,26 @@ echo node"server".plus(3, 2)
 # => 5
 ```
 
-See `examples/simple`.
+See `examples/rpc_in_10_lines`.
+
+# Web Server in 5 lines of Nim
+
+```Nim
+import nodem, nodem/httpm
+
+proc plus(_: Node, a, b: float): float {.nexport.} = a + b
+
+node"server".run_http_forever("http://localhost:8000", true)
+
+# curl http://localhost:8000/plus/1?b=2
+#
+# => {"is_error":false,"result":3.0}
+#
+# - Arguments auto casted to correct types.
+# - Both positional and named arguments supported.
+```
+
+See `examples/web_server_in_5_lines`.
 
 # Math example
 
@@ -195,7 +214,7 @@ Current limitations and possible areas for improvements:
 - Code generation
 - TypeScript and Elixir integration.
 - Add support for defaults.
-- Web Server in 5 lines of Nim
+- RPC in 10 and Web Server in 5 lines of Nim
 - Manager to start/restart
 
 # Notes

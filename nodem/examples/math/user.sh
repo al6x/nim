@@ -1,9 +1,9 @@
 curl http://localhost:8000/plus/1?y=2
 echo
 
-# => {"is_error":false,"result":3.14}
+# => {"is_error":false,"result":3}
 #
-# - Arguments were auto casted to correct types.
+# - Arguments auto casted to correct types.
 # - Both positional and named arguments supported.
 
 curl http://localhost:8000/plus/1/a

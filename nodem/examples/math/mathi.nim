@@ -1,5 +1,5 @@
 # Auto-generated code, do not edit
-import nodem
+import nodem, options, tables
 
 proc pi*(node: Node): float {.nimport.} = discard
 

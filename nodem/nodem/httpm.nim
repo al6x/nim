@@ -40,10 +40,11 @@ proc success(req: asynchttp.Request, message: string): Future[void] =
   asynchttp.respond(req, Http200, message, headers)
 
 # run_http -----------------------------------------------------------------------------------------
-proc run_http*(
-  node:      Node,
-  url:       string,
-  allow_get: seq[string] = @[]
+proc run_http(
+  node:           Node,
+  url:            string,
+  allow_get_bool: bool,
+  allow_get_seq:  seq[string],
 ): Future[void] {.async.} =
   # Use as example and modify to your needs.
   # Funcion need to be specifically allowed as GET because of security reasons.
@@ -51,8 +52,7 @@ proc run_http*(
   let (scheme, host, port, path) = parse_url url
   if scheme != "http": throw "only HTTP supported"
   if path != "": throw "wrong path"
-
-  var allow_get_set = allow_get.to_hash_set
+  let allow_get_set = allow_get_seq.to_hash_set
 
   var server = asynchttp.new_async_http_server()
   proc cb(req: asynchttp.Request): Future[void] {.async, gcsafe.} =
@@ -63,11 +63,11 @@ proc run_http*(
         let (fname, args_list) = (parts[0], parts[1..^1])
         var args_map: Table[string, string]
         for k, v in req.url.query.decode_query: args_map[k] = v
-        if fname notin allow_get_set:
-          await req.error("not allowed as GET")
-        else:
+        if allow_get_bool or fname in allow_get_set:
           let reply = await nexport_handler_with_parser_async(fname, args_list, args_map)
           await req.success reply.get("{}")
+        else:
+          await req.error("not allowed as GET")
       of HttpPost:
         let message = req.body
         let reply = await nexport_handler_async(message)
@@ -79,6 +79,23 @@ proc run_http*(
 
   await asynchttp.serve(server, Port(port), cb, host)
 
+proc run_http*(
+  node:      Node,
+  url:       string,
+  allow_get: seq[string] | bool = false # Disabling GET by default for security reasons
+): Future[void] =
+  when allow_get is bool:
+    run_http(node, url, allow_get, @[])
+  else:
+    run_http(node, url, false, allow_get)
+
+proc run_http_forever*(
+  node:      Node,
+  url:       string,
+  allow_get: seq[string] | bool = false
+): void =
+  spawn_async node.run_http(url, allow_get)
+  run_forever()
 
 # test ---------------------------------------------------------------------------------------------
 # if is_main_module: # Testing http
