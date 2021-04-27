@@ -43,8 +43,11 @@ proc definition*(node: Node): NodeDefinition =
       throw "node {node.id} definition doesn't match"
     return node.def.get
   if node notin nodes_definitions:
-    # Assuming it's localhost and deriving port in range 6000-7000
-    node.define fmt"tcp://localhost:{6000 + (node.id.hash.int mod 1000)}"
+    # Assuming it's localhost and deriving port from the node name, in range 6000-56000
+    #
+    # Possible improvement would be to use shared file like `~/.nodes` to store mapping and
+    # resolve conflicts, but it feels too complicated.
+    node.define fmt"tcp://localhost:{6000 + (node.id.hash.int mod 50000)}"
   nodes_definitions[node]
 
 
