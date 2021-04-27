@@ -2,7 +2,7 @@ Simple RPC, call remote Nim functions as if its local
 
 [Video Demo, 10min, a bit outdated, for previous version](https://youtu.be/KUb15vva0vw)
 
-Made by [al6x](http://al6x.com)
+Made by [al6x](http://al6x.com), I do Statstics, Analytics, Visualization
 
 # RPC in 10 lines of Nim
 
