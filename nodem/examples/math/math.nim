@@ -1,4 +1,4 @@
-import nodem, nodem/httpm
+import nodem
 
 proc pi(_: Node): float {.nexport.} = 3.14
 
@@ -14,7 +14,7 @@ if is_main_module:
   generate_nimports "./nodem/examples/math/mathi.nim" # Optional
 
   spawn_async math.run
-  spawn_async math.run_http("http://localhost:8000", true) # Optional, for HTTP
+  # spawn_async math.run_http("http://localhost:8000", true) # Optional, for HTTP
 
   echo "math node started"
   run_forever()

@@ -1,7 +1,7 @@
-import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, os, re as nimre
-import ./nodem/supportm, ./nodem/netm
+import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, re as nimre
+import ./nodem/supportm, ./nodem/httpm
 
-export json, parent_dir, receive_async, netm
+export json, receive_async, httpm
 
 # fn_signature -------------------------------------------------------------------------------------
 type FnSignature = (NimNode, seq[(NimNode, NimNode, NimNode)], NimNode, bool)
