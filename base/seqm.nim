@@ -25,11 +25,7 @@ func first*[T](list: openarray[T]): T {.inline.} =
   list[0]
 
 func first*[T](list: openarray[T], check: (T) -> bool, start = 0): T =
-  if start <= (list.len - 1):
-    for i in start..(list.len - 1):
-      let v = list[i]
-      if check(v): return v
-  throw "not found"
+  list.fget(check, start).get
 
 
 # first_optional -----------------------------------------------------------------------------------
@@ -72,15 +68,6 @@ func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
 
 test "findi":
   assert @["a"].findi((v) => v == "a") == 0.some # From error
-
-# find ---------------------------------------------------------------------------------------------
-# func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
-#   echo "base/find is deprecated"
-#   if start <= (list.len - 1):
-#     for i in start..(list.len - 1):
-#       let v = list[i]
-#       if check(v): return v.some
-#   T.none
 
 
 # find_by ------------------------------------------------------------------------------------------
