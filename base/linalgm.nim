@@ -1,4 +1,3 @@
-import system except find
 import basem, mathm
 
 type Point2D = tuple[x: float, y: float]

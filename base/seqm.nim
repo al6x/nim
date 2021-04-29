@@ -1,4 +1,3 @@
-import system except find
 import std/macros
 import optionm, sugar, algorithm, supportm, sequtils, tables
 from random as random import nil
@@ -11,10 +10,26 @@ func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 func is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
 
+# fget ---------------------------------------------------------------------------------------------
+func fget*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
+  if start <= (list.len - 1):
+    for i in start..(list.len - 1):
+      let v = list[i]
+      if check(v): return v.some
+  T.none
+
+
 # first --------------------------------------------------------------------------------------------
 func first*[T](list: openarray[T]): T {.inline.} =
   assert not list.is_empty, "can't get first from empty list"
   list[0]
+
+func first*[T](list: openarray[T], check: (T) -> bool, start = 0): T =
+  if start <= (list.len - 1):
+    for i in start..(list.len - 1):
+      let v = list[i]
+      if check(v): return v
+  throw "not found"
 
 
 # first_optional -----------------------------------------------------------------------------------
@@ -59,12 +74,13 @@ test "findi":
   assert @["a"].findi((v) => v == "a") == 0.some # From error
 
 # find ---------------------------------------------------------------------------------------------
-func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
-  if start <= (list.len - 1):
-    for i in start..(list.len - 1):
-      let v = list[i]
-      if check(v): return v.some
-  T.none
+# func find*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
+#   echo "base/find is deprecated"
+#   if start <= (list.len - 1):
+#     for i in start..(list.len - 1):
+#       let v = list[i]
+#       if check(v): return v.some
+#   T.none
 
 
 # find_by ------------------------------------------------------------------------------------------
@@ -97,12 +113,12 @@ test "pick":
   assert people.pick(name_fn) == @["John", "Sarah"]
 
 # find_all -----------------------------------------------------------------------------------------
-func find_all*[T](list: openarray[T], check: (T) -> bool, start = 0): seq[T] =
-  if start <= (list.len - 1):
-    for i in start..(list.len - 1):
-      let v = list[i]
-      if check(v): result.add(v)
-  result
+# func find_all*[T](list: openarray[T], check: (T) -> bool, start: int): seq[T] =
+#   if start <= (list.len - 1):
+#     for i in start..(list.len - 1):
+#       let v = list[i]
+#       if check(v): result.add(v)
+#   result
 
 
 # map ----------------------------------------------------------------------------------------------
@@ -136,7 +152,8 @@ func findi_min*[T](list: openarray[T], op: (T) -> float): int =
       min_i = i
   min_i
 
-func findi_min*(list: openarray[float]): int = list.findi_min((v) => v)
+func findi_min*(list: openarray[float]): int =
+  list.findi_min((v) => v)
 
 func findi_max*[T](list: openarray[T], op: (T) -> float): int =
   assert not list.is_empty
@@ -148,7 +165,8 @@ func findi_max*[T](list: openarray[T], op: (T) -> float): int =
       max_i = i
   max_i
 
-func findi_max*(list: openarray[float]): int = list.findi_max((v) => v)
+func findi_max*(list: openarray[float]): int =
+  list.findi_max((v) => v)
 
 test "findi_min/max":
   assert @[1.0, 2.0, 3.0].findi_min((v) => (v - 2.1).abs) == 1

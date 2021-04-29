@@ -1,5 +1,5 @@
 import sugar, jsonm, optionm, timem
-from fsm as fs import nil
+from fs import nil
 
 
 proc read_from_optional*[T](t: type[T], path: string): Option[T] =

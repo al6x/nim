@@ -1,4 +1,5 @@
-import basem, logm, jsonm, fsm as fs, envm, ext/persistencem, timem
+import basem, logm, jsonm, envm, ext/persistencem, timem
+from fs import nil
 {.experimental: "code_reordering".}
 
 

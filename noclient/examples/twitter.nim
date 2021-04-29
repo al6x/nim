@@ -1,4 +1,3 @@
-import system except find
 import basem, jsonm
 import ../web/serverm, ./helpersm, ../web/fs_storage
 {.experimental: "code_reordering".}
@@ -106,7 +105,7 @@ State.on("delete", proc (state: var State, data: tuple[id: int]): bool =
 )
 
 State.on("edit", proc (state: var State, data: tuple[id: int]): bool =
-  let message = state.messages.find((message) => message.id == data.id).get
+  let message = state.messages.first((message) => message.id == data.id)
   state.edit_form = message.some
 )
 

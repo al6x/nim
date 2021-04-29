@@ -1,4 +1,3 @@
-import system except find
 import basem, logm, jsonm, rem, timem, randomm, envm
 import ./supportm, ./helpersm
 
@@ -224,7 +223,7 @@ proc process(server: Server, req: Request): Response =
 
   let normalized_path = req.path.replace(re"/$", "")
   let routeo = routes[route_prefix, @[]]
-    .find((route) => route.methd == req.methd and route.pattern =~ normalized_path)
+    .fget((route) => route.methd == req.methd and route.pattern =~ normalized_path)
 
   let route = if routeo.is_some: routeo.get
   else:

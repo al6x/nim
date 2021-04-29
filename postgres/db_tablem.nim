@@ -1,4 +1,4 @@
-import basem, logm, convertersm
+import basem, logm, parsersm
 import ./dbm, ./pg_convertersm, ./sqlm
 
 export dbm, sqlm
