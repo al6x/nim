@@ -1,4 +1,4 @@
-import strutils, strformat, options, uri, tables, hashes, sets, sugar, json
+import strutils, strformat, options, uri, tables, hashes, sets, sugar, json, re
 import asynchttpserver, httpclient, httpcore
 from os import param_str
 import ./nodem, ./supportm, ./asyncm, ./support_httpm
@@ -53,24 +53,47 @@ proc send*(node: Node, message: string): void =
 
 
 # receive_async ------------------------------------------------------------------------------------
-type OnMessageAsync* = proc (message: string): Future[Option[string]]
+type OnMessageAsync* = proc (message: string  ): Future[Option[string]]
 type OnError*        = proc (e: ref Exception): void # mostly for logging
 
-proc default_on_error(e: ref Exception): void = discard
+proc default_on_error*(e: ref Exception): void = discard
 
-proc run_http(node: Node, cb: proc (request: Request): Future[void] {.closure, gcsafe.}): Future[void] =
-  let (scheme, host, port, path) = parse_url node.definition.url
+var started_servers = Table[(string, int), (AsyncHttpServer, Future[void])]() # (host, port)
+var routes: Table[(int, string), proc (req: Request): Future[void]] # (port, route) -> handler
+
+proc add_route_and_start_server_if_not_started(
+  url:   string,
+  route: proc (req: Request): Future[void]
+): Future[void] =
+  let (scheme, host, port, base_path_raw) = parse_url url
+  let base_path = base_path_raw.replace(re"^/|/$", "")
+  if "/" in base_path: throw fmt"slashes are not supported in base path '{base_path}'"
   if scheme notin ["http", "https"]: throw "only http/https supported"
-  if path != "": throw "wrong path"
 
-  var server = new_async_http_server()
-  return server.serve(Port(port), cb, host)
+  if (port, base_path) in routes: throw fmt"route '/{base_path}' already registered"
+  routes[(port, base_path)] = route
+
+  proc cb(req: Request): Future[void] {.gcsafe.} =
+    let base_path = req.url.path.replace(re"^/|/$", "").replace(re"/.+", "")
+    let handler =
+      if (port, base_path)   in routes: routes[(port, base_path)]
+      elif (port, "") in routes:        routes[(port, "")]
+      else:
+        let msg = fmt"route '/{base_path}' not found"
+        return req.respond(Http500, msg)
+    handler(req)
+
+  let hp = (host, port)
+  if hp notin started_servers:
+    var server = new_async_http_server()
+    started_servers[hp] = (server, server.serve(Port(port), cb, host))
+  return started_servers[hp][1]
 
 proc receive_async*(
   node:         Node,
   on_message:   OnMessageAsync,
   on_error:     OnError        = default_on_error,
-  quit_on_error                = false             # in debug it's easier to quit on error
+  catch_errors                 = true              # in debug it's easier to quit on error
 ): Future[void] =
   proc cb(req: Request): Future[void] {.async, gcsafe.} =
     try:
@@ -78,40 +101,80 @@ proc receive_async*(
       let reply = await on_message(req.body)
       await req.respond(Http200, reply.get(""))
     except Exception as e:
-      if quit_on_error: quit(e)
-      else:
+      if catch_errors:
         on_error(e)
         await req.respond(Http500, e.msg.clean_async_error)
-
-  return node.run_http(cb)
-
-
-
-# receive ------------------------------------------------------------------------------------------
-type OnMessage* = proc (message: string): Option[string]
-
-proc receive*(
-  node:         Node,
-  on_message:   OnMessage,
-  on_error:     OnError    = default_on_error,
-  quit_on_error            = false             # in debug it's easier to quit on error
-): Future[void] =
-  # Separate sync receive for better error messages, without async noise.
-  #
-  # While the handler itsel is sync, the messages received and send async, so there's no
-  # waiting for networking.
-  proc cb(req: Request): Future[void] {.gcsafe.} =
-    try:
-      if req.req_method != HttpPost: throw "method not allowed"
-      let reply = on_message(req.body)
-      return req.respond(Http200, reply.get(""))
-    except Exception as e:
-      if quit_on_error: quit(e)
       else:
-        on_error(e)
-        return req.respond(Http500, e.msg)
+        quit(e)
 
-  return node.run_http(cb)
+  add_route_and_start_server_if_not_started(node.definition.url, cb)
+
+
+# stop ---------------------------------------------------------------------------------------------
+proc stop*(host: string, port: int): void =
+  let hp = (host, port)
+  if hp in started_servers:
+    started_servers[hp][0].close
+    started_servers.del hp
+
+
+# receive_rest_async -------------------------------------------------------------------------------
+type OnRestAsync* = proc (
+  fname: string, positional: seq[string], named: Table[string, string], named_json: JsonNode
+): Future[Option[string]]
+
+proc receive_rest_async(
+  url:            string,
+  on_rest:        OnRestAsync,
+  allow_get_bool: bool,
+  allow_get_set:  HashSet[string],
+  on_error:       OnError,
+  catch_errors:   bool
+): Future[void] =
+  # Use as example and modify to your needs.
+  # Funcion need to be specifically allowed as GET because of security reasons.
+  var (_, _, _, base_path) = parse_url url
+  base_path = base_path.replace(re"/$", "")
+
+  let headers = new_http_headers({"Content-type": "application/json; charset=utf-8"})
+
+  proc cb(req: Request): Future[void] {.async, gcsafe.} =
+    try:
+      var parts = req.url.path.replace(base_path).replace(re"^/", "").split("/")
+      let (fname, positional) = (parts[0], parts[1..^1])
+      var named: Table[string, string]
+      for k, v in req.url.query.decode_query: named[k] = v
+
+      if req.req_method == HttpGet:
+        if not (allow_get_bool or fname in allow_get_set):
+          throw fmt"'{fname}' not allowed as GET"
+
+      let named_json = if req.body == "": newJObject() else: req.body.parse_json
+
+      let reply = await on_rest(fname, positional, named, named_json)
+      await respond(req, Http200, reply.get("{}"), headers)
+    except Exception as e:
+      if catch_errors:
+        on_error(e)
+        await respond(req, Http500, $(%((is_error: true, message: e.msg))), headers)
+      else:
+        quit(e)
+
+  add_route_and_start_server_if_not_started(url, cb)
+
+proc receive_rest_async*(
+  url:       string,
+  on_rest:   OnRestAsync,
+  allow_get: seq[string] | bool = false,      # GET disabled by default, for security reasons
+  on_error:  OnError      = default_on_error,
+  catch_errors            = false             # in debug it's easier to quit on error
+): Future[void] =
+  let (allow_get_bool, allow_get_set) = when allow_get is bool:
+    (allow_get, init_hash_set[string]())
+  else:
+    (false, allow_get.to_hash_set)
+
+  receive_rest_async(url, on_rest, allow_get_bool, allow_get_set, on_error, catch_errors)
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -150,44 +213,48 @@ if is_main_module:
   start(b, a)
   run_forever()
 
+# if is_main_module:
+#   # Should print clean error on server
+#   let server = Node("server")
+#   proc run_server =
+#     proc on_message(message: string): Option[string] =
+#       throw "some error"
+#     server.receive(on_message)
+
+#   proc run_client =
+#     server.send "some message"
+
+#   case param_str(1)
+#   of "server": run_server()
+#   of "client": run_client()
+#   else:        throw "unknown command"
+
 
 # # receive ------------------------------------------------------------------------------------------
-# # const delay_ms = 100
-# # proc receive*(node: Node): Future[string] {.async.} =
-# #   # Auto-reconnects and waits untill it gets the message
-# #   var success = false
-# #   try:
-# #     # Handling connection errors and auto-reconnecting
-# #     while true:
-# #       let socket = block:
-# #         let (is_error, error, socket) = await connect node
-# #         if is_error:
-# #           await sleep_async delay_ms
-# #           continue
-# #         socket
-# #       let (is_error, is_closed, error, _, message) = await socket.receive_message
-# #       if is_error or is_closed:
-# #         await sleep_async delay_ms
-# #         continue
-# #       success = true
-# #       return message
-# #   finally:
-# #     # Closing socket on any error, it will be auto-reconnected
-# #     if not success: await disconnect(node)
+# type OnMessage* = proc (message: string): Option[string]
 
+# proc receive*(
+#   node:         Node,
+#   on_message:   OnMessage,
+#   on_error:     OnError    = default_on_error,
+#   quit_on_error            = false             # in debug it's easier to quit on error
+# ): Future[void] =
+#   # Separate sync receive for better error messages, without async noise.
+#   #
+#   # While the handler itsel is sync, the messages received and send async, so there's no
+#   # waiting for networking.
+#   proc cb(req: Request): Future[void] {.gcsafe.} =
+#     try:
+#       if req.req_method != HttpPost: throw "method not allowed"
+#       let reply = on_message(req.body)
+#       return req.respond(Http200, reply.get(""))
+#     except Exception as e:
+#       if quit_on_error: quit(e)
+#       else:
+#         on_error(e)
+#         return req.respond(Http500, e.msg)
 
-# # if is_main_module:
-# #   # Clean error on server
-# #   let server = Node("server")
-# #   proc run_server =
-# #     proc on_message(message: string): Option[string] =
-# #       throw "some error"
-# #     server.receive(on_message)
-
-# #   proc run_client =
-# #     server.send "some message"
-
-# #   case param_str(1)
-# #   of "server": run_server()
-# #   of "client": run_client()
-# #   else:        throw "unknown command"
+#   var (_, _, _, path) = parse_url node.definition.url
+#   path = path.replace(re"/$", "")
+#   handlers[path] = cb
+#   start_server_if_not_started(node.definition.url, on_error)

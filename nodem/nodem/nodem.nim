@@ -40,7 +40,7 @@ proc definition*(node: Node): NodeDefinition =
     #
     # Possible improvement would be to use shared file like `~/.nodes` to store mapping and
     # resolve conflicts, but it feels too complicated.
-    node.define fmt"http://localhost:{6000 + (node.id.hash.int mod 50000)}"
+    node.define fmt"http://localhost:{6000 + (node.id.hash.int mod 50000)}/{node.id}"
   nodes_definitions[node]
 
 proc `%`*(node: Node): JsonNode =

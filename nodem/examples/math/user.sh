@@ -1,4 +1,4 @@
-curl http://localhost:8000/plus/1?y=2
+curl http://localhost:8000/math/plus/1?y=2
 echo
 
 # => {"is_error":false,"result":3}
@@ -6,7 +6,7 @@ echo
 # - Arguments auto casted to correct types.
 # - Both positional and named arguments supported.
 
-curl http://localhost:8000/plus/1/a
+curl http://localhost:8000/math/plus/1/a
 echo
 
 # = {"is_error":true,"message":"invalid float: a"}
@@ -15,8 +15,8 @@ echo
 
 curl \
 --request POST \
---data '{"fn":"multiply(node: Node, a: float, b: float): float","args":["math",3.14,2.0]}' \
-http://localhost:8000
+--data '{"x": 1, "y": 2}' \
+http://localhost:8000/math/plus
 echo
 
-# => {"is_error":false,"result":6.28}
+# => {"is_error":false,"result":3.0}

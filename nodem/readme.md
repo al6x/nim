@@ -41,7 +41,7 @@ import nodem, nodem/httpm
 
 proc plus(_: Node, a, b: float): float {.nexport.} = a + b
 
-node"server".run_http_forever("http://localhost:8000", true)
+run_rest_forever("http://localhost:8000", true)
 
 # curl http://localhost:8000/plus/1?b=2
 #
@@ -58,7 +58,7 @@ See `examples/web_server_in_5_lines`. Note, [todo] the HTTP Client API could be 
 Exporting some functions as available over network:
 
 ```Nim
-import nodem, nodem/httpm
+import nodem, nodem/generatem
 
 proc pi(_: Node): float {.nexport.} = 3.14
 
@@ -69,12 +69,12 @@ proc plus(_: Node, x, y: float): Future[float] {.async, nexport.} = return x + y
 
 if is_main_module:
   let math = node"math"
-  # math.define "tcp://localhost:4000" # Optional, will be auto-set
+  # math.define "http://localhost:8000" # Optional, will be auto-set
 
   generate_nimports "./nodem/examples/math/mathi.nim" # Optional
 
   spawn_async math.run
-  spawn_async math.run_http("http://localhost:8000", true) # Optional, for HTTP
+  spawn_async run_rest("http://localhost:8000/math", true) # Optional, for HTTP
 
   echo "math node started"
   run_forever()
@@ -102,15 +102,15 @@ echo wait_for math.plus(1, 2)
 Or calling via HTTP, [todo] with auto-generated TypeScript/LangXXX client functions
 
 ```Bash
-curl http://localhost:8000/plus/1?y=2
+curl http://localhost:8000/math/plus/1?y=2
 echo
 
-# => {"is_error":false,"result":3.14}
+# => {"is_error":false,"result":3}
 #
-# - Arguments were auto casted to correct types.
+# - Arguments auto casted to correct types.
 # - Both positional and named arguments supported.
 
-curl http://localhost:8000/plus/1/a
+curl http://localhost:8000/math/plus/1/a
 echo
 
 # = {"is_error":true,"message":"invalid float: a"}
@@ -119,11 +119,11 @@ echo
 
 curl \
 --request POST \
---data '{"fn":"multiply(node: Node, a: float, b: float): float","args":["math",3.14,2.0]}' \
-http://localhost:8000
+--data '{"x": 1, "y": 2}' \
+http://localhost:8000/math/plus
 echo
 
-# => {"is_error":false,"result":6.28}
+# => {"is_error":false,"result":3.0}
 ```
 
 see `examples/math`.

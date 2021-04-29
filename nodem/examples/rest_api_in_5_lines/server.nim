@@ -2,7 +2,7 @@ import nodem, nodem/httpm
 
 proc plus(_: Node, a, b: float): float {.nexport.} = a + b
 
-node"server".run_http_forever("http://localhost:8000", true)
+run_rest_forever("http://localhost:8000", true)
 
 # curl http://localhost:8000/plus/1?b=2
 #

@@ -1,4 +1,4 @@
-import nodem, nodem/httpm, options, sugar, sequtils, strformat
+import nodem, nodem/generatem, options, sugar, sequtils, strformat
 {.experimental: "code_reordering".}
 
 type RedisNode* = ref object of Node
@@ -90,6 +90,6 @@ if is_main_module:
 
   # catch_node_errors = false
   spawn_async redis.run
-  spawn_async redis.run_http("http://localhost:8000", true) # Optional, for HTTP
+  spawn_async run_rest("http://localhost:8000", true) # Optional, for HTTP
   echo "redis started"
   run_forever()

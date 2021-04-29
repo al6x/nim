@@ -1,4 +1,4 @@
-import nodem
+import nodem, nodem/generatem
 
 proc pi(_: Node): float {.nexport.} = 3.14
 
@@ -9,12 +9,12 @@ proc plus(_: Node, x, y: float): Future[float] {.async, nexport.} = return x + y
 
 if is_main_module:
   let math = node"math"
-  # math.define "tcp://localhost:4000" # Optional, will be auto-set
+  # math.define "http://localhost:8000" # Optional, will be auto-set
 
   generate_nimports "./nodem/examples/math/mathi.nim" # Optional
 
   spawn_async math.run
-  # spawn_async math.run_http("http://localhost:8000", true) # Optional, for HTTP
+  spawn_async run_rest("http://localhost:8000/math", true) # Optional, for HTTP
 
   echo "math node started"
   run_forever()

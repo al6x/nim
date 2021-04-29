@@ -1,9 +1,9 @@
-# Optional helpers for async, you don't have to use it with `nodem`
 import asyncdispatch, re
 import ./supportm
 
 export asyncdispatch except async_check, with_timeout, add_timer
 
+# Optional helpers for async, you don't have to use it
 
 # spawn_async --------------------------------------------------------------------------------------
 proc ignore_exceptions*[T](future: Future[T]): Future[T] {.async.} =
