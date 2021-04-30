@@ -1,4 +1,4 @@
-import supportm, optionm, sugar, tablem
+import supportm, optionm, sugar, tablem, jsonm
 
 type Fallible*[T] = object
   case is_error*: bool
@@ -70,3 +70,12 @@ proc map*[A, B](a: Fallible[A], op: (A) -> B): Fallible[B] =
 
 converter to_option*[T](v: Fallible[T]): Option[T] =
   if v.is_present: v.get.some else: T.none
+
+proc `%`*[T](f: Fallible[T]): JsonNode =
+  if f.is_error: %f else: %(f.get)
+proc init_from_json*[T](dst: var Fallible[T], json: JsonNode, json_path: string) =
+  dst = if "is_error" in json:
+    if json["is_error"].get_bool: T.error(json["message"].get_str)
+    else:                         json["value"].to(T).success
+  else:
+    json.to(T).success

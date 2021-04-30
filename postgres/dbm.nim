@@ -1,4 +1,4 @@
-import basem, logm
+import basem, logm, jsonm
 import ./pg_convertersm, ./sqlm
 from osproc import exec_cmd_ex
 from postgres import nil
@@ -126,6 +126,32 @@ proc connect(db: Db): DbConn =
   connection
 
 
+# to_nim_postgres_sql ------------------------------------------------------------------------------
+type NimPostgresSQL* = tuple[query: string, values: seq[string]] # Parameterised SQL
+
+proc to_nim_postgres_sql*(sql: SQL): NimPostgresSQL =
+  # Nim driver for PostgreSQL requires special format because:
+  # - it doesn't support null in SQL params
+  # - it doesn't support typed params, all params should be strings
+  var i = 0
+  var values: seq[string]
+  let query: string = sql.query.replace(re"\?", proc (v: string): string =
+    let v = sql.values[i]
+    i += 1
+    case v.kind:
+    of JNull:
+      "null"
+    of JString:
+      values.add v.get_str
+      "?"
+    else:
+      values.add $v
+      "?"
+  )
+  if i != sql.values.len: throw fmt"number parameters in SQL doesn't match, {sql}"
+  (query: query, values: values)
+
+
 # db.exec ------------------------------------------------------------------------------------------
 proc exec_batch(connection: DbConn, query: string) =
   # https://forum.nim-lang.org/t/7804
@@ -140,15 +166,17 @@ proc exec*(db: Db, query: string, log = true): void =
 
 proc exec*(db: Db, query: SQL, log = true): void =
   if log: db.log.debug "exec"
+  let pg_query = query.to_nim_postgres_sql
   db.with_connection do (conn: auto) -> void:
-    db_postgres.exec(conn, db_postgres.sql(query.query), query.values)
+    db_postgres.exec(conn, db_postgres.sql(pg_query.query), pg_query.values)
 
 
 # db.get ------------------------------------------------------------------------------------------
 proc get*(db: Db, query: SQL, log = true): seq[seq[string]] =
   if log: db.log.debug "get"
+  let pg_query = query.to_nim_postgres_sql
   db.with_connection do (conn: auto) -> auto:
-    db_postgres.get_all_rows(conn, db_postgres.sql(query.query), query.values)
+    db_postgres.get_all_rows(conn, db_postgres.sql(pg_query.query), pg_query.values)
 
 proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
   T.from_postgres db.get(query, log = log)
