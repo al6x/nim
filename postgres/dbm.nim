@@ -219,9 +219,9 @@ if is_main_module:
   # db.drop
 
   db.before """
-    drop table if exists users;
+    drop table if exists dbm_test_users;
 
-    create table users(
+    create table dbm_test_users(
       name varchar(100) not null,
       age  integer      not null
     );
@@ -229,40 +229,43 @@ if is_main_module:
 
   # SQL values replacements
   db.exec(sql(
-    "insert into users (name, age) values (:name, :age)",
+    "insert into dbm_test_users (name, age) values (:name, :age)",
     (name: "Jim", age: 30)
   ))
   assert db.get(
-    sql"select name, age from users order by name"
+    sql"select name, age from dbm_test_users order by name"
   ) == @[
     @["Jim", "30"]
   ]
 
   block: # SQL parameters
     assert db.get(
-      sql"""select name, age from users where name = {"Jim"}"""
+      sql"""select name, age from dbm_test_users where name = {"Jim"}"""
     ) == @[
       @["Jim", "30"]
     ]
 
   block: # Casting from Postges to array tuples
     let rows = db.get(
-      sql"select name, age from users order by name", (string, int)
+      sql"select name, age from dbm_test_users order by name", (string, int)
     )
     assert rows == @[("Jim", 30)]
 
   block: # Casting from Postges to objects and named tuples
-    let rows = db.get(sql"select name, age from users order by name", tuple[name: string, age: int])
+    let rows = db.get(sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int])
     assert rows == @[(name: "Jim", age: 30)]
 
   block: # Count
-    assert db.get_one(sql"select count(*) from users where age = {30}", int) == 1
+    assert db.get_one(sql"select count(*) from dbm_test_users where age = {30}", int) == 1
+
+  # Cleaning
+  db.exec("drop table if exists dbm_test_users")
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:
   #     try:
   #       echo db
-  #         .get_raw("select name, age from users order by name")
+  #         .get_raw("select name, age from dbm_test_users order by name")
   #         .to((string, int))
   #     except Exception as e:
   #       echo "error"

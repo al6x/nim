@@ -125,9 +125,9 @@ proc `[]`*[D, T](table: DbTable[D, T], id: int | string, default: T): T =
 
 proc test_db_tablem*[Db](db: Db) =
   db.before """
-    drop table if exists users;
+    drop table if exists db_table_test_users;
 
-    create table users(
+    create table db_table_test_users(
       id   integer      not null,
       name varchar(100) not null,
       age  integer      not null,
@@ -143,7 +143,7 @@ proc test_db_tablem*[Db](db: Db) =
     name: string
     age:  int
 
-  let users = db.table(User, "users")
+  let users = db.table(User, "db_table_test_users")
 
   # Saving
   var jim = User(id: 1, name: "Jim", age: 30)
@@ -158,3 +158,6 @@ proc test_db_tablem*[Db](db: Db) =
   assert users[1]                    == jim
 
   assert users.count(sql"age = {31}") == 1
+
+  # Cleaning
+  db.exec "drop table if exists db_table_test_users"
