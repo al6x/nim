@@ -1,17 +1,19 @@
-import strutils, strformat, options, uri, tables, hashes, sets, sugar, json, re
+import strutils, strformat, options, tables, hashes, sets, sugar, json, re
 import asynchttpserver, httpclient, httpcore
 from os import param_str
-import ./nodem, ./supportm, ./asyncm, ./support_httpm
+import ./nodem, ./supportm, ./asyncm
 
 export nodem, asyncm
 
 
 # call_async ---------------------------------------------------------------------------------------
-proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {.async.} =
+proc call_async*(node: Node, message: string, timeout_ms: int, path = ""): Future[string] {.async.} =
+  # path - additional path to merge into node base url
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
+  let url = if path != "": $(node.definition.parsed_url & Url.parse(path)) else: node.definition.url
   try:
     let client = new_async_http_client()
-    let http_res = await post(client, node.definition.url, message).with_timeout(timeout_ms)
+    let http_res = await post(client, url, message).with_timeout(timeout_ms)
     if http_res.code != Http200:
       let body = await http_res.body
       throw(if body != "": body else: "unknown error")
@@ -19,37 +21,38 @@ proc call_async*(node: Node, message: string, timeout_ms: int): Future[string] {
   except Exception as e:
     throw fmt"can't call {node}, {e.msg}"
 
-proc call_async*(node: Node, message: string): Future[string] =
-  node.call_async(message, node.definition.timeout_ms)
+proc call_async*(node: Node, message: string, path = ""): Future[string] =
+  node.call_async(message, node.definition.timeout_ms, path)
 
 
 # call ---------------------------------------------------------------------------------------------
-proc call*(node: Node, message: string, timeout_ms: int): string =
+proc call*(node: Node, message: string, timeout_ms: int, path = ""): string =
   # Send message and waits for reply
+  # path - additional path to merge into node base url
   try:
     wait_for node.call_async(message, timeout_ms)
   except Exception as e:
     # Cleaning messy async error
     throw fmt"can't call '{node}', {e.msg.clean_async_error}"
 
-proc call*(node: Node, req: string): string =
-  node.call(req, node.definition.timeout_ms)
+proc call*(node: Node, req: string, path = ""): string =
+  node.call(req, node.definition.timeout_ms, path)
 
 
 # send_async ---------------------------------------------------------------------------------------
-proc send_async*(node: Node, message: string, timeout_ms: int): Future[void] {.async.} =
-  discard await node.call_async(message, timeout_ms)
+proc send_async*(node: Node, message: string, timeout_ms: int, path = ""): Future[void] {.async.} =
+  discard await node.call_async(message, timeout_ms, path)
 
-proc send_async*(node: Node, message: string): Future[void] =
-  node.send_async(message, node.definition.timeout_ms)
+proc send_async*(node: Node, message: string, path = ""): Future[void] =
+  node.send_async(message, node.definition.timeout_ms, path)
 
 
 # send ---------------------------------------------------------------------------------------------
-proc send*(node: Node, message: string, timeout_ms: int): void =
-  discard node.call(message, timeout_ms)
+proc send*(node: Node, message: string, timeout_ms: int, path = ""): void =
+  discard node.call(message, timeout_ms, path)
 
-proc send*(node: Node, message: string): void =
-  node.send(message, node.definition.timeout_ms)
+proc send*(node: Node, message: string, path = ""): void =
+  node.send(message, node.definition.timeout_ms, path)
 
 
 # receive_async ------------------------------------------------------------------------------------
@@ -62,13 +65,13 @@ var started_servers = Table[(string, int), (AsyncHttpServer, Future[void])]() # 
 var routes: Table[(int, string), proc (req: Request): Future[void]] # (port, route) -> handler
 
 proc add_route_and_start_server_if_not_started(
-  url:   string,
+  url:   Url,
   route: proc (req: Request): Future[void]
 ): Future[void] =
-  let (scheme, host, port, base_path_raw) = parse_url url
-  let base_path = base_path_raw.replace(re"^/|/$", "")
+  let base_path = url.path.replace(re"^/|/$", "")
   if "/" in base_path: throw fmt"slashes are not supported in base path '{base_path}'"
-  if scheme notin ["http", "https"]: throw "only http/https supported"
+  if url.scheme notin ["http", "https"]: throw "only http/https supported"
+  let (host, port) = (url.host, url.port)
 
   if (port, base_path) in routes: throw fmt"route '/{base_path}' already registered"
   routes[(port, base_path)] = route
@@ -107,7 +110,7 @@ proc receive_async*(
       else:
         quit(e)
 
-  add_route_and_start_server_if_not_started(node.definition.url, cb)
+  add_route_and_start_server_if_not_started(node.definition.parsed_url, cb)
 
 
 # stop ---------------------------------------------------------------------------------------------
@@ -133,8 +136,8 @@ proc receive_rest_async(
 ): Future[void] =
   # Use as example and modify to your needs.
   # Funcion need to be specifically allowed as GET because of security reasons.
-  var (_, _, _, base_path) = parse_url url
-  base_path = base_path.replace(re"/$", "")
+  var url = Url.parse url
+  let base_path = url.path.replace(re"/$", "")
 
   let headers = new_http_headers({"Content-type": "application/json; charset=utf-8"})
 

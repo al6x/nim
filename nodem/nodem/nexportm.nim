@@ -125,13 +125,17 @@ type NexportedFunction* = ref object
 var nexported_functions*: OrderedTable[string, NexportedFunction]
 var nexported_functions_aliases: OrderedTable[string, NexportedFunction]
 
+proc normalize_symbol(s: string): string = s.replace("_", "").replace(" ", "")
+
 proc full_name*(s: FnSignatureS): string =
   # Full name with argument types and return values, needed to support multiple dispatch
-  template normalize (s: string): string = s.replace("_", "").replace(" ", "")
   # For node arg always using name `node`.
-  let node_arg_s = fmt"node: {s[1][0][1].normalize}"
-  let args_s = s[1][1..^1].map((arg) => fmt"{arg[0].normalize}: {arg[1].normalize}").join(", ")
-  fmt"{s[0].normalize}({node_arg_s}, {args_s}): {s[2].normalize}"
+  let node_arg_s = fmt"node: {s[1][0][1].normalize_symbol}"
+  let args_s = s[1][1..^1].map((arg) => fmt"{arg[0].normalize_symbol}: {arg[1].normalize_symbol}").join(", ")
+  fmt"{s[0].normalize_symbol}({node_arg_s}, {args_s}): {s[2].normalize_symbol}"
+
+proc short_name*(s: FnSignatureS): string =
+  s[0].normalize_symbol
 
 proc register(nf: NexportedFunction): void =
   let full_name = nf.fsign.full_name

@@ -100,9 +100,6 @@ assert users[1]                     == jim
 assert users.count(sql"age = {31}") == 1
 ```
 
-# TODO
-
-- Check if it works with lists, like `select user with id in {@[1, 2]}`
 
 # Notes
 

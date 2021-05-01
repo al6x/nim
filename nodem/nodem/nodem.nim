@@ -6,6 +6,7 @@ export tables, hashes
 let default_timeout_ms = 2000
 type NodeDefinition* = ref object
   url*:        string
+  parsed_url*: Url
   timeout_ms*: int
 
 type Node* = ref object of RootObj
@@ -19,7 +20,7 @@ proc node*(id: string): Node =
   Node(id: id)
 
 proc node*(id: string, url: string, timeout_ms = default_timeout_ms): Node =
-  Node(id: id, def: NodeDefinition(url: url, timeout_ms: timeout_ms).some)
+  Node(id: id, def: NodeDefinition(url: url, parsed_url: Url.parse(url), timeout_ms: timeout_ms).some)
 
 proc `$`*(node: Node): string = node.id
 proc hash*(node: Node): Hash = node.id.hash
@@ -28,7 +29,7 @@ proc `==`*(a, b: Node): bool = a.id == b.id
 var nodes_definitions*: Table[Node, NodeDefinition]
 
 proc define*(node: Node, url: string, timeout_ms = default_timeout_ms): void =
-  nodes_definitions[node] = NodeDefinition(url: url, timeout_ms: timeout_ms)
+  nodes_definitions[node] = NodeDefinition(url: url, parsed_url: Url.parse(url), timeout_ms: timeout_ms)
 
 proc definition*(node: Node): NodeDefinition =
   if node.def.is_some:
