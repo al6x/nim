@@ -7,6 +7,7 @@ export nodem, asyncm
 
 
 # call_async ---------------------------------------------------------------------------------------
+# var requests_pool: Table
 proc call_async*(node: Node, message: string, timeout_ms: int, path = ""): Future[string] {.async.} =
   # path - additional path to merge into node base url
   if timeout_ms <= 0: throw "tiemout should be greather than zero"

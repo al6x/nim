@@ -1,29 +1,42 @@
-import supportm, sugar, httpclient, jsonm, uri, seqm, falliblem
+import sugar, httpclient
+import ./supportm, ./jsonm, ./urlm, ./seqm, ./falliblem, ./tablem
+from uri import nil
 
 let default_timeout_sec = 30
 
 
 # http_get -----------------------------------------------------------------------------------------
-proc http_get*[Res](url: string, timeout_sec = default_timeout_sec, close = false): Res =
-  let client = new_http_client(
-    timeout = timeout_sec * 1000,
-    headers = new_http_headers({ "Content-Type": "application/json" })
-  )
-  if close:
+var clients_pool: Table[string, HttpClient]
+proc with_client[T](
+  url: string, timeout_sec: int, use_pool: bool, op: proc (client: HttpClient): T
+): T =
+  proc new_client: HttpClient =
+    new_http_client(
+      timeout = timeout_sec * 1000,
+      headers = new_http_headers({ "Content-Type": "application/json" })
+    )
+  if use_pool:
+    let domain = Url.parse(url).domain
+    if domain notin clients_pool: clients_pool[domain] = new_client()
+    op(clients_pool[domain])
+  else:
+    let client = new_client()
     defer: client.close
-  let resp = client.get_content(url)
-  Fallible[Res].from_json(resp.parse_json).get
+    op(client)
+
+
+proc http_get*[Res](url: string, timeout_sec = default_timeout_sec, use_pool = true): Res =
+  proc request(client: HttpClient): Res =
+    let resp = client.get_content(url)
+    Fallible[Res].from_json(resp.parse_json).get
+  with_client(url, timeout_sec, use_pool, request)
 
 
 # http_post ----------------------------------------------------------------------------------------
-proc http_post_raw*(url: string, req: string, timeout_sec = default_timeout_sec, close = false): string =
-  let client = new_http_client(
-    timeout = timeout_sec * 1000,
-    headers = new_http_headers({ "Content-Type": "application/json" })
-  )
-  if close:
-    defer: client.close
-  client.post_content(url, req)
+proc http_post_raw*(url: string, req: string, timeout_sec = default_timeout_sec, use_pool = true): string =
+  proc request(client: HttpClient): string =
+    client.post_content(url, req)
+  with_client(url, timeout_sec, use_pool, request)
 
 proc http_post*[Req, Res](url: string, req: Req, timeout_sec = default_timeout_sec, close = false): Res =
   let resp = http_post_raw(url, req.to_json, timeout_sec, close)
@@ -55,7 +68,7 @@ proc http_post_batch*[B, R](
 
 # build_url ----------------------------------------------------------------------------------------
 proc build_url*(url: string, query: varargs[(string, string)]): string =
-  if query.len > 0: url & "?" & query.encode_query
+  if query.len > 0: url & "?" & uri.encode_query(query)
   else:            url
 
 proc build_url*(url: string, query: tuple): string =

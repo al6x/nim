@@ -218,6 +218,8 @@ Current limitations and possible areas for improvements:
 
 # TODO
 
+- Reuse client connections
+- Make server more robust against too many files opened
 - TypeScript and Elixir integration.
 - [low] Add support for defaults.
 - [low] Manager to start/restart
