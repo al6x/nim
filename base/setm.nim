@@ -3,5 +3,8 @@ import sets
 export sets
 
 # is_empty -----------------------------------------------------------------------------------------
-func is_empty*[T](s: HashSet[T]): bool {.inline.} = s.len == 0
-func is_blank*[T](s: HashSet[T]): bool {.inline.} = s.len == 0
+func is_empty*[T](s: HashSet[T]): bool = s.len == 0
+func is_blank*[T](s: HashSet[T]): bool = s.len == 0
+
+func add*[T](s: var HashSet[T], v: T) =
+  s.incl v

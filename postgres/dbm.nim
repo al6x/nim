@@ -3,7 +3,7 @@ import ./pg_convertersm, ./sqlm
 from osproc import exec_cmd_ex
 from postgres import nil
 from db_postgres import DbConn
-import uri
+from uri import nil
 
 export sqlm, DbConn
 
@@ -13,7 +13,8 @@ type Db* = ref object
   url*:                    string
   encoding*:               string
   create_db_if_not_exist*: bool           # Create db if not exist
-  id:                      string
+
+proc hash*(db: Db): Hash = db.autohash
 
 proc log(db: Db): Log = Log.init("db", db.name)
 
@@ -21,8 +22,9 @@ proc log(db: Db): Log = Log.init("db", db.name)
 # Using separate storage for connections, because they need to be mutable. The Db can't be mutable
 # because it's needed to be passed around callbacks and sometimes Nim won't allow to pass mutable data
 # in callbacks.
-var connections:      Table[string, DbConn]
-var before_callbacks: Table[string, seq[proc: void]]
+var connections:      Table[Db, DbConn]
+var before_callbacks: Table[Db, seq[proc: void]]
+
 
 # Db.init ------------------------------------------------------------------------------------------
 proc init*(
@@ -32,9 +34,8 @@ proc init*(
   encoding               = "utf8",
   create_db_if_not_exist = true # Create db if not exist
 ): Db =
-  let id = fmt"{url}/{name}/{encoding}/{create_db_if_not_exist}"
   # Connection will be establisehd lazily on demand, and reconnected after failure
-  Db(name: name, url: url, encoding: encoding, create_db_if_not_exist: create_db_if_not_exist, id: id)
+  Db(name: name, url: url, encoding: encoding, create_db_if_not_exist: create_db_if_not_exist)
 
 
 # db.create ----------------------------------------------------------------------------------------
@@ -57,9 +58,9 @@ proc drop*(db: Db, user = "postgres"): void =
 
 # db.close -----------------------------------------------------------------------------------------
 proc close*(db: Db): void =
-  if db.id notin connections: return
-  let conn = connections[db.id]
-  connections.del db.id
+  if db notin connections: return
+  let conn = connections[db]
+  connections.del db
   db.log.info "close"
   db_postgres.close(conn)
 
@@ -73,16 +74,16 @@ proc close*(db: Db): void =
 proc connect(db: Db): DbConn
 
 proc with_connection*[R](db: Db, op: (DbConn) -> R): R =
-  if db.id notin connections:
-    connections[db.id] = db.connect()
+  if db notin connections:
+    connections[db] = db.connect()
 
-    if db.id in before_callbacks:
+    if db in before_callbacks:
       db.log.info "applying before callbacks"
-      for cb in before_callbacks[db.id]: cb()
+      for cb in before_callbacks[db]: cb()
 
   var success = false
   try:
-    result = op(connections[db.id])
+    result = op(connections[db])
     success = true
   finally:
     if not success:
@@ -100,8 +101,8 @@ proc with_connection*(db: Db, op: (DbConn) -> void): void =
 
 proc connect(db: Db): DbConn =
   db.log.info "connect"
-  var url = init_uri()
-  parse_uri(db.url, url)
+  var url = uri.init_uri()
+  uri.parse_uri(db.url, url)
   assert url.scheme == "postgresql"
 
   proc connect(): auto =
@@ -159,16 +160,21 @@ proc exec_batch(connection: DbConn, query: string) =
   if postgres.pqResultStatus(res) != postgres.PGRES_COMMAND_OK: db_postgres.dbError(connection)
   postgres.pqclear(res)
 
-proc exec*(db: Db, query: string, log = true): void =
-  if log: db.log.debug "exec"
-  db.with_connection do (conn: auto) -> void:
-    conn.exec_batch(query)
+# proc exec*(db: Db, query: string, log = true): void =
+#   if log: db.log.debug "exec"
+#   db.with_connection do (conn: auto) -> void:
+#     conn.exec_batch(query)
 
 proc exec*(db: Db, query: SQL, log = true): void =
   if log: db.log.debug "exec"
-  let pg_query = query.to_nim_postgres_sql
-  db.with_connection do (conn: auto) -> void:
-    db_postgres.exec(conn, db_postgres.sql(pg_query.query), pg_query.values)
+  if ";" in query.query:
+    if not query.values.is_empty: throw "multiple statements can't be used with parameters"
+    db.with_connection do (conn: auto) -> void:
+      conn.exec_batch(query.query)
+  else:
+    let pg_query = query.to_nim_postgres_sql
+    db.with_connection do (conn: auto) -> void:
+      db_postgres.exec(conn, db_postgres.sql(pg_query.query), pg_query.values)
 
 
 # db.get ------------------------------------------------------------------------------------------
@@ -183,14 +189,14 @@ proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
 
 
 # db.get_one --------------------------------------------------------------------------------------
-proc get_one*(db: Db, query: SQL | string, log = true): seq[string] =
+proc get_one*(db: Db, query: SQL, log = true): seq[string] =
   if log: db.log.debug "get_one"
   let rows = db.get(query, log = false)
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
   if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
   rows[0]
 
-proc get_one*[T](db: Db, query: SQL | string, _: type[T], log = true): T =
+proc get_one*[T](db: Db, query: SQL, _: type[T], log = true): T =
   let row = db.get_one(query, log = false)
   when T is object | tuple:
     T.from_postgres row
@@ -203,11 +209,11 @@ proc get_one*[T](db: Db, query: SQL | string, _: type[T], log = true): T =
 # db.before ----------------------------------------------------------------------------------------
 # Callbacks to be executed before any query
 proc before*(db: Db, cb: proc: void): void =
-  var list = before_callbacks[db.id, @[]]
+  var list = before_callbacks[db, @[]]
   list.add cb
-  before_callbacks[db.id] = list
+  before_callbacks[db] = list
 
-proc before*(db: Db, sql: string): void =
+proc before*(db: Db, sql: SQL): void =
   db.before(() => db.exec(sql))
 
 
@@ -218,7 +224,7 @@ if is_main_module:
   let db = Db.init("nim_test")
   # db.drop
 
-  db.before """
+  db.before sql"""
     drop table if exists dbm_test_users;
 
     create table dbm_test_users(
@@ -259,7 +265,7 @@ if is_main_module:
     assert db.get_one(sql"select count(*) from dbm_test_users where age = {30}", int) == 1
 
   # Cleaning
-  db.exec("drop table if exists dbm_test_users")
+  db.exec sql"drop table if exists dbm_test_users"
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:
