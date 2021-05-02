@@ -5,6 +5,8 @@ import std/strutils except format
 # SQL ----------------------------------------------------------------------------------------------
 type SQL* = tuple[query: string, values: seq[JsonNode]] # Parameterised SQL
 
+proc sql*(query: string, values: seq[JsonNode]): SQL = (query, values)
+
 # Replaces named parameters `:name` in SQL with questions `?`
 proc sql*(query: string, args: tuple | object, validate_unused_keys = true): SQL =
   # Converting values to postgres
