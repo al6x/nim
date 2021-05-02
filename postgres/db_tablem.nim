@@ -155,7 +155,7 @@ proc test_db_tablem*[Db](db: Db) =
   # Get, count
   assert users.get(sql"age = {31}") == @[jim]
   assert users.get_one(1)           == jim.some
-  assert users[1]                    == jim
+  assert users[1]                   == jim
 
   assert users.count(sql"age = {31}") == 1
 
