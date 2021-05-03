@@ -17,7 +17,7 @@ proc hash*(db: Cdb): Hash = db.autohash
 proc init*(
   _:          type[Cdb],
   name      = "cdb",
-  cable_url = "http://localhost:4000"
+  cable_url = "http://localhost:8080"
 ): Cdb =
   assert not cable_url.ends_with("/")
   Cdb(name: name, cable_url: cable_url)
@@ -42,7 +42,7 @@ type RawRows = ref object
 
 proc to_raw_rows(raw: JsonNode): RawRows =
   result = RawRows()
-  for raw_row in raw["rows"]:
+  for raw_row in raw:
     assert raw_row.kind == JObject
     result.rows.add raw_row
 
