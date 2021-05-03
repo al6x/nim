@@ -17,7 +17,7 @@ proc hash*(db: Cdb): Hash = db.autohash
 proc init*(
   _:          type[Cdb],
   name      = "cdb",
-  cable_url = "http://localhost:8080"
+  cable_url = "http://localhost:80"
 ): Cdb =
   assert not cable_url.ends_with("/")
   Cdb(name: name, cable_url: cable_url)
