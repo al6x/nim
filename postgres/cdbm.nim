@@ -1,4 +1,4 @@
-import basem, logm, jsonm, setm, hashes, httpm
+import basem, logm, jsonm, setm, hashes, httpm, urlm
 import ./pg_convertersm, ./sqlm
 
 export sqlm
@@ -6,7 +6,8 @@ export sqlm
 # Cdb ----------------------------------------------------------------------------------------------
 type Cdb* = ref object
   name*:      string
-  cable_url*: string
+  url*:       string
+  parsed_url: Url
 
 proc log(db: Cdb): Log = Log.init("db", db.name)
 
@@ -15,12 +16,11 @@ proc hash*(db: Cdb): Hash = db.autohash
 
 # Cdb.init ------------------------------------------------------------------------------------------
 proc init*(
-  _:          type[Cdb],
-  name      = "cdb",
-  cable_url = "http://localhost:80"
+  _:   type[Cdb],
+  name = "cdb",
+  url  = "http://localhost:80?user=user&password=password"
 ): Cdb =
-  assert not cable_url.ends_with("/")
-  Cdb(name: name, cable_url: cable_url)
+  Cdb(name: name, url: url, parsed_url: Url.parse(url))
 
 
 # Before Callbacks ---------------------------------------------------------------------------------
@@ -50,7 +50,8 @@ proc cable_exec(db: Cdb, query: SQL): Fallible[RawRows] =
   let sql_query =
     when query is string: sql(query, ())
     else:                 query
-  let raw = http_post_raw(db.cable_url & "/db/exec", sql_query.to_json).parse_json
+  let url = $(db.parsed_url & "/db/exec")
+  let raw = http_post_raw(url, sql_query.to_json).parse_json
   if raw.kind == JObject and "is_error" in raw:
     if raw["is_error"].get_bool: RawRows.error(raw["message"].get_str)
     else:                        raw["value"].to_raw_rows.success

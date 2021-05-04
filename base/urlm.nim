@@ -1,4 +1,4 @@
-import ./supportm, ./support_httpm, rem, strformat, tablem, strutils
+import ./supportm, ./support_httpm, rem, strformat, tablem, strutils, hashm
 from uri import nil
 
 type Url* = object
@@ -41,6 +41,8 @@ proc parse*(_: type[Url], url: string): Url =
   else:
     Url.init(path = parsed.path, query = query)
 
+proc hash*(url: Url): Hash = url.autohash
+
 proc domain*(url: Url): string =
   let port = if url.port == 80: "" else: fmt":{url.port}"
   fmt"{url.scheme}://{url.host}{port}"
@@ -66,3 +68,6 @@ proc `&`*(base, addon: Url): Url =
   result = base
   result.path  = base.path.replace(re"/^", "") & addon.path
   result.query = base.query & addon.query
+
+proc `&`*(base: Url, addon: string): Url =
+  base & Url.parse(addon)
