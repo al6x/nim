@@ -45,6 +45,9 @@ proc keys*[K, V](table: Table[K, V] | ref Table[K, V]): seq[K] =
 proc values*[K, V](table: Table[K, V] | ref Table[K, V]): seq[V] =
   for v in table.values: result.add v
 
+proc values*[K, V](table: OrderedTable[K, V] | ref OrderedTable[K, V]): seq[V] =
+  for v in table.values: result.add v
+
 
 # to_table -----------------------------------------------------------------------------------------
 proc to_table*[V, K](list: openarray[V], key: (V) -> K): Table[K, V] =

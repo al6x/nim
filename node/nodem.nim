@@ -1,7 +1,7 @@
-import options, strutils, strformat, json
-import ./nodem/asyncm, ./nodem/nexportm, ./nodem/httpm, ./nodem/nimportm
+import basem
+import ./nodem/nodem, ./nodem/nexportm, ./nodem/http_nodem, ./nodem/nimportm
 
-export httpm, nexportm, nimportm, asyncm, json
+export http_nodem, nexportm, nimportm
 
 
 # run ----------------------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
-import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets, re as nimre
-import ./asyncm, ./nodem/supportm, ./parserm, ./nodem
+import basem, asyncm, jsonm, macros, envm
+import ./parserm, ./nodem
 
-export json, parserm, nodem
+export jsonm, parserm, nodem
 
 
 # fn_signature -------------------------------------------------------------------------------------
@@ -115,7 +115,9 @@ macro nexport*(fn: typed) =
 
 # nexported_functions ------------------------------------------------------------------------------
 type NFHandler = proc (args: JsonNode): Future[JsonNode] # can throw errors
-type NFParser = proc (positional: seq[string], named: Table[string, string], named_json: JsonNode): JsonNode
+type NFParser = proc (
+  cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
+): JsonNode
 # Parses any combination of arguments, positional, named or named in json
 
 type NexportedFunction* = ref object
@@ -156,13 +158,6 @@ proc from_string_if_exists*[T](_: type[T], s: string): T =
   when compiles(T.from_string(s)): T.from_string s
   else:                            throw fmt"provide '{$T}.from_string' conversion"
 
-proc build_parser0(fsign: FnSignatureS): NFParser =
-  proc parser(positional: seq[string], named: Table[string, string], named_json: JsonNode): JsonNode =
-    assert positional.len + named.len + named_json.len == 0
-    let json = newJArray()
-    json.add %(node"self")
-    json
-  return parser
 
 proc parse_arg[T](
   _: type[T], fsign: FnSignatureS, i: int, positional: seq[string],
@@ -178,30 +173,46 @@ proc parse_arg[T](
   else:
     throw fmt"argument '{arg_name}' not defined for {fsign[0]}"
 
+proc build_parser0(fsign: FnSignatureS): NFParser =
+  proc parser(
+    cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
+  ): JsonNode =
+    assert positional.len + named.len + named_json.len == 0
+    let json = newJArray()
+    json.add cnode
+    json
+  return parser
+
 proc build_parser1[A](fsign: FnSignatureS): NFParser =
-  proc parser(positional: seq[string], named: Table[string, string], named_json: JsonNode): JsonNode =
+  proc parser(
+    cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
+  ): JsonNode =
     assert positional.len + named.len + named_json.len == 1
     let json = newJArray()
-    json.add %(node"self")
+    json.add cnode
     json.add %(A.parse_arg(fsign, 0, positional, named, named_json))
     json
   return parser
 
 proc build_parser2[A, B](fsign: FnSignatureS): NFParser =
-  proc parser(positional: seq[string], named: Table[string, string], named_json: JsonNode): JsonNode =
+  proc parser(
+    cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
+  ): JsonNode =
     assert positional.len + named.len + named_json.len == 2
     let json = newJArray()
-    json.add %(node"self")
+    json.add cnode
     json.add %(A.parse_arg(fsign, 0, positional, named, named_json))
     json.add %(B.parse_arg(fsign, 1, positional, named, named_json))
     json
   return parser
 
 proc build_parser3[A, B, C](fsign: FnSignatureS): NFParser =
-  proc parser(positional: seq[string], named: Table[string, string], named_json: JsonNode): JsonNode =
+  proc parser(
+    cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
+  ): JsonNode =
     assert positional.len + named.len + named_json.len == 3
     let json = newJArray()
-    json.add %(node"self")
+    json.add cnode
     json.add %(A.parse_arg(fsign, 0, positional, named, named_json))
     json.add %(B.parse_arg(fsign, 1, positional, named, named_json))
     json.add %(C.parse_arg(fsign, 2, positional, named, named_json))
@@ -213,7 +224,7 @@ proc build_parser3[A, B, C](fsign: FnSignatureS): NFParser =
 proc nexport_async_function*[N, R](fsign: FnSignatureS, fn: proc(n: N): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 0
-    let r = await fn(N(id: args[0].get_str))
+    let r = await fn(args[0].to(N))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser0(fsign)).register
 
@@ -224,7 +235,7 @@ proc nexport_async_function*[N](fsign: FnSignatureS, fn: proc(n: N): Future[void
 proc nexport_async_function*[N, A, R](fsign: FnSignatureS, fn: proc(n: N, a: A): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 2
-    let r = await fn(N(id: args[0].get_str), args[1].to(A))
+    let r = await fn(args[0].to(N), args[1].to(A))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser1[A](fsign)).register
 
@@ -235,7 +246,7 @@ proc nexport_async_function*[N, A](fsign: FnSignatureS, fn: proc(n: N, a: A): Fu
 proc nexport_async_function*[N, A, B, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B): Future[R]): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 3
-    let r = await fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B))
+    let r = await fn(args[0].to(N), args[1].to(A), args[2].to(B))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser2[A, B](fsign)).register
 
@@ -248,7 +259,7 @@ proc nexport_async_function*[N, A, B, C, R](
 ): void =
   proc nfhandler_async(args: JsonNode): Future[JsonNode] {.async.} =
     assert args.kind == JArray and args.len == 4
-    let r = await fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B), args[3].to(C))
+    let r = await fn(args[0].to(N), args[1].to(A), args[2].to(B), args[3].to(C))
     return %(is_error: false, result: r)
   NexportedFunction(fsign: fsign, handler: nfhandler_async, parser: build_parser3[A, B, C](fsign)).register
 
@@ -259,7 +270,8 @@ proc nexport_async_function*[N, A, B, C](
 
 
 # nexport_async_function ---------------------------------------------------------------------------
-var catch_node_errors* = true # Should be true in production, but in development it's better to set it as false
+var catch_node_errors* = env.is_production()
+# Should be true in production, but in development it's better to set it as false
 
 template nf_handler_safe_reply(code: typed): typed =
   # Additional error catching to provide clean error messages without the async stack trace mess
@@ -278,7 +290,7 @@ proc to_async_handler(handler_sync: proc (args: JsonNode): JsonNode): NFHandler 
 proc nexport_function*[N, R](fsign: FnSignatureS, fn: proc(n: N): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 1
-    nf_handler_safe_reply: fn(N(id: args[0].get_str))
+    nf_handler_safe_reply: fn(args[0].to(N))
   let parser = build_parser0(fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -288,7 +300,7 @@ proc nexport_function*[N](fsign: FnSignatureS, fn: proc(n: N): void): void = # F
 proc nexport_function*[N, A, R](fsign: FnSignatureS, fn: proc(n: N, a: A): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 2
-    nf_handler_safe_reply: fn(N(id: args[0].get_str), args[1].to(A))
+    nf_handler_safe_reply: fn(args[0].to(N), args[1].to(A))
   let parser = build_parser1[A](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -299,7 +311,7 @@ proc nexport_function*[N, A](fsign: FnSignatureS, fn: proc(n: N, a: A): void): v
 proc nexport_function*[N, A, B, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 3
-    nf_handler_safe_reply: fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B))
+    nf_handler_safe_reply: fn(args[0].to(N), args[1].to(A), args[2].to(B))
   let parser = build_parser2[A, B](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -310,7 +322,7 @@ proc nexport_function*[N, A, B](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B):
 proc nexport_function*[N, A, B, C, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B, c: C): R): void =
   proc safe_nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 4
-    nf_handler_safe_reply: fn(N(id: args[0].get_str), args[1].to(A), args[2].to(B), args[3].to(C))
+    nf_handler_safe_reply: fn(args[0].to(N), args[1].to(A), args[2].to(B), args[3].to(C))
   let parser = build_parser3[A, B, C](fsign)
   NexportedFunction(fsign: fsign, handler: safe_nfhandler.to_async_handler, parser: parser).register
 
@@ -349,7 +361,7 @@ proc call_nexport_function*(req_json: string): Option[string] =
 #     except Exception as e: quit(e)
 
 proc call_nexport_function_async*(
-  fname: string, positional: seq[string], named: Table[string, string], named_json: JsonNode
+  fname: string, cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
 ): Future[Option[string]] {.async.} =
   # Calls nexported function with raw string arguments, arguments would be parsed and casted to correct types,
   # positional and named arguments could be mixed.
@@ -359,7 +371,7 @@ proc call_nexport_function_async*(
       elif fname in nexported_functions_aliases: nexported_functions_aliases[fname]
       else:                                      throw fmt"no nexported function '{fname}'"
 
-    var args = nfn.parser(positional, named, named_json)
+    var args = nfn.parser(cnode, positional, named, named_json)
     let res = await nfn.handler(args)
     return res.`%`.`$`.some
   except Exception as e:
@@ -367,6 +379,6 @@ proc call_nexport_function_async*(
     else:                 quit(e)
 
 proc call_nexport_function*(
-  fname: string, positional: seq[string], named: Table[string, string], named_json: JsonNode
+  fname: string, cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
 ): Option[string] =
-  wait_for call_nexport_function_async(fname, positional, named, named_json)
+  wait_for call_nexport_function_async(fname, cnode, positional, named, named_json)

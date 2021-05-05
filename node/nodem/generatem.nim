@@ -1,5 +1,4 @@
-import options, hashes, sets, strformat, strutils, re, sequtils, sugar
-import ./supportm, ./nexportm
+import basem, ./nexportm
 
 export nexportm
 

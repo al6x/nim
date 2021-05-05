@@ -1,5 +1,4 @@
-import asyncdispatch, re
-import ./supportm
+import ./supportm, ./rem, asyncdispatch
 
 export asyncdispatch except async_check, with_timeout, add_timer
 

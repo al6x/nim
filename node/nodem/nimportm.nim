@@ -1,7 +1,7 @@
-import json, tables, strutils, strformat, sequtils, sugar, macros, options, sets
-import ./nodem/supportm, ./nodem/httpm, ./supportm, ./nexportm
+import basem, jsonm, macros
+import ./http_nodem, ./nexportm
 
-export json, httpm
+export jsonm, http_nodem
 
 # nimport ------------------------------------------------------------------------------------------
 macro nimport*(fn: typed): typed =

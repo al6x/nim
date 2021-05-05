@@ -38,7 +38,7 @@ proc init*(
   assets_path       = "/assets",
   assets_file_paths = new_seq[string](),
   max_file_size     = 10_000_000,                  # 10 Mb
-  cache_assets      = env["environment", "development"] == "production"
+  cache_assets      = env.is_production()
 ): ServerConfig =
   const script_dir = instantiation_info(full_paths = true).filename.parent_dir
   ServerConfig(

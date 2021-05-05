@@ -1,7 +1,6 @@
-import tables, hashes, strformat, json, options
-import ./supportm
+import basem, urlm, jsonm
 
-export tables, hashes
+export basem, urlm, jsonm
 
 let default_timeout_ms = 2000
 type NodeDefinition* = ref object

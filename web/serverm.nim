@@ -25,18 +25,17 @@ type ServerConfig* = ref object
   max_file_size*:     int         # Currently large files are not supported
   cache_assets*:      bool
 
-let is_production = env["environment", "development"] == "production"
 proc init*(
   _: type[ServerConfig],
   host           = "localhost",
   port           = 8080,
-  catch_errors   = is_production,
-  show_errors    = not is_production,
+  catch_errors   = env.is_production(),
+  show_errors    = not env.is_production(),
 
   assets_path       = "/assets",
   assets_file_paths = new_seq[string](),
   max_file_size     = 10_000_000,                  # 10 Mb
-  cache_assets      = is_production
+  cache_assets      = env.is_production()
 ): ServerConfig =
   ServerConfig(
     host: host, port: port, show_errors: show_errors,
@@ -92,7 +91,7 @@ proc respond*(content: string): Response =
   Response.init(content = content, headers = @[("Content-Type", "text/html;charset=utf-8")])
 
 proc respond_data*(data: string): Response =
-  Response.init(content = data.to_json, headers = @[("Content-Type", "application/json")])
+  Response.init(content = data, headers = @[("Content-Type", "application/json")])
 
 proc respond_data*[D](data: D): Response =
   respond_data data.to_json
