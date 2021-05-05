@@ -17,7 +17,8 @@ proc log(): Log = Log.init "HTTP"
 type ServerConfig* = ref object
   host*:           string
   port*:           int
-  show_errors*:    bool        # Show stack trace on the error page, should be disabledled in production
+  catch_errors*:   bool           # In development it's easier to debug if server fails on error
+  show_errors*:    bool           # Show stack trace on the error page, should be disabledled in production
 
   assets_path*:       string      # Http prefix for assets, like `/assets`
   assets_file_paths*: seq[string]
@@ -29,6 +30,7 @@ proc init*(
   _: type[ServerConfig],
   host           = "localhost",
   port           = 8080,
+  catch_errors   = is_production,
   show_errors    = not is_production,
 
   assets_path       = "/assets",
@@ -59,12 +61,11 @@ type Request* = ref object
   user_token*:    string
 
 proc get(req: Request, key: string, default: Option[string]): string =
-  if not req.data.is_nil and req.data.kind == JObject and key in req.data:
-    req.data[key].get_str
-  elif key in req.params:
-    req.params[key]
-  elif default.is_some:
-    default.get
+  let is_in_data = not req.data.is_nil and req.data.kind == JObject and key in req.data
+  if is_in_data:          req.data[key].get_str
+  elif key in req.query:  req.query[key]
+  elif key in req.params: req.params[key]
+  elif default.is_some:   default.get
   else:
     throw fmt"no '{key}' key in request"
 
@@ -75,7 +76,7 @@ proc `[]`*(req: Request, key: string, default: string): string =
   req.get(key, default.some)
 
 
-# Response ----------------------------------------------------------------------------------------
+# Response -----------------------------------------------------------------------------------------
 type Response* = ref object
   code*:     int
   content*:  string
@@ -89,6 +90,12 @@ proc init*(_: type[Response], data: (int, string, seq[(string, string)])): Respo
 
 proc respond*(content: string): Response =
   Response.init(content = content, headers = @[("Content-Type", "text/html;charset=utf-8")])
+
+proc respond_data*(data: string): Response =
+  Response.init(content = data.to_json, headers = @[("Content-Type", "application/json")])
+
+proc respond_data*[D](data: D): Response =
+  respond_data data.to_json
 
 proc redirect*(url: string): Response =
   Response.init(303, "Redirected to {url}", @[("Location", url)])
@@ -206,9 +213,9 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
   # Preparing route and finishing request initialization
   let (path_params, handler) = routeo.get
 
-  req.params        = path_params & req.query
-  req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random_token()]]
-  req.session_token = req.params["session_token", req.cookies["session_token", secure_random_token()]]
+  req.params        = path_params
+  req.user_token    = req["user_token",    req.cookies["user_token",    secure_random_token()]]
+  req.session_token = req["session_token", req.cookies["session_token", secure_random_token()]]
 
   # Processing
   let tic = timer_ms()
@@ -224,6 +231,7 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
     response.headers.set_session_cookie("session_token", req.session_token)
     response.some
   except Exception as e:
+    if server.config.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
@@ -252,10 +260,10 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
   # Preparing route and finishing request initialization
   let (path_params, handler) = routeo.get
 
-  req.params        = path_params & req.query
+  req.params        = path_params
   req.data          = (if req.body != "": req.body else: "{}").parse_json
-  req.user_token    = req.params["user_token",    req.cookies["user_token",    secure_random_token()]]
-  req.session_token = req.params["session_token", req.cookies["session_token", secure_random_token()]]
+  req.user_token    = req["user_token",    req.cookies["user_token",    secure_random_token()]]
+  req.session_token = req["session_token", req.cookies["session_token", secure_random_token()]]
 
   # Processing
   let tic = timer_ms()
@@ -266,8 +274,9 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .info("{method4} {path} finished, {duration_ms}ms")
-    Response.init(200, $response, @[("Content-Type", "application/json")]).some
+    respond_data(response).some
   except Exception as e:
+    if server.config.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
@@ -276,7 +285,7 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
       (is_error: true, message: e.msg, stack: e.get_stack_trace).to_json
     else:
       (is_error: true, message: e.msg).to_json
-    Response.init(200, error, @[("Content-Type", "application/json")]).some
+    respond_data(error).some
 
 
 # process ------------------------------------------------------------------------------------------
@@ -363,27 +372,14 @@ method render_error_page*(server: Server, message: string, error: ref Exception)
 method render_not_found_page*(_: Server, message: string): string  {.base.} =
   render_default_not_found_page(message)
 
-method format_as[T](_: Server, data: T, format: string): Response {.base.} =
-  if format == "json": Response.init(200, data.to_json, @[("Content-Type", "application/json")])
-  else:                Response.init(500, fmt"Error, invalid format '{format}'")
-
-method format_error_as(_: Server, message: string, format: string): Response {.base.} =
-  if format == "json":
-    Response.init(200, (is_error: true, message: message).to_json, @[("Content-Type", "application/json")])
-  else:
-    Response.init(500, fmt"Error, invalid format '{format}'")
-
-method format_error_as(_: Server, error: ref Exception, format: string): Response {.base.} =
-  if format == "json":
-    let content = (is_error: true, message: error.message, stack: error.get_stack_trace).to_json
-    Response.init(200, content, @[("Content-Type", "application/json")])
-  else:
-    Response.init(500, fmt"Error, invalid format '{format}'")
-
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
   var server = Server.init()
+
+  # server.get("/api/users/:name/profile", (req: Request) =>
+  #   (name: req["name"], age: 20)
+  # )
 
   server.get_data("/api/users/:name/profile", (req: Request) =>
     (name: req["name"], age: 20)

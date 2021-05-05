@@ -54,6 +54,12 @@ template throw_message*(message: string) =
   # raise newException(MessageError, message)
 
 
+proc quit*(e: ref Exception) =
+  stderr.write_line e.msg
+  stderr.write_line e.get_stack_trace
+  quit 1
+
+
 # Exception.message --------------------------------------------------------------------------------
 func message*(e: Exception | ref Exception): string = e.msg
 
