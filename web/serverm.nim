@@ -190,6 +190,19 @@ proc process_assets(server: Server, normalized_path: string, req: Request): Opti
     cache_assets      = server.config.cache_assets
   ).map((file_res) => Response.init(file_res))
 
+proc set_tokens(req: var Request): void =
+  req.user_token    = req["user_token",    req.cookies["user_token",    secure_random_token()]]
+  req.params.del "user_token"
+  req.query.del  "user_token"
+
+  req.session_token = req["session_token", req.cookies["session_token", secure_random_token()]]
+  req.params.del "session_token"
+  req.query.del  "session_token"
+
+proc set_tokens(res: var Response, req: Request): void =
+  res.headers.set_permanent_cookie("user_token", req.user_token)
+  res.headers.set_session_cookie("session_token", req.session_token)
+
 
 # process_html -------------------------------------------------------------------------------------
 proc process_html(server: Server, normalized_path: string, req: Request): Option[Response] =
@@ -212,9 +225,9 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
   # Preparing route and finishing request initialization
   let (path_params, handler) = routeo.get
 
-  req.params        = path_params
-  req.user_token    = req["user_token",    req.cookies["user_token",    secure_random_token()]]
-  req.session_token = req["session_token", req.cookies["session_token", secure_random_token()]]
+  var req = req
+  req.params = path_params
+  set_tokens req
 
   # Processing
   let tic = timer_ms()
@@ -226,11 +239,10 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
       .with((time: Time.now, duration_ms: tic()))
       .info("{method4} {path} finished, {duration_ms}ms")
 
-    response.headers.set_permanent_cookie("user_token", req.user_token)
-    response.headers.set_session_cookie("session_token", req.session_token)
+    response.set_tokens req
     response.some
   except Exception as e:
-    if server.config.catch_errors: quit(e)
+    if not server.config.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
@@ -259,10 +271,10 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
   # Preparing route and finishing request initialization
   let (path_params, handler) = routeo.get
 
-  req.params        = path_params
-  req.data          = (if req.body != "": req.body else: "{}").parse_json
-  req.user_token    = req["user_token",    req.cookies["user_token",    secure_random_token()]]
-  req.session_token = req["session_token", req.cookies["session_token", secure_random_token()]]
+  var req = req
+  req.params = path_params
+  req.data   = (if req.body != "": req.body else: "{}").parse_json
+  set_tokens req
 
   # Processing
   let tic = timer_ms()
@@ -275,7 +287,7 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
       .info("{method4} {path} finished, {duration_ms}ms")
     respond_data(response).some
   except Exception as e:
-    if server.config.catch_errors: quit(e)
+    if not server.config.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
