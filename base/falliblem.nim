@@ -76,7 +76,12 @@ converter to_option*[T](v: Fallible[T]): Option[T] =
 
 proc from_json*[T](_: type[Fallible[T]], json: JsonNode): Fallible[T] =
   if json.kind == JObject and "is_error" in json:
-    if json["is_error"].get_bool: T.error(json["message"].get_str)
+    if json["is_error"].get_bool:
+      let message =
+        if   "error"   in json: json["error"].get_str
+        elif "message" in json: json["message"].get_str
+        else:                   "unknown error"
+      T.error message
     else:                         json["value"].to(T).success
   else:
     json.to(T).success
