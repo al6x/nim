@@ -1,5 +1,5 @@
-import basem, jsonm
-import ../web/serverm, ./helpersm, ../web/fs_storage
+import basem, jsonm, persistencem
+import ../server/serverm, ./helpersm
 {.experimental: "code_reordering".}
 
 
@@ -15,10 +15,10 @@ type
 proc init*(_: type[State]): State = discard
 
 proc load*(_: type[State], id: string): State =
-  storage()[id]
+  State.read_from fmt"./tmp/twitter/{id}.json"
 
 proc save*(state: State, id: string): void =
-  storage()[id] = state
+  state.write_to fmt"./tmp/twitter/{id}.json"
 
 
 # Templates ----------------------------------------------------------------------------------------
@@ -145,6 +145,3 @@ proc on*(
     state.save(req.user_token)
     (update: AppEl(state), flash: flash)
   )
-
-proc storage(): FsStorage[State] =
-  FsStorage[State].init "./tmp/twitter"
