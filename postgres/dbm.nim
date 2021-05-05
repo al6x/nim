@@ -160,11 +160,6 @@ proc exec_batch(connection: DbConn, query: string) =
   if postgres.pqResultStatus(res) != postgres.PGRES_COMMAND_OK: db_postgres.dbError(connection)
   postgres.pqclear(res)
 
-# proc exec*(db: Db, query: string, log = true): void =
-#   if log: db.log.debug "exec"
-#   db.with_connection do (conn: auto) -> void:
-#     conn.exec_batch(query)
-
 proc exec*(db: Db, query: SQL, log = true): void =
   if log: db.log.debug "exec"
   if ";" in query.query:
@@ -178,26 +173,26 @@ proc exec*(db: Db, query: SQL, log = true): void =
 
 
 # db.get ------------------------------------------------------------------------------------------
-proc get*(db: Db, query: SQL, log = true): seq[seq[string]] =
+proc get_raw*(db: Db, query: SQL, log = true): seq[seq[string]] =
   if log: db.log.debug "get"
   let pg_query = query.to_nim_postgres_sql
   db.with_connection do (conn: auto) -> auto:
     db_postgres.get_all_rows(conn, db_postgres.sql(pg_query.query), pg_query.values)
 
 proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
-  T.from_postgres db.get(query, log = log)
+  T.from_postgres db.get_raw(query, log = log)
 
 
 # db.get_one --------------------------------------------------------------------------------------
-proc get_one*(db: Db, query: SQL, log = true): seq[string] =
+proc get_one_raw*(db: Db, query: SQL, log = true): seq[string] =
   if log: db.log.debug "get_one"
-  let rows = db.get(query, log = false)
+  let rows = db.get_raw(query, log = false)
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
   if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
   rows[0]
 
 proc get_one*[T](db: Db, query: SQL, _: type[T], log = true): T =
-  let row = db.get_one(query, log = false)
+  let row = db.get_one_raw(query, log = false)
   when T is object | tuple:
     T.from_postgres row
   else:
@@ -221,9 +216,12 @@ proc before*(db: Db, sql: SQL): void =
 # Test ---------------------------------------------------------------------------------------------
 # --------------------------------------------------------------------------------------------------
 if is_main_module:
+  # No need to manage connections, it will be connected lazily and
+  # reconnected in case of connection error
   let db = Db.init("nim_test")
   # db.drop
 
+  # Executing schema befor any other DB query, will be executed lazily before the first use
   db.before sql"""
     drop table if exists dbm_test_users;
 
@@ -233,36 +231,35 @@ if is_main_module:
     );
   """
 
-  # SQL values replacements
+  # SQL with `:named` parameters instead of `?`
   db.exec(sql(
     "insert into dbm_test_users (name, age) values (:name, :age)",
     (name: "Jim", age: 30)
   ))
   assert db.get(
-    sql"select name, age from dbm_test_users order by name"
+    sql"select name, age from dbm_test_users order by name", (string, int)
   ) == @[
-    @["Jim", "30"]
+    ("Jim", 30)
   ]
 
-  block: # SQL parameters
-    assert db.get(
-      sql"""select name, age from dbm_test_users where name = {"Jim"}"""
-    ) == @[
-      @["Jim", "30"]
-    ]
+  # SQL parameters
+  assert db.get(
+    sql"""select name, age from dbm_test_users where name = {"Jim"}""", (string, int)
+  ) == @[
+    ("Jim", 30)
+  ]
 
-  block: # Casting from Postges to array tuples
-    let rows = db.get(
-      sql"select name, age from dbm_test_users order by name", (string, int)
-    )
-    assert rows == @[("Jim", 30)]
+  # Casting from Postges to objects and named tuples
+  assert db.get(
+    sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int]
+  ) == @[
+    (name: "Jim", age: 30)
+  ]
 
-  block: # Casting from Postges to objects and named tuples
-    let rows = db.get(sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int])
-    assert rows == @[(name: "Jim", age: 30)]
-
-  block: # Count
-    assert db.get_one(sql"select count(*) from dbm_test_users where age = {30}", int) == 1
+  # Count
+  assert db.get_one(
+    sql"select count(*) from dbm_test_users where age = {30}", int
+  ) == 1
 
   # Cleaning
   db.exec sql"drop table if exists dbm_test_users"

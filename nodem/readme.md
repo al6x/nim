@@ -185,26 +185,6 @@ Design inspired by **Erlang Actors**.
 - Auto-versioning, signature of remote functions validated to match the local function, via `full_name`.
 - Idempotent timeouts, waiting for node to get running.
 
-# If used with Elixir-bridge
-
-The **main use case is to communicate between Nim processes**. It's also possible to communicte with other
-languages. One special case is Elixir-birdge, giving Nim access to excellent Elixir IO runtime and capabilities.
-
-*Elixir-bridge is worik in progress, once it's done, these features will be available*.
-
-CPU-fast Nim with IO-fast Elixir working as Team. Write 97% of code in Nim and get capabilities and IO speed of
-Elixir at the cost of writing only 3% of code in Elixir. Mostly the standard code that could be searched and
-copy-pasted.
-
-Using Elixir-bridge is like using PostgreSQL or MongoDB, but for IO.
-
-- Advanced IO without effort with Elixir. Realtime streaming, auth, rate-limits, binary storage, Browser-IO integrations, robust networking, DB-access, scaling, MQ, caching, and so on and on.
-- Fast binary IO, as the binary data handled by Elixir, only ref managed by Nim.
-- Access to tons of excellent, fast, fully async drivers, via Elixir.
-- Use simple single-threaded development model. As CPU-bound parallelism is solved well by single-threaded
-  multiple Nim nodes, processes. And most IO-bound parallelism would be handled by Elixir.
-- Fast compile time for Nim, as you don't have dependencies like MongoDB or PostgreSQL drivers etc.
-
 # Performance
 
 The main use case is tens or hundreds of nodes in local network exchanging lots of small messages.
@@ -218,11 +198,11 @@ Current limitations and possible areas for improvements:
 
 # TODO
 
-- Reuse client connections
-- Make server more robust against too many files opened
-- TypeScript and Elixir integration.
+- [low] Reuse client connections
+- [low] Generate TypeScript client API from Nim nexport functions.
 - [low] Add support for defaults.
 - [low] Manager to start/restart
+- [low] Make server more robust against too many files opened.
 
 # Notes
 

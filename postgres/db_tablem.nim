@@ -1,23 +1,23 @@
 import basem, logm, parsersm
-import ./sqlm
+import ./sqlm, ./dbm
 
-export sqlm
+export sqlm, dbm
 
 # DbTable ------------------------------------------------------------------------------------------
-type DbTable*[D, T] = ref object
-  db*:   D
+type DbTable*[T] = ref object
+  db*:   Db
   name*: string
 
-proc log[D, T](table: DbTable[D, T]): Log = Log.init("db", table.db.name)
+proc log[T](table: DbTable[T]): Log = Log.init("db", table.db.name)
 
 
 # db.table -----------------------------------------------------------------------------------------
-proc table*[D, T](db: D, _: type[T], name: string): DbTable[D, T] =
-  DbTable[D, T](db: db, name: name)
+proc table*[T](db: Db, _: type[T], name: string): DbTable[T] =
+  DbTable[T](db: db, name: name)
 
 
 # table.create -------------------------------------------------------------------------------------
-proc create*[D, T](table: DbTable[D, T], o: T): void =
+proc create*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.create id={id}"
   let query = proc (): string =
     let field_names = T.field_names
@@ -33,7 +33,7 @@ proc create*[D, T](table: DbTable[D, T], o: T): void =
 
 
 # table.update -------------------------------------------------------------------------------------
-proc update*[D, T](table: DbTable[D, T], o: T): void =
+proc update*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.update id={id}"
   let query = proc (): string =
     let setters = T.field_names.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
@@ -47,7 +47,7 @@ proc update*[D, T](table: DbTable[D, T], o: T): void =
 
 
 # table.save ---------------------------------------------------------------------------------------
-proc save*[D, T](table: DbTable[D, T], o: T): void =
+proc save*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.save id={id}"
   let query = proc (): string =
     let field_names = T.field_names
@@ -110,7 +110,7 @@ test "build_query":
   )
 
 # table.filter -------------------------------------------------------------------------------------
-proc filter*[D, T, W](table: DbTable[D, T], where: W = sql"", log = true): seq[T] =
+proc filter*[T, W](table: DbTable[T], where: W = sql"", log = true): seq[T] =
   if log: table.log.with((table: table.name, where: $where)).info "{table}.get {where}"
   let column_names = T.field_names.join(", ")
   let query = build_table_query(table.name, column_names, where)
@@ -118,7 +118,7 @@ proc filter*[D, T, W](table: DbTable[D, T], where: W = sql"", log = true): seq[T
 
 
 # table.get_one -----------------------------------------------------------------------------------
-proc fget*[D, T, W](table: DbTable[D, T], where: W = sql"", log = true): Option[T] =
+proc fget*[T, W](table: DbTable[T], where: W = sql"", log = true): Option[T] =
   if log: table.log.with((table: table.name, where: $where)).info "{table}.get_one {where}"
   let found = table.filter(where, log = false)
   if found.len > 1: throw fmt"expected one but found {found.len} objects"
@@ -126,27 +126,29 @@ proc fget*[D, T, W](table: DbTable[D, T], where: W = sql"", log = true): Option[
 
 
 # table.count --------------------------------------------------------------------------------------
-proc count*[D, T, W](table: DbTable[D, T], where: W = sql""): int =
+proc count*[T, W](table: DbTable[T], where: W = sql""): int =
   table.log.with((table: table.name, where: $where)).info "{table}.count {where}"
   let query = build_table_query(table.name, "count(*)", where)
   table.db.get_one(query, int, log = false)
 
 
 # table.contains -----------------------------------------------------------------------------------
-proc contains*[D, T, W](table: DbTable[D, T], where: W = sql""): bool =
+proc contains*[T, W](table: DbTable[T], where: W = sql""): bool =
   table.count(where) > 0
 
 
 # [] -----------------------------------------------------------------------------------------------
-proc `[]`*[D, T, W](table: DbTable[D, T], where: W): T =
+proc `[]`*[T, W](table: DbTable[T], where: W): T =
   table.fget(where).get
 
-proc `[]`*[D, T, W](table: DbTable[D, T], where: W, default: T): T =
+proc `[]`*[T, W](table: DbTable[T], where: W, default: T): T =
   table.fget(where).get(default)
 
 
 # Test ---------------------------------------------------------------------------------------------
-proc test_db_tablem*[Db](db: Db) =
+if is_main_module:
+  let db = Db.init("nim_test")
+
   db.before sql"""
     drop table if exists test_db_table_users;
 

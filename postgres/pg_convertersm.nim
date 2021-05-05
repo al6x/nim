@@ -2,13 +2,13 @@ import basem, timem
 
 
 # to_postgres --------------------------------------------------------------------------------------
-proc to_postgres*(v: Time):        Option[string] = some $v
-proc to_postgres*(v: string):      Option[string] = some v
-proc to_postgres*(v: int | float): Option[string] = some $v
-proc to_postgres*(v: bool):        Option[string] = some $v
+# proc to_postgres*(v: Time):        Option[string] = some $v
+# proc to_postgres*(v: string):      Option[string] = some v
+# proc to_postgres*(v: int | float): Option[string] = some $v
+# proc to_postgres*(v: bool):        Option[string] = some $v
 
-proc to_postgres*[T](v: Option[T]): Option[string]  =
-  if v.is_some: v.get.to_postgres else: string.none
+# proc to_postgres*[T](v: Option[T]): Option[string]  =
+#   if v.is_some: v.get.to_postgres else: string.none
 
 
 # from_postgres ------------------------------------------------------------------------------------
