@@ -41,7 +41,7 @@ add_handler(VoidLogger())
 
 # route_to_pattern ---------------------------------------------------------------------------------
 # Rewrites `"/users/:name/profile/"` as `re"/users/(?<name>[^/]+)/profile"`
-proc route_pattern_to_re*(route: string): Regex =
+proc route_pattern_to_re(route: string): Regex =
   var route = if route == "/": "" else: route
   let pattern_str = route.replace(re"(:[a-z0-9_]+)", proc (match: string): string =
     let name = match.replace(":", "")
@@ -54,12 +54,46 @@ test "route_pattern_to_re":
     { "name": "alex" }.to_table
 
 
+# route_prefix -------------------------------------------------------------------------------------
+# route_prefix needed to speed up route matching
+proc route_prefix*(path_or_pattern: string): string =
+  let pattern = path_or_pattern.replace(re"^\^", "")
+  assert pattern == "" or pattern.starts_with "/"
+  re"^(/[a-z0-9_\-]+)".parse1(pattern).get("/")
+
+test "route_prefix":
+  assert "/a/b".route_prefix == "/a"
+  assert "/a".route_prefix == "/a"
+  assert "/a".route_prefix == "/a"
+  assert "^/a(.+)".route_prefix == "/a"
+  assert "".route_prefix == "/"
+  assert "/".route_prefix == "/"
+
+
+# parse_route --------------------------------------------------------------------------------------
+type PreparedRoute* = object
+  case is_pattern*: bool
+  of true:
+    prefix*:  string # route_prefix needed to speed up route matching
+    pattern*: Regex
+  of false:
+    path*:    string
+
+proc prepare_route*(pattern: string | Regex): PreparedRoute =
+  when pattern is Regex:
+    PreparedRoute(is_pattern: true, prefix: pattern.pattern.route_prefix, pattern: pattern)
+  else:
+    if ":" in pattern:
+      PreparedRoute(is_pattern: true, prefix: pattern.route_prefix, pattern: pattern.route_pattern_to_re)
+    else:
+      let path = if pattern == "": "/" else: pattern
+      PreparedRoute(is_pattern: false, path: path)
+
+
 # parse_format, parse_mime -------------------------------------------------------------------------
 let mimes = new_mimetypes()
 
-proc parse_format*(
-  query: Table[string, string], headers: Table[string, seq[string]]
-): Option[string] =
+proc parse_format*(query: Table[string, string], headers: Table[string, seq[string]]): Option[string] =
   if "format" in query: return query["format"].some
   let content_type = headers["Content-Type", headers["Accept", @[]]]
   if not content_type.is_blank:
@@ -69,9 +103,7 @@ proc parse_format*(
   string.none
 
 # "some/some.json" => "application/json"
-proc parse_mime*(
-  path: string
-): Option[string] =
+proc parse_mime*(path: string): Option[string] =
   let ext = path.split_file.ext
   if not ext.is_empty:
     let m = mimes.get_mimetype(ext[1..^1], "unknown")

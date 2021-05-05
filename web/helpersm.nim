@@ -16,15 +16,20 @@ test "escape_js":
 
 
 # set_cookie ---------------------------------------------------------------------------------------
-# By default set expiration in 10 years
-proc set_cookie*(
-  headers: var seq[(string, string)], key, value: string, expires_in_sec = 10 * 12 * 30.days.seconds
-) =
+proc set_permanent_cookie*(headers: var seq[(string, string)], key, value: string) =
+  let expires_in_sec = 10 * 12 * 30.days.seconds # Set expiration in 10 years
   let expires = times.`+`(times.now(), times.seconds(expires_in_sec))
   let headers_copy = headers
   proc wrapperfn(): jester.ResponseData =
     result.headers = headers_copy.some
     jester.set_cookie(key, value, expires = expires)
+  headers = wrapperfn().headers.get
+
+proc set_session_cookie*(headers: var seq[(string, string)], key, value: string) =
+  let headers_copy = headers
+  proc wrapperfn(): jester.ResponseData =
+    result.headers = headers_copy.some
+    jester.set_cookie(key, value)
   headers = wrapperfn().headers.get
 
 
