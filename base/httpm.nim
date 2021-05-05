@@ -8,7 +8,7 @@ let default_timeout_sec = 30
 # http_get -----------------------------------------------------------------------------------------
 var clients_pool: Table[string, HttpClient]
 proc with_client[T](
-  url: string, timeout_sec: int, use_pool: bool, op: proc (client: HttpClient): T
+  url: string, op: proc (client: HttpClient): T, timeout_sec: int, use_pool: bool
 ): T =
   proc new_client: HttpClient =
     new_http_client(
@@ -25,21 +25,21 @@ proc with_client[T](
     op(client)
 
 
-proc http_get*[Res](url: string, timeout_sec = default_timeout_sec, use_pool = true): Res =
+proc http_get*[Res](url: string, timeout_sec = default_timeout_sec, use_pool = false): Res =
   proc request(client: HttpClient): Res =
     let resp = client.get_content(url)
     Fallible[Res].from_json(resp.parse_json).get
-  with_client(url, timeout_sec, use_pool, request)
+  with_client(url, request, timeout_sec, use_pool)
 
 
 # http_post ----------------------------------------------------------------------------------------
-proc http_post_raw*(url: string, req: string, timeout_sec = default_timeout_sec, use_pool = true): string =
+proc http_post_raw*(url: string, req: string, timeout_sec = default_timeout_sec, use_pool = false): string =
   proc request(client: HttpClient): string =
     client.post_content(url, req)
-  with_client(url, timeout_sec, use_pool, request)
+  with_client(url, request, timeout_sec, use_pool)
 
-proc http_post*[Req, Res](url: string, req: Req, timeout_sec = default_timeout_sec, close = false): Res =
-  let resp = http_post_raw(url, req.to_json, timeout_sec, close)
+proc http_post*[Req, Res](url: string, req: Req, timeout_sec = default_timeout_sec, use_pool = false): Res =
+  let resp = http_post_raw(url, req.to_json, timeout_sec, use_pool)
   Fallible[Res].from_json(resp.parse_json).get
 
 # proc http_post*[B, R](url: string, body: B, timeout_sec = default_timeout_sec, close = false): R =
