@@ -4,11 +4,11 @@ import ./sqlm, ./dbm
 export sqlm, dbm
 
 # DbTable ------------------------------------------------------------------------------------------
-type DbTable*[T] = ref object
+type DbTable*[T] = object
   db*:   Db
   name*: string
 
-proc log[T](table: DbTable[T]): Log = Log.init("db", table.db.name)
+proc log[T](table: DbTable[T]): Log = Log.init("db", table.db.id)
 
 
 # db.table -----------------------------------------------------------------------------------------
@@ -147,7 +147,8 @@ proc `[]`*[T, W](table: DbTable[T], where: W, default: T): T =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  let db = Db.init("nim_test")
+  let db = Db.init
+  db.define("nim_test")
 
   db.before sql"""
     drop table if exists test_db_table_users;

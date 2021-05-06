@@ -13,8 +13,8 @@ export helpersm
 proc log(): Log = Log.init "HTTP"
 
 
-# ServerConfig -------------------------------------------------------------------------------------
-type ServerConfig* = ref object
+# ServerDefinition -------------------------------------------------------------------------------------
+type ServerDefinition* = ref object
   host*:           string
   port*:           int
   catch_errors*:   bool           # In development it's easier to debug if server fails on error
@@ -26,7 +26,7 @@ type ServerConfig* = ref object
   cache_assets*:      bool
 
 proc init*(
-  _: type[ServerConfig],
+  _: type[ServerDefinition],
   host           = "localhost",
   port           = 8080,
   catch_errors   = env.is_production(),
@@ -36,8 +36,8 @@ proc init*(
   assets_file_paths = new_seq[string](),
   max_file_size     = 10_000_000,                  # 10 Mb
   cache_assets      = env.is_production()
-): ServerConfig =
-  ServerConfig(
+): ServerDefinition =
+  ServerDefinition(
     host: host, port: port, show_errors: show_errors,
     assets_path: assets_path, assets_file_paths: assets_file_paths, max_file_size: max_file_size
   )
@@ -110,84 +110,103 @@ type
 
 # Server -------------------------------------------------------------------------------------------
 type Server* = ref object of RootObj
-  config*:        ServerConfig
-  jester*:        jester.Jester
-  # Prefixes to speed up route matching
-  routes*:        Table[(string, string), Handler]                   # (method, path)   -> Handler
-  re_routes*:     Table[(string, string), seq[(Regex, Handler)]]     # (method, prefix) -> [(pattern, Handler)]
-  api_routes*:    Table[(string, string), JApiHandler]               # (method, path)   -> ApiHandler
-  api_re_routes*: Table[(string, string), seq[(Regex, JApiHandler)]] # (method, prefix) -> [(pattern, Handler)]
+  id*: string
 
-proc init_jester(config: ServerConfig): jester.Jester
+proc `$`*(server: Server): string = server.id
+proc hash*(server: Server): Hash = server.id.hash
+proc `==`*(a, b: Server): bool = a.id == b.id
 
-proc init*(_: type[Server], config: ServerConfig): Server =
-  Server(config: config, jester: init_jester(config))
+proc init(_: type[Server], id = "default"): Server =
+  Server(id: id)
 
-proc init*(
-  _:   type[Server],
-  host = "localhost",
-  port = 8080
-): Server =
-  Server.init(ServerConfig.init(host = host, port = port))
+# Definitions --------------------------------------------------------------------------------------
+var servers_definitions:  Table[Server, ServerDefinition]
+
+proc define*(server: Server, definition: ServerDefinition): void =
+  servers_definitions[server] = definition
+
+proc define*(
+  server: Server,
+  host    = "locahlost",
+  port    = 8080
+): void =
+  server.define ServerDefinition.init(host = host, port = port)
+
+proc definition*(server: Server): ServerDefinition =
+  if server notin servers_definitions: throw fmt"server '{server.id}' not defined"
+  servers_definitions[server]
+
+
+# Routes -------------------------------------------------------------------------------------------
+# Prefixes to speed up route matching
+var routes*:        Table[(Server, string, string), Handler]
+#                         (server, method, path) -> Handler
+var re_routes*:     Table[(Server, string, string), seq[(Regex,   Handler)]]
+#                         (server, method, prefix) ->  [(pattern, Handler)]
+var api_routes*:    Table[(Server, string, string),   JApiHandler]
+#                         (server, method, path)   -> JApiHandler
+var api_re_routes*: Table[(Server, string, string), seq[(Regex,   JApiHandler)]]
+#                         (server, method, prefix) ->  [(pattern, JApiHandler)]
 
 
 # route --------------------------------------------------------------------------------------------
-proc add_route(server: var Server, methd: string, pattern: string | Regex, handler: Handler): void =
+proc add_route(server: Server, methd: string, pattern: string | Regex, handler: Handler): void =
   let route = pattern.prepare_route
   if route.is_pattern:
-    let key = (methd, route.prefix)
-    var list = server.re_routes[key, @[]]
+    let key = (server, methd, route.prefix)
+    var list = re_routes[key, @[]]
     if list.findi((item) => item[0] == route.pattern).is_some: throw "route already exist"
     list.add((route.pattern, handler))
     if list.len > 20: log().warn(fmt"route matching for '{route.prefix}'/* could be slow")
-    server.re_routes[key] = list
+    re_routes[key] = list
   else:
-    let key = (methd, route.path)
-    if key in server.routes: throw "route already exist"
-    server.routes[key] = handler
+    let key = (server, methd, route.path)
+    if key in routes: throw "route already exist"
+    routes[key] = handler
 
 # get, post ----------------------------------------------------------------------------------------
-proc get*(server: var Server, pattern: string | Regex, handler: Handler): void =
+proc get*(server: Server, pattern: string | Regex, handler: Handler): void =
   server.add_route("get", pattern, handler)
 
-proc post*(server: var Server, pattern: string | Regex, handler: Handler): void =
+proc post*(server: Server, pattern: string | Regex, handler: Handler): void =
   server.add_route("post", pattern, handler)
 
 
 # data_route ---------------------------------------------------------------------------------------
 proc add_data_route*[R](
-  server: var Server, methd: string, pattern: string | Regex, handler: ApiHandler[R]
+  server: Server, methd: string, pattern: string | Regex, handler: ApiHandler[R]
 ): void =
   let jhandler = proc (req: Request): JsonNode = %handler(req)
   let route = pattern.prepare_route
   if route.is_pattern:
-    let key = (methd, route.prefix)
-    var list = server.api_re_routes[key, @[]]
+    let key = (server, methd, route.prefix)
+    var list = api_re_routes[key, @[]]
     if list.findi((item) => item[0] == route.pattern).is_some: throw "route already exist"
     list.add((route.pattern, jhandler))
     if list.len > 20: log().warn(fmt"route matching for '{route.prefix}'/* could be slow")
-    server.api_re_routes[key] = list
+    api_re_routes[key] = list
   else:
-    let key = (methd, route.path)
-    if key in server.routes: throw "route already exist"
-    server.api_routes[key] = jhandler
+    let key = (server, methd, route.path)
+    if key in routes: throw "route already exist"
+    api_routes[key] = jhandler
 
-proc get_data*[T](server: var Server, pattern: string | Regex, handler: ApiHandler[T]): void =
+proc get_data*[T](server: Server, pattern: string | Regex, handler: ApiHandler[T]): void =
   server.add_data_route("get", pattern, handler)
 
-proc post_data*[T](server: var Server, pattern: string | Regex, handler: ApiHandler[T]): void =
+proc post_data*[T](server: Server, pattern: string | Regex, handler: ApiHandler[T]): void =
   server.add_data_route("post", pattern, handler)
 
 
 # process_assets -----------------------------------------------------------------------------------
 proc process_assets(server: Server, normalized_path: string, req: Request): Option[Response] =
+  let d = server.definition
   handle_assets_slow(
     path              = normalized_path,
     query             = req.query,
-    assets_path       = server.config.assets_path,
-    assets_file_paths = server.config.assets_file_paths,
-    max_file_size     = server.config.max_file_size,
-    cache_assets      = server.config.cache_assets
+    assets_path       = d.assets_path,
+    assets_file_paths = d.assets_file_paths,
+    max_file_size     = d.max_file_size,
+    cache_assets      = d.cache_assets
   ).map((file_res) => Response.init(file_res))
 
 proc set_tokens(req: var Request): void =
@@ -206,12 +225,12 @@ proc set_tokens(res: var Response, req: Request): void =
 
 # process_html -------------------------------------------------------------------------------------
 proc process_html(server: Server, normalized_path: string, req: Request): Option[Response] =
-  let routeo = if (req.methd, normalized_path) in server.routes:
+  let routeo = if (server, req.methd, normalized_path) in routes:
     let path_params = init_table[string, string]()
-    (path_params, server.routes[(req.methd, normalized_path)]).some
+    (path_params, routes[(server, req.methd, normalized_path)]).some
   else:
     let prefix = normalized_path.route_prefix
-    server.re_routes[(req.methd, prefix), @[]]
+    re_routes[(server, req.methd, prefix), @[]]
       .fget((route) => route[0] =~ normalized_path)
       .map((route) =>
         (route[0].parse_named(normalized_path), route[1])
@@ -242,7 +261,7 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
     response.set_tokens req
     response.some
   except Exception as e:
-    if not server.config.catch_errors: quit(e)
+    if not server.definition.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
@@ -252,12 +271,12 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
 
 # process_api --------------------------------------------------------------------------------------
 proc process_api(server: Server, normalized_path: string, req: Request): Option[Response] =
-  let routeo = if (req.methd, normalized_path) in server.api_routes:
+  let routeo = if (server, req.methd, normalized_path) in api_routes:
     let path_params = init_table[string, string]()
-    (path_params, server.api_routes[(req.methd, normalized_path)]).some
+    (path_params, api_routes[(server, req.methd, normalized_path)]).some
   else:
     let prefix = normalized_path.route_prefix
-    server.api_re_routes[(req.methd, prefix), @[]]
+    api_re_routes[(server, req.methd, prefix), @[]]
       .fget((route) => route[0] =~ normalized_path)
       .map((route) =>
         (route[0].parse_named(normalized_path), route[1])
@@ -287,12 +306,12 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
       .info("{method4} {path} finished, {duration_ms}ms")
     respond_data(response).some
   except Exception as e:
-    if not server.config.catch_errors: quit(e)
+    if not server.definition.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
       .error("{method4} {path} failed, {duration_ms}ms, {error}")
-    let error = if server.config.show_errors:
+    let error = if server.definition.show_errors:
       (is_error: true, message: e.msg, stack: e.get_stack_trace).to_json
     else:
       (is_error: true, message: e.msg).to_json
@@ -326,20 +345,22 @@ proc process(server: Server, req: Request): Response =
 
 # run ----------------------------------------------------------------------------------------------
 proc run*(server: Server): void =
+  let d = server.definition
   log()
-    .with((host: server.config.host, port: server.config.port))
+    .with((host: d.host, port: d.port))
     .info "started on http://{host}:{port}"
 
   let jester_handler: jester.MatchProc = proc (jreq: jester.Request): Future[jester.ResponseData] =
     {.gcsafe.}:
       jester_handler(server, jreq)
 
-  jester.register(server.jester, jester_handler)
-  jester.serve(server.jester)
+  var jserver = init_jester(d.host, d.port)
+
+  jester.register(jserver, jester_handler)
+  jester.serve(jserver)
 
 
 # jester_handler -----------------------------------------------------------------------------------
-# Delegates work to thread pool
 proc jester_handler(server: Server, jreq: jester.Request): Future[jester.ResponseData] {.async.} =
   block route:
     let req = Request.partial_init(jreq)
@@ -348,12 +369,12 @@ proc jester_handler(server: Server, jreq: jester.Request): Future[jester.Respons
 
 
 # init_jester --------------------------------------------------------------------------------------
-proc init_jester(config: ServerConfig): jester.Jester =
+proc init_jester(host: string, port: int): jester.Jester =
   let settings = jester.new_settings(
-    port      = Port(config.port),
+    port      = Port(port),
     # staticDir = "/alex/projects/nim/browser", # fmt"{get_current_dir()}/../browser",
     appName   = "",
-    bindAddr  = config.host,
+    bindAddr  = host,
     reusePort = false,
     # futureErrorHandler: proc (fut: Future[void]) {.closure, gcsafe.} = nil
   )
@@ -378,7 +399,7 @@ proc partial_init(_: type[Request], jreq: jester.Request): Request =
 # error pages and format ---------------------------------------------------------------------------
 # Override to use different error pages and formats
 method render_error_page*(server: Server, message: string, error: ref Exception): string  {.base.} =
-  render_default_error_page(message, error, server.config.show_errors)
+  render_default_error_page(message, error, server.definition.show_errors)
 
 method render_not_found_page*(_: Server, message: string): string  {.base.} =
   render_default_not_found_page(message)
@@ -386,7 +407,7 @@ method render_not_found_page*(_: Server, message: string): string  {.base.} =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  var server = Server.init()
+  let server = Server.init()
 
   # server.get("/api/users/:name/profile", (req: Request) =>
   #   (name: req["name"], age: 20)
@@ -401,4 +422,5 @@ if is_main_module:
     respond fmt"Hi {name}"
   )
 
+  server.define
   server.run

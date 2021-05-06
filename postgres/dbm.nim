@@ -8,15 +8,52 @@ from uri import nil
 export sqlm, DbConn
 
 # Db -----------------------------------------------------------------------------------------------
-type Db* = ref object
-  name*:                   string
+type DbDefinition* = ref object
   url*:                    string
   encoding*:               string
-  create_db_if_not_exist*: bool           # Create db if not exist
+  create_db_if_not_exist*: bool
 
-proc hash*(db: Db): Hash = db.autohash
+  host*:                   string
+  port*:                   int
+  name*:                   string
+  user*:                   string
+  password*:               string
 
-proc log(db: Db): Log = Log.init("db", db.name)
+type Db* = object
+  id*: string
+  # def: Option[DbDefinition]
+
+proc `$`*(db: Db): string = db.id
+proc hash*(db: Db): Hash = db.id.hash
+proc `==`*(a, b: Db): bool = a.id == b.id
+
+proc log(db: Db): Log = Log.init("db", db.id)
+
+
+# Definitions --------------------------------------------------------------------------------------
+var dbs_definitions:  Table[Db, DbDefinition]
+# Deferring the database configuration, like IoC
+
+proc define*(
+  db:                      Db,
+  name_or_url:             string,
+  encoding               = "utf8",
+  create_db_if_not_exist = true # Create db if not exist
+): void =
+  let url = if ":" in name_or_url: name_or_url
+  else:                            fmt"postgresql://postgres@localhost:5432/{name_or_url}"
+
+  var parsed = uri.init_uri(); uri.parse_uri(url, parsed)
+  dbs_definitions[db] = DbDefinition(
+    url: url, encoding: encoding, create_db_if_not_exist: create_db_if_not_exist,
+    host: parsed.hostname, port: parsed.port.parse_int, name: parsed.path[1..^1],
+    user: parsed.username, password: parsed.password
+  )
+
+proc definition*(db: Db): DbDefinition =
+  if db notin dbs_definitions: throw fmt"db '{db.id}' not defined"
+  dbs_definitions[db]
+
 
 # Connections --------------------------------------------------------------------------------------
 # Using separate storage for connections, because they need to be mutable. The Db can't be mutable
@@ -27,33 +64,29 @@ var before_callbacks: Table[Db, seq[proc: void]]
 
 
 # Db.init ------------------------------------------------------------------------------------------
-proc init*(
-  _:                       type[Db],
-  name:                    string,
-  url                    = "postgresql://postgres@localhost:5432",
-  encoding               = "utf8",
-  create_db_if_not_exist = true # Create db if not exist
-): Db =
-  # Connection will be establisehd lazily on demand, and reconnected after failure
-  Db(name: name, url: url, encoding: encoding, create_db_if_not_exist: create_db_if_not_exist)
+proc init*(_: type[Db], id = "default"): Db =
+  # The db parameters and connection will be establisehd later, lazily on demand, and reconnected after failure
+  Db(id: id)
 
 
 # db.create ----------------------------------------------------------------------------------------
-proc create*(db: Db, user = "postgres"): void =
+proc create*(db: Db): void =
   # Using bash, don't know how to create db otherwise
   db.log.info "create"
-  let (output, code) = exec_cmd_ex fmt"createdb -U {user} {db.name}"
-  if code != 0 and fmt"""database "{db.name}" already exists""" in output:
-    throw "can't create database {user} {name}"
+  let d = db.definition
+  let (output, code) = exec_cmd_ex fmt"createdb -U {d.user} {d.name}"
+  if code != 0 and fmt"""database "{d.name}" already exists""" in output:
+    throw "can't create database {d.user} {d.name}"
 
 
 # db.drop ------------------------------------------------------------------------------------------
 proc drop*(db: Db, user = "postgres"): void =
   # Using bash, don't know how to db db otherwise
   db.log.info "drop"
-  let (output, code) = exec_cmd_ex fmt"dropdb -U {user} {db.name}"
-  if code != 0 and fmt"""database "{db.name}" does not exist""" notin output:
-    throw fmt"can't drop database {user} {db.name}"
+  let d = db.definition
+  let (output, code) = exec_cmd_ex fmt"dropdb -U {d.user} {d.name}"
+  if code != 0 and fmt"""database "{d.name}" does not exist""" notin output:
+    throw fmt"can't drop database {d.user} {d.name}"
 
 
 # db.close -----------------------------------------------------------------------------------------
@@ -101,25 +134,23 @@ proc with_connection*(db: Db, op: (DbConn) -> void): void =
 
 proc connect(db: Db): DbConn =
   db.log.info "connect"
-  var url = uri.init_uri()
-  uri.parse_uri(db.url, url)
-  assert url.scheme == "postgresql"
+  let d = db.definition
 
   proc connect(): auto =
-    db_postgres.open(fmt"{url.hostname}:{url.port}", url.username, url.password, db.name)
+    db_postgres.open(fmt"{d.host}:{d.port}", d.user, d.password, d.name)
 
   let connection = try:
     connect()
   except Exception as e:
     # Creating databse if doesn't exist and trying to reconnect
-    if fmt"""database "{db.name}" does not exist""" in e.message and db.create_db_if_not_exist:
+    if fmt"""database "{d.name}" does not exist""" in e.message and d.create_db_if_not_exist:
       db.create
       connect()
     else:
       throw e
 
   # Setting encoding
-  if not db_postgres.set_encoding(connection, db.encoding): throw "can't set encoding"
+  if not db_postgres.set_encoding(connection, d.encoding): throw "can't set encoding"
 
   # Disabling logging https://forum.nim-lang.org/t/7801
   let stub: postgres.PQnoticeReceiver = proc (arg: pointer, res: postgres.PPGresult){.cdecl.} = discard
@@ -218,7 +249,8 @@ proc before*(db: Db, sql: SQL): void =
 if is_main_module:
   # No need to manage connections, it will be connected lazily and
   # reconnected in case of connection error
-  let db = Db.init("nim_test")
+  let db = Db.init
+  db.define("nim_test")
   # db.drop
 
   # Executing schema befor any other DB query, will be executed lazily before the first use

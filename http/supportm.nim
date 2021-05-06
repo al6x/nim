@@ -59,10 +59,10 @@ test "route_pattern_to_re":
 proc route_prefix*(path_or_pattern: string): string =
   let pattern = path_or_pattern.replace(re"^\^", "")
   assert pattern == "" or pattern.starts_with "/"
-  re"^(/[a-z0-9_\-]+)".parse1(pattern).get("/")
+  re"^(/[a-z0-9_\-/]+)".parse1(pattern).get("/")
 
 test "route_prefix":
-  assert "/a/b".route_prefix == "/a"
+  assert "/a/b".route_prefix == "/a/b"
   assert "/a".route_prefix == "/a"
   assert "/a".route_prefix == "/a"
   assert "^/a(.+)".route_prefix == "/a"
