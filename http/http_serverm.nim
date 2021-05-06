@@ -127,7 +127,7 @@ proc define*(server: Server, definition: ServerDefinition): void =
 
 proc define*(
   server: Server,
-  host    = "locahlost",
+  host    = "localhost",
   port    = 8080
 ): void =
   server.define ServerDefinition.init(host = host, port = port)
