@@ -7,7 +7,7 @@ export Rand
 let seed1: int64 = block:
   let now = get_time()
   var rgen = init_rand(now.to_unix * 1_000_000_000 + now.nanosecond)
-  @[rgen.rand(int.high), env.hash.int].hash.int64
+  @[rgen.rand(int.high), env.values.hash.int].hash.int64
 
 proc secure_rgen*(): Rand =
   let now = get_time()

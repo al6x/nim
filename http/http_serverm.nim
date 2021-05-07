@@ -1,5 +1,5 @@
 import basem, logm, jsonm, rem, timem, randomm, envm
-import ./supportm, ./helpersm
+import ./http_supportm, ./helpersm
 
 import os, asyncdispatch
 from jester import nil
@@ -116,7 +116,7 @@ proc `$`*(server: Server): string = server.id
 proc hash*(server: Server): Hash = server.id.hash
 proc `==`*(a, b: Server): bool = a.id == b.id
 
-proc init(_: type[Server], id = "default"): Server =
+proc init*(_: type[Server], id = "default"): Server =
   Server(id: id)
 
 # Definitions --------------------------------------------------------------------------------------
@@ -407,7 +407,7 @@ method render_not_found_page*(_: Server, message: string): string  {.base.} =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  let server = Server.init()
+  let server = Server.init
 
   # server.get("/api/users/:name/profile", (req: Request) =>
   #   (name: req["name"], age: 20)

@@ -1,27 +1,30 @@
-import basem, httpm, randomm, http_serverm, envm, ./userm
+import basem, db_tablem, timem
 
-proc mount_users*(server: var Server) =
-  server.get("/users/login_with_github", proc (req: Request): auto =
-    let url = build_url("https://github.com/login/oauth/authorize", {
-      "client_id": env["github_oauth_client_id"],
-      "scope":     "user:email",
-      "state":     secure_random_token()
-    })
-    redirect url
-  )
+type User* = ref object
+  id*:         int
+  nick*:       string
+  name*:       string
+  email*:      string
+  tokens*:     seq[string]
+  created_at*: Time
+  updated_at*: Time
 
-  server.get("/users/", proc (req: Request): auto =
-    let url = build_url("https://github.com/login/oauth/authorize", {
-      "client_id": env["github_oauth_client_id"],
-      "scope":     "user:email",
-      "state":     secure_random_token()
-    })
-    redirect url
-  )
+let db = Db.init
+db.before sql"""
+  create table if not exists users(
+    id         serial       not null,
+    nick       varchar(100) not null,
+    name       varchar(100) not null,
+    email      varchar(100) not null,
+    tokens     varchar(100) not null,
+    created_at timestamp    not null,
+    updated_at timestamp    not null,
 
-  # server.get("/users/:name/profile", proc(req: Request): auto =
-  #   let name = req["name"]
-  #   respond fmt"Hi {name}"
-  # )
+    primary key (id)
+  );
 
-# https://github.com/login/oauth/authorize
+  create unique index if not exists users_nick  on users (nick);
+  create unique index if not exists users_email on users (email);
+"""
+
+let users* = Db.init.table(User, "users")

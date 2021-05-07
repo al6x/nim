@@ -1,5 +1,5 @@
 import basem, jsonm, timem
-import ./supportm
+import ./http_supportm
 import random
 from jester import nil
 from times import nil

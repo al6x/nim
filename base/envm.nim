@@ -1,4 +1,4 @@
-import strformat, macros, sugar, strutils, os, tables
+import strformat, macros, sugar, strutils, os, tables, options
 from terminalm as terminal import nil
 
 
@@ -7,7 +7,8 @@ template throw(message: string) = raise newException(Exception, message)
 
 
 # Env ----------------------------------------------------------------------------------------------
-type Env = Table[string, string]
+type Env* = ref object
+  values*: Table[string, string]
 
 const special_arguments = { "help": "bool", "test": "bool/string" }.to_table
 
@@ -15,8 +16,8 @@ const special_arguments = { "help": "bool", "test": "bool/string" }.to_table
 func normalize_key(v: string): string = v.to_lower.replace("_", "")
 
 let env* = block:
-  var result: Env
-  for (k, v) in env_pairs(): result[k.normalize_key] = v
+  var result = Env()
+  for (k, v) in env_pairs(): result.values[k.normalize_key] = v
 
   # Adding arguments from command line
   for i in (1..param_count()):
@@ -25,16 +26,31 @@ let env* = block:
       if "=" in token:
         let pair = token.split("=", 2)
         # Keys are normalized, lowercased with replaced `_`
-        result[pair[0].normalize_key] = pair[1]
+        result.values[pair[0].normalize_key] = pair[1]
       elif token.normalize_key in special_arguments:
         # Non key/value argument with name matching `T.key` treating as boolean key/value
-        result[token.normalize_key] = "true"
+        result.values[token.normalize_key] = "true"
 
   result
 
+# contains -----------------------------------------------------------------------------------------
+proc contains*(env: Env, key: string): bool =
+  key.normalize_key in env.values
+
+# [], get_optional ---------------------------------------------------------------------------------
+proc get_optional*(env: Env, key: string): Option[string] =
+  let normalized = key.normalize_key
+  if normalized in env.values: env.values[key.normalize_key].some else: string.none
+
+proc `[]`*(env: Env, key: string): string =
+  let normalized = key.normalize_key
+  if normalized in env.values: env.values[key.normalize_key] else: throw fmt"no environment variable {key}"
+
+proc `[]`*(env: Env, key: string, default: string): string =
+  env.get_optional(key).get(default)
 
 # environment mode ---------------------------------------------------------------------------------
-let environment_mode = env.get_or_default("environment", "development")
+let environment_mode = env["environment", "development"]
 proc is_production*(env: Env):  bool = environment_mode == "production"
 proc is_test*(env: Env):        bool = environment_mode == "test"
 proc is_development*(env: Env): bool = environment_mode == "development"
@@ -117,8 +133,8 @@ proc parse_env*[T: tuple|object](
   # Parsing and casting into object
   for k, v in o.field_pairs:
     let nk = k.normalize_key
-    if nk in options: v = parse_string_as(typeof v, options[nk])
-    elif nk in env:   v = parse_string_as(typeof v, env[nk])
+    if nk in options:      v = parse_string_as(typeof v, options[nk])
+    elif nk in env.values: v = parse_string_as(typeof v, env.values[nk])
 
   (o, args)
 

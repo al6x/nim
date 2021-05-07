@@ -1,0 +1,1 @@
+let home_path* = "/"

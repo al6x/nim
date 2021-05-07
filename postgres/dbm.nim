@@ -215,21 +215,35 @@ proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
 
 
 # db.get_one --------------------------------------------------------------------------------------
-proc get_one_raw*(db: Db, query: SQL, log = true): seq[string] =
+# proc get_one_row_raw*(db: Db, query: SQL, log = true): seq[string] =
+#   if log: db.log.debug "get_one"
+#   let rows = db.get_raw(query, log = false)
+#   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
+#   if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
+#   rows[0]
+
+proc get_one_optional*[T](db: Db, query: SQL, _: type[T], log = true): Option[T] =
   if log: db.log.debug "get_one"
+
+  # Getting row
   let rows = db.get_raw(query, log = false)
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
-  if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
-  rows[0]
+  if rows.len < 1: return T.none
+  let row = rows[0]
 
-proc get_one*[T](db: Db, query: SQL, _: type[T], log = true): T =
-  let row = db.get_one_raw(query, log = false)
+  # Getting value
   when T is object | tuple:
     T.from_postgres row
   else:
     if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
-    if row.len < 1: throw fmt"expected single column row, but got {row.len} columns"
-    T.from_postgres row[0]
+    if row.len < 1: return T.none
+    (T.from_postgres row[0]).some
+
+proc get_one*[T](db: Db, query: SQL, TT: type[T], log = true): T =
+  db.get_one_optional(query, TT, log = log).get
+
+proc get_one*[T](db: Db, query: SQL, TT: type[T], default: T, log = true): T =
+  db.get_one_optional(query, TT, log = log).get(default)
 
 
 # db.before ----------------------------------------------------------------------------------------

@@ -4,6 +4,7 @@ from std/nre as nre import nil
 from std/options as stdoptions import nil
 from terminalm as terminal import nil
 
+export envm
 
 # test ---------------------------------------------------------------------------------------------
 let test_enabled_s = if "test" in env: env["test"] else: "false"
