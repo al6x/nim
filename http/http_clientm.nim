@@ -81,14 +81,3 @@ test "build_url":
   assert build_url("http://some.com", { "a": "1", "b": "two" }) == "http://some.com?a=1&b=two"
 
   assert build_url("http://some.com", (a: 1, b: "two")) == "http://some.com?a=1&b=two"
-
-
-# parse_result -------------------------------------------------------------------------------------
-# Parses JSON `data` into Nim type `R`, unless JSON is `{ is_error: true, error: "..." } then it
-# rises the error
-# proc parse_result[R](data: string): R =
-#   let json = data.parse_json
-#   if json.kind == JObject and "is_error" in json:
-#     throw json["error"].get_str
-#   else:
-#     json.to R
