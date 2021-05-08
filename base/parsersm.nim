@@ -8,7 +8,7 @@ proc field_names*[T](o: T): seq[string] =
 
 template field_names*[T](_: type[T]): seq[string] =
   var t: T; var names: seq[string]
-  when compiles(t[]):
+  when t is ref object:
     for k, _ in t[].field_pairs: names.add k
   else:
     for k, _ in t.field_pairs: names.add k

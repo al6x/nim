@@ -5,22 +5,32 @@ export sqlm, dbm
 
 # DbTable ------------------------------------------------------------------------------------------
 type DbTable*[T] = object
-  db*:   Db
-  name*: string
+  db*:      Db
+  name*:    string
+  ids*:     seq[string]
+  auto_id*: bool
 
 proc log[T](table: DbTable[T]): Log = Log.init("db", table.db.id)
 
 
 # db.table -----------------------------------------------------------------------------------------
-proc table*[T](db: Db, _: type[T], name: string): DbTable[T] =
-  DbTable[T](db: db, name: name)
+proc table*[T](
+  db:       Db,
+  _:        type[T],
+  name:     string,
+  ids     = @["id"],
+  auto_id = false
+): DbTable[T] =
+  DbTable[T](db: db, name: name, ids: ids, auto_id: auto_id)
 
 
 # table.create -------------------------------------------------------------------------------------
 proc create*[T](table: DbTable[T], o: T): void =
+  # `skip_id` for tables with auto increment id
   table.log.with((table: table.name, id: o.id)).info "{table}.create id={id}"
   let query = proc (): string =
-    let field_names = T.field_names
+    var field_names = T.field_names
+    if table.auto_id: field_names.filter((v) => v notin table.ids)
     let column_names = " " & field_names.join(",  ")
     let named_values = field_names.map((n) => fmt":{n}").join(", ")
     fmt"""
@@ -29,37 +39,39 @@ proc create*[T](table: DbTable[T], o: T): void =
       values
         ({named_values})
     """.dedent
-  table.db.exec(sql(query(), o), log = false)
+  table.db.exec(sql(query(), o, false), log = false)
 
 
 # table.update -------------------------------------------------------------------------------------
 proc update*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.update id={id}"
   let query = proc (): string =
-    let setters = T.field_names.filter((n) => n != "id").map((n) => fmt"{n} = :{n}").join(", ")
+    let setters = T.field_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = :{n}").join(", ")
+    let where = table.ids.map((n) => fmt"{n} = :{n}").join(" and ")
     fmt"""
       update {table.name}
       set
         {setters}
-      where id = :id
+      where {where}
     """.dedent
   table.db.exec(sql(query(), o), log = false)
 
 
 # table.save ---------------------------------------------------------------------------------------
 proc save*[T](table: DbTable[T], o: T): void =
-  table.log.with((table: table.name, id: o.id)).info "{table}.save id={id}"
+  table.log.with((table: table.name)).info "{table}.save"
   let query = proc (): string =
     let field_names = T.field_names
     let column_names = " " & field_names.join(",  ")
     let named_values = field_names.map((n) => fmt":{n}").join(", ")
-    let setters = field_names.filter((n) => n != "id").map((n) => fmt"{n} = excluded.{n}").join(", ")
+    let setters = field_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = excluded.{n}").join(", ")
+    let conflict = table.ids.join(", ")
     fmt"""
       insert into {table.name}
         ({column_names})
       values
         ({named_values})
-      on conflict (id) do update
+      on conflict ({conflict}) do update
       set
         {setters}
     """.dedent

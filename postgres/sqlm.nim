@@ -11,8 +11,11 @@ proc sql*(query: string, values: seq[JsonNode]): SQL = (query, values)
 proc sql*(query: string, args: tuple | object, validate_unused_keys = true): SQL =
   # Converting values to postgres
   var values: Table[string, JsonNode]
-  for k, v in args.field_pairs:
-    values[k] = %v
+  for k, v in args.field_pairs: values[k] = %v
+  # when compiles(args[]):
+  #   for k, v in args[].field_pairs: values[k] = %v
+  # else:
+  #   for k, v in args.field_pairs: values[k] = %v
 
   # Replacing SQL parameters
   var sql_keys: seq[string]; var ordered_values: seq[JsonNode]
@@ -29,6 +32,9 @@ proc sql*(query: string, args: tuple | object, validate_unused_keys = true): SQL
       if k notin sql_keys: throw fmt"SQL param :{k} is not used"
 
   (replaced_sql, ordered_values)
+
+proc sql*(query: string, args: ref object, validate_unused_keys = true): SQL =
+  sql(query, args[], validate_unused_keys)
 
 test "sql":
   assert sql(

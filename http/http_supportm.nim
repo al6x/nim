@@ -2,6 +2,8 @@ import basem, logm, timem
 
 import logging, mimetypes, os
 import md5
+from jester import nil
+from httpcore import nil
 
 proc log(): Log = Log.init "HTTP"
 
@@ -59,10 +61,10 @@ test "route_pattern_to_re":
 proc route_prefix*(path_or_pattern: string): string =
   let pattern = path_or_pattern.replace(re"^\^", "")
   assert pattern == "" or pattern.starts_with "/"
-  re"^(/[a-z0-9_\-/]+)".parse1(pattern).get("/")
+  re"(?i)^(/[a-z0-9_\-]+)".parse1(pattern).get("/")
 
 test "route_prefix":
-  assert "/a/b".route_prefix == "/a/b"
+  assert "/a/b".route_prefix == "/a"
   assert "/a".route_prefix == "/a"
   assert "/a".route_prefix == "/a"
   assert "^/a(.+)".route_prefix == "/a"
@@ -185,3 +187,37 @@ proc handle_assets_slow*(
     log().with((time: Time.now, path: path)).error("{path} file not found")
     return (404, "Error, file not found", empty_headers).some
   return result
+
+
+# jester_resp_fixed --------------------------------------------------------------------------------
+# jester can't set multiple cookies https://github.com/dom96/jester/pull/237/files
+template jester_add_header_fixed(headers: var Option[jester.RawHeaders], key, value: string): typed =
+  if isNone(headers):
+    headers = some(@({key: value}))
+  else:
+    var h = headers.get()
+    var isContains = false
+    var n = 0
+    for i, row in h:
+      if toLowerAscii(row[0]) == toLowerAscii(key):
+        isContains = true
+        n = i
+        break
+
+    if not isContains or toLowerAscii(key) == "set-cookie":
+      # Add new key and value
+      headers = some(h & @({key: value}))
+    else:
+      # add to existing value
+      h[n][1] = h[n][1] & ", " & value
+      headers = some(h)
+
+template jester_resp_fixed*(code: httpcore.HttpCode,
+               headers: openarray[tuple[key, val: string]],
+               content: string): typed =
+  ## Sets ``(code, headers, content)`` as the response.
+  # bind TCActionSend
+  result = (jester.TCActionSend, code, none[jester.RawHeaders](), content, true)
+  for header in headers:
+    jester_add_header_fixed(result[2], header[0], header[1])
+  break route

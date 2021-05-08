@@ -4,6 +4,12 @@ from random as random import nil
 
 export sequtils
 
+# contains -----------------------------------------------------------------------------------------
+func contains*[T](list: openarray[T], check: (T) -> bool): bool =
+  for v in list:
+    if check(v): return true
+  false
+
 
 # is_empty -----------------------------------------------------------------------------------------
 func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0

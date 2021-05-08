@@ -41,6 +41,13 @@ proc `[]=`*(kvdb: KVDb, scope: string, key: string, value: string): void =
   """
 
 
+# delete -------------------------------------------------------------------------------------------
+proc delete*(kvdb: KVDb, scope: string, key: string) =
+  db.exec(sql"delete from kv where scope = {scope} and key = {key}")
+
+proc delete*[T](kvdb: KVDb, _: type[T], key: string) =
+  kvdb.delete($(T.type) & "_type", key)
+
 # T.[], T.[]= --------------------------------------------------------------------------------------
 proc get_optional*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =
   kvdb.get_optional($(T.type) & "_type", key).map((raw) => raw.parse_json.to(T))

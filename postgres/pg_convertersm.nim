@@ -26,9 +26,15 @@ proc from_postgres*[T](_: type[Option[T]], s: string): Option[T] =
 
 proc from_postgres*[T](_: type[T], row: seq[string]): T =
   var i = 0
-  for _, v in result.field_pairs:
-    v = from_postgres(typeof v, row[i])
-    i += 1
+  when result is ref object:
+    result = T()
+    for _, v in result[].field_pairs:
+      v = from_postgres(typeof v, row[i])
+      i += 1
+  else:
+    for _, v in result.field_pairs:
+      v = from_postgres(typeof v, row[i])
+      i += 1
 
 proc from_postgres*[T](_: type[T], rows: seq[seq[string]]): seq[T] =
   rows.map((row) => T.from_postgres(row))

@@ -1,12 +1,12 @@
 import basem, logm, jsonm, rem, timem, randomm, envm
-import ./http_supportm, ./helpersm
+import ./http_supportm, ./http_helpersm
 
 import os, asyncdispatch
 from jester import nil
 from httpcore import nil
 from times as times import nil
 
-export helpersm
+export http_helpersm
 
 {.experimental: "code_reordering".}
 
@@ -80,6 +80,7 @@ type Response* = ref object
   code*:     int
   content*:  string
   headers*:  seq[(string, string)]
+
 
 proc init*(_: type[Response], code = 200, content = "", headers: openarray[(string, string)] = @[]): Response =
   Response(code: code, content: content, headers: headers.to_seq)
@@ -209,7 +210,7 @@ proc process_assets(server: Server, normalized_path: string, req: Request): Opti
     cache_assets      = d.cache_assets
   ).map((file_res) => Response.init(file_res))
 
-proc set_tokens(req: var Request): void =
+proc parse_and_set_tokens(req: var Request): void =
   req.user_token    = req["user_token",    req.cookies["user_token",    secure_random_token()]]
   req.params.del "user_token"
   req.query.del  "user_token"
@@ -217,10 +218,6 @@ proc set_tokens(req: var Request): void =
   req.session_token = req["session_token", req.cookies["session_token", secure_random_token()]]
   req.params.del "session_token"
   req.query.del  "session_token"
-
-proc set_tokens(res: var Response, req: Request): void =
-  res.headers.set_permanent_cookie("user_token", req.user_token)
-  res.headers.set_session_cookie("session_token", req.session_token)
 
 
 # process_html -------------------------------------------------------------------------------------
@@ -246,7 +243,7 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
 
   var req = req
   req.params = path_params
-  set_tokens req
+  parse_and_set_tokens req
 
   # Processing
   let tic = timer_ms()
@@ -258,7 +255,10 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
       .with((time: Time.now, duration_ms: tic()))
       .info("{method4} {path} finished, {duration_ms}ms")
 
-    response.set_tokens req
+    # Setting tokens only if it's not already set by the handler
+    response.headers.set_permanent_cookie_if_not_set("user_token", req.user_token)
+    response.headers.set_session_cookie_if_not_set("session_token", req.session_token)
+
     response.some
   except Exception as e:
     if not server.definition.catch_errors: quit(e)
@@ -293,7 +293,7 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
   var req = req
   req.params = path_params
   req.data   = (if req.body != "": req.body else: "{}").parse_json
-  set_tokens req
+  parse_and_set_tokens req
 
   # Processing
   let tic = timer_ms()
@@ -365,8 +365,7 @@ proc jester_handler(server: Server, jreq: jester.Request): Future[jester.Respons
   block route:
     let req = Request.partial_init(jreq)
     var resp = server.process(req)
-    jester.resp(httpcore.HttpCode(resp.code), resp.headers, resp.content)
-
+    jester_resp_fixed(httpcore.HttpCode(resp.code), resp.headers, resp.content)
 
 # init_jester --------------------------------------------------------------------------------------
 proc init_jester(host: string, port: int): jester.Jester =

@@ -16,7 +16,11 @@ test "escape_js":
 
 
 # set_cookie ---------------------------------------------------------------------------------------
+proc has_cookie_set*(headers: seq[(string, string)], key: string): bool =
+  headers.contains((h) => h[0] == "Set-Cookie" and h[1].starts_with(key & "="))
+
 proc set_permanent_cookie*(headers: var seq[(string, string)], key, value: string) =
+  if headers.has_cookie_set(key): throw fmt"cookie {key} already set"
   let expires_in_sec = 10 * 12 * 30.days.seconds # Set expiration in 10 years
   let expires = times.`+`(times.now(), times.seconds(expires_in_sec))
   let headers_copy = headers
@@ -25,13 +29,21 @@ proc set_permanent_cookie*(headers: var seq[(string, string)], key, value: strin
     jester.set_cookie(key, value, expires = expires)
   headers = wrapperfn().headers.get
 
+proc set_permanent_cookie_if_not_set*(headers: var seq[(string, string)], key, value: string) =
+  if headers.has_cookie_set(key): return
+  headers.set_permanent_cookie(key, value)
+
 proc set_session_cookie*(headers: var seq[(string, string)], key, value: string) =
+  if headers.has_cookie_set(key): throw fmt"cookie {key} already set"
   let headers_copy = headers
   proc wrapperfn(): jester.ResponseData =
     result.headers = headers_copy.some
     jester.set_cookie(key, value)
   headers = wrapperfn().headers.get
 
+proc set_session_cookie_if_not_set*(headers: var seq[(string, string)], key, value: string) =
+  if headers.has_cookie_set(key): return
+  headers.set_session_cookie(key, value)
 
 # asset_path ---------------------------------------------------------------------------------------
 proc asset_path*(
