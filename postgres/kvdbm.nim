@@ -1,4 +1,4 @@
-import basem, dbm, timem, jsonm
+import basem, dbm, timem, jsonm, logm
 
 let db = Db.init
 
@@ -17,10 +17,12 @@ db.before sql"""
 type KVDb = object
 let kvdb* = KVDb()
 
+let log = Log.init "kvdb"
 
 # [] and []= ---------------------------------------------------------------------------------------
 proc get_optional*(kvdb: KVDb, scope: string, key: string): Option[string] =
-  db.get_one_optional(sql"select value from kv where scope = {scope} and key = {key}", string)
+  log.with((scope: scope)).debug("get {scope}")
+  db.get_one_optional(sql"select value from kv where scope = {scope} and key = {key}", string, log = false)
 
 proc `[]`*(kvdb: KVDb, scope: string, key: string): string =
   kvdb.get_optional(scope, key).get
@@ -29,8 +31,9 @@ proc `[]`*(kvdb: KVDb, scope: string, key: string, default: string): string =
   kvdb.get_optional(scope, key).get(default)
 
 proc `[]=`*(kvdb: KVDb, scope: string, key: string, value: string): void =
+  log.with((scope: scope)).debug "set {scope}"
   let now = Time.now
-  db.exec sql"""
+  db.exec(sql"""
     insert into kv
       (scope,   key,   value,   created_at,  updated_at)
     values
@@ -38,12 +41,13 @@ proc `[]=`*(kvdb: KVDb, scope: string, key: string, value: string): void =
     on conflict (scope, key) do update
     set
       value = excluded.value, updated_at = excluded.updated_at
-  """
+  """, log = false)
 
 
 # delete -------------------------------------------------------------------------------------------
 proc delete*(kvdb: KVDb, scope: string, key: string) =
-  db.exec(sql"delete from kv where scope = {scope} and key = {key}")
+  log.with((scope: scope)).debug "del {scope}"
+  db.exec(sql"delete from kv where scope = {scope} and key = {key}", log = false)
 
 proc delete*[T](kvdb: KVDb, _: type[T], key: string) =
   kvdb.delete($(T.type) & "_type", key)
