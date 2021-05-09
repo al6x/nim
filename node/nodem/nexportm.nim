@@ -262,10 +262,10 @@ proc call_nexport_function*(req_json: string): Option[string] =
       if   fname in nexported_functions:         nexported_functions[fname]
       elif fname in nexported_functions_aliases: nexported_functions_aliases[fname]
       else:                                      throw fmt"no nexported function '{fname}'"
-    nfn.handler(args).`$`.some
+    nfn.handler(args).to_s.some
   except Exception as e:
     if not catch_node_errors: quit(e)
-    (is_error: true, message: e.msg).to_json.`$`.some
+    (is_error: true, message: e.msg).to_json.to_s.some
 
 proc call_nexport_function*(
   fname: string, cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
@@ -279,7 +279,7 @@ proc call_nexport_function*(
       else:                                      throw fmt"no nexported function '{fname}'"
 
     var args = nfn.parser(cnode, positional, named, named_json)
-    nfn.handler(args).`$`.some
+    nfn.handler(args).to_s.some
   except Exception as e:
     if not catch_node_errors: quit(e)
-    (is_error: true, message: e.msg).to_json.`$`.some
+    (is_error: true, message: e.msg).to_json.to_s.some

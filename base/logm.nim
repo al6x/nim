@@ -124,7 +124,7 @@ proc format_id(log: Log): string =
 
 proc format_data(log: Log): string =
   if log_config.log_data:
-    if log.data.is_nil: " | {}" else: " | " & $(log.data.to_json)
+    if log.data.is_nil: " | {}" else: " | " & log.data.to_json.to_s
   else:
     ""
 
@@ -138,7 +138,7 @@ proc format_message(log: Log, message: string): string =
       if key in log.data.fields:
         let value = log.data.fields[key]
         if value.kind == JString: value.get_str
-        else:                     $(value)
+        else:                     value.to_s
       else:                      skey
     value.replace("\n", " ")
   )

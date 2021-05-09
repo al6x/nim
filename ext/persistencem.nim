@@ -19,7 +19,7 @@ proc read_from*[T](t: type[T], path: string, default: () -> T): T =
 
 
 proc write_to*[T](v: T, path: string): void =
-  fs.write(path, $(v.to_json))
+  fs.write(path, v.to_json.to_s)
 
 
 # cache --------------------------------------------------------------------------------------------

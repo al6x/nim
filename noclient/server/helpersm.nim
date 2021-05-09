@@ -9,7 +9,7 @@ export escape_html
 
 # escape_js ----------------------------------------------------------------------------------------
 func escape_js*(js: string): string =
-  $(js.to_json).replace(re"""^"|"$""", "")
+  js.to_json.to_s.replace(re"""^"|"$""", "")
 
 test "escape_js":
   assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
@@ -36,7 +36,7 @@ proc asset_path*(
   var hash = if cache_assets:
     asset_hash(path, assets_file_paths, max_file_size)
   else:
-    $(Time.now.epoch)
+    Time.now.epoch.to_s
   fmt"{assets_path}{path}?hash={hash}"
 
 proc asset_path*[R](req: R, path: string): string =

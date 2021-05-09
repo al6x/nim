@@ -11,7 +11,7 @@ export nodem, asyncm
 proc call_async*(node: Node, message: string, timeout_ms: int, path = ""): Future[string] {.async.} =
   # path - additional path to merge into node base url
   if timeout_ms <= 0: throw "tiemout should be greather than zero"
-  let url = if path != "": $(node.definition.parsed_url & Url.parse(path)) else: node.definition.url
+  let url = if path != "": (node.definition.parsed_url & Url.parse(path)).to_s else: node.definition.url
   try:
     let client = new_async_http_client()
     let http_res = await post(client, url, message).with_timeout(timeout_ms)
@@ -163,7 +163,7 @@ proc receive_rest_async(
     except Exception as e:
       if catch_errors:
         on_error(e)
-        await respond(req, Http500, (is_error: true, message: e.msg).to_json.`$`, headers)
+        await respond(req, Http500, (is_error: true, message: e.msg).to_json.to_s, headers)
       else:
         quit(e)
 

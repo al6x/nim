@@ -73,7 +73,7 @@ proc call_nexport_fn[N](short_name: string, full_name: string, n: N, args: JsonN
   let res = try:
     # The `path` is not used by `nexport` server, but needed to support services written in REST
     # style as `/api/fname`.
-    n.call((fn: full_name, args: args).to_json.`$`, path = "/" & short_name)
+    n.call((fn: full_name, args: args).to_json.to_s, path = "/" & short_name)
   except Exception as e:
     throw fmt"can't call '{n}.{full_name}', {e.msg}"
 

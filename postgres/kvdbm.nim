@@ -51,7 +51,7 @@ proc delete*(kvdb: KVDb, scope: string, key: string): Option[string] =
   db.exec(sql"delete from kv where scope = {scope} and key = {key}", log = false)
 
 proc delete*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =
-  let scope = $(T.type) & "_type"
+  let scope = T.type.to_s & "_type"
   result = kvdb.get_optional(scope, key)
   kvdb.delete(scope, key)
 
@@ -66,7 +66,7 @@ proc `[]`*[T](kvdb: KVDb, _: type[T], key: string, default: T): T =
   kvdb.get_optional(T, key).get(default)
 
 proc `[]=`*[T](kvdb: KVDb, _: type[T], key: string, value: T): void =
-  kvdb[$(T.type) & "_type", key] = value.to_json.`$`
+  kvdb[$(T.type) & "_type", key] = value.to_json.to_s
 
 
 # Test ---------------------------------------------------------------------------------------------

@@ -3,10 +3,10 @@ import basem, jsonm, ../../web/serverm
 
 # action -------------------------------------------------------------------------------------------
 proc action*[T](action: string, args: T, state = false): string =
-  (action: "/" & action, args: args, state: state).to_json.`$`
+  (action: "/" & action, args: args, state: state).to_json.to_s
 
 proc action*(action: string, state = false): string =
-  (action: "/" & action, state: state).to_json.`$`
+  (action: "/" & action, state: state).to_json.to_s
 
 
 # base_assets --------------------------------------------------------------------------------------

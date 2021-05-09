@@ -97,7 +97,7 @@ proc respond_data*(data: string): Response =
   Response.init(content = data, headers = @[("Content-Type", "application/json")])
 
 proc respond_data*[D](data: D): Response =
-  respond_data $(data.to_json)
+  respond_data data.to_json.to_s
 
 proc redirect*(url: string): Response =
   Response.init(303, "Redirected to {url}", @[("Location", url)])
@@ -316,9 +316,9 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
       .with(e)
       .error("{method4} {path} failed, {duration_ms}ms, {error}")
     let error = if server.definition.show_errors:
-      (is_error: true, message: e.msg, stack: e.get_stack_trace).to_json.`$`
+      (is_error: true, message: e.msg, stack: e.get_stack_trace).to_json.to_s
     else:
-      (is_error: true, message: e.msg).to_json.`$`
+      (is_error: true, message: e.msg).to_json.to_s
     respond_data(error).some
 
 

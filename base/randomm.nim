@@ -1,5 +1,5 @@
-import envm, tablem, random
-import std/sha1, times, hashes
+import ./supportm, ./envm, ./tablem
+import std/sha1, times, hashes, random
 
 export Rand
 
@@ -18,7 +18,7 @@ proc secure_rgen*(): Rand =
 # secure_random_token ------------------------------------------------------------------------------
 proc secure_random_token*(): string =
   var rgen = secure_rgen()
-  $secure_hash($(rgen.rand(int.high)))
+  $secure_hash(rgen.rand(int.high).to_s)
 
 
 # sample -------------------------------------------------------------------------------------------
