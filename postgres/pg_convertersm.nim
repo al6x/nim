@@ -1,5 +1,5 @@
-import basem, timem
-
+import basem, timem, jsonm
+import macros
 
 # to_postgres --------------------------------------------------------------------------------------
 # proc to_postgres*(v: Time):        Option[string] = some $v
@@ -10,6 +10,11 @@ import basem, timem
 # proc to_postgres*[T](v: Option[T]): Option[string]  =
 #   if v.is_some: v.get.to_postgres else: string.none
 
+macro is_unnamed_tuple[T](TT: type[T]): bool =
+  # nnkTupleTy - named
+  let r = new_lit(TT.getTypeInst[1].kind == nnkTupleConstr)
+  quote do:
+    `r`
 
 # from_postgres ------------------------------------------------------------------------------------
 proc from_postgres*(_: type[Time],   s: string): Time   = Time.init s
@@ -24,17 +29,18 @@ proc from_postgres*[T](_: type[Option[T]], s: string): Option[T] =
   # both is the same - `""`
   if s == "": T.none else: T.from_postgres(s).some
 
-proc from_postgres*[T](_: type[T], row: seq[string]): T =
+proc from_postgres*[T: tuple](_: type[T], row: seq[string]): T =
+  if not is_unnamed_tuple(T): throw "named tuples not supported"
   var i = 0
-  when result is ref object:
-    result = T()
-    for _, v in result[].field_pairs:
-      v = from_postgres(typeof v, row[i])
-      i += 1
-  else:
-    for _, v in result.field_pairs:
-      v = from_postgres(typeof v, row[i])
-      i += 1
+  # when result is ref object:
+  #   result = T()
+  #   for _, v in result[].field_pairs:
+  #     v = from_postgres(typeof v, row[i])
+  #     i += 1
+  # else:
+  for _, v in result.field_pairs:
+    v = from_postgres(typeof v, row[i])
+    i += 1
 
 proc from_postgres*[T](_: type[T], rows: seq[seq[string]]): seq[T] =
   rows.map((row) => T.from_postgres(row))
@@ -50,9 +56,9 @@ test "from_postgres":
   ]
 
   # Converting raw rows to named object or tuple
-  assert (tuple[name: string, age: Option[int]]).from_postgres(rows) == @[
-    (name: "Jim", age: 33.some), (name: "Sarah", age: int.none)
-  ]
+  # assert (tuple[name: string, age: Option[int]]).from_postgres(rows) == @[
+  #   (name: "Jim", age: 33.some), (name: "Sarah", age: int.none)
+  # ]
 
   # For optional string it's impossible to distinguish between null and blank string
   assert (string, Option[string]).from_postgres(@[@["", ""]]) == @[("", string.none)]

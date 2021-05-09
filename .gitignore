@@ -3,3 +3,4 @@ tmp
 build
 play.nim
 old
+plot/dev.env

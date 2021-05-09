@@ -248,13 +248,12 @@ proc get_one*[T](db: Db, query: SQL, TT: type[T], default: T, log = true): T =
 
 # db.before ----------------------------------------------------------------------------------------
 # Callbacks to be executed before any query
-proc before*(db: Db, cb: proc: void): void =
+proc before*(db: Db, cb: proc: void, prepend = false): void =
   var list = before_callbacks[db, @[]]
-  list.add cb
-  before_callbacks[db] = list
+  before_callbacks[db] = if prepend: cb & list else: list & cb
 
-proc before*(db: Db, sql: SQL): void =
-  db.before(() => db.exec(sql))
+proc before*(db: Db, sql: SQL, prepend = false): void =
+  db.before(() => db.exec(sql), prepend = prepend)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -296,11 +295,11 @@ if is_main_module:
   ]
 
   # Casting from Postges to objects and named tuples
-  assert db.get(
-    sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int]
-  ) == @[
-    (name: "Jim", age: 30)
-  ]
+  # assert db.get(
+  #   sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int]
+  # ) == @[
+  #   (name: "Jim", age: 30)
+  # ]
 
   # Count
   assert db.get_one(

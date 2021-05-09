@@ -1,16 +1,21 @@
-import basem, jsonm, randomm, http_serverm, dbm, kvdbm, envm, decode_querym, http_clientm, logm
+import basem, jsonm, randomm, dbm, kvdbm, envm, logm, urlm
+import http_serverm, http_clientm, decode_querym
 import ./usersm, ../configm
 
 # Config -------------------------------------------------------------------------------------------
 let github_oauth_id     = env["github_oauth_id"]
 let github_oauth_secret = env["github_oauth_secret"]
+let public_domain       = Url.parse env["public_domain"]
 
 let server = Server.init
 let log = Log.init "users"
+using req: Request
 
 
 # login_with_github --------------------------------------------------------------------------------
-proc login_with_github(req: Request): Response =
+server.get("/users/login_with_github", proc (req): auto =
+  if req.host != public_domain.host: throw "wrong host"
+
   let secure_state = secure_random_token()
   # kvdb["/users/original_url/v1", req.session_token] = ""
   kvdb["/users/secure_state/v1", req.session_token] = secure_state
@@ -21,16 +26,17 @@ proc login_with_github(req: Request): Response =
     "state":     secure_state
   })
   redirect url
-server.get("/users/login_with_github", login_with_github)
+)
 
 
 # github_callback ----------------------------------------------------------------------------------
 proc get_github_user(code: string): SourceUser
 
-proc github_callback(req: Request): Response =
+server.get("/users/github_callback", proc (req): auto =
+  if req.host != public_domain.host: throw "wrong host"
+
   let github_user = try:
-    let secure_state = kvdb.get_optional("/users/secure_state/v1", req.session_token).ensure("no login state")
-    kvdb.delete("/users/secure_state/v1", req.session_token)
+    let secure_state = kvdb.delete("/users/secure_state/v1", req.session_token).ensure("no login state")
     if req["state"] != secure_state: throw "invalid state token"
 
     get_github_user(req["code"])
@@ -40,14 +46,32 @@ proc github_callback(req: Request): Response =
 
   let user = User.create_or_update_from_source github_user
 
-  let response = respond "ok"
+  let redirect_url = kvdb.delete("/users/original_url/v1", req.session_token).get(home_path(user.nick))
+  echo redirect_url
+  let response = redirect redirect_url
 
+  # Resetting auth tokens
   response.headers.set_permanent_cookie("user_token", user.token)
   response.headers.set_session_cookie("session_token", secure_random_token())
-
   response
+)
 
-server.get("/users/github_callback", github_callback)
+
+# authenticate ----------------------------------------------------------------------------------
+proc authenticate*(req: Request): (User, bool) =
+  if req.host == public_domain.host or req.host.ends_with("." & public_domain.host): throw "wrong host"
+
+  let user = User.fget((token: req.user_token)).get "not authenticated"
+
+  let redirect_url = kvdb.delete("/users/original_url/v1", req.session_token).get(home_path(user.nick))
+  echo redirect_url
+  let response = redirect redirect_url
+
+  # Resetting auth tokens
+  response.headers.set_permanent_cookie("user_token", user.token)
+  response.headers.set_session_cookie("session_token", secure_random_token())
+  response
+)
 
 
 # get_github_user ----------------------------------------------------------------------------------
@@ -83,5 +107,9 @@ if is_main_module:
   let db = Db.init
   db.define "plot_dev"
 
-  server.define(host = "pl0t.com", port = 8080)
+  server.get("/", proc (req): auto =
+    respond "ok"
+  )
+
+  server.define(host = env["host"], port = env["port"].parse_int)
   server.run

@@ -64,7 +64,6 @@ proc parse*(r: Regex, s: string): Option[seq[string]] =
 test "parse":
   assert re".+ (\d+) (\d+)".parse("a 22 45") == @["22", "45"].some
   assert re"[^;]+;".parse("drop table; create table;").is_none
-  echo "fix this ", re"(b)".parse("a\nb")
 
 
 # parse_named --------------------------------------------------------------------------------------

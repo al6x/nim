@@ -1,4 +1,4 @@
-import basem, logm, jsonm, rem, timem, randomm, envm
+import basem, logm, jsonm, rem, timem, randomm, envm, urlm
 import ./http_supportm, ./http_helpersm
 
 import os, asyncdispatch
@@ -49,6 +49,8 @@ type Request* = ref object
   methd*:         string
   headers*:       Table[string, seq[string]]
   cookies*:       Table[string, string]
+  host*:          string
+  port*:          int
   path*:          string
   query*:         Table[string, string]
   body*:          string
@@ -255,9 +257,11 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
       .with((time: Time.now, duration_ms: tic()))
       .info("{method4} {path} finished, {duration_ms}ms")
 
-    # Setting tokens only if it's not already set by the handler
-    response.headers.set_permanent_cookie_if_not_set("user_token", req.user_token)
-    response.headers.set_session_cookie_if_not_set("session_token", req.session_token)
+    block:
+      # Setting tokens only if it's not already set by the handler,
+      # using domain for `user_token` to make it available for subdomains
+      response.headers.set_permanent_cookie_if_not_set("user_token", req.user_token, server.definition.host)
+      response.headers.set_session_cookie_if_not_set("session_token", req.session_token)
 
     response.some
   except Exception as e:
@@ -387,6 +391,8 @@ proc partial_init(_: type[Request], jreq: jester.Request): Request =
 
   result.new
   result.ip       = jester.ip(jreq)
+  result.host     = jester.host(jreq)
+  result.port     = jester.port(jreq)
   result.methd    = httpcore.`$`(jester.req_method(jreq)).to_lower
   result.headers  = jester.headers(jreq).table[]
   result.cookies  = jester.cookies(jreq)
@@ -411,6 +417,10 @@ if is_main_module:
   # server.get("/api/users/:name/profile", (req: Request) =>
   #   (name: req["name"], age: 20)
   # )
+
+  server.get("/", proc (req: Request): auto =
+    respond "ok"
+  )
 
   server.get_data("/api/users/:name/profile", (req: Request) =>
     (name: req["name"], age: 20)

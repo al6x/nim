@@ -7,7 +7,8 @@ proc field_names*[T](o: T): seq[string] =
   for k, _ in t.field_pairs: result.add k
 
 template field_names*[T](_: type[T]): seq[string] =
-  var t: T; var names: seq[string]
+  var t: T # won't work for variant, as the default variant will be created
+  var names: seq[string]
   when t is ref object:
     for k, _ in t[].field_pairs: names.add k
   else:

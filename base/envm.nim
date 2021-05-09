@@ -44,7 +44,7 @@ proc get_optional*(env: Env, key: string): Option[string] =
 
 proc `[]`*(env: Env, key: string): string =
   let normalized = key.normalize_key
-  if normalized in env.values: env.values[key.normalize_key] else: throw fmt"no environment variable {key}"
+  if normalized in env.values: env.values[key.normalize_key] else: throw fmt"no environment variable '{key}'"
 
 proc `[]`*(env: Env, key: string, default: string): string =
   env.get_optional(key).get(default)

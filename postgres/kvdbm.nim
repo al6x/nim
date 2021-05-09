@@ -45,12 +45,15 @@ proc `[]=`*(kvdb: KVDb, scope: string, key: string, value: string): void =
 
 
 # delete -------------------------------------------------------------------------------------------
-proc delete*(kvdb: KVDb, scope: string, key: string) =
+proc delete*(kvdb: KVDb, scope: string, key: string): Option[string] =
+  result = kvdb.get_optional(scope, key)
   log.with((scope: scope)).debug "del {scope}"
   db.exec(sql"delete from kv where scope = {scope} and key = {key}", log = false)
 
-proc delete*[T](kvdb: KVDb, _: type[T], key: string) =
-  kvdb.delete($(T.type) & "_type", key)
+proc delete*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =
+  let scope = $(T.type) & "_type"
+  result = kvdb.get_optional(scope, key)
+  kvdb.delete(scope, key)
 
 # T.[], T.[]= --------------------------------------------------------------------------------------
 proc get_optional*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =

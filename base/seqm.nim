@@ -11,6 +11,11 @@ func contains*[T](list: openarray[T], check: (T) -> bool): bool =
   false
 
 
+# & ------------------------------------------------------------------------------------------------
+proc `&`*[T](x, y: openarray[T]): seq[T] =
+  x.to_seq & y.to_seq
+
+
 # is_empty -----------------------------------------------------------------------------------------
 func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 func is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0

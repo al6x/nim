@@ -19,7 +19,6 @@ proc init*(_: type[Url], path = "", query = init_table[string, string]()): Url =
   var nquery: Table[string, string]
   for k, v in query:
     if k != "" and v != "": nquery[k] = v
-  if path == "" and nquery.len == 0: throw "url is empty"
   Url(is_full: false, path: npath, query: nquery)
 
 proc init*(
@@ -42,10 +41,6 @@ proc parse*(_: type[Url], url: string): Url =
     Url.init(path = parsed.path, query = query)
 
 proc hash*(url: Url): Hash = url.autohash
-
-proc domain*(url: Url): string =
-  let port = if url.port == 80: "" else: fmt":{url.port}"
-  fmt"{url.scheme}://{url.host}{port}"
 
 proc `$`*(url: Url): string =
   var query: seq[(string, string)]

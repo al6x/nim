@@ -6,15 +6,16 @@ let default_timeout_sec = 5
 let http_pool_size_warn = 100
 
 # with_client --------------------------------------------------------------------------------------
-var clients_pool: Table[string, HttpClient]
+var clients_pool: Table[(string, string, int), HttpClient]
 template with_client(url: string, use_pool: bool, code) =
   if use_pool:
     if clients_pool.len > http_pool_size_warn:
       Log.init("http").with((size: clients_pool.len)).warn("clients pool is too large {size}")
 
-    let domain = Url.parse(url).domain
-    if domain notin clients_pool: clients_pool[domain] = new_http_client()
-    let client {.inject.} = clients_pool[domain]
+    let parsed = Url.parse(url)
+    let pool_key = (parsed.scheme, parsed.host, parsed.port)
+    if pool_key notin clients_pool: clients_pool[pool_key] = new_http_client()
+    let client {.inject.} = clients_pool[pool_key]
     return code
   else:
     let client {.inject.} = new_http_client()
