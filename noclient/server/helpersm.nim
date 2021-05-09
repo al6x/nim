@@ -9,7 +9,7 @@ export escape_html
 
 # escape_js ----------------------------------------------------------------------------------------
 func escape_js*(js: string): string =
-  js.to_json.replace(re"""^"|"$""", "")
+  $(js.to_json).replace(re"""^"|"$""", "")
 
 test "escape_js":
   assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""

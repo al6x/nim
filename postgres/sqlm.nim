@@ -1,4 +1,4 @@
-import basem, json
+import basem, jsonm
 import std/[macros, parseutils, unicode]
 import std/strutils except format
 
@@ -11,11 +11,11 @@ proc sql*(query: string, values: seq[JsonNode]): SQL = (query, values)
 proc sql*(query: string, args: tuple | object, validate_unused_keys = true): SQL =
   # Converting values to postgres
   var values: Table[string, JsonNode]
-  for k, v in args.field_pairs: values[k] = %v
+  for k, v in args.field_pairs: values[k] = v.to_json
   # when compiles(args[]):
-  #   for k, v in args[].field_pairs: values[k] = %v
+  #   for k, v in args[].field_pairs: values[k] = v.to_json
   # else:
-  #   for k, v in args.field_pairs: values[k] = %v
+  #   for k, v in args.field_pairs: values[k] = v.to_json
 
   # Replacing SQL parameters
   var sql_keys: seq[string]; var ordered_values: seq[JsonNode]
@@ -42,7 +42,7 @@ test "sql":
     (name: "Jim", age: 33)
   ) == (
     "insert into users (name, age) values (?, ?)",
-    @[%"Jim", %33]
+    @["Jim".to_json, 33.to_json]
   )
 
   # `db_postgres` doesn't support null values, so they have to be set explicitly in SQL
@@ -51,7 +51,7 @@ test "sql":
     (name: "Jim", age: int.none)
   ) == (
     "insert into users (name, age) values (?, ?)",
-    @[%"Jim", %int.none]
+    @["Jim".to_json, int.none.to_json]
   )
 
 # Helpers ------------------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ proc `$`*(query: SQL): string = query.query & " <- " & query.values.map_it($it).
 proc format_sql_value*[T](sql: var string, params: var seq[JsonNode], value: T, specifier: string) =
   if specifier != "": throw fmt"sql don't support non empty specifier, '{specifier}'"
   sql.add "?"
-  params.add %value
+  params.add value.to_json
 
 proc format_sql_value*[T](sql: var string, params: var seq[JsonNode], values: seq[T], specifier: string) =
   if specifier != "": throw fmt"sql don't support non empty specifier, '{specifier}'"
@@ -168,17 +168,17 @@ macro sql*(code: untyped): SQL =
 test "sql":
   assert sql"""insert into users (name, age) values ({"Jim"}, {33})""" == (
     "insert into users (name, age) values (?, ?)",
-    @[%"Jim", %33]
+    @["Jim".to_json, 33.to_json]
   )
 
   # `db_postgres` doesn't support null values, so they have to be set explicitly in SQL
   assert sql"""insert into users (name, age) values ({"Jim"}, {int.none})""" == (
     "insert into users (name, age) values (?, ?)",
-    @[%"Jim", %int.none]
+    @["Jim".to_json, int.none.to_json]
   )
 
   # Should expand list
   assert sql"""select count(*) from users where name in {@["Jim".some, "John".some, string.none]}""" == (
     "select count(*) from users where name in (?, ?, ?)",
-    @[%"Jim", %"John", %string.none]
+    @["Jim".to_json, "John".to_json, string.none.to_json]
   )

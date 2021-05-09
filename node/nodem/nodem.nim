@@ -43,6 +43,6 @@ proc definition*(node: Node): NodeDefinition =
     node.define fmt"http://localhost:{6000 + (node.id.hash.int mod 50000)}/{node.id}"
   nodes_definitions[node]
 
-proc `%`*(node: Node): JsonNode =
+proc to_json_hook*(node: Node): JsonNode =
   # Always define node when converting to JSON
-  %(id: node.id, def: node.definition.some)
+  (id: node.id, def: node.definition.some).to_json

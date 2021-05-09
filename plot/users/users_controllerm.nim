@@ -58,20 +58,20 @@ server.get("/users/github_callback", proc (req): auto =
 
 
 # authenticate ----------------------------------------------------------------------------------
-proc authenticate*(req: Request): (User, bool) =
-  if req.host == public_domain.host or req.host.ends_with("." & public_domain.host): throw "wrong host"
+# proc authenticate*(req: Request): (User, bool) =
+#   if req.host == public_domain.host or req.host.ends_with("." & public_domain.host): throw "wrong host"
 
-  let user = User.fget((token: req.user_token)).get "not authenticated"
+#   let user = users.fget((token: req.user_token)).get "not authenticated"
 
-  let redirect_url = kvdb.delete("/users/original_url/v1", req.session_token).get(home_path(user.nick))
-  echo redirect_url
-  let response = redirect redirect_url
+#   let redirect_url = kvdb.delete("/users/original_url/v1", req.session_token).get(home_path(user.nick))
+#   echo redirect_url
+#   let response = redirect redirect_url
 
-  # Resetting auth tokens
-  response.headers.set_permanent_cookie("user_token", user.token)
-  response.headers.set_session_cookie("session_token", secure_random_token())
-  response
-)
+#   # Resetting auth tokens
+#   response.headers.set_permanent_cookie("user_token", user.token)
+#   response.headers.set_session_cookie("session_token", secure_random_token())
+#   response
+# )
 
 
 # get_github_user ----------------------------------------------------------------------------------
@@ -97,8 +97,8 @@ proc get_github_user(code: string): SourceUser =
     nick:   json["login"].get_str,
     id:     json["id"].get_int,
     email:  json["email"].get_str,
-    name:   json["name"].to(Option[string]),
-    avatar: json["avatar_url"].to(Option[string])
+    name:   json["name"].json_to(Option[string]),
+    avatar: json["avatar_url"].json_to(Option[string])
   )
 
 

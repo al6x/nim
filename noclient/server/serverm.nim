@@ -339,18 +339,18 @@ method render_not_found_page*(_: Server, message: string): string  {.base.} =
   render_default_not_found_page(message)
 
 method format_as[T](_: Server, data: T, format: string): Response {.base.} =
-  if format == "json": Response.init(200, data.to_json, @[("Content-Type", "application/json")])
+  if format == "json": Response.init(200, data.to_json.`$`, @[("Content-Type", "application/json")])
   else:                Response.init(500, fmt"Error, invalid format '{format}'")
 
 method format_error_as(_: Server, message: string, format: string): Response {.base.} =
   if format == "json":
-    Response.init(200, (is_error: true, message: message).to_json, @[("Content-Type", "application/json")])
+    Response.init(200, (is_error: true, message: message).to_json.`$`, @[("Content-Type", "application/json")])
   else:
     Response.init(500, fmt"Error, invalid format '{format}'")
 
 method format_error_as(_: Server, error: ref Exception, format: string): Response {.base.} =
   if format == "json":
-    let content = (is_error: true, message: error.message, stack: error.get_stack_trace).to_json
+    let content = (is_error: true, message: error.message, stack: error.get_stack_trace).to_json.`$`
     Response.init(200, content, @[("Content-Type", "application/json")])
   else:
     Response.init(500, fmt"Error, invalid format '{format}'")

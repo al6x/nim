@@ -51,7 +51,7 @@ proc with*(log: Log, data: tuple): Log =
   var log = log
   if log.data.is_nil: log.data = new_JObject()
   # Merging new data with existing
-  for key, value in data.field_pairs: log.data.fields[key] = %value
+  for key, value in data.field_pairs: log.data.fields[key] = value.to_json
   log
 
 
@@ -124,7 +124,7 @@ proc format_id(log: Log): string =
 
 proc format_data(log: Log): string =
   if log_config.log_data:
-    if log.data.is_nil: " | {}" else: " | " & log.data.to_json(pretty = false)
+    if log.data.is_nil: " | {}" else: " | " & $(log.data.to_json)
   else:
     ""
 

@@ -21,7 +21,7 @@ let log = Log.init "kvdb"
 
 # [] and []= ---------------------------------------------------------------------------------------
 proc get_optional*(kvdb: KVDb, scope: string, key: string): Option[string] =
-  log.with((scope: scope)).debug("get {scope}")
+  log.with((scope: scope, key: key)).debug("get {scope}/{key}")
   db.get_one_optional(sql"select value from kv where scope = {scope} and key = {key}", string, log = false)
 
 proc `[]`*(kvdb: KVDb, scope: string, key: string): string =
@@ -31,7 +31,7 @@ proc `[]`*(kvdb: KVDb, scope: string, key: string, default: string): string =
   kvdb.get_optional(scope, key).get(default)
 
 proc `[]=`*(kvdb: KVDb, scope: string, key: string, value: string): void =
-  log.with((scope: scope)).debug "set {scope}"
+  log.with((scope: scope, key: key)).debug("set {scope}/{key}")
   let now = Time.now
   db.exec(sql"""
     insert into kv
@@ -47,7 +47,7 @@ proc `[]=`*(kvdb: KVDb, scope: string, key: string, value: string): void =
 # delete -------------------------------------------------------------------------------------------
 proc delete*(kvdb: KVDb, scope: string, key: string): Option[string] =
   result = kvdb.get_optional(scope, key)
-  log.with((scope: scope)).debug "del {scope}"
+  log.with((scope: scope, key: key)).debug("del {scope}/{key}")
   db.exec(sql"delete from kv where scope = {scope} and key = {key}", log = false)
 
 proc delete*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =
@@ -57,7 +57,7 @@ proc delete*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =
 
 # T.[], T.[]= --------------------------------------------------------------------------------------
 proc get_optional*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =
-  kvdb.get_optional($(T.type) & "_type", key).map((raw) => raw.parse_json.to(T))
+  kvdb.get_optional($(T.type) & "_type", key).map((raw) => raw.parse_json.json_to(T))
 
 proc `[]`*[T](kvdb: KVDb, _: type[T], key: string): T =
   kvdb.get_optional(T, key).get
@@ -66,7 +66,7 @@ proc `[]`*[T](kvdb: KVDb, _: type[T], key: string, default: T): T =
   kvdb.get_optional(T, key).get(default)
 
 proc `[]=`*[T](kvdb: KVDb, _: type[T], key: string, value: T): void =
-  kvdb[$(T.type) & "_type", key] = value.to_json
+  kvdb[$(T.type) & "_type", key] = value.to_json.`$`
 
 
 # Test ---------------------------------------------------------------------------------------------

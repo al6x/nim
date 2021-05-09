@@ -157,7 +157,7 @@ proc parse_arg[T](
   elif arg_name in named:
     T.from_string_if_exists named[arg_name]
   elif arg_name in named_json:
-    named_json[arg_name].to(T)
+    named_json[arg_name].to_json(T)
   else:
     throw fmt"argument '{arg_name}' not defined for {fsign[0]}"
 
@@ -178,7 +178,7 @@ proc build_parser1[A](fsign: FnSignatureS): NFParser =
     assert positional.len + named.len + named_json.len == 1
     let json = newJArray()
     json.add cnode
-    json.add %(A.parse_arg(fsign, 0, positional, named, named_json))
+    json.add A.parse_arg(fsign, 0, positional, named, named_json).to_json
     json
   return parser
 
@@ -189,8 +189,8 @@ proc build_parser2[A, B](fsign: FnSignatureS): NFParser =
     assert positional.len + named.len + named_json.len == 2
     let json = newJArray()
     json.add cnode
-    json.add %(A.parse_arg(fsign, 0, positional, named, named_json))
-    json.add %(B.parse_arg(fsign, 1, positional, named, named_json))
+    json.add A.parse_arg(fsign, 0, positional, named, named_json).to_json
+    json.add B.parse_arg(fsign, 1, positional, named, named_json).to_json
     json
   return parser
 
@@ -201,9 +201,9 @@ proc build_parser3[A, B, C](fsign: FnSignatureS): NFParser =
     assert positional.len + named.len + named_json.len == 3
     let json = newJArray()
     json.add cnode
-    json.add %(A.parse_arg(fsign, 0, positional, named, named_json))
-    json.add %(B.parse_arg(fsign, 1, positional, named, named_json))
-    json.add %(C.parse_arg(fsign, 2, positional, named, named_json))
+    json.add A.parse_arg(fsign, 0, positional, named, named_json).to_json
+    json.add B.parse_arg(fsign, 1, positional, named, named_json).to_json
+    json.add C.parse_arg(fsign, 2, positional, named, named_json).to_json
     json
   return parser
 
@@ -212,25 +212,25 @@ proc build_parser3[A, B, C](fsign: FnSignatureS): NFParser =
 proc nexport_function*[N, R](fsign: FnSignatureS, fn: proc(n: N): R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 0
-    %fn(args[0].to(N))
+    fn(args[0].to_json(N)).to_json
   NexportedFunction(fsign: fsign, handler: nfhandler, parser: build_parser0(fsign)).register
 
 proc nexport_function*[N, A, R](fsign: FnSignatureS, fn: proc(n: N, a: A): R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 2
-    %fn(args[0].to(N), args[1].to(A))
+    fn(args[0].to_json(N), args[1].to_json(A)).to_json
   NexportedFunction(fsign: fsign, handler: nfhandler, parser: build_parser1[A](fsign)).register
 
 proc nexport_function*[N, A, B, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B): R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 3
-    %fn(args[0].to(N), args[1].to(A), args[2].to(B))
+    fn(args[0].to_json(N), args[1].to_json(A), args[2].to_json(B)).to_json
   NexportedFunction(fsign: fsign, handler: nfhandler, parser: build_parser2[A, B](fsign)).register
 
 proc nexport_function*[N, A, B, C, R](fsign: FnSignatureS, fn: proc(n: N, a: A, b: B, c: C): R): void =
   proc nfhandler(args: JsonNode): JsonNode =
     assert args.kind == JArray and args.len == 4
-    %fn(args[0].to(N), args[1].to(A), args[2].to(B), args[3].to(C))
+    fn(args[0].to_json(N), args[1].to_json(A), args[2].to_json(B), args[3].to_json(C)).to_json
   NexportedFunction(fsign: fsign, handler: nfhandler, parser: build_parser3[A, B, C](fsign)).register
 
 # For void
@@ -265,7 +265,7 @@ proc call_nexport_function*(req_json: string): Option[string] =
     nfn.handler(args).`$`.some
   except Exception as e:
     if not catch_node_errors: quit(e)
-    (is_error: true, message: e.msg).`%`.`$`.some
+    (is_error: true, message: e.msg).to_json.`$`.some
 
 proc call_nexport_function*(
   fname: string, cnode: JsonNode, positional: seq[string], named: Table[string, string], named_json: JsonNode
@@ -282,4 +282,4 @@ proc call_nexport_function*(
     nfn.handler(args).`$`.some
   except Exception as e:
     if not catch_node_errors: quit(e)
-    (is_error: true, message: e.msg).`%`.`$`.some
+    (is_error: true, message: e.msg).to_json.`$`.some

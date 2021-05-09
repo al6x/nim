@@ -5,7 +5,7 @@ from fs import nil
 proc read_from_optional*[T](t: type[T], path: string): Option[T] =
   try:
     let json = fs.read path
-    json.parse_json.to(T).some
+    json.parse_json.to_json(T).some
   except:
     T.none
 
@@ -19,7 +19,7 @@ proc read_from*[T](t: type[T], path: string, default: () -> T): T =
 
 
 proc write_to*[T](v: T, path: string): void =
-  fs.write(path, (%v).pretty)
+  fs.write(path, $(v.to_json))
 
 
 # cache --------------------------------------------------------------------------------------------

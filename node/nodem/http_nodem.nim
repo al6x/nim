@@ -163,7 +163,7 @@ proc receive_rest_async(
     except Exception as e:
       if catch_errors:
         on_error(e)
-        await respond(req, Http500, $(%((is_error: true, message: e.msg))), headers)
+        await respond(req, Http500, (is_error: true, message: e.msg).to_json.`$`, headers)
       else:
         quit(e)
 

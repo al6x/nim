@@ -99,9 +99,9 @@ proc `$`*(t: Time): string =
   t.hour.align(2) & ":" & t.minute.align(2)  & ":" &  t.second.align(2)
 
 
-proc `%`*(time: Time): JsonNode = %($time)
-proc init_from_json*(dst: var Time, json: JsonNode, json_path: string) =
-  dst = Time.init(json.get_str)
+proc to_json_hook*(time: Time): JsonNode = ($time).to_json
+proc from_json_hook*(v: var Time, json: JsonNode) =
+  v = Time.init(json.get_str)
 
 
 # times.DateTime -----------------------------------------------------------------------------------
@@ -140,9 +140,9 @@ proc now*(_: type[TimeD]): TimeD = Time.now.to TimeD
 proc `$`*(t: TimeD): string = t.year.align(4) & "-" & t.month.align(2) & "-" & t.day.align(2)
 
 
-proc `%`*(time: TimeD): JsonNode = %($time)
-proc init_from_json*(dst: var TimeD, json: JsonNode, json_path: string) =
-  dst = TimeD.init(json.get_str)
+proc to_json_hook*(time: TimeD): JsonNode = ($time).to_json
+proc from_json_hook*(v: var TimeD, json: JsonNode) =
+  v = TimeD.init(json.get_str)
 
 
 # TimeM --------------------------------------------------------------------------------------------
@@ -163,9 +163,9 @@ proc now*(_: type[TimeM]): TimeM = Time.now.to TimeM
 proc `$`*(t: TimeM): string = t.year.align(4) & "-" & t.month.align(2)
 
 
-proc `%`*(time: TimeM): JsonNode = %($time)
-proc init_from_json*(dst: var TimeM, json: JsonNode, json_path: string) =
-  dst = TimeM.init(json.get_str)
+proc to_json_hook*(time: TimeM): JsonNode = ($time).to_json
+proc from_json_hook*(v: var TimeM, json: JsonNode) =
+  v = TimeM.init(json.get_str)
 
 
 test "epoch":

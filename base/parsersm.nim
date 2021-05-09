@@ -3,17 +3,19 @@ import supportm, stringm
 
 # T.field_names, o.field_names ---------------------------------------------------------------------
 proc field_names*[T](o: T): seq[string] =
-  var t: T
-  for k, _ in t.field_pairs: result.add k
+  for k, _ in o.field_pairs: result.add k
 
-template field_names*[T](_: type[T]): seq[string] =
-  var t: T # won't work for variant, as the default variant will be created
-  var names: seq[string]
-  when t is ref object:
-    for k, _ in t[].field_pairs: names.add k
-  else:
-    for k, _ in t.field_pairs: names.add k
-  names
+proc field_names*[T](o: ref T): seq[string] =
+  o[].field_names
+
+# template field_names*[T](_: type[T]): seq[string] =
+#   var t: T # won't work for variant, as the default variant will be created
+#   var names: seq[string]
+#   when t is ref object:
+#     for k, _ in t[].field_pairs: names.add k
+#   else:
+#     for k, _ in t.field_pairs: names.add k
+#   names
 
 
 # to(bool) -----------------------------------------------------------------------------------------

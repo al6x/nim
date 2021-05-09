@@ -203,25 +203,38 @@ proc exec*(db: Db, query: SQL, log = true): void =
       db_postgres.exec(conn, db_postgres.sql(pg_query.query), pg_query.values)
 
 
+# db.before ----------------------------------------------------------------------------------------
+# Callbacks to be executed before any query
+proc before*(db: Db, cb: proc: void, prepend = false): void =
+  var list = before_callbacks[db, @[]]
+  before_callbacks[db] = if prepend: cb & list else: list & cb
+
+proc before*(db: Db, sql: SQL, prepend = false): void =
+  db.before(() => db.exec(sql), prepend = prepend)
+
+
 # db.get ------------------------------------------------------------------------------------------
-proc get_raw*(db: Db, query: SQL, log = true): seq[seq[string]] =
+proc get_raw*(db: Db, query: SQL, log = true): seq[JsonNode] =
   if log: db.log.debug "get"
   let pg_query = query.to_nim_postgres_sql
   db.with_connection do (conn: auto) -> auto:
-    db_postgres.get_all_rows(conn, db_postgres.sql(pg_query.query), pg_query.values)
+    var rows: seq[JsonNode]
+    var columns: db_postgres.DbColumns
+    for row in db_postgres.instant_rows(conn, columns, db_postgres.sql(pg_query.query), pg_query.values):
+      var jrow = newJObject()
+      for i in 0..<columns.len:
+        let name   = columns[i].name
+        let kind   = columns[i].typ.kind
+        let svalue = db_postgres.`[]`(row, i)
+        jrow.add(name, from_postgres_to_json(kind, svalue))
+      rows.add jrow
+    rows
 
 proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
-  T.from_postgres db.get_raw(query, log = log)
+  db.get_raw(query, log = log).map((v) => v.postgres_to(T))
 
 
 # db.get_one --------------------------------------------------------------------------------------
-# proc get_one_row_raw*(db: Db, query: SQL, log = true): seq[string] =
-#   if log: db.log.debug "get_one"
-#   let rows = db.get_raw(query, log = false)
-#   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
-#   if rows.len < 1: throw fmt"expected single result but got {rows.len} rows"
-#   rows[0]
-
 proc get_one_optional*[T](db: Db, query: SQL, _: type[T], log = true): Option[T] =
   if log: db.log.debug "get_one"
 
@@ -233,27 +246,18 @@ proc get_one_optional*[T](db: Db, query: SQL, _: type[T], log = true): Option[T]
 
   # Getting value
   when T is object | tuple:
-    T.from_postgres row
+    row.postgres_to(T).some
   else:
     if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
-    if row.len < 1: return T.none
-    (T.from_postgres row[0]).some
+    for _, v in row.fields:
+      return v.json_to(T).some
+    throw fmt"expected single column row, but got row without columns"
 
 proc get_one*[T](db: Db, query: SQL, TT: type[T], log = true): T =
   db.get_one_optional(query, TT, log = log).get
 
 proc get_one*[T](db: Db, query: SQL, TT: type[T], default: T, log = true): T =
   db.get_one_optional(query, TT, log = log).get(default)
-
-
-# db.before ----------------------------------------------------------------------------------------
-# Callbacks to be executed before any query
-proc before*(db: Db, cb: proc: void, prepend = false): void =
-  var list = before_callbacks[db, @[]]
-  before_callbacks[db] = if prepend: cb & list else: list & cb
-
-proc before*(db: Db, sql: SQL, prepend = false): void =
-  db.before(() => db.exec(sql), prepend = prepend)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -276,30 +280,25 @@ if is_main_module:
     );
   """
 
-  # SQL with `:named` parameters instead of `?`
+  # SQL with `:named` parameters
   db.exec(sql(
     "insert into dbm_test_users (name, age) values (:name, :age)",
     (name: "Jim", age: 30)
   ))
+
+  # Casting to Nim
   assert db.get(
-    sql"select name, age from dbm_test_users order by name", (string, int)
+    sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int]
   ) == @[
-    ("Jim", 30)
+    (name: "Jim", age: 30)
   ]
 
-  # SQL parameters
+  # SQL with `{}` parameters
   assert db.get(
-    sql"""select name, age from dbm_test_users where name = {"Jim"}""", (string, int)
+    sql"""select name, age from dbm_test_users where name = {"Jim"}""", tuple[name: string, age: int]
   ) == @[
-    ("Jim", 30)
+    (name: "Jim", age: 30)
   ]
-
-  # Casting from Postges to objects and named tuples
-  # assert db.get(
-  #   sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int]
-  # ) == @[
-  #   (name: "Jim", age: 30)
-  # ]
 
   # Count
   assert db.get_one(
@@ -308,6 +307,7 @@ if is_main_module:
 
   # Cleaning
   db.exec sql"drop table if exists dbm_test_users"
+
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:

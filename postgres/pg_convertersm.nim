@@ -1,64 +1,58 @@
 import basem, timem, jsonm
-import macros
+import db_common
 
-# to_postgres --------------------------------------------------------------------------------------
-# proc to_postgres*(v: Time):        Option[string] = some $v
-# proc to_postgres*(v: string):      Option[string] = some v
-# proc to_postgres*(v: int | float): Option[string] = some $v
-# proc to_postgres*(v: bool):        Option[string] = some $v
+proc postgres_to*(json: JsonNode, T: type): T =
+  result = json.json_to(T, Joptions(allow_extra_keys: true))
+  when compiles(result.post_postgres_to()):
+    result.post_postgres_to()
 
-# proc to_postgres*[T](v: Option[T]): Option[string]  =
-#   if v.is_some: v.get.to_postgres else: string.none
+proc to_string_json(v: string): JsonNode =
+  # Nim driver for PostgreSQL doesn't differentiate between empty string and null, fixing it
+  if v == "": newJNull() else: v.to_json
 
-macro is_unnamed_tuple[T](TT: type[T]): bool =
-  # nnkTupleTy - named
-  let r = new_lit(TT.getTypeInst[1].kind == nnkTupleConstr)
-  quote do:
-    `r`
-
-# from_postgres ------------------------------------------------------------------------------------
-proc from_postgres*(_: type[Time],   s: string): Time   = Time.init s
-proc from_postgres*(_: type[string], s: string): string = s
-proc from_postgres*(_: type[int],    s: string): int    = s.parse_int
-proc from_postgres*(_: type[float],  s: string): float  = s.parse_float
-proc from_postgres*(_: type[bool],   s: string): bool   =
-  if s == "t": true elif s == "f": false else: throw fmt"unknown bool value '{s}'"
-
-proc from_postgres*[T](_: type[Option[T]], s: string): Option[T] =
-  # For string values it's impossible to distinguish null from empty string as the value for
-  # both is the same - `""`
-  if s == "": T.none else: T.from_postgres(s).some
-
-proc from_postgres*[T: tuple](_: type[T], row: seq[string]): T =
-  if not is_unnamed_tuple(T): throw "named tuples not supported"
-  var i = 0
-  # when result is ref object:
-  #   result = T()
-  #   for _, v in result[].field_pairs:
-  #     v = from_postgres(typeof v, row[i])
-  #     i += 1
-  # else:
-  for _, v in result.field_pairs:
-    v = from_postgres(typeof v, row[i])
-    i += 1
-
-proc from_postgres*[T](_: type[T], rows: seq[seq[string]]): seq[T] =
-  rows.map((row) => T.from_postgres(row))
-
-test "from_postgres":
-  let rows = @[
-    @["Jim", "33"], @["Sarah", ""]
-  ]
-
-  # Converting raw rows to unnamed array-tuple
-  assert (string, Option[int]).from_postgres(rows) == @[
-    ("Jim", 33.some), ("Sarah", int.none)
-  ]
-
-  # Converting raw rows to named object or tuple
-  # assert (tuple[name: string, age: Option[int]]).from_postgres(rows) == @[
-  #   (name: "Jim", age: 33.some), (name: "Sarah", age: int.none)
-  # ]
-
-  # For optional string it's impossible to distinguish between null and blank string
-  assert (string, Option[string]).from_postgres(@[@["", ""]]) == @[("", string.none)]
+# from_postgres_to_json ----------------------------------------------------------------------------
+proc from_postgres_to_json*(kind: DbTypeKind, s: string): JsonNode =
+  case kind
+  of dbSerial:    s.parse_int.to_json
+  of dbNull:      newJNull()
+  # dbBit,        ## bit datatype
+  of dbBool:      (if s == "t": true elif s == "f": false else: throw fmt"unknown bool value '{s}'").to_json
+  # dbBlob,       ## blob datatype
+  of dbFixedChar: s.to_string_json  ## string of fixed length
+  of dbVarchar:   s.to_string_json  ## string datatype
+  # dbJson,       ## JSON datatype
+  # dbXml,        ## XML datatype
+  of dbInt:       s.parse_int.to_json
+  of dbUInt:      s.parse_int.to_json    ## some unsigned integer type
+  # dbDecimal,    ## decimal numbers (fixed-point number)
+  of dbFloat:     s.parse_float.to_json ## some floating point type
+  of dbDate:      s.to_json ## a year-month-day description
+  of dbTime:      s.to_json ## HH:MM:SS information
+  of dbDatetime:  s.to_json ## year-month-day and HH:MM:SS information,
+  #                   ## plus optional time or timezone information
+  # dbTimestamp,  ## Timestamp values are stored as the number of seconds
+  #                   ## since the epoch ('1970-01-01 00:00:00' UTC).
+  # dbTimeInterval,  ## an interval [a,b] of times
+  # dbEnum,          ## some enum
+  # dbSet,           ## set of enum values
+  # dbArray,         ## an array of values
+  # dbComposite,     ## composite type (record, struct, etc)
+  # dbUrl,           ## a URL
+  # dbUuid,          ## a UUID
+  # dbInet,          ## an IP address
+  # dbMacAddress,    ## a MAC address
+  # dbGeometry,      ## some geometric type
+  # dbPoint,         ## Point on a plane   (x,y)
+  # dbLine,          ## Infinite line ((x1,y1),(x2,y2))
+  # dbLseg,          ## Finite line segment   ((x1,y1),(x2,y2))
+  # dbBox,           ## Rectangular box   ((x1,y1),(x2,y2))
+  # dbPath,          ## Closed or open path (similar to polygon) ((x1,y1),...)
+  # dbPolygon,       ## Polygon (similar to closed path)   ((x1,y1),...)
+  # dbCircle,        ## Circle   <(x,y),r> (center point and radius)
+  # dbUser1,         ## user definable datatype 1 (for unknown extensions)
+  # dbUser2,         ## user definable datatype 2 (for unknown extensions)
+  # dbUser3,         ## user definable datatype 3 (for unknown extensions)
+  # dbUser4,         ## user definable datatype 4 (for unknown extensions)
+  # dbUser5          ## user definable datatype 5 (for unknown extensions)
+  else:
+    throw fmt"unknown postgres value type '{kind}'"

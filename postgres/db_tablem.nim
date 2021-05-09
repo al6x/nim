@@ -1,4 +1,4 @@
-import basem, logm, parsersm
+import basem, logm, parsersm, jsonm
 import ./sqlm, ./dbm
 
 export sqlm, dbm
@@ -29,7 +29,7 @@ proc create*[T](table: DbTable[T], o: T): void =
   # `skip_id` for tables with auto increment id
   table.log.with((table: table.name, id: o.id)).info "{table}.create id={id}"
   let query = proc (): string =
-    var field_names = T.field_names
+    var field_names = o.field_names
     if table.auto_id: field_names.filter((v) => v notin table.ids)
     let column_names = " " & field_names.join(",  ")
     let named_values = field_names.map((n) => fmt":{n}").join(", ")
@@ -46,7 +46,7 @@ proc create*[T](table: DbTable[T], o: T): void =
 proc update*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.update id={id}"
   let query = proc (): string =
-    let setters = T.field_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = :{n}").join(", ")
+    let setters = o.field_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = :{n}").join(", ")
     let where = table.ids.map((n) => fmt"{n} = :{n}").join(" and ")
     fmt"""
       update {table.name}
@@ -61,7 +61,7 @@ proc update*[T](table: DbTable[T], o: T): void =
 proc save*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name)).info "{table}.save"
   let query = proc (): string =
-    let field_names = T.field_names
+    let field_names = o.field_names
     let column_names = " " & field_names.join(",  ")
     let named_values = field_names.map((n) => fmt":{n}").join(", ")
     let setters = field_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = excluded.{n}").join(", ")
@@ -84,7 +84,7 @@ proc build_table_query[W](table_name: string, select: string, where: W, normalis
     when where is SQL:
       where
     elif where is tuple:
-      let conditions = W.field_names.map((name) => fmt"{name} = :{name}").join(" and ")
+      let conditions = where.field_names.map((name) => fmt"{name} = :{name}").join(" and ")
       sql(conditions, where)
     elif where is string or where is int:
       sql "id = {where}"
@@ -124,8 +124,8 @@ test "build_query":
 # table.filter -------------------------------------------------------------------------------------
 proc filter*[T, W](table: DbTable[T], where: W = sql"", log = true): seq[T] =
   if log: table.log.with((table: table.name, where: $where)).info "{table}.get {where}"
-  let column_names = T.field_names.join(", ")
-  let query = build_table_query(table.name, column_names, where)
+  # let column_names = T.field_names.join(", ")
+  let query = build_table_query(table.name, "*", where)
   table.db.get(query, T, log = false)
 
 

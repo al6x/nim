@@ -79,7 +79,7 @@ proc on*[T](
 ): void =
   server.action(action, proc (req: Request): auto =
     var state = State.load(req.user_token)
-    let input: T = req.data.to(T)
+    let input: T = req.data.to_json(T)
     handler(state, input)
     state.save(req.user_token)
     (update: AppEl(state))

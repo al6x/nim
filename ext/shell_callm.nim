@@ -8,7 +8,7 @@ type ShellArg[B, I, A] = object
 let json_output_token = "shell_call_json_output:"
 proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after: A): seq[Fallible[R]] =
   let shell_arg = ShellArg[B, I, A](before: before, inputs: inputs, after: after)
-  let shell_arg_json = $(%shell_arg)
+  let shell_arg_json = $(shell_arg.to_json)
   let escaped_shell_arg_json = shell_arg_json.replace("\"", "\\\"")
   let cmd = command & " \"" & escaped_shell_arg_json & "\""
   let full_output = exec_cmd_ex(cmd).output
@@ -24,7 +24,7 @@ proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after:
       R.error edata["error"].get_str
     else:
       try:
-        edata["value"].to(R).success
+        edata["value"].to_json(R).success
       except Exception as e:
         R.error fmt"can't parse {$(R.typeof)} json, {e}"
 

@@ -97,7 +97,7 @@ proc respond_data*(data: string): Response =
   Response.init(content = data, headers = @[("Content-Type", "application/json")])
 
 proc respond_data*[D](data: D): Response =
-  respond_data data.to_json
+  respond_data $(data.to_json)
 
 proc redirect*(url: string): Response =
   Response.init(303, "Redirected to {url}", @[("Location", url)])
@@ -179,7 +179,7 @@ proc post*(server: Server, pattern: string | Regex, handler: Handler): void =
 proc add_data_route*[R](
   server: Server, methd: string, pattern: string | Regex, handler: ApiHandler[R]
 ): void =
-  let jhandler = proc (req: Request): JsonNode = %handler(req)
+  let jhandler = proc (req: Request): JsonNode = handler(req).to_json
   let route = pattern.prepare_route
   if route.is_pattern:
     let key = (server, methd, route.prefix)
@@ -316,9 +316,9 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
       .with(e)
       .error("{method4} {path} failed, {duration_ms}ms, {error}")
     let error = if server.definition.show_errors:
-      (is_error: true, message: e.msg, stack: e.get_stack_trace).to_json
+      (is_error: true, message: e.msg, stack: e.get_stack_trace).to_json.`$`
     else:
-      (is_error: true, message: e.msg).to_json
+      (is_error: true, message: e.msg).to_json.`$`
     respond_data(error).some
 
 

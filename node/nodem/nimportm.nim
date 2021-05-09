@@ -73,7 +73,7 @@ proc call_nexport_fn[N](short_name: string, full_name: string, n: N, args: JsonN
   let res = try:
     # The `path` is not used by `nexport` server, but needed to support services written in REST
     # style as `/api/fname`.
-    n.call((fn: full_name, args: args).`%`.`$`, path = "/" & short_name)
+    n.call((fn: full_name, args: args).to_json.`$`, path = "/" & short_name)
   except Exception as e:
     throw fmt"can't call '{n}.{full_name}', {e.msg}"
 
@@ -84,26 +84,26 @@ proc call_nexport_fn[N](short_name: string, full_name: string, n: N, args: JsonN
 proc call_nexport_fn*[N, R](
   short_name: string, full_name: string, n: N, rtype: type[R]
 ): R =
-  let args = newJArray(); args.add %(n.id);
-  call_nexport_fn(short_name, full_name, n, args).to(R)
+  let args = newJArray(); args.add n.id.to_json;
+  call_nexport_fn(short_name, full_name, n, args).to_json(R)
 
 proc call_nexport_fn*[N, A, R](
   short_name: string, full_name: string, n: N, a: A, tr: type[R]
 ): R =
-  let args = newJArray(); args.add %(n.id); args.add %a;
-  call_nexport_fn(short_name, full_name, n, args).to(R)
+  let args = newJArray(); args.add n.id.to_json; args.add a.to_json;
+  call_nexport_fn(short_name, full_name, n, args).to_json(R)
 
 proc call_nexport_fn*[N, A, B, R](
   short_name: string, full_name: string, n: N, a: A, b: B, tr: type[R]
 ): R =
-  let args = newJArray(); args.add %(n.id); args.add %a; args.add %b;
-  call_nexport_fn(short_name, full_name, n, args).to(R)
+  let args = newJArray(); args.add n.id.to_json; args.add a.to_json; args.add b.to_json;
+  call_nexport_fn(short_name, full_name, n, args).to_json(R)
 
 proc call_nexport_fn*[N, A, B, C, R](
   short_name: string, full_name: string, n: N, a: A, b: B, c: C, tr: type[R]
 ): R =
-  let args = newJArray(); args.add %(n.id); args.add %a; args.add %b; args.add %c
-  call_nexport_fn(short_name, full_name, n, args).to(R)
+  let args = newJArray(); args.add n.id.to_json; args.add a.to_json; args.add b.to_json; args.add c.to_json
+  call_nexport_fn(short_name, full_name, n, args).to_json(R)
 
 # For void
 proc call_nexport_fn_void*[N](short_name: string, full_name: string, n: N): void =
