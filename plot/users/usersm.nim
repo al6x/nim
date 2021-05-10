@@ -4,8 +4,7 @@ import basem, db_tablem, timem, randomm, jsonm
 # User ---------------------------------------------------------------------------------------------
 # TODO 2 change to `ref object` when this issue will be resolved https://github.com/nim-lang/Nim/issues/17986
 type User* = object
-  id*:         int
-  nick*:       string
+  id*:         string
   token*:      string
 
   case is_anon: bool
@@ -27,8 +26,7 @@ proc `==`*(a, b: User): bool =
 let db = Db.init
 db.before sql"""
   create table if not exists users(
-    id         serial       not null,
-    nick       varchar(100) not null,
+    id         varchar(100) not null,
     token      varchar(100) not null,
     is_anon    boolean      not null,
     source_id  varchar(100),
@@ -42,11 +40,10 @@ db.before sql"""
   );
 
   create unique index if not exists users_source_id on users (source_id);
-  create unique index if not exists users_nick      on users (nick);
   create unique index if not exists users_email     on users (email);
 """
 
-let users* = Db.init.table(User, "users", auto_id = true)
+let users* = Db.init.table(User, "users")
 
 
 # SourceUser ---------------------------------------------------------------------------------------
@@ -66,11 +63,16 @@ proc create_or_update_from_source*(users: DbTable[User], source: SourceUser): Us
   var user = users.fget((source_id: source_id)).get(() =>
     User(is_anon: false, source_id: source_id)
   )
-
-  user.is_anon = false
+  if user.is_anon: throw "internal error, anon can't be derived from source"
 
   # Updating user from source
-  user.nick   = source.nick
+  user.id =
+    if   user.id != "":
+      user.id # changing id not supported yet
+    elif source.nick.starts_with "a_":
+      secure_random_token(6) # "a_..." reserved for anonymous users
+    else:
+      source.nick
   user.name   = source.name
   user.avatar = source.avatar
   user.email  = source.email
@@ -90,8 +92,8 @@ proc authenticate*(users: DbTable[User], token: string, create_anon = false): Op
     found
   elif create_anon:
     var anon = User(
+      id:      "a_" & secure_random_token(6),
       is_anon: true,
-      nick:    secure_random_token()[0..^6],
       token:   token
     )
     users.save anon
@@ -114,7 +116,7 @@ if is_main_module:
     name:   string.none
   )
   let jim = users.create_or_update_from_source(source)
-  assert jim.nick == "jim"
+  assert jim.id == "jim"
 
   assert users.authenticate(jim.token).get == jim
 

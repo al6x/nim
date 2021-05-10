@@ -1,5 +1,6 @@
 import ./supportm, ./envm, ./tablem
-import std/sha1, times, hashes, random
+# import std/sha1,
+import times, hashes, random, strutils
 
 export Rand
 
@@ -15,12 +16,6 @@ proc secure_rgen*(): Rand =
   init_rand(@[seed1, seed2].hash)
 
 
-# secure_random_token ------------------------------------------------------------------------------
-proc secure_random_token*(): string =
-  var rgen = secure_rgen()
-  $secure_hash(rgen.rand(int.high).to_s)
-
-
 # sample -------------------------------------------------------------------------------------------
 proc sample*[V](list: openarray[V], rgen: var Rand): V =
   rgen.sample(list)
@@ -28,3 +23,18 @@ proc sample*[V](list: openarray[V], rgen: var Rand): V =
 proc sample*[V](list: openarray[V], count: int, rgen: var Rand): seq[V] =
   for _ in 1..count:
     result.add list.sample(rgen)
+
+
+# secure_random_token ------------------------------------------------------------------------------
+let az = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"
+let azAz09 = (az & " " & az.to_lower & " 0 1 2 3 4 5 6 7 8 9").split(" ")
+
+proc secure_random_token*(n = 30): string =
+  var rgen = secure_rgen()
+  # $secure_hash(rgen.rand(int.high).to_s)
+  azAz09.sample(n, rgen).join("")
+
+
+# Test ---------------------------------------------------------------------------------------------
+if is_main_module:
+  echo secure_random_token()
