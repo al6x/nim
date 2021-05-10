@@ -89,12 +89,13 @@ proc authenticate*(_: type[User], token: string, create_anon = false): Option[Us
   if found.is_some:
     found
   elif create_anon:
-    users.save User(
+    var anon = User(
       is_anon: true,
       nick:    secure_random_token()[0..^6],
       token:   token
     )
-    users[(token: token)].some
+    users.save anon
+    anon.some
   else:
     User.none
 
