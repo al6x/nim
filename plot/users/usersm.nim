@@ -1,4 +1,4 @@
-import basem, db_tablem, timem, randomm, jsonm
+import basem, db_tablem, timem, randomm, jsonm, parsersm
 
 
 # User ---------------------------------------------------------------------------------------------
@@ -7,7 +7,7 @@ type User* = object
   id*:         string
   token*:      string
 
-  case is_anon: bool
+  case is_anon: bool  # virtual attribute
   of true:
     discard
   of false:
@@ -21,6 +21,13 @@ type User* = object
 proc `==`*(a, b: User): bool =
   a.to_json == b.to_json
 
+proc from_json_hook*(v: var User, json: JsonNode) =
+  v = User(is_anon: false)
+  v.update_from json
+
+let virtual_attributes = ["is_anon"]
+proc custom_column_names*(user: User): seq[string] =
+  user.field_names.filter((n) => n notin virtual_attributes)
 
 # User schema --------------------------------------------------------------------------------------
 let db = Db.init
@@ -28,7 +35,6 @@ db.before sql"""
   create table if not exists users(
     id         varchar(100) not null,
     token      varchar(100) not null,
-    is_anon    boolean      not null,
     source_id  varchar(100),
     name       varchar(100),
     avatar     varchar(100),
@@ -63,7 +69,7 @@ proc create_or_update_from_source*(users: DbTable[User], source: SourceUser): Us
   var user = users.fget((source_id: source_id)).get(() =>
     User(is_anon: false, source_id: source_id)
   )
-  if user.is_anon: throw "internal error, anon can't be derived from source"
+  if user.is_anon: throw "internal error, can't be anon"
 
   # Updating user from source
   user.id =
@@ -71,6 +77,8 @@ proc create_or_update_from_source*(users: DbTable[User], source: SourceUser): Us
       user.id # changing id not supported yet
     elif source.nick.starts_with "a_":
       secure_random_token(6) # "a_..." reserved for anonymous users
+    elif source.nick.len < 3:
+      source.nick & secure_random_token(3 - source.nick.len)
     else:
       source.nick
   user.name   = source.name
@@ -85,21 +93,13 @@ proc create_or_update_from_source*(users: DbTable[User], source: SourceUser): Us
   user
 
 
-# create_or_update_anon ----------------------------------------------------------------------------
-proc authenticate*(users: DbTable[User], token: string, create_anon = false): Option[User] =
-  let found = users.fget((token: token))
-  if found.is_some:
-    found
-  elif create_anon:
-    var anon = User(
-      id:      "a_" & secure_random_token(6),
-      is_anon: true,
-      token:   token
-    )
-    users.save anon
-    anon.some
-  else:
-    User.none
+# authenticate -------------------------------------------------------------------------------------
+proc authenticate*(users: DbTable[User], token: string): User =
+  users.fget((token: token)).get(() => User(
+    is_anon: true,
+    id:      "a_" & token[0..5],
+    token:   token
+  ))
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -118,10 +118,8 @@ if is_main_module:
   let jim = users.create_or_update_from_source(source)
   assert jim.id == "jim"
 
-  assert users.authenticate(jim.token).get == jim
+  assert users.authenticate(jim.token) == jim
 
-  assert users.authenticate("unknown") == User.none
-
-  let anon = users.authenticate("some-token", create_anon = true).get
+  let anon = users.authenticate("unknown-token")
   assert anon.is_anon
-  assert anon.token == "some-token"
+  assert anon.token == "unknown-token"

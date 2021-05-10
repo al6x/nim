@@ -99,8 +99,12 @@ proc respond_data*(data: string): Response =
 proc respond_data*[D](data: D): Response =
   respond_data data.to_json.to_s
 
+proc respond*(data: JsonNode): Response =
+  respond_data data.to_s
+
+
 proc redirect*(url: string): Response =
-  Response.init(303, "Redirected to {url}", @[("Location", url)])
+  Response.init(303, fmt"Redirected to {url}", @[("Location", url)])
 
 
 # Handler, ApiHandler ------------------------------------------------------------------------------
@@ -260,7 +264,7 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
     block:
       # Setting tokens only if it's not already set by the handler,
       # using domain for `user_token` to make it available for subdomains
-      response.headers.set_permanent_cookie_if_not_set("user_token", req.user_token, server.definition.host)
+      response.headers.set_permanent_cookie_if_not_set("user_token", req.user_token, "." & server.definition.host)
       response.headers.set_session_cookie_if_not_set("session_token", req.session_token)
 
     response.some

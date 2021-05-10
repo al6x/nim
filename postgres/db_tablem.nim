@@ -24,21 +24,26 @@ proc table*[T](
   DbTable[T](db: db, name: name, ids: ids, auto_id: auto_id)
 
 
+# o.column_names -----------------------------------------------------------------------------------
+proc column_names*[T](o: T): seq[string] =
+  when compiles(o.custom_column_names): o.custom_column_names
+  else:                                 o.field_names
+
 # table.create -------------------------------------------------------------------------------------
 proc create*[T](table: DbTable[T], o: var T): void =
   # `skip_id` for tables with auto increment id
   table.log.with((table: table.name, id: o.id)).info "{table}.create id={id}"
   let query = block:
-    let field_names = if table.auto_id: o.field_names.filter((n) => n notin table.ids)
-    else:                               o.field_names
-    let column_names = " " & field_names.join(",  ")
-    let named_values = field_names.map((n) => fmt":{n}").join(", ")
+    let column_names = if table.auto_id: o.column_names.filter((n) => n notin table.ids)
+    else:                                o.column_names
+    let names = " " & column_names.join(",  ")
+    let values = column_names.map((n) => fmt":{n}").join(", ")
     let ids = table.ids.join(", ")
     fmt"""
       insert into {table.name}
-        ({column_names})
+        ({names})
       values
-        ({named_values})
+        ({values})
       returning {ids}
     """.dedent
 
@@ -55,7 +60,7 @@ proc create*[T](table: DbTable[T], o: var T): void =
 proc update*[T](table: DbTable[T], o: T): void =
   table.log.with((table: table.name, id: o.id)).info "{table}.update id={id}"
   let query = block:
-    let setters = o.field_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = :{n}").join(", ")
+    let setters = o.column_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = :{n}").join(", ")
     let where = table.ids.map((n) => fmt"{n} = :{n}").join(" and ")
     fmt"""
       update {table.name}
@@ -70,12 +75,12 @@ proc update*[T](table: DbTable[T], o: T): void =
 proc save*[T](table: DbTable[T], o: var T): void =
   table.log.with((table: table.name)).info "{table}.save"
   let query = block:
-    let field_names = if table.auto_id: o.field_names.filter((n) => n notin table.ids)
-    else:                               o.field_names
+    let column_names = if table.auto_id: o.column_names.filter((n) => n notin table.ids)
+    else:                                o.column_names
     let ids = table.ids.join(", ")
-    let insert_columns = " " & field_names.join(",  ")
-    let insert_values  = field_names.map((n) => fmt":{n}").join(", ")
-    let setters = field_names.map((n) => fmt"{n} = excluded.{n}").join(", ")
+    let insert_columns = " " & column_names.join(",  ")
+    let insert_values  = column_names.map((n) => fmt":{n}").join(", ")
+    let setters = column_names.map((n) => fmt"{n} = excluded.{n}").join(", ")
     fmt"""
       insert into {table.name}
         ({insert_columns})

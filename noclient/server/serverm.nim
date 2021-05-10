@@ -99,7 +99,7 @@ proc respond*(content: string): Response =
   Response.init(content = content, headers = @[("Content-Type", "text/html;charset=utf-8")])
 
 proc redirect*(url: string): Response =
-  Response.init(303, "Redirected to {url}", @[("Location", url)])
+  Response.init(303, fmt"Redirected to {url}", @[("Location", url)])
 
 
 # Handler, ApiHandler ------------------------------------------------------------------------------

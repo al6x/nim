@@ -66,3 +66,7 @@ proc `&`*(base, addon: Url): Url =
 
 proc `&`*(base: Url, addon: string): Url =
   base & Url.parse(addon)
+
+
+proc subdomain*(host: string): Option[string] =
+  re"^([^\.]+)\.".parse1(host)

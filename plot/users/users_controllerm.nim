@@ -44,34 +44,23 @@ server.get("/users/github_callback", proc (req): auto =
     log.warn("can't auth with github", e)
     throw fmt"authentification failed, please try again later, {e.msg}"
 
-  let user = User.create_or_update_from_source github_user
+  let user = users.create_or_update_from_source github_user
 
-  let redirect_url = kvdb.delete("/users/original_url/v1", req.session_token).get(home_path(user.nick))
-  echo redirect_url
+  let redirect_url = kvdb.delete("/users/original_url/v1", req.session_token).get(home_path(user.id))
   let response = redirect redirect_url
 
   # Resetting auth tokens
-  response.headers.set_permanent_cookie("user_token", user.token)
+  response.headers.set_permanent_cookie("user_token", user.token, "." & server.definition.host)
   response.headers.set_session_cookie("session_token", secure_random_token())
   response
 )
 
 
 # authenticate ----------------------------------------------------------------------------------
-# proc authenticate*(req: Request): (User, bool) =
-#   if req.host == public_domain.host or req.host.ends_with("." & public_domain.host): throw "wrong host"
-
-#   let user = users.fget((token: req.user_token)).get "not authenticated"
-
-#   let redirect_url = kvdb.delete("/users/original_url/v1", req.session_token).get(home_path(user.nick))
-#   echo redirect_url
-#   let response = redirect redirect_url
-
-#   # Resetting auth tokens
-#   response.headers.set_permanent_cookie("user_token", user.token)
-#   response.headers.set_session_cookie("session_token", secure_random_token())
-#   response
-# )
+proc authenticate*(req): User =
+  if not (req.host == public_domain.host or req.host.ends_with("." & public_domain.host)): throw "wrong host"
+  # p req.host.subdomain
+  users.authenticate(req.user_token)
 
 
 # get_github_user ----------------------------------------------------------------------------------
@@ -108,7 +97,8 @@ if is_main_module:
   db.define "plot_dev"
 
   server.get("/", proc (req): auto =
-    respond "ok"
+    let user = authenticate(req)
+    respond_data user
   )
 
   server.define(host = env["host"], port = env["port"].parse_int)
