@@ -6,6 +6,14 @@ export json, jsonutils
 proc jsonTo*(json: JsonNode, T: typedesc, options: Joptions): T =
   fromJson(result, json, options)
 
+
+# update_from --------------------------------------------------------------------------------------
+proc update_from*[T](o: var T, partial: JsonNode): void =
+  for k, v in o.field_pairs:
+    if k in partial.fields:
+      v = partial.fields[k].json_to(typeof v)
+
+
 # T.to_json ----------------------------------------------------------------------------------------
 # proc to_json*[T](v: T, pretty = true): string =
 #   if pretty: (%v).pretty else: $(%v)

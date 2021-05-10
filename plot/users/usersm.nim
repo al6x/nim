@@ -60,7 +60,7 @@ type SourceUser* = ref object
 
 
 # create_or_update_from ----------------------------------------------------------------------------
-proc create_or_update_from_source*(_: type[User], source: SourceUser): User =
+proc create_or_update_from_source*(users: DbTable[User], source: SourceUser): User =
   # Getting existing or creating new
   let source_id = fmt"{source.source}/{source.id}"
   var user = users.fget((source_id: source_id)).get(() =>
@@ -84,7 +84,7 @@ proc create_or_update_from_source*(_: type[User], source: SourceUser): User =
 
 
 # create_or_update_anon ----------------------------------------------------------------------------
-proc authenticate*(_: type[User], token: string, create_anon = false): Option[User] =
+proc authenticate*(users: DbTable[User], token: string, create_anon = false): Option[User] =
   let found = users.fget((token: token))
   if found.is_some:
     found
@@ -113,13 +113,13 @@ if is_main_module:
     avatar: string.none,
     name:   string.none
   )
-  let jim = User.create_or_update_from_source(source)
+  let jim = users.create_or_update_from_source(source)
   assert jim.nick == "jim"
 
-  assert User.authenticate(jim.token).get == jim
+  assert users.authenticate(jim.token).get == jim
 
-  assert User.authenticate("unknown") == User.none
+  assert users.authenticate("unknown") == User.none
 
-  let anon = User.authenticate("some-token", create_anon = true).get
+  let anon = users.authenticate("some-token", create_anon = true).get
   assert anon.is_anon
   assert anon.token == "some-token"
