@@ -121,7 +121,7 @@ proc build_table_query[W](table_name: string, select: string, where: W, normalis
   """.dedent
 
   if normalise: # used for testing
-    query = query.replace("\n", " ").replace(re"\s+", " ").replace(re"\s+$", "")
+    query = query.replace(re"[\n\s]+", " ").replace(re"\s+$", "")
 
   sql(query, values)
 
