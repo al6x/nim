@@ -1,4 +1,4 @@
-import ./supportm, ./decode_querym, rem, strformat, tablem, strutils, hashm
+import ./supportm, ./decode_querym, rem, strformat, tablem, strutils, hashm, options
 from uri import nil
 
 type Url* = object

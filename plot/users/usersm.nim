@@ -25,9 +25,8 @@ proc from_json_hook*(v: var User, json: JsonNode) =
   v = User(is_anon: false)
   v.update_from json
 
-let virtual_attributes = ["is_anon"]
 proc custom_column_names*(user: User): seq[string] =
-  user.field_names.filter((n) => n notin virtual_attributes)
+  user.field_names.filter((n) => n notin ["is_anon"])
 
 # User schema --------------------------------------------------------------------------------------
 let db = Db.init
@@ -69,7 +68,7 @@ proc create_or_update_from_source*(users: DbTable[User], source: SourceUser): Us
   var user = users.fget((source_id: source_id)).get(() =>
     User(is_anon: false, source_id: source_id)
   )
-  if user.is_anon: throw "internal error, can't be anon"
+  assert not user.is_anon
 
   # Updating user from source
   user.id =

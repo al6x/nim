@@ -98,7 +98,7 @@ if is_main_module:
 
   server.get("/", proc (req): auto =
     let user = authenticate(req)
-    respond_data user
+    respond user
   )
 
   server.define(host = env["host"], port = env["port"].parse_int)

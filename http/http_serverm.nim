@@ -99,6 +99,9 @@ proc respond_data*(data: string): Response =
 proc respond_data*[D](data: D): Response =
   respond_data data.to_json.to_s
 
+proc respond*[D](data: D): Response =
+  respond_data data.to_json.to_s
+
 proc respond*(data: JsonNode): Response =
   respond_data data.to_s
 
