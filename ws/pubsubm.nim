@@ -127,8 +127,9 @@ proc has_client_and_messages(psl: PubSubImpl, client_id: string): bool =
   (client_id in psl.clients) and (client_id in psl.client_queues) and (psl.client_queues[client_id].len > 0)
 
 proc start_sender(ps: PubSub, client_id: string): Future[void] {.async.} =
+  # Each client has its own message queue and async sender, sender is running only when there are
+  # some messages to send.
   var psl = pubsubs[ps.id]
-  # Each client has its own message queue and async sender, sender is running only when neccessarry
   try:
     ps.log.with((client_id: client_id)).info("sender started for {client_id}")
     while psl.has_client_and_messages(client_id):
@@ -172,7 +173,9 @@ proc publish(ps: PubSub, topic: string, message: Message): void =
   for client_id in psl.topics[topic]:
     ps.publish_for_client(client_id, message)
 
-proc publish*(ps: PubSub, topic: string, message: JsonNode): void =
+proc publish*[T](ps: PubSub, topic: string, message: T): void =
+  let jmessage = when message is JsonNode: message
+  else:                                    message.to_json
   ps.publish(topic, init_message(topic, message))
 
 
