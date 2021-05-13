@@ -1,0 +1,17 @@
+<!-- serve -p 5001 -->
+<html>
+  <head>
+    <!-- <script src="res.js"></script> -->
+    <script src="/pubsub.js"></script>
+  </head>
+  <body>
+    <script>
+
+function onmessage(topic, message) {
+  console.log(topic, message)
+}
+new PubSub("http://localhost:5000/pubsub", ["time"], onmessage)
+
+    </script>
+  </body>
+</html>

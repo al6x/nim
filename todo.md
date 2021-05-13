@@ -1,1 +1,2 @@
-- don't insert id for users
+- update logs
+- make delayed config

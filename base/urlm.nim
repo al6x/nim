@@ -27,18 +27,21 @@ proc init*(
   let rel = Url.init(path, query)
   Url(is_full: true, scheme: scheme, host: host, port: port, path: rel.path, query: rel.query)
 
+proc init*(_: type[Url], uri: uri.Uri): Url =
+  var query: Table[string, string]
+  for k, v in decode_query(uri.query): query[k] = v
+  let is_full = uri.hostname != ""
+  if is_full:
+    let port_s = if uri.port == "": "80" else: uri.port
+    Url.init(scheme = uri.scheme, host = uri.hostname, port = port_s.parse_int,
+      path = uri.path, query = query)
+  else:
+    Url.init(path = uri.path, query = query)
+
 proc parse*(_: type[Url], url: string): Url =
   var parsed = uri.init_uri()
   uri.parse_uri(url, parsed)
-  var query: Table[string, string]
-  for k, v in decode_query(parsed.query): query[k] = v
-  let is_full = parsed.hostname != ""
-  if is_full:
-    let port_s = if parsed.port == "": "80" else: parsed.port
-    Url.init(scheme = parsed.scheme, host = parsed.hostname, port = port_s.parse_int,
-      path = parsed.path, query = query)
-  else:
-    Url.init(path = parsed.path, query = query)
+  Url.init parsed
 
 proc hash*(url: Url): Hash = url.autohash
 
