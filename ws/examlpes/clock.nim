@@ -15,8 +15,8 @@ spawn_async publish_time
 
 
 # PubSub impl --------------------------------------------------------------------------------------
-proc can_subscribe(url: Url, topics: seq[string]): Option[string] =
-  "1".some
+proc can_subscribe(url: Url, topics: seq[string]): Option[tuple[user_id: string, session_id: string]] =
+  ("user_1", "session_1").some
 
 pubsub.impl(can_subscribe = can_subscribe)
 
