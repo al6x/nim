@@ -1,4 +1,5 @@
-import supportm, tablem, hashm, sugar, timem, mathm
+import sugar
+import base/[supportm, tablem, hashm, timem, mathm]
 
 # cache --------------------------------------------------------------------------------------------
 proc cache*[R](fn: () -> R): (() -> R) =

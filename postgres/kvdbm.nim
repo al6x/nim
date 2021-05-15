@@ -1,4 +1,4 @@
-import basem, dbm, timem, jsonm, logm
+import base/[basem, dbm, timem, jsonm, logm]
 
 let db = Db.init
 

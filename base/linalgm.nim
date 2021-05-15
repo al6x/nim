@@ -1,4 +1,4 @@
-import basem, mathm
+import ./basem, ./mathm
 
 type Point2D = tuple[x: float, y: float]
 type Point3D = tuple[x: float, y: float, z: float]

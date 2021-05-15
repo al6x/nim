@@ -1,8 +1,8 @@
-import strformat, macros, sugar, strutils, unicode, tables, envm
+import strformat, macros, sugar, strutils, unicode, tables, ./envm
 from std/times as nt import nil
 from std/nre as nre import nil
 from std/options as stdoptions import nil
-from terminalm as terminal import nil
+from ./terminalm as terminal import nil
 
 export envm
 

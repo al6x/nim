@@ -1,4 +1,4 @@
-import supportm, stringm, os, seqm, sets, docm, jsonm, rem, tablem, terminalm, options
+import ./supportm, ./stringm, os, ./seqm, ./sets, ./docm, ./jsonm, ./rem, ./tablem, ./terminalm, options
 
 todo "Alter get_env to use env.yml in current dir"
 

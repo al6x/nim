@@ -1,4 +1,5 @@
-import supportm, parsecsv, strutils, optionm, sugar, tablem, strformat
+import parsecsv, strutils, sugar, strformat
+import base/[supportm, optionm, tablem]
 
 # map_csv ------------------------------------------------------------------------------------------
 proc map_csv*[T](

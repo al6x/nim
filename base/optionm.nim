@@ -1,4 +1,4 @@
-import supportm, options, sugar
+import ./supportm, options, sugar
 
 export options
 

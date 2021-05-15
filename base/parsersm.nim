@@ -1,4 +1,4 @@
-import supportm, stringm
+import ./supportm, ./stringm
 
 
 # T.field_names, o.field_names ---------------------------------------------------------------------

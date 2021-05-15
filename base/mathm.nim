@@ -1,4 +1,4 @@
-import supportm, algorithm, std/math, sequtils, strformat, sugar
+import ./supportm, ./algorithm, std/math, sequtils, strformat, sugar
 
 export math
 

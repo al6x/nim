@@ -1,4 +1,4 @@
-import basem
+import base/basem
 
 proc from_string*(_: type[string], s: string): string = s
 proc from_string*(_: type[int],    s: string): int    = s.parse_int

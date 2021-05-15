@@ -1,4 +1,4 @@
-import hashes
+import ./hashes
 
 export hashes
 

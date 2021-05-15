@@ -1,4 +1,4 @@
-import basem, logm, jsonm
+import base/[basem, logm, jsonm]
 import ./pg_convertersm, ./sqlm
 from osproc import exec_cmd_ex
 from postgres import nil

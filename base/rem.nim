@@ -1,4 +1,4 @@
-import supportm, optionm, strutils, sugar, sequtils, strformat, tables
+import ./supportm, ./optionm, strutils, sugar, sequtils, strformat, tables
 from std/nre as nre import nil
 from std/options as stdoptions import nil
 

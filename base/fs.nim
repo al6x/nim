@@ -1,4 +1,4 @@
-import supportm, os, sugar, strutils, optionm, strformat
+import ./supportm, os, sugar, strutils, ./optionm, strformat
 
 # open_file ----------------------------------------------------------------------------------------
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =

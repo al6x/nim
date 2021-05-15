@@ -1,5 +1,5 @@
 import basem, jsonm, randomm, dbm, kvdbm, envm, logm, urlm
-import http_serverm, http_clientm, decode_querym
+import http_serverm, http_clientm
 import ./usersm, ../configm
 
 # Config -------------------------------------------------------------------------------------------

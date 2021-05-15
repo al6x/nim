@@ -1,4 +1,4 @@
-import basem, logm, jsonm, rem, timem, randomm, envm, urlm
+import base/[basem, logm, jsonm, rem, timem, randomm, envm, urlm]
 import ./http_supportm, ./http_helpersm
 
 import os, asyncdispatch

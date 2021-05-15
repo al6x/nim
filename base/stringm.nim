@@ -1,4 +1,4 @@
-import supportm, re, strutils, strformat
+import ./supportm, re, strutils, strformat
 
 export strutils, strformat
 

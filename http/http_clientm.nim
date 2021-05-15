@@ -1,5 +1,5 @@
 import sugar, httpclient, strformat
-import supportm, jsonm, urlm, seqm, falliblem, tablem, logm
+import base/[basem, jsonm, urlm, seqm, falliblem, tablem, logm]
 from uri import nil
 
 let default_timeout_sec = 5

@@ -1,5 +1,6 @@
-import sugar, jsonm, optionm, timem
-from fs import nil
+import sugar
+import base/[jsonm, optionm, timem]
+from base/fs import nil
 
 
 proc read_from_optional*[T](t: type[T], path: string): Option[T] =

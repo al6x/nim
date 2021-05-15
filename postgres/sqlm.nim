@@ -1,4 +1,4 @@
-import basem, jsonm
+import base/[basem, jsonm]
 import std/[macros, parseutils, unicode]
 import std/strutils except format
 

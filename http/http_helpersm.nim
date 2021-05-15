@@ -1,4 +1,4 @@
-import basem, jsonm, timem
+import base/[basem, jsonm, timem]
 import ./http_supportm
 import random
 from jester import nil

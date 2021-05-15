@@ -1,5 +1,5 @@
 import strformat, macros, sugar, strutils, os, tables, options
-from terminalm as terminal import nil
+from ./terminalm as terminal import nil
 
 
 # Helper -------------------------------------------------------------------------------------------

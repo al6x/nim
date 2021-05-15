@@ -1,4 +1,5 @@
-import osproc, jsonm, stringm, falliblem
+import osproc
+import base/[jsonm, stringm, falliblem]
 
 type ShellArg[B, I, A] = object
   before: B

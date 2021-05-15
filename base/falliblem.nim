@@ -1,4 +1,4 @@
-import supportm, optionm, sugar, tablem, jsonm
+import ./supportm, ./optionm, sugar, ./tablem, ./jsonm
 
 type Fallible*[T] = object
   case is_error*: bool

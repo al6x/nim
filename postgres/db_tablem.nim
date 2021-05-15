@@ -1,4 +1,4 @@
-import basem, logm, parsersm, jsonm
+import base/[basem, logm, parsersm, jsonm]
 import ./sqlm, ./dbm
 
 export sqlm, dbm

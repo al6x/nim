@@ -1,4 +1,5 @@
-import basem, jsonm, macros
+import std/macros
+import base/[basem, jsonm]
 import ./http_nodem, ./nexportm
 
 export jsonm, http_nodem

@@ -1,4 +1,4 @@
-import basem, asyncm
+import base/[basem, asyncm]
 import asynchttpserver, httpclient, httpcore
 from os import param_str
 import ./nodem, ./http_supportm

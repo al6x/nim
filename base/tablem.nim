@@ -1,4 +1,4 @@
-import tables, sugar, optionm, supportm, hashes
+import tables, sugar, ./optionm, ./supportm, hashes
 
 export tables
 

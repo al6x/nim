@@ -1,4 +1,4 @@
-import basem, logm, timem
+import base/[basem, logm, timem]
 
 import logging, mimetypes, os
 import md5

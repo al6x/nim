@@ -1,4 +1,4 @@
-import supportm, timem, mathm, jsonm, docm, seqm, optionm, tablem, sugar
+import ./supportm, ./timem, ./mathm, ./jsonm, ./docm, ./seqm, ./optionm, ./tablem, sugar
 
 
 # Points -------------------------------------------------------------------------------------------

@@ -1,9 +1,10 @@
 #!/usr/bin/env nim c -r
 
-import basem, asyncm, deques, urlm, logm, jsonm
-from httpcore import nil
-from asynchttpserver import nil
-from asyncnet import nil
+import std/deques
+import base/[basem, asyncm, urlm, logm, jsonm]
+from std/httpcore import nil
+from std/asynchttpserver import nil
+from std/asyncnet import nil
 
 export urlm
 

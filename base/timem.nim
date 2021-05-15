@@ -1,4 +1,4 @@
-import stringm, sequtils, sugar, re, std/math, jsonm, supportm, hashm, mathm
+import ./stringm, sequtils, sugar, re, std/math, ./jsonm, ./supportm, ./hashm, ./mathm
 from std/times as times import nil
 
 type

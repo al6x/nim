@@ -1,4 +1,4 @@
-import basem, ./nexportm
+import base/basem, ./nexportm
 
 export nexportm
 

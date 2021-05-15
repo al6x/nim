@@ -1,4 +1,5 @@
-import basem, jsonm, macros, envm
+import macros
+import base/[basem, jsonm, envm]
 import ./parserm, ./nodem
 
 export jsonm, parserm, nodem

@@ -1,4 +1,4 @@
-import basem, timem, jsonm
+import base/[basem, timem, jsonm]
 import db_common
 
 proc postgres_to*(json: JsonNode, T: type): T =
