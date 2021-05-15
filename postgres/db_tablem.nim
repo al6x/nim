@@ -192,7 +192,7 @@ proc `[]`*[T, W](table: DbTable[T], where: W, default: T): T =
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
   let db = Db.init
-  db.define("nim_test")
+  db.impl("nim_test")
 
   db.before sql"""
     drop table if exists test_db_table_users;

@@ -10,11 +10,23 @@ export http_helpersm
 
 {.experimental: "code_reordering".}
 
+
+# Server -------------------------------------------------------------------------------------------
+type Server* = ref object of RootObj
+  id*: string
+
+proc `$`*(server: Server): string = server.id
+proc hash*(server: Server): Hash = server.id.hash
+proc `==`*(a, b: Server): bool = a.id == b.id
+
+proc init*(_: type[Server], id = "default"): Server =
+  Server(id: id)
+
 proc log(): Log = Log.init "HTTP"
 
 
-# ServerDefinition -------------------------------------------------------------------------------------
-type ServerDefinition* = ref object
+# ServerImpl ---------------------------------------------------------------------------------------
+type ServerImpl* = ref object
   host*:           string
   port*:           int
   catch_errors*:   bool           # In development it's easier to debug if server fails on error
@@ -26,7 +38,7 @@ type ServerDefinition* = ref object
   cache_assets*:      bool
 
 proc init*(
-  _: type[ServerDefinition],
+  _: type[ServerImpl],
   host           = "localhost",
   port           = 8080,
   catch_errors   = env.is_production(),
@@ -36,8 +48,8 @@ proc init*(
   assets_file_paths = new_seq[string](),
   max_file_size     = 10_000_000,                  # 10 Mb
   cache_assets      = env.is_production()
-): ServerDefinition =
-  ServerDefinition(
+): ServerImpl =
+  ServerImpl(
     host: host, port: port, show_errors: show_errors,
     assets_path: assets_path, assets_file_paths: assets_file_paths, max_file_size: max_file_size
   )
@@ -117,34 +129,22 @@ type
   ApiHandler*[R] = proc(req: Request): R
   JApiHandler*   = proc(req: Request): JsonNode
 
+# impls --------------------------------------------------------------------------------------------
+var impls:  Table[Server, ServerImpl]
 
-# Server -------------------------------------------------------------------------------------------
-type Server* = ref object of RootObj
-  id*: string
+proc impl*(server: Server, impl: ServerImpl): void =
+  impls[server] = impl
 
-proc `$`*(server: Server): string = server.id
-proc hash*(server: Server): Hash = server.id.hash
-proc `==`*(a, b: Server): bool = a.id == b.id
-
-proc init*(_: type[Server], id = "default"): Server =
-  Server(id: id)
-
-# Definitions --------------------------------------------------------------------------------------
-var servers_definitions:  Table[Server, ServerDefinition]
-
-proc define*(server: Server, definition: ServerDefinition): void =
-  servers_definitions[server] = definition
-
-proc define*(
+proc impl*(
   server: Server,
+  port:   int,
   host    = "localhost",
-  port    = 8080
 ): void =
-  server.define ServerDefinition.init(host = host, port = port)
+  server.impl ServerImpl.init(host = host, port = port)
 
-proc definition*(server: Server): ServerDefinition =
-  if server notin servers_definitions: throw fmt"server '{server.id}' not defined"
-  servers_definitions[server]
+proc impl*(server: Server): ServerImpl =
+  if server notin impls: throw fmt"server '{server.id}' not defined"
+  impls[server]
 
 
 # Routes -------------------------------------------------------------------------------------------
@@ -209,14 +209,14 @@ proc post_data*[T](server: Server, pattern: string | Regex, handler: ApiHandler[
 
 # process_assets -----------------------------------------------------------------------------------
 proc process_assets(server: Server, normalized_path: string, req: Request): Option[Response] =
-  let d = server.definition
+  let impl = server.impl
   handle_assets_slow(
     path              = normalized_path,
     query             = req.query,
-    assets_path       = d.assets_path,
-    assets_file_paths = d.assets_file_paths,
-    max_file_size     = d.max_file_size,
-    cache_assets      = d.cache_assets
+    assets_path       = impl.assets_path,
+    assets_file_paths = impl.assets_file_paths,
+    max_file_size     = impl.max_file_size,
+    cache_assets      = impl.cache_assets
   ).map((file_res) => Response.init(file_res))
 
 proc parse_and_set_tokens(req: var Request): void =
@@ -267,12 +267,12 @@ proc process_html(server: Server, normalized_path: string, req: Request): Option
     block:
       # Setting tokens only if it's not already set by the handler,
       # using domain for `user_token` to make it available for subdomains
-      response.headers.set_permanent_cookie_if_not_set("user_token", req.user_token, "." & server.definition.host)
+      response.headers.set_permanent_cookie_if_not_set("user_token", req.user_token, "." & server.impl.host)
       response.headers.set_session_cookie_if_not_set("session_token", req.session_token)
 
     response.some
   except Exception as e:
-    if not server.definition.catch_errors: quit(e)
+    if not server.impl.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
@@ -317,12 +317,12 @@ proc process_api(server: Server, normalized_path: string, req: Request): Option[
       .info("{method4} {path} finished, {duration_ms}ms")
     respond_data(response).some
   except Exception as e:
-    if not server.definition.catch_errors: quit(e)
+    if not server.impl.catch_errors: quit(e)
     req_log
       .with((time: Time.now, duration_ms: tic()))
       .with(e)
       .error("{method4} {path} failed, {duration_ms}ms, {error}")
-    let error = if server.definition.show_errors:
+    let error = if server.impl.show_errors:
       (is_error: true, message: e.msg, stack: e.get_stack_trace).to_json.to_s
     else:
       (is_error: true, message: e.msg).to_json.to_s
@@ -356,16 +356,16 @@ proc process(server: Server, req: Request): Response =
 
 # run ----------------------------------------------------------------------------------------------
 proc run*(server: Server): void =
-  let d = server.definition
+  let impl = server.impl
   log()
-    .with((host: d.host, port: d.port))
+    .with((host: impl.host, port: impl.port))
     .info "started on http://{host}:{port}"
 
   let jester_handler: jester.MatchProc = proc (jreq: jester.Request): Future[jester.ResponseData] =
     {.gcsafe.}:
       jester_handler(server, jreq)
 
-  var jserver = init_jester(d.host, d.port)
+  var jserver = init_jester(impl.host, impl.port)
 
   jester.register(jserver, jester_handler)
   jester.serve(jserver)
@@ -411,7 +411,7 @@ proc partial_init(_: type[Request], jreq: jester.Request): Request =
 # error pages and format ---------------------------------------------------------------------------
 # Override to use different error pages and formats
 method render_error_page*(server: Server, message: string, error: ref Exception): string  {.base.} =
-  render_default_error_page(message, error, server.definition.show_errors)
+  render_default_error_page(message, error, server.impl.show_errors)
 
 method render_not_found_page*(_: Server, message: string): string  {.base.} =
   render_default_not_found_page(message)
@@ -438,5 +438,5 @@ if is_main_module:
     respond fmt"Hi {name}"
   )
 
-  server.define
+  server.impl(port = 80)
   server.run
