@@ -115,17 +115,25 @@ proc fs_delete_file(db_path, hash: string): void =
 
 
 # has_file_content ---------------------------------------------------------------------------------
-proc has_file_content*(files: Files, hash: string): bool =
-  fs.exist(files.impl.path & hash.fs_path)
+# proc has_file_content*(files: Files, hash: string): bool =
+#   files.log.with()
+#   fs.exist(files.impl.path & hash.fs_path)
 
 
 # get_file -----------------------------------------------------------------------------------------
-proc get_file*(files: Files, user_id, project_id, path: string): Option[File] =
+proc get_file*(files: Files, user_id, project_id, path: string, log = true): Option[File] =
+  if log:
+    files.log
+      .with((user_id: user_id, project_id: project_id, path: path))
+      .info("get_file {user_id}.{project_id} {path}")
   files.impl.db_files.fget((user_id: user_id, project_id: project_id, path: path))
 
 
 # get_file_content ---------------------------------------------------------------------------------
 proc get_file_content*(files: Files, user_id, project_id, path: string): Option[string] =
+  files.log
+    .with((user_id: user_id, project_id: project_id, path: path))
+    .info("get_file_content {user_id}.{project_id} {path}")
   let impl = files.impl
   let found = impl.db_files.fget((user_id: user_id, project_id: project_id, path: path))
   if found.is_none: return
@@ -135,11 +143,17 @@ proc get_file_content*(files: Files, user_id, project_id, path: string): Option[
 
 # has_file -----------------------------------------------------------------------------------------
 proc has_file*(files: Files, user_id, project_id, path: string): bool =
+  files.log
+    .with((user_id: user_id, project_id: project_id, path: path))
+    .info("has_file {user_id}.{project_id} {path}")
   (user_id: user_id, project_id: project_id, path: path) in files.impl.db_files
 
 
 # files --------------------------------------------------------------------------------------------
 proc get_files*(files: Files, user_id: string, project_id: string): seq[File] =
+  files.log
+    .with((user_id: user_id, project_id: project_id))
+    .info("get_files {user_id}.{project_id}")
   files.impl.db_files.filter (user_id: user_id, project_id: project_id)
 
 
@@ -147,6 +161,9 @@ proc get_files*(files: Files, user_id: string, project_id: string): seq[File] =
 proc sha256(data: string): string
 
 proc save_file*(files: Files, user_id, project_id, path, hash, data: string): void =
+  files.log
+    .with((user_id: user_id, project_id: project_id, path: path, hash: hash))
+    .info("save_file {user_id}.{project_id} {path}")
   let files = files.impl
   let vhash = data.sha256
   if hash != vhash: throw fmt"hash is wrong, should be '{vhash}'"
@@ -163,9 +180,12 @@ proc save_file*(files: Files, user_id, project_id, path, hash, data: string): vo
 
 # del_file -----------------------------------------------------------------------------------------
 proc del_file*(files: Files, user_id: string, project_id: string, path: string): void =
-  let impl = files.impl
+  files.log
+    .with((user_id: user_id, project_id: project_id, path: path))
+    .info("del_file {user_id}.{project_id} {path}")
 
-  let found = files.get_file(user_id, project_id, path)
+  let impl = files.impl
+  let found = files.get_file(user_id, project_id, path, log = false)
   if found.is_some:
     var event = FileDeleteEvent(hash: found.get.hash)
     impl.db_file_delete_events.create event
@@ -175,7 +195,7 @@ proc del_file*(files: Files, user_id: string, project_id: string, path: string):
 # gc -----------------------------------------------------------------------------------------------
 proc gc_step(files: Files): bool =
   let impl = files.impl
-  let check_hashes = impl.db_file_delete_events.filter(limit = 100).map((e) => e.hash)
+  let check_hashes = impl.db_file_delete_events.filter(sql"", limit = 100).map((e) => e.hash)
   if check_hashes.is_empty: return true
   let query = sql"""
     select distinct hash as hash
@@ -189,6 +209,7 @@ proc gc_step(files: Files): bool =
   false
 
 proc gc*(files: Files): void =
+  files.log.info("gc")
   while files.gc_step:
     discard
 
