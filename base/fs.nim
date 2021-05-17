@@ -82,13 +82,14 @@ proc exist*(path: string): bool =
 
 # is_empty_dir -------------------------------------------------------------------------------------
 proc is_empty_dir(path: string): bool =
-  for _ in walk_dir(path, relative = true, check_dir = false):
+  for _ in walk_dir(path, relative = true):
     return false
   true
 
+
 # delete -------------------------------------------------------------------------------------------
 # Deletes file or directory, does nothing if path not exist
-proc delete*(path: string, recursive = false) =
+proc delete*(path: string, recursive = false, delete_empty_parents = false) =
   try:
     remove_file path
   except:
@@ -100,11 +101,24 @@ proc delete*(path: string, recursive = false) =
       assert path.dir_exists, "internal error, expecting directory to exist"
       throw fmt"can't delete not empty directory '{path}'"
 
+  if delete_empty_parents and path.parent_dir.is_empty_dir:
+    path.parent_dir.delete(recursive = false, delete_empty_parents = true)
+
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  write("./tmp/some.txt", "some text")
-  append_line("./tmp/some.txt", "line 1")
-  append_line("./tmp/some.txt", "line 2")
-  echo read("./tmp/some.txt")
-  move("./tmp/some.txt", "./tmp/some_dir/some.text")
+  write("./tmp/fs/some.txt", "some text")
+  append_line("./tmp/fs/some.txt", "line 1")
+  append_line("./tmp/fs/some.txt", "line 2")
+  echo read("./tmp/fs/some.txt")
+  move("./tmp/fs/some.txt", "./tmp/fs/some_dir/some.text")
+  delete("./tmp/some_dir/some.text", delete_empty_parents = true)
+
+  # var list = ""
+  # for path in walk_dir("./tmp/fs", relative = true):
+  #   # pcFile,               ## path refers to a file
+  #   # pcLinkToFile,         ## path refers to a symbolic link to a file
+  #   # pcDir,                ## path refers to a directory
+  #   # pcLinkToDir           ## path refers to a symbolic link to a directory
+
+  #   p path
