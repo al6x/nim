@@ -18,6 +18,18 @@ proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc 
     raise new_exception(IOError, "cannot open: " & path)
 
 
+# move ---------------------------------------------------------------------------------------------
+proc move*(source, dest: string, ensure_parents = true): void =
+  try:
+    move_file(source, dest)
+  except Exception as e:
+    if ensure_parents and not dest.parent_dir.dir_exists:
+      dest.parent_dir.create_dir
+      move_file(source, dest)
+    else:
+      raise new_exception(IOError, fmt"cannot move: {source} to {dest}, {e.msg}")
+
+
 # read_file ----------------------------------------------------------------------------------------
 proc read*(path: string): string =
   open_file(path, false, fm_read, (file) => file.read_all)
@@ -95,3 +107,4 @@ if is_main_module:
   append_line("./tmp/some.txt", "line 1")
   append_line("./tmp/some.txt", "line 2")
   echo read("./tmp/some.txt")
+  move("./tmp/some.txt", "./tmp/some_dir/some.text")

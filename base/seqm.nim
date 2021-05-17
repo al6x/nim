@@ -19,7 +19,6 @@ proc `&`*[T](x, y: openarray[T]): seq[T] =
 func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 func is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
-
 # fget ---------------------------------------------------------------------------------------------
 func fget*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
   if start <= (list.len - 1):

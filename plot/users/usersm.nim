@@ -1,4 +1,5 @@
-import basem, db_tablem, timem, randomm, jsonm, parsersm
+import base/[basem, timem, randomm, jsonm, parsersm]
+import postgres/db_tablem
 
 
 # User ---------------------------------------------------------------------------------------------
@@ -72,12 +73,14 @@ proc create_or_update_from_source*(users: DbTable[User], source: SourceUser): Us
 
   # Updating user from source
   user.id =
-    if   user.id != "":
-      user.id # changing id not supported yet
-    elif source.nick.starts_with "a_":
-      secure_random_token(6) # "a_..." reserved for anonymous users
-    elif source.nick.len < 3:
-      source.nick & secure_random_token(3 - source.nick.len)
+    if   user.id != "": # changing id not supported yet
+      user.id
+    elif source.nick.starts_with "a_": # "a_..." not allowed, reserved for anonymous users
+      secure_random_token(6)
+    elif source.nick.len < 4: # nick less than 4 not allowed
+      source.nick & secure_random_token(4 - source.nick.len)
+    elif re"(?i)^[a-z0-9]+$" !~ source.nick: # nick has forbidden symbols
+      secure_random_token(6)
     else:
       source.nick
   user.name   = source.name
@@ -103,7 +106,7 @@ proc authenticate*(users: DbTable[User], token: string): User =
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
-  db.define "plot_test"
+  db.impl "plot_test"
   db.before(sql"drop table if exists users;", prepend = true)
 
   let source = SourceUser(

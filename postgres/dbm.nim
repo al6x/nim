@@ -1,9 +1,8 @@
 import base/[basem, logm, jsonm]
-import ./pg_convertersm, ./sqlm
+import ./pg_convertersm, ./sqlm, ./utilm
 from osproc import exec_cmd_ex
 from postgres import nil
 from db_postgres import DbConn
-from uri import nil
 
 export sqlm, DbConn
 
@@ -20,15 +19,9 @@ proc log(db: Db): Log = Log.init("db", db.id)
 
 # DbImpl -------------------------------------------------------------------------------------------
 type DbImpl* = ref object
-  url*:                    string
+  url*:                    PgUrl
   encoding*:               string
   create_db_if_not_exist*: bool
-
-  host*:                   string
-  port*:                   int
-  name*:                   string
-  user*:                   string
-  password*:               string
 
 
 # Impls --------------------------------------------------------------------------------------------
@@ -41,15 +34,8 @@ proc impl*(
   encoding               = "utf8",
   create_db_if_not_exist = true # Create db if not exist
 ): void =
-  let url = if ":" in name_or_url: name_or_url
-  else:                            fmt"postgresql://postgres@localhost:5432/{name_or_url}"
-
-  var parsed = uri.init_uri(); uri.parse_uri(url, parsed)
   impls[db] = DbImpl(
-    url: url, encoding: encoding, create_db_if_not_exist: create_db_if_not_exist,
-    host: parsed.hostname, port: parsed.port.parse_int, name: parsed.path[1..^1],
-    user: parsed.username, password: parsed.password
-  )
+    url: PgUrl.parse(name_or_url), encoding: encoding, create_db_if_not_exist: create_db_if_not_exist)
 
 proc impl*(db: Db): DbImpl =
   if db notin impls: throw fmt"db '{db.id}' not defined"
@@ -75,9 +61,9 @@ proc create*(db: Db): void =
   # Using bash, don't know how to create db otherwise
   db.log.info "create"
   let impl = db.impl
-  let (output, code) = exec_cmd_ex fmt"createdb -U {impl.user} {impl.name}"
-  if code != 0 and fmt"""database "{impl.name}" already exists""" in output:
-    throw "can't create database {impl.user} {impl.name}"
+  let (output, code) = exec_cmd_ex fmt"createdb -U {impl.url.user} {impl.url.name}"
+  if code != 0 and fmt"""database "{impl.url.name}" already exists""" in output:
+    throw "can't create database {impl.url.user} {impl.url.name}"
 
 
 # db.drop ------------------------------------------------------------------------------------------
@@ -85,9 +71,9 @@ proc drop*(db: Db, user = "postgres"): void =
   # Using bash, don't know how to db db otherwise
   db.log.info "drop"
   let impl = db.impl
-  let (output, code) = exec_cmd_ex fmt"dropdb -U {impl.user} {impl.name}"
-  if code != 0 and fmt"""database "{impl.name}" does not exist""" notin output:
-    throw fmt"can't drop database {impl.user} {impl.name}"
+  let (output, code) = exec_cmd_ex fmt"dropdb -U {impl.url.user} {impl.url.name}"
+  if code != 0 and fmt"""database "{impl.url.name}" does not exist""" notin output:
+    throw fmt"can't drop database {impl.url.user} {impl.url.name}"
 
 
 # db.close -----------------------------------------------------------------------------------------
@@ -138,13 +124,13 @@ proc connect(db: Db): DbConn =
   let impl = db.impl
 
   proc connect(): auto =
-    db_postgres.open(fmt"{impl.host}:{impl.port}", impl.user, impl.password, impl.name)
+    db_postgres.open(fmt"{impl.url.host}:{impl.url.port}", impl.url.user, impl.url.password, impl.url.name)
 
   let connection = try:
     connect()
   except Exception as e:
     # Creating databse if doesn't exist and trying to reconnect
-    if fmt"""database "{impl.name}" does not exist""" in e.message and impl.create_db_if_not_exist:
+    if fmt"""database "{impl.url.name}" does not exist""" in e.message and impl.create_db_if_not_exist:
       db.create
       connect()
     else:
@@ -207,8 +193,18 @@ proc exec*(db: Db, query: SQL, log = true): void =
 # db.before ----------------------------------------------------------------------------------------
 # Callbacks to be executed before any query
 proc before*(db: Db, cb: proc: void, prepend = false): void =
+  # Always adding callback even if it was already applied, as it could be re-applied after
+  # reconnection
+  let applied = db in connections
   var list = before_callbacks[db, @[]]
-  before_callbacks[db] = if prepend: cb & list else: list & cb
+  before_callbacks[db] = if prepend:
+    if applied: throw "can't prepend as callbacks were already applied"
+    cb & list
+  else: list & cb
+
+  if applied:
+    db.log.info "applying before callback"
+    cb()
 
 proc before*(db: Db, sql: SQL, prepend = false): void =
   db.before(() => db.exec(sql), prepend = prepend)

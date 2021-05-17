@@ -56,3 +56,24 @@ proc from_postgres_to_json*(kind: DbTypeKind, s: string): JsonNode =
   # dbUser5          ## user definable datatype 5 (for unknown extensions)
   else:
     throw fmt"unknown postgres value type '{kind}'"
+
+
+# # from_json_to_postgres_string ---------------------------------------------------------------------
+# proc from_json_to_postgres_string*(json: JsonNode): string =
+#   case json.kind
+#   of JString:
+#     str*: string
+#   of JInt:
+#     num*: BiggestInt
+#   of JFloat:
+#     fnum*: float
+#   of JBool:
+#     bval*: bool
+#   of JNull:
+#     nil
+#   of JObject:
+#     fields*: OrderedTable[string, JsonNode]
+#   of JArray:
+#     elems*: seq[JsonNode]
+#   else:
+#     throw fmt"unknown postgres value type '{kind}'"

@@ -55,7 +55,8 @@ test "sql":
   )
 
 # Helpers ------------------------------------------------------------------------------------------
-proc `$`*(query: SQL): string = query.query & " <- " & query.values.map_it($it).join(", ")
+proc `$`*(query: SQL): string =
+  query.query & (if query.values.is_empty: "" else: " <- ") & query.values.map_it($it).join(", ")
 
 # converter to_sqlp*(s: string): SQL = sql(s)
 
