@@ -1,7 +1,7 @@
 import base/basem
 from uri import nil
 
-type PgUrl* = object
+type PgUrl* = ref object
   url*:      string
   host*:     string
   port*:     int

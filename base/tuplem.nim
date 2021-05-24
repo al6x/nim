@@ -1,6 +1,5 @@
 import ./supportm, sugar
 
-# is_empty -----------------------------------------------------------------------------------------
 proc is_empty*(o: tuple): bool =
   for _, _ in o.field_pairs: return false
   return true

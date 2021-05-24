@@ -31,23 +31,44 @@ proc is_debug(config: LogConfig, component: string): bool =
 
 # Log ----------------------------------------------------------------------------------------------
 type Log* = ref object
-  component*: string
-  id*:        Option[string]
-  data*:      JsonNode
+  component*:  string
+  ids*:        seq[string]
+  data*:       JsonNode
+  is_enabled*: bool
 
 
 proc init*(_: type[Log], component: string): Log =
-  Log(component: component, id: string.none)
-proc init*(_: type[Log], component, id: string): Log =
-  Log(component: component, id: id.some)
+  Log(component: component, is_enabled: true)
+
+
+# log.enabled --------------------------------------------------------------------------------------
+proc log*(log: Log, enabled: bool): Log =
+  var log = log.copy
+  log.is_enabled = enabled
+  log
+
+
+# log.is_empty -------------------------------------------------------------------------------------
+proc is_empty*(log: Log): bool =
+  log.data.is_nil or log.data.len == 0
 
 
 # log.with -----------------------------------------------------------------------------------------
-proc with*(log: Log, data: tuple): Log =
+proc with*(log: Log, msg: tuple): Log =
   var log = log.copy
-  if log.data.is_nil: log.data = new_JObject()
   # Merging new data with existing
-  for key, value in data.field_pairs: log.data.fields[key] = value.to_json
+  if log.data.is_nil: log.data = new_JObject()
+  for key, value in msg.field_pairs:
+    if key == "id": log.ids.add $value
+    if key == "ids":
+      for id in value: log.ids.add $id
+    log.data.fields[key] = value.to_json
+  log
+
+proc with*(log: Log, id: string | int): Log =
+  var log = log.copy
+  # Merging new id with existing
+  log.ids.add $id
   log
 
 proc with*(log: Log, error: ref Exception): Log =
@@ -56,11 +77,13 @@ proc with*(log: Log, error: ref Exception): Log =
 
 # log_method ---------------------------------------------------------------------------------------
 proc format_component(component: string): string
-proc format_id(id: Option[string]): string
+proc format_ids(ids: seq[string]): string
 proc format_data(data: JsonNode): string
 proc format_message(data: JsonNode, msg: string): string
 
 proc default_log_method(log: Log): void =
+  if not log.is_enabled: return
+
   # Detecting level and message
   var level = ""; var msg = ""
   for l in ["debug", "info", "warn", "error"]:
@@ -77,7 +100,7 @@ proc default_log_method(log: Log): void =
   # Formatting message
   let line =
     format_component(log.component) &
-    format_id(log.id) &
+    format_ids(log.ids) &
     format_message(log.data, msg) &
     format_data(log.data)
 
@@ -111,6 +134,9 @@ proc message*(log: Log): void =
 
 proc message*(log: Log, msg: tuple): void =
   log.with(msg).message
+
+proc message_if_empty*(log: Log, msg: tuple): void =
+  if log.is_empty: log.message(msg) else: log.message
 
 proc debug*(log: Log, msg: string): void =
   log.message((debug: msg))
@@ -152,11 +178,15 @@ proc format_component(component: string): string =
   fmt"{truncated.to_lower.align(max_len)} | "
 
 
-proc format_id(id: Option[string]): string =
-  if id.is_none: return ""
-  let max_len = 7; let id = id.get
-  let truncated = if id.len > max_len: id[0..<max_len] else: id
-  fmt"{truncated.to_lower.align_left(max_len)} "
+proc format_ids(ids: seq[string]): string =
+  if ids.is_empty: return ""
+
+  proc format_id(id: string): string =
+    let max_len = 7
+    let truncated = if id.len > max_len: id[0..<max_len] else: id
+    fmt"{truncated.to_lower.align_left(max_len)} "
+
+  ids.map(format_id).join(", ")
 
 
 proc format_data(data: JsonNode): string =

@@ -58,6 +58,15 @@ template slow_test*(name: string, body) =
 #   (a - b).abs() <= epsilon
 
 
+# unset --------------------------------------------------------------------------------------------
+# type Unset* = object
+
+# const unset* = Unset()
+
+# template is_unset*[T](o: T): bool =
+#   when o is Unset: true else: false
+
+
 # throw --------------------------------------------------------------------------------------------
 template throw*(message: string) = raise newException(Exception, message)
 template throw*(exception: Exception | ref Exception) = raise exception

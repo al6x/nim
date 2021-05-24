@@ -7,7 +7,7 @@ type KVDb = object
   db*: Db
 
 proc init*(_: type[KVDb], db: Db): KVDb =
-  db.before(sql"""
+  db.log((info: "applying kvdb schema")).before sql"""
     create table if not exists kv(
       scope      varchar(100)   not null,
       key        varchar(100)   not null,
@@ -17,10 +17,10 @@ proc init*(_: type[KVDb], db: Db): KVDb =
 
       primary key (scope, key)
     );
-  """, (info: "applying kvdb schema"))
+  """
   KVDb(db: db)
 
-proc log(kv: KVDb): Log = Log.init(kv.db.id, "kv")
+# proc log(kv: KVDb): Log = Log.init(kv.db.id, "kv")
 
 proc sql_where_info*(sql: SQL, msg: string): tuple =
   let formatted_sql: string = sql.inline
@@ -29,8 +29,9 @@ proc sql_where_info*(sql: SQL, msg: string): tuple =
 
 # [] and []= ---------------------------------------------------------------------------------------
 proc fget*(kvdb: KVDb, scope: string, key: string): Option[string] =
-  kvdb.log.with((scope: scope, key: key)).info("get {scope}/{key}")
-  kvdb.db.fget_value(sql"select value from kv where scope = {scope} and key = {key}", string, ())
+  kvdb.db
+    .log((id: "kv", scope: scope, key: key, info: "get {scope}/{key}"))
+    .fget_value(sql"select value from kv where scope = {scope} and key = {key}", string)
 
 proc `[]`*(kvdb: KVDb, scope: string, key: string): string =
   kvdb.fget(scope, key).get
@@ -39,33 +40,36 @@ proc `[]`*(kvdb: KVDb, scope: string, key: string, default: string): string =
   kvdb.fget(scope, key).get(default)
 
 proc `[]=`*(kvdb: KVDb, scope: string, key: string, value: string): void =
-  kvdb.log.with((scope: scope, key: key)).info("set {scope}/{key}")
   let now = Time.now
-  kvdb.db.exec(sql"""
-    insert into kv
-      (scope,   key,   value,   created_at,  updated_at)
-    values
-      ({scope}, {key}, {value}, {now},       {now})
-    on conflict (scope, key) do update
-    set
-      value = excluded.value, updated_at = excluded.updated_at
-  """, ())
+  kvdb.db
+    .log((id: "kv", scope: scope, key: key, info: "set {scope}/{key}"))
+    .exec(sql"""
+      insert into kv
+        (scope,   key,   value,   created_at,  updated_at)
+      values
+        ({scope}, {key}, {value}, {now},       {now})
+      on conflict (scope, key) do update
+      set
+        value = excluded.value, updated_at = excluded.updated_at
+    """)
 
 
 # del ----------------------------------------------------------------------------------------------
 proc del*(kvdb: KVDb, scope: string, key: string): Option[string] =
   result = kvdb.fget(scope, key)
-  kvdb.log.with((scope: scope, key: key)).info("del {scope}/{key}")
-  kvdb.db.exec(sql"delete from kv where scope = {scope} and key = {key}", ())
+  kvdb.db
+    .log((id: "kv", scope: scope, key: key, info: "del {scope}/{key}"))
+    .exec(sql"delete from kv where scope = {scope} and key = {key}")
 
 proc del*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =
   let scope = T.type.to_s & "_type"
-  result = kvdb.get_optional(scope, key)
+  result = kvdb.fget(scope, key)
   kvdb.del(scope, key)
 
 proc del_all*(kvdb: KVDb): void =
-  kvdb.log.info("del_all")
-  kvdb.db.exec(sql"delete from kv", ())
+  kvdb.db
+    .log((id: "kv", info: "del_all"))
+    .exec(sql"delete from kv")
 
 # T.[], T.[]= --------------------------------------------------------------------------------------
 proc fget*[T](kvdb: KVDb, _: type[T], key: string): Option[T] =

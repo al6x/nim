@@ -10,12 +10,9 @@ type DbTable*[T] = object
   ids*:     seq[string]
   auto_id*: bool
 
-
-proc log[T](table: DbTable[T]): Log = Log.init(table.db.id, table.name)
-
-proc sql_where_info*(sql: SQL, msg: string): tuple =
+proc sql_where_info*(name: string, sql: SQL, msg: string): tuple =
   let formatted_sql: string = sql.inline
-  (where: formatted_sql, info: msg & " '{where}'")
+  (id: name, where: formatted_sql, info: msg & " '{where}'")
 
 
 # db.table -----------------------------------------------------------------------------------------
@@ -37,8 +34,8 @@ proc column_names*[T](o: T): seq[string] =
 
 # table.create -------------------------------------------------------------------------------------
 proc create*[T](table: DbTable[T], o: T): T =
+  table.db.log.with(table.name).info: "create"
   if table.ids.is_empty:
-    table.log.info "create"
     let query = block:
       let column_names = o.column_names
       let names = " " & column_names.join(",  ")
@@ -50,10 +47,9 @@ proc create*[T](table: DbTable[T], o: T): T =
           ({values})
       """.dedent
 
-    table.db.exec(sql(query, o, false), ())
+    table.db.log(false).exec(sql(query, o, false))
     o
   else:
-    table.log.info "create"
     let query = block:
       let column_names = if table.auto_id: o.column_names.filter((n) => n notin table.ids)
       else:                                o.column_names
@@ -68,7 +64,7 @@ proc create*[T](table: DbTable[T], o: T): T =
         returning {ids}
       """.dedent
 
-    let updated_ids = table.db.get_raw(sql(query, o, false), ())
+    let updated_ids = table.db.log(false).get_raw(sql(query, o, false))
     var o = o
     o.update_from updated_ids
     o
@@ -80,7 +76,7 @@ proc create*[T](table: DbTable[T], o: var T): void =
 # table.update -------------------------------------------------------------------------------------
 proc update*[T](table: DbTable[T], o: T): void =
   if table.ids.is_empty: throw "can't update object without id"
-  table.log.info "update"
+  table.db.log.with(table.name).info: "update"
   let query = block:
     let setters = o.column_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = :{n}").join(", ")
     let where = table.ids.map((n) => fmt"{n} = :{n}").join(" and ")
@@ -90,13 +86,13 @@ proc update*[T](table: DbTable[T], o: T): void =
         {setters}
       where {where}
     """.dedent
-  table.db.exec(sql(query, o), ())
+  table.db.log(false).exec(sql(query, o), ())
 
 
 # table.save ---------------------------------------------------------------------------------------
 proc save*[T](table: DbTable[T], o: T): T =
+  table.db.log.with(table.name).info: "save"
   if table.ids.is_empty: throw "can't save object without id"
-  table.log.info "save"
   let query = block:
     let column_names =
       if table.auto_id: o.column_names.filter((n) => n notin table.ids)
@@ -116,7 +112,7 @@ proc save*[T](table: DbTable[T], o: T): T =
       returning {ids}
     """.dedent
 
-  let updated_ids = table.db.get_raw(sql(query, o, false), ())
+  let updated_ids = table.db.log(false).get_raw(sql(query, o, false))
   var o = o
   o.update_from updated_ids
   o
@@ -157,22 +153,21 @@ test "build_query":
 
 
 # table.filter -------------------------------------------------------------------------------------
-proc filter*[T, W](table: DbTable[T], where: W, limit = 0, msg: tuple): seq[T] =
-  table.log.message msg
+proc filter_impl[T, W](table: DbTable[T], where: W, limit = 0, operation_msg: string): seq[T] =
   let where_query = T.build_where(where, table.ids)
   let where_key = if where_query.query == "": "" else: " where "
   let limit_s = if limit > 0: fmt" limit {limit}" else: ""
   var query = fmt"select * from {table.name}{where_key}{where_query.query}{limit_s}"
-  table.db.filter((query, where_query.values), T, ())
+  table.db.log.message sql_where_info(table.name, where_query, operation_msg)
+  table.db.log(false).filter((query, where_query.values), T)
 
 proc filter*[T, W](table: DbTable[T], where: W, limit = 0): seq[T] =
-  let where_query = T.build_where(where, table.ids)
-  table.filter(where_query, limit, sql_where_info(where_query, "filter"))
+  table.filter_impl(where, limit, "filter")
+
 
 # table.fget ---------------------------------------------------------------------------------------
 proc fget*[T, W](table: DbTable[T], where: W): Option[T] =
-  let where_query = T.build_where(where, table.ids)
-  let found = table.filter(where_query, 0, sql_where_info(where_query, "fget"))
+  let found = table.filter_impl(where, 0, "get")
   if found.len > 1: throw fmt"expected one but found {found.len} objects"
   if found.len > 0: found[0].some else: T.none
 
@@ -181,26 +176,26 @@ proc fget*[T, W](table: DbTable[T], where: W): Option[T] =
 proc del*[T, W](table: DbTable[T], where: W): void =
   let where_query = T.build_where(where, table.ids)
   if where_query.query == "": throw "use del_all to delete whole table"
-  table.log.message sql_where_info(where_query, "del")
+  table.db.log.message sql_where_info(table.name, where_query, "del")
   let full_sql = (fmt"delete from {table.name} where {where_query.query}", where_query.values)
-  table.db.exec(full_sql, ())
+  table.db.log(false).exec(full_sql)
 
 
 # table.del_all ------------------------------------------------------------------------------------
 proc del_all*[T](table: DbTable[T]): seq[T] =
   # if log: table.log.with((table: table.name)).info "{table}.del_all"
   var query = fmt"delete from {table.name}"
-  table.log.info("del_all")
-  table.db.exec(sql(query), ())
+  table.db.log.with(table.name).info("del_all")
+  table.db.log(false).exec(sql(query), ())
 
 
 # table.count --------------------------------------------------------------------------------------
 proc count*[T, W](table: DbTable[T], where: W = sql""): int =
   let where_query = T.build_where(where, table.ids)
-  table.log.message sql_where_info(where_query, "count")
+  table.db.log.message sql_where_info(table.name, where_query, "count")
   let where_key = if where_query.query == "": "" else: " where "
   var query = fmt"select count(*) from {table.name}{where_key}{where_query.query}"
-  table.db.get_value((query, where_query.values), int, ())
+  table.db.log(false).get_value((query, where_query.values), int)
 
 
 # table.contains -----------------------------------------------------------------------------------
@@ -220,7 +215,7 @@ proc `[]`*[T, W](table: DbTable[T], where: W, default: T): T =
 slow_test "DbTable":
   let db = Db.init("db", "nim_test")
 
-  db.before(sql"""
+  db.log((info: "creating schema")).before sql"""
     drop table if exists users;
     create table users(
       id   integer      not null,
@@ -229,7 +224,7 @@ slow_test "DbTable":
 
       primary key (id)
     );
-  """, (info: "creating schema"))
+  """
 
   # Defining User Model
   type User = object
