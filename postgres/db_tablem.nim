@@ -80,7 +80,7 @@ proc create*[T](table: DbTable[T], o: var T): void =
 # table.update -------------------------------------------------------------------------------------
 proc update*[T](table: DbTable[T], o: T): void =
   if table.ids.is_empty: throw "can't update object without id"
-  table.log.info "{table}.update"
+  table.log.info "update"
   let query = block:
     let setters = o.column_names.filter((n) => n notin table.ids).map((n) => fmt"{n} = :{n}").join(", ")
     let where = table.ids.map((n) => fmt"{n} = :{n}").join(" and ")
@@ -157,21 +157,20 @@ test "build_query":
 
 
 # table.filter -------------------------------------------------------------------------------------
-proc filter*[T, W](table: DbTable[T], where: W = sql"", limit = 0, msg: tuple): seq[T] =
+proc filter*[T, W](table: DbTable[T], where: W, limit = 0, msg: tuple): seq[T] =
   table.log.message msg
-  # with((table: table.name, where: $where)).info "{table}.get {where}"
   let where_query = T.build_where(where, table.ids)
   let where_key = if where_query.query == "": "" else: " where "
   let limit_s = if limit > 0: fmt" limit {limit}" else: ""
   var query = fmt"select * from {table.name}{where_key}{where_query.query}{limit_s}"
   table.db.filter((query, where_query.values), T, ())
 
-proc filter*[T, W](table: DbTable[T], where: W = sql"", limit = 0): seq[T] =
+proc filter*[T, W](table: DbTable[T], where: W, limit = 0): seq[T] =
   let where_query = T.build_where(where, table.ids)
   table.filter(where_query, limit, sql_where_info(where_query, "filter"))
 
 # table.fget ---------------------------------------------------------------------------------------
-proc fget*[T, W](table: DbTable[T], where: W = sql""): Option[T] =
+proc fget*[T, W](table: DbTable[T], where: W): Option[T] =
   let where_query = T.build_where(where, table.ids)
   let found = table.filter(where_query, 0, sql_where_info(where_query, "fget"))
   if found.len > 1: throw fmt"expected one but found {found.len} objects"
@@ -179,7 +178,7 @@ proc fget*[T, W](table: DbTable[T], where: W = sql""): Option[T] =
 
 
 # table.del ----------------------------------------------------------------------------------------
-proc del*[T, W](table: DbTable[T], where: W = sql""): void =
+proc del*[T, W](table: DbTable[T], where: W): void =
   let where_query = T.build_where(where, table.ids)
   if where_query.query == "": throw "use del_all to delete whole table"
   table.log.message sql_where_info(where_query, "del")
@@ -205,7 +204,7 @@ proc count*[T, W](table: DbTable[T], where: W = sql""): int =
 
 
 # table.contains -----------------------------------------------------------------------------------
-proc contains*[T, W](table: DbTable[T], where: W = sql""): bool =
+proc contains*[T, W](table: DbTable[T], where: W): bool =
   table.count(where) > 0
 
 
