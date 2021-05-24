@@ -30,7 +30,7 @@ proc from_postgres_to_json*(kind: DbTypeKind, s: string): JsonNode =
   of dbTime:      s.to_json ## HH:MM:SS information
   of dbDatetime:  s.to_json ## year-month-day and HH:MM:SS information,
   #                   ## plus optional time or timezone information
-  # dbTimestamp,  ## Timestamp values are stored as the number of seconds
+  of dbTimestamp: s.to_json ## Timestamp values are stored as the number of seconds
   #                   ## since the epoch ('1970-01-01 00:00:00' UTC).
   # dbTimeInterval,  ## an interval [a,b] of times
   # dbEnum,          ## some enum

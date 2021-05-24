@@ -92,6 +92,8 @@ let time_format = times.init_time_format "yyyy-MM-dd HH:mm:ss"
 proc init*(_: type[Time], time: string): Time =
   Time.init times.parse(time, time_format, times.utc())
 
+# test "Time.init":
+#   echo Time.init "2021-05-24 00:08:53"
 
 proc `$`*(t: Time): string =
   # p d.format(time_format)
@@ -101,6 +103,7 @@ proc `$`*(t: Time): string =
 
 proc to_json_hook*(time: Time): JsonNode = ($time).to_json
 proc from_json_hook*(v: var Time, json: JsonNode) =
+  assert json.kind == JString, "expected json as string for Time"
   v = Time.init(json.get_str)
 
 

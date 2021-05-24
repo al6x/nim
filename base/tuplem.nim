@@ -1,5 +1,10 @@
 import ./supportm, sugar
 
+# is_empty -----------------------------------------------------------------------------------------
+proc is_empty*(o: tuple): bool =
+  for _, _ in o.field_pairs: return false
+  return true
+
 # map ----------------------------------------------------------------------------------------------
 func map*[V, R](t: (V, ), op: (v: V) -> R): (R, ) =
   (op(t[0]), )
@@ -9,6 +14,7 @@ func map*[V, R](t: (V, V), op: (v: V) -> R): (R, R) =
 
 func map*[V, R](t: (V, V, V), op: (v: V) -> R): (R, R, R) =
   (op(t[0]), op(t[1]), op(t[2]))
+
 
 # func map*[V, R](t: (V, V, V, V), op: (v: V) -> R): (R, R, R, R) =
 #   (op(t[0]), op(t[1]), op(t[2]), op(t[3]))

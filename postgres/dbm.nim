@@ -1,4 +1,4 @@
-import base/[basem, logm, jsonm]
+import base/[basem, logm, jsonm, timem, rem]
 import ./pg_convertersm, ./sqlm, ./utilm
 from osproc import exec_cmd_ex
 from postgres import nil
@@ -6,104 +6,85 @@ from db_postgres import DbConn
 
 export sqlm, DbConn
 
+
 # Db -----------------------------------------------------------------------------------------------
-type Db* = object
-  id*: string
-
-proc `$`*(db: Db): string = db.id
-proc hash*(db: Db): Hash = db.id.hash
-proc `==`*(a, b: Db): bool = a.id == b.id
-
-proc log(db: Db): Log = Log.init("db", db.id)
-
-
-# DbImpl -------------------------------------------------------------------------------------------
-type DbImpl* = ref object
+type Db* = ref object
+  id*:                     string
   url*:                    PgUrl
   encoding*:               string
   create_db_if_not_exist*: bool
 
 
-# Impls --------------------------------------------------------------------------------------------
-var impls:  Table[Db, DbImpl]
-# Deferring the database configuration, like IoC
-
-proc impl*(
-  db:                      Db,
+# Db.init ------------------------------------------------------------------------------------------
+proc init*(
+  _:                       type[Db],
+  id:                      string,
   name_or_url:             string,
   encoding               = "utf8",
   create_db_if_not_exist = true # Create db if not exist
-): void =
-  impls[db] = DbImpl(
-    url: PgUrl.parse(name_or_url), encoding: encoding, create_db_if_not_exist: create_db_if_not_exist)
-
-proc impl*(db: Db): DbImpl =
-  if db notin impls: throw fmt"db '{db.id}' not defined"
-  impls[db]
+): Db =
+  # The connection will be establisehd later, lazily on demand, and reconnected after failure
+  Db(id: id, url: PgUrl.parse(name_or_url), encoding: encoding, create_db_if_not_exist: create_db_if_not_exist)
 
 
-# Connections --------------------------------------------------------------------------------------
-# Using separate storage for connections, because they need to be mutable. The Db can't be mutable
-# because it's needed to be passed around callbacks and sometimes Nim won't allow to pass mutable data
-# in callbacks.
-var connections:      Table[Db, DbConn]
-var before_callbacks: Table[Db, seq[proc: void]]
+# Logging ------------------------------------------------------------------------------------------
+proc log(db: Db): Log = Log.init(db.id)
 
+proc sql_info*(sql: SQL, msg: string): tuple =
+  let formatted_sql: string = sql.inline
+  (sql: formatted_sql, info: msg & " '{sql}'")
 
-# Db.init ------------------------------------------------------------------------------------------
-proc init*(_: type[Db], id = "default"): Db =
-  # The db parameters and connection will be establisehd later, lazily on demand, and reconnected after failure
-  Db(id: id)
-
-
-# db.create ----------------------------------------------------------------------------------------
+# db.init ------------------------------------------------------------------------------------------
 proc create*(db: Db): void =
-  # Using bash, don't know how to create db otherwise
   db.log.info "create"
-  let impl = db.impl
-  let (output, code) = exec_cmd_ex fmt"createdb -U {impl.url.user} {impl.url.name}"
-  if code != 0 and fmt"""database "{impl.url.name}" already exists""" in output:
-    throw "can't create database {impl.url.user} {impl.url.name}"
+  let (output, code) = exec_cmd_ex fmt"createdb -U {db.url.user} {db.url.name}"
+  if code != 0 and fmt"""database "{db.url.name}" already exists""" notin output:
+    throw "can't create database {db.url.user} {db.url.name}"
 
 
 # db.drop ------------------------------------------------------------------------------------------
-proc drop*(db: Db, user = "postgres"): void =
-  # Using bash, don't know how to db db otherwise
+proc drop*(db: Db): void =
   db.log.info "drop"
-  let impl = db.impl
-  let (output, code) = exec_cmd_ex fmt"dropdb -U {impl.url.user} {impl.url.name}"
-  if code != 0 and fmt"""database "{impl.url.name}" does not exist""" notin output:
-    throw fmt"can't drop database {impl.url.user} {impl.url.name}"
+  let (output, code) = exec_cmd_ex fmt"dropdb -U {db.url.user} {db.url.name}"
+  if code != 0 and fmt"""database "{db.url.name}" does not exist""" notin output:
+    throw fmt"can't drop database {db.url.user} {db.url.name}"
 
 
-# db.close -----------------------------------------------------------------------------------------
-proc close*(db: Db): void =
-  if db notin connections: return
-  let conn = connections[db]
-  connections.del db
-  db.log.info "close"
-  db_postgres.close(conn)
-
-
-# db.with_connection -------------------------------------------------------------------------------
+# Connections --------------------------------------------------------------------------------------
 #
 # - Connect lazily on demand
 # - Reconnect after error
 # - Automatically create database if not exist
 #
+# Using separate storage for connections, because they need to be mutable. The Db can't be mutable
+# because it's needed to be passed around callbacks and sometimes Nim won't allow to pass mutable data
+# in callbacks.
+var connections:      Table[string, DbConn]
+var before_callbacks: Table[string, seq[proc: void]]
+
+
+# db.close -----------------------------------------------------------------------------------------
+proc close*(db: Db): void =
+  if db.id notin connections: return
+  let conn = connections[db.id]
+  connections.del db.id
+  db.log.info "close"
+  db_postgres.close(conn)
+
+
 proc connect(db: Db): DbConn
 
-proc with_connection*[R](db: Db, op: (DbConn) -> R): R =
-  if db notin connections:
-    connections[db] = db.connect()
+proc with_connection[R](db: Db, op: (DbConn) -> R): R =
+  if db.id notin connections:
+    connections[db.id] = db.connect()
 
-    if db in before_callbacks:
+    if db.id in before_callbacks:
       db.log.info "applying before callbacks"
-      for cb in before_callbacks[db]: cb()
+      for cb in before_callbacks[db.id]: cb()
 
   var success = false
   try:
-    result = op(connections[db])
+    result = op(connections[db.id])
     success = true
   finally:
     if not success:
@@ -113,7 +94,7 @@ proc with_connection*[R](db: Db, op: (DbConn) -> R): R =
       try:                   db.close
       except Exception as e: db.log.warn("can't close connection", e)
 
-proc with_connection*(db: Db, op: (DbConn) -> void): void =
+proc with_connection(db: Db, op: (DbConn) -> void): void =
   discard db.with_connection(proc (conn: auto): auto =
     op(conn)
     true
@@ -121,23 +102,22 @@ proc with_connection*(db: Db, op: (DbConn) -> void): void =
 
 proc connect(db: Db): DbConn =
   db.log.info "connect"
-  let impl = db.impl
 
   proc connect(): auto =
-    db_postgres.open(fmt"{impl.url.host}:{impl.url.port}", impl.url.user, impl.url.password, impl.url.name)
+    db_postgres.open(fmt"{db.url.host}:{db.url.port}", db.url.user, db.url.password, db.url.name)
 
   let connection = try:
     connect()
   except Exception as e:
     # Creating databse if doesn't exist and trying to reconnect
-    if fmt"""database "{impl.url.name}" does not exist""" in e.message and impl.create_db_if_not_exist:
+    if fmt"""database "{db.url.name}" does not exist""" in e.message and db.create_db_if_not_exist:
       db.create
       connect()
     else:
       throw e
 
   # Setting encoding
-  if not db_postgres.set_encoding(connection, impl.encoding): throw "can't set encoding"
+  if not db_postgres.set_encoding(connection, db.encoding): throw "can't set encoding"
 
   # Disabling logging https://forum.nim-lang.org/t/7801
   let stub: postgres.PQnoticeReceiver = proc (arg: pointer, res: postgres.PPGresult){.cdecl.} = discard
@@ -178,8 +158,9 @@ proc exec_batch(connection: DbConn, query: string) =
   if postgres.pqResultStatus(res) != postgres.PGRES_COMMAND_OK: db_postgres.dbError(connection)
   postgres.pqclear(res)
 
-proc exec*(db: Db, query: SQL, log = true): void =
-  if log: db.log.debug "exec"
+proc exec*(db: Db, query: SQL, msg: tuple): void =
+  db.log.message(msg)
+
   if ";" in query.query:
     if not query.values.is_empty: throw "multiple statements can't be used with parameters"
     db.with_connection do (conn: auto) -> void:
@@ -189,30 +170,37 @@ proc exec*(db: Db, query: SQL, log = true): void =
     db.with_connection do (conn: auto) -> void:
       db_postgres.exec(conn, db_postgres.sql(pg_query.query), pg_query.values)
 
+proc exec*(db: Db, query: SQL): void =
+  db.exec(query, sql_info(query, "exec"))
+
 
 # db.before ----------------------------------------------------------------------------------------
-# Callbacks to be executed before any query
-proc before*(db: Db, cb: proc: void, prepend = false): void =
+proc before(db: Db, cb: proc: void, prepend = false): void =
+  # Callbacks to be executed before any query
   # Always adding callback even if it was already applied, as it could be re-applied after
   # reconnection
-  let applied = db in connections
-  var list = before_callbacks[db, @[]]
-  before_callbacks[db] = if prepend:
+  let applied = db.id in connections
+  var list = before_callbacks[db.id, @[]]
+  before_callbacks[db.id] = if prepend:
     if applied: throw "can't prepend as callbacks were already applied"
     cb & list
   else: list & cb
 
   if applied:
-    db.log.info "applying before callback"
-    cb()
+    throw "too late, before callbacks already applied"
+    # db.log.info "applying before callback"
+    # cb()
 
-proc before*(db: Db, sql: SQL, prepend = false): void =
-  db.before(() => db.exec(sql), prepend = prepend)
+proc before*(db: Db, query: SQL, msg: tuple, prepend = false): void =
+  db.before(() => db.exec(query, msg), prepend = prepend)
+
+proc before*(db: Db, query: SQL, prepend = false): void =
+  db.before(() => db.exec(query, sql_info(query, "before")), prepend = prepend)
 
 
-# db.get ------------------------------------------------------------------------------------------
-proc get_raw*(db: Db, query: SQL, log = true): seq[JsonNode] =
-  if log: db.log.debug "get"
+# db.filter_raw, filter ----------------------------------------------------------------------------
+proc filter_raw*(db: Db, query: SQL, msg: tuple): seq[JsonNode] =
+  db.log.message(msg)
   let pg_query = query.to_nim_postgres_sql
   db.with_connection do (conn: auto) -> auto:
     var rows: seq[JsonNode]
@@ -227,103 +215,120 @@ proc get_raw*(db: Db, query: SQL, log = true): seq[JsonNode] =
       rows.add jrow
     rows
 
-proc get*[T](db: Db, query: SQL, _: type[T], log = true): seq[T] =
-  db.get_raw(query, log = log).map((v) => v.postgres_to(T))
+proc filter_raw*(db: Db, query: SQL): seq[JsonNode] =
+  db.filter_raw(query, sql_info(query, "filter"))
 
 
-# db.get_one --------------------------------------------------------------------------------------
-proc get_one_optional*[T](db: Db, query: SQL, _: type[T], log = true): Option[T] =
-  if log: db.log.debug "get_one"
+proc filter*[T](db: Db, query: SQL, _: type[T], msg: tuple): seq[T] =
+  db.filter_raw(query, msg).map((v) => v.postgres_to(T))
 
-  # Getting row
-  let rows = db.get_raw(query, log = false)
+proc filter*[T](db: Db, query: SQL, tt: type[T]): seq[T] =
+  db.filter(query, tt, sql_info(query, "filter"))
+
+
+# db.fget_raw, get_raw -----------------------------------------------------------------------------
+proc fget_raw*(db: Db, query: SQL, msg: tuple = sql_info(query, "get")): Option[JsonNode] =
+  let rows = db.filter_raw(query, msg)
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
-  if rows.len < 1: return T.none
-  let row = rows[0]
+  if rows.len < 1: return JsonNode.none
+  rows[0].some
 
-  # Getting value
-  when T is object | tuple:
-    row.postgres_to(T).some
-  else:
+proc fget_raw*(db: Db, query: SQL): Option[JsonNode] =
+  db.fget_raw(query, sql_info(query, "get"))
+
+
+proc get_raw*(db: Db, query: SQL, msg: tuple): JsonNode =
+  db.fget_raw(query, msg).get
+
+proc get_raw*(db: Db, query: SQL): JsonNode =
+  db.get_raw(query, sql_info(query, "get"))
+
+
+# db.fget, get -------------------------------------------------------------------------------------
+proc fget*[T](db: Db, query: SQL, _: type[T], msg: tuple): Option[T] =
+  db.fget_raw(query, msg).map((row) => row.postgres_to(T))
+
+proc fget*[T](db: Db, query: SQL, _: type[T]): Option[T] =
+  db.fget(query, sql_info(query, "get"))
+
+
+proc get*[T](db: Db, query: SQL, TT: type[T], msg: tuple): T =
+  db.fget(query, TT, msg).get
+
+proc get*[T](db: Db, query: SQL, TT: type[T]): T =
+  db.get(query, sql_info(query, "get"))
+
+
+proc get*[T](db: Db, query: SQL, TT: type[T], default: T, msg: tuple): T =
+  db.fget(query, TT, msg).get(default)
+
+proc get*[T](db: Db, query: SQL, TT: type[T], default: T): T =
+  db.get(query, TT, sql_info(query, "get"))
+
+
+# db.fget_value, get_value -------------------------------------------------------------------------
+proc fget_value*[T](db: Db, query: SQL, _: type[T], msg: tuple): Option[T] =
+  db.fget_raw(query, msg).map(proc (row: auto): T =
     if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
     for _, v in row.fields:
-      return v.json_to(T).some
+      return v.json_to(T)
     throw fmt"expected single column row, but got row without columns"
+  )
 
-proc get_one*[T](db: Db, query: SQL, TT: type[T], log = true): T =
-  db.get_one_optional(query, TT, log = log).get
-
-proc get_one*[T](db: Db, query: SQL, TT: type[T], default: T, log = true): T =
-  db.get_one_optional(query, TT, log = log).get(default)
+proc fget_value*[T](db: Db, query: SQL, _: type[T]): Option[T] =
+  db.fget_value(query, sql_info(query, "get"))
 
 
-# table_columns ------------------------------------------------------------------------------------
-# var table_columns_cache: Table[string, seq[string]] # table_name -> columns
-# proc table_columns*(db: Db, table: string): seq[string] =
-#   # table columns, fetched from database
-#   if table notin table_columns_cache:
-#     db.log.debug "get columns"
-#     db.with_connection do (conn: auto) -> void:
-#       var rows: seq[JsonNode]
-#       var columns: db_postgres.DbColumns
-#       for _ in db_postgres.instant_rows(conn, columns, db_postgres.sql(fmt"select * from {table} limit 1"), @[]):
-#         discard
-#       var names: seq[string]
-#       for i in 0..<columns.len: names.add columns[i].name
-#       table_columns_cache[table] = names
-#   table_columns_cache[table]
+proc get_value*[T](db: Db, query: SQL, TT: type[T], msg: tuple): T =
+  db.fget_value(query, TT, msg).get
+
+proc get_value*[T](db: Db, query: SQL, TT: type[T]): T =
+  db.get_value(query, TT, sql_info(query, "get"))
 
 
-# --------------------------------------------------------------------------------------------------
+proc get_value*[T](db: Db, query: SQL, TT: type[T], default: T, msg: tuple): T =
+  db.fget_value(query, TT, msg).get(default)
+
+proc get_value*[T](db: Db, query: SQL, TT: type[T], default: T): T =
+  db.get_value(query, TT, default, sql_info(query, "get"))
+
+
 # Test ---------------------------------------------------------------------------------------------
-# --------------------------------------------------------------------------------------------------
-if is_main_module:
-  # No need to manage connections, it will be connected lazily and
-  # reconnected in case of connection error
-  let db = Db.init
-  db.impl("nim_test")
+slow_test "db":
+  # Will be connected lazily and reconnected in case of connection error
+  let db = Db.init("db", "nim_test")
   # db.drop
 
   # Executing schema befor any other DB query, will be executed lazily before the first use
-  db.before sql"""
-    drop table if exists dbm_test_users;
-
-    create table dbm_test_users(
+  db.before(sql"""
+    drop table if exists users;
+    create table users(
       name varchar(100) not null,
       age  integer      not null
     );
-  """
 
-  # SQL with `:named` parameters
-  db.exec(sql(
-    "insert into dbm_test_users (name, age) values (:name, :age)",
-    (name: "Jim", age: 30)
-  ))
+    drop table if exists times;
+    create table times(
+      time timestamp not null
+    );
+  """, (info: "apply db schema"))
 
-  # Casting to Nim
-  assert db.get(
-    sql"select name, age from dbm_test_users order by name", tuple[name: string, age: int]
-  ) == @[
-    (name: "Jim", age: 30)
-  ]
+  block: # CRUD
+    db.exec sql"""insert into users (name, age) values ({"Jim"}, {30})"""
 
-  # SQL with `{}` parameters
-  assert db.get(
-    sql"""select name, age from dbm_test_users where name = {"Jim"}""", tuple[name: string, age: int]
-  ) == @[
-    (name: "Jim", age: 30)
-  ]
+    let users = db.filter(sql"select name, age from users order by name", tuple[name: string, age: int])
+    assert users == @[(name: "Jim", age: 30)]
 
-  # Count
-  assert db.get_one(
-    sql"select count(*) from dbm_test_users where age = {30}", int
-  ) == 1
+    assert db.get_value(sql"select count(*) from users where age = {30}", int) == 1
 
-  # # Metadata
-  # assert db.table_columns("dbm_test_users") == @["name", "age"]
 
-  # Cleaning
-  db.exec sql"drop table if exists dbm_test_users"
+  block: # Timezone, should always use GMT
+    let now = Time.now
+    db.exec sql"insert into times (time) values ({now})"
+    assert now == db.get_value(sql"select * from times", Time)
+
+  db.close
+
 
   # block: # Auto reconnect, kill db and then restart it
   #   while true:

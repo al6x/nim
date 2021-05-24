@@ -1,41 +1,56 @@
-import strformat, macros, sugar, strutils, unicode, tables, ./envm
+import strformat, macros, sugar, strutils, unicode, tables
 from std/times as nt import nil
 from std/nre as nre import nil
 from std/options as stdoptions import nil
+# from std/os import nil
+import ./envm
 from ./terminalm as terminal import nil
 
 export envm
 
+
 # test ---------------------------------------------------------------------------------------------
-let test_enabled_s = if "test" in env: env["test"] else: "false"
-let test_enabled   = test_enabled_s == "true"
+let test_enabled_s    = if "test" in env: env["test"].to_lower else: "false"
+let slow_test_enabled = test_enabled_s == "slow"
+let test_enabled      = test_enabled_s == "true" or slow_test_enabled
 
 template test*(name: string, body) =
-  # block:
-  if test_enabled or test_enabled_s == name.to_lower:
+  if test_enabled or name.to_lower == test_enabled_s:
+    let pos = instantiation_info()
+    echo "  test | " & pos.filename.split(".")[0] & " " & name
     try:
       body
     except Exception as e:
-      echo "test '", name.to_lower, "' failed"
-      raise e
+      echo terminal.red("  test | '" & name & "' failed")
+      quit(e)
+
+template slow_test*(name: string, body) =
+  if slow_test_enabled or name.to_lower == test_enabled_s:
+    let pos = instantiation_info()
+    echo "  test | " & pos.filename.split(".")[0] & " " & name
+    try:
+      body
+    except Exception as e:
+      echo terminal.red("  test | '" & name & "' failed")
+      quit(e)
 
 
 # test with group ----------------------------------------------------------------------------------
-var test_group_cache = init_table[string, string]()
-template test*(name: string, group, body) =
-  block:
-    var lname  = name.to_lower
-    var lgroup = group.to_lower
-    if lgroup notin test_group_cache:
-      let tlgroup = "test_" & lgroup
-      test_group_cache[group] = (if tlgroup in env: env[tlgroup] else: "true").to_lower
+# var test_group_cache = init_table[string, string]()
+# template test*(name: string, group, body) =
+#   block:
+#     var lname  = name.to_lower
+#     var lgroup = group.to_lower
+#     if lgroup notin test_group_cache:
+#       let tlgroup = "test_" & lgroup
+#       test_group_cache[group] = (if tlgroup in env: env[tlgroup] else: "true").to_lower
 
-    if (test_enabled and test_group_cache[lgroup] == "true") or test_enabled_s == lname:
-      try:
-        body
-      except Exception as e:
-        echo "test '", lname, "' '", lgroup, "' failed"
-        raise e
+#     if (test_enabled and test_group_cache[lgroup] == "true") or test_enabled_s == lname:
+#       try:
+#         body
+#       except Exception as e:
+#         echo "test '", lname, "' '", lgroup, "' failed"
+#         raise e
 
 
 # aqual --------------------------------------------------------------------------------------------
@@ -56,7 +71,7 @@ template throw_message*(message: string) =
 
 
 proc quit*(e: ref Exception) =
-  stderr.write_line e.msg
+  stderr.write_line terminal.red(e.msg)
   stderr.write_line e.get_stack_trace
   quit 1
 
@@ -64,10 +79,6 @@ proc quit*(e: ref Exception) =
 # Exception.message --------------------------------------------------------------------------------
 func message*(e: Exception | ref Exception): string = e.msg
 
-
-# copy.T -------------------------------------------------------------------------------------------
-# Making the copy intention explicit
-func copy*[T](o: T | ref T): T = o
 
 # ensure -------------------------------------------------------------------------------------------
 proc ensure*[V](v: V, check: (V) -> bool, message = "check failed"): V =
@@ -81,7 +92,14 @@ proc to_ref*[T](o: T): ref T =
   result.new
   result[] = o
 
-# to_ref -------------------------------------------------------------------------------------------
+
+# copy.T -------------------------------------------------------------------------------------------
+# Making the copy intention explicit
+func copy*[T](o: T): T = o
+func copy*[T](o: ref T): ref T = o[].to_ref
+
+
+# to_s ---------------------------------------------------------------------------------------------
 proc to_s*[T](o: T): string =
   $o
 

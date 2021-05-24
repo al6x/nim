@@ -14,6 +14,13 @@ proc update_from*[T](o: var T, partial: JsonNode): void =
       v = partial.fields[k].json_to(typeof v)
 
 
+# proc is_same_values[T](o: T, partial: JsonNode): bool =
+#   for k, v in o.field_pairs:
+#     if k in partial.fields:
+#       if v != partial.fields[k].json_to(typeof v): return false
+#   true
+
+
 # T.to_json ----------------------------------------------------------------------------------------
 # proc to_json*[T](v: T, pretty = true): string =
 #   if pretty: (%v).pretty else: $(%v)

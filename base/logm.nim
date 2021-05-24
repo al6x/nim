@@ -1,10 +1,12 @@
-import ./supportm, ./stringm, os, ./seqm, ./sets, ./docm, ./jsonm, ./rem, ./tablem, ./terminalm, options
+import ./supportm, ./stringm, ./seqm, ./sets, ./docm, ./jsonm, ./rem, ./tablem, ./terminalm,
+  options, ./envm, ./tuplem
 
 todo "Alter get_env to use env.yml in current dir"
 
+# Override log_method to provide custom logging
 
 # LogConfig ----------------------------------------------------------------------------------------
-type LogConfig* = object
+type LogConfig* = ref object
   disable_logs: HashSet[string]
   log_as_debug: HashSet[string]
   log_data:     bool
@@ -12,24 +14,23 @@ type LogConfig* = object
 let log_config = LogConfig(
   # List of components and levels to hide, separated by comma, case insensitive,
   # could be "HTTP" or "debug" or "HTTP_debug"
-  disable_logs: get_env("disable_logs", "").to_lower.split(",").to_hash_set,
+  disable_logs: env["disable_logs", ""].to_lower.split(",").to_hash_set,
   # List of components that will be logged with debug level, separated by comma, case insensitive,
   # could be "HTTP" or "HTTP,DB"
-  log_as_debug: get_env("log_as_debug", "").to_lower.split(",").to_hash_set,
-  log_data:     get_env("log_data", "false").parse_bool,
+  log_as_debug: env["log_as_debug", ""].to_lower.split(",").to_hash_set,
+  log_data:     env["log_data", "false"].parse_bool,
 )
 
 proc is_enabled(config: LogConfig, component: string, level: string): bool =
   let (c, l) = (component.to_lower, level.to_lower)
-  let cl = fmt"{c}.{l}"
-  not (c in config.disable_logs or l in config.disable_logs or cl in config.disable_logs)
+  not (c in config.disable_logs or l in config.disable_logs or fmt"{c}.{l}" in config.disable_logs)
 
 proc is_debug(config: LogConfig, component: string): bool =
   component.to_lower in config.log_as_debug
 
 
 # Log ----------------------------------------------------------------------------------------------
-type Log* = object
+type Log* = ref object
   component*: string
   id*:        Option[string]
   data*:      JsonNode
@@ -41,57 +42,90 @@ proc init*(_: type[Log], component, id: string): Log =
   Log(component: component, id: id.some)
 
 
-proc format_id(log: Log): string
-proc format_component(log: Log): string
-proc format_data(log: Log): string
-proc format_message(log: Log, message: string): string
-
-
+# log.with -----------------------------------------------------------------------------------------
 proc with*(log: Log, data: tuple): Log =
-  var log = log
+  var log = log.copy
   if log.data.is_nil: log.data = new_JObject()
   # Merging new data with existing
   for key, value in data.field_pairs: log.data.fields[key] = value.to_json
   log
 
-
 proc with*(log: Log, error: ref Exception): Log =
   log.with((error: error.message, trace: error.get_stack_trace))
 
 
-proc debug*(log: Log, message: string): void =
-  if not log_config.is_enabled(log.component, "debug"): return
-  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
-  echo "  " & message.grey
+# log_method ---------------------------------------------------------------------------------------
+proc format_component(component: string): string
+proc format_id(id: Option[string]): string
+proc format_data(data: JsonNode): string
+proc format_message(data: JsonNode, msg: string): string
+
+proc default_log_method(log: Log): void =
+  # Detecting level and message
+  var level = ""; var msg = ""
+  for l in ["debug", "info", "warn", "error"]:
+    if l in log.data:
+      level = l; msg = try: log.data[l].get_str except: "invalid log message type"
+      break
+  if level == "":
+    default_log_method(log.with((warn: "invalid log message, no level")))
+    return
+
+  # Checking config
+  if not log_config.is_enabled(log.component, level): return
+
+  # Formatting message
+  let line =
+    format_component(log.component) &
+    format_id(log.id) &
+    format_message(log.data, msg) &
+    format_data(log.data)
+
+  # Formatting level
+  case level
+  of "debug":
+    echo "  " & line.grey
+  of "info":
+    let as_grey = log_config.is_debug(log.component)
+    echo "  " & (if as_grey: line.grey else: line)
+  of "warn":
+    echo ("W " & line).yellow
+  of "error":
+    stderr.write_line ("E " & line).red
+
+  # Printing exception and stack if exist
+  if "exception" in log.data:
+    let exception = try: log.data["exception"].get_str except: "can't get exception"
+    stderr.write_line "\n" & exception.red
+  if "stack" in log.data:
+    let stack = try: log.data["stack"].get_str except: "can't get stack"
+    stderr.write_line "\n" & stack
+
+var log_method* = default_log_method # Override to provide custom logging
 
 
-proc info*(log: Log, message: string): void =
-  if not log_config.is_enabled(log.component, "info"): return
-  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
-  if log_config.is_debug(log.component): echo "  " & message.grey
-  else:                                  echo "  " & message
+# log.message, debug, info, warn, error ------------------------------------------------------------
+proc message*(log: Log, msg: tuple): void =
+  if msg.is_empty: return
+  log_method(log.with(msg))
 
+proc debug*(log: Log, msg: string): void =
+  log.message((debug: msg))
 
-proc warn*(log: Log, message: string): void =
-  if not log_config.is_enabled(log.component, "warn"): return
-  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
-  echo ("W " & message).yellow
+proc info*(log: Log, msg: string): void =
+  log.message((info: msg))
 
-proc warn*(log: Log, message: string, exception: ref Exception): void =
-  if not log_config.is_enabled(log.component, "warn"): return
-  log.warn(message)
-  stderr.write_line exception.get_stack_trace.red
+proc warn*(log: Log, msg: string): void =
+  log.message((warn: msg))
 
+proc warn*(log: Log, msg: string, exception: ref Exception): void =
+  log.message((warn: msg, exception: exception.message, stack: exception.get_stack_trace))
 
-proc error*(log: Log, message: string): void =
-  if not log_config.is_enabled(log.component, "error"): return
-  let message = log.format_component() & log.format_id() & log.format_message(message) & log.format_data()
-  stderr.write_line ("E " & message).red
+proc error*(log: Log, msg: string): void =
+  log.message((error: msg))
 
-proc error*(log: Log, message: string, exception: ref Exception): void =
-  if not log_config.is_enabled(log.component, "error"): return
-  log.error(message)
-  stderr.write_line exception.get_stack_trace.red
+proc error*(log: Log, msg: string, exception: ref Exception): void =
+  log.message((error: msg, exception: exception.message, stack: exception.get_stack_trace))
 
 
 # Shortcuts ----------------------------------------------------------------------------------------
@@ -103,40 +137,40 @@ proc warn*(message: string): void = Log.init("Main").warn(message)
 
 proc error*(message: string): void = Log.init("Main").error(message)
 
-proc error*(message: string, exception: ref Exception): void =
-  Log.init("Main").error(message, exception)
+proc error*(message: string, error: ref Exception): void =
+  Log.init("Main").error(message, error)
 
 
 # Utils --------------------------------------------------------------------------------------------
-proc format_component(log: Log): string =
-  let max_len = 4; let component = log.component
+proc format_component(component: string): string =
+  let max_len = 4
   let truncated = if component.len > max_len: component[0..<max_len]
   else:                                       component
   fmt"{truncated.to_lower.align(max_len)} | "
 
 
-proc format_id(log: Log): string =
-  if log.id.is_none: return ""
-  let max_len = 7; let id = log.id.get
+proc format_id(id: Option[string]): string =
+  if id.is_none: return ""
+  let max_len = 7; let id = id.get
   let truncated = if id.len > max_len: id[0..<max_len] else: id
   fmt"{truncated.to_lower.align_left(max_len)} "
 
 
-proc format_data(log: Log): string =
+proc format_data(data: JsonNode): string =
   if log_config.log_data:
-    if log.data.is_nil: " | {}" else: " | " & log.data.to_json.to_s
+    if data.is_nil: " | {}" else: " | " & data.to_s
   else:
     ""
 
-proc format_message(log: Log, message: string): string =
+proc format_message(data: JsonNode, msg: string): string =
   let keyre = re"(\{[a-zA-Z0-9_]+\})"
-  message.replace(keyre, proc (skey: string): string =
-    let value = if log.data.is_nil: skey
+  msg.replace(keyre, proc (skey: string): string =
+    let value = if data.is_nil: skey
     else:
-      assert log.data.kind == JObject
+      assert data.kind == JObject
       let key = skey[1..^2]
-      if key in log.data.fields:
-        let value = log.data.fields[key]
+      if key in data.fields:
+        let value = data.fields[key]
         if value.kind == JString: value.get_str
         else:                     value.to_s
       else:                      skey
@@ -151,3 +185,9 @@ if is_main_module:
 
   # Chaining
   log.with((symbol: "MSFT",)).with((currency: "USD",)).info("getting prices for {symbol} in {currency}")
+
+  # Printing stack trace
+  try:
+    throw "some error"
+  except Exception as e:
+    log.with((symbol: "MSFT",)).error("can't get price for {symbol}", e)

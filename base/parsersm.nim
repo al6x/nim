@@ -4,6 +4,7 @@ import ./supportm, ./stringm
 # T.field_names, o.field_names ---------------------------------------------------------------------
 proc field_names*[T](o: T): seq[string] =
   for k, _ in o.field_pairs: result.add k
+  result.sort
 
 proc field_names*[T](o: ref T): seq[string] =
   o[].field_names

@@ -20,7 +20,7 @@ let kvdb* = KVDb()
 let log = Log.init "kvdb"
 
 # [] and []= ---------------------------------------------------------------------------------------
-proc get_optional*(kvdb: KVDb, scope: string, key: string): Option[string] =
+proc fget*(kvdb: KVDb, scope: string, key: string): Option[string] =
   log.with((scope: scope, key: key)).debug("get {scope}/{key}")
   db.get_one_optional(sql"select value from kv where scope = {scope} and key = {key}", string, log = false)
 

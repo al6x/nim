@@ -58,6 +58,9 @@ test "sql":
 proc `$`*(query: SQL): string =
   query.query & (if query.values.is_empty: "" else: " <- ") & query.values.map_it($it).join(", ")
 
+proc inline*(query: SQL): string =
+  $(query).to_s.replace(re"(?m)[\n\s]+", " ").trim
+
 # converter to_sqlp*(s: string): SQL = sql(s)
 
 
