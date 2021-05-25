@@ -207,9 +207,11 @@ proc `[]`*[T, W](table: DbTable[T], where: W, default: T): T =
 
 # Test ---------------------------------------------------------------------------------------------
 slow_test "DbTable":
+  # Will connect lazily and reconnected in case of connection error
   let db = Db.init("db", "nim_test")
 
-  db.before sql"""
+  # Before will be executed lazily, before the first query
+  db.before(sql"""
     drop table if exists users;
     create table users(
       id   integer      not null,
@@ -218,7 +220,7 @@ slow_test "DbTable":
 
       primary key (id)
     );
-  """, "creating schema"
+  """, "creating schema")
 
   # Defining User Model
   type User = object
@@ -255,7 +257,6 @@ slow_test "DbTable":
   assert (age: 31) in users
 
   # del
-  users.del (id: -1) # just checking if it's compile
   users.del jim
   assert users.count == 0
 

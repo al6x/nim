@@ -153,6 +153,9 @@ converter to_logfn*(info_msg: string): LogFn =
 converter to_logfn*(msg: tuple): LogFn =
   return proc (log: Log) = log.message(msg)
 
+# proc logfn*(log: Log, logfn: LogFn): void =
+#   if logfn.is_nil: return
+#   logfn(log)
 
 # Shortcuts ----------------------------------------------------------------------------------------
 proc debug*(message: string): void = Log.init("Main").debug(message)
