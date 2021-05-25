@@ -66,6 +66,9 @@ template slow_test*(name: string, body) =
 # template is_unset*[T](o: T): bool =
 #   when o is Unset: true else: false
 
+proc if_nil*[T](value, otherwise: T): T =
+  if value.is_nil: otherwise else: value
+
 
 # throw --------------------------------------------------------------------------------------------
 template throw*(message: string) = raise newException(Exception, message)

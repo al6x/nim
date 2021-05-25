@@ -34,18 +34,10 @@ type Log* = ref object
   component*:  string
   ids*:        seq[string]
   data*:       JsonNode
-  is_enabled*: bool
 
 
 proc init*(_: type[Log], component: string): Log =
-  Log(component: component, is_enabled: true)
-
-
-# log.enabled --------------------------------------------------------------------------------------
-proc log*(log: Log, enabled: bool): Log =
-  var log = log.copy
-  log.is_enabled = enabled
-  log
+  Log(component: component)
 
 
 # log.is_empty -------------------------------------------------------------------------------------
@@ -82,8 +74,6 @@ proc format_data(data: JsonNode): string
 proc format_message(data: JsonNode, msg: string): string
 
 proc default_log_method(log: Log): void =
-  if not log.is_enabled: return
-
   # Detecting level and message
   var level = ""; var msg = ""
   for l in ["debug", "info", "warn", "error"]:
@@ -155,6 +145,16 @@ proc error*(log: Log, msg: string): void =
 
 proc error*(log: Log, msg: string, exception: ref Exception): void =
   log.message((error: msg, exception: exception.message, stack: exception.get_stack_trace))
+
+
+# LogFn --------------------------------------------------------------------------------------------
+type LogFn* = proc (log: Log): void
+
+converter to_logfn*(info_msg: string): LogFn =
+  return proc (log: Log) = log.info(info_msg)
+
+converter to_logfn*(msg: tuple): LogFn =
+  return proc (log: Log) = log.message(msg)
 
 
 # Shortcuts ----------------------------------------------------------------------------------------

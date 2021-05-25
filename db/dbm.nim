@@ -13,7 +13,6 @@ type Db* = ref object
   url*:                    PgUrl
   encoding*:               string
   create_db_if_not_exist*: bool
-  plog:                    Log
 
 
 # Db.init ------------------------------------------------------------------------------------------
@@ -26,31 +25,25 @@ proc init*(
 ): Db =
   # The connection will be establisehd later, lazily on demand, and reconnected after failure
   Db(id: id, url: PgUrl.parse(name_or_url), encoding: encoding,
-    create_db_if_not_exist: create_db_if_not_exist, plog: Log.init(id))
+    create_db_if_not_exist: create_db_if_not_exist)
 
 
 # Logging ------------------------------------------------------------------------------------------
 proc log*(db: Db): Log =
-  db.plog
+  Log.init(db.id)
 
-proc log*(db: Db, enabled: bool): Db =
-  var db = db.copy
-  db.plog = db.plog.log(enabled)
-  db
+proc get_log(db: Db): Log =
+  db.log
 
-proc log*(db: Db, msg: tuple): Db =
-  var db = db.copy
-  db.plog = db.plog.with(msg)
-  db
-
-proc sql_info*(sql: SQL, msg: string): tuple =
-  let formatted_sql: string = sql.inline
-  (sql: formatted_sql, info: msg & " '{sql}'")
+proc default_log*(msg: string, sql: SQL): LogFn =
+  return proc (log: Log) =
+    let formatted_sql: string = sql.inline
+    log.with((sql: formatted_sql)).info msg & " '{sql}'"
 
 
 # db.init ------------------------------------------------------------------------------------------
 proc create*(db: Db): void =
-  Log.init(db.id).info "create"
+  db.log.info "create"
   let (output, code) = exec_cmd_ex fmt"createdb -U {db.url.user} {db.url.name}"
   if code != 0 and fmt"""database "{db.url.name}" already exists""" notin output:
     throw "can't create database {db.url.user} {db.url.name}"
@@ -58,7 +51,7 @@ proc create*(db: Db): void =
 
 # db.drop ------------------------------------------------------------------------------------------
 proc drop*(db: Db): void =
-  Log.init(db.id).info "drop"
+  db.log.info "drop"
   let (output, code) = exec_cmd_ex fmt"dropdb -U {db.url.user} {db.url.name}"
   if code != 0 and fmt"""database "{db.url.name}" does not exist""" notin output:
     throw fmt"can't drop database {db.url.user} {db.url.name}"
@@ -82,7 +75,7 @@ proc close*(db: Db): void =
   if db.id notin connections: return
   let conn = connections[db.id]
   connections.del db.id
-  Log.init(db.id).info "close"
+  db.log.info "close"
   db_postgres.close(conn)
 
 
@@ -93,7 +86,7 @@ proc with_connection[R](db: Db, op: (DbConn) -> R): R =
     connections[db.id] = db.connect()
 
     if db.id in before_callbacks:
-      Log.init(db.id).info "applying before callbacks"
+      db.log.info "applying before callbacks"
       for cb in before_callbacks[db.id]: cb()
 
   var success = false
@@ -106,7 +99,7 @@ proc with_connection[R](db: Db, op: (DbConn) -> R): R =
       # broken connection or something else. So assuming that connection is broken and terminating it,
       # it will be reconnected next time automatically.
       try:                   db.close
-      except Exception as e: Log.init(db.id).warn("can't close connection", e)
+      except Exception as e: db.log.warn("can't close connection", e)
 
 proc with_connection(db: Db, op: (DbConn) -> void): void =
   discard db.with_connection(proc (conn: auto): auto =
@@ -115,7 +108,7 @@ proc with_connection(db: Db, op: (DbConn) -> void): void =
   )
 
 proc connect(db: Db): DbConn =
-  Log.init(db.id).info "connect"
+  db.log.info "connect"
 
   proc connect(): auto =
     db_postgres.open(fmt"{db.url.host}:{db.url.port}", db.url.user, db.url.password, db.url.name)
@@ -172,8 +165,8 @@ proc exec_batch(connection: DbConn, query: string) =
   if postgres.pqResultStatus(res) != postgres.PGRES_COMMAND_OK: db_postgres.dbError(connection)
   postgres.pqclear(res)
 
-proc exec*(db: Db, query: SQL): void =
-  db.log.message_if_empty sql_info(query, "exec")
+proc exec*(db: Db, query: SQL, log: LogFn = nil): void =
+  log.if_nil(default_log("exec", query))(db.get_log)
 
   if ";" in query.query:
     if not query.values.is_empty: throw "multiple statements can't be used with parameters"
@@ -202,18 +195,17 @@ proc before(db: Db, cb: proc: void, prepend = false): void =
     # db.log.info "applying before callback"
     # cb()
 
-proc before*(db: Db, query: SQL, prepend = false): void =
+proc before*(db: Db, query: SQL, log: LogFn = nil, prepend = false): void =
   let cb = proc =
-    db.log.message_if_empty sql_info(query, "before")
-    db.log(false).exec(query)
+    db.exec(query, log.if_nil(default_log("before", query)))
   db.before(cb, prepend)
 
 
 # db.filter_raw, filter ----------------------------------------------------------------------------
-proc filter_raw*(db: Db, query: SQL): seq[JsonNode] =
-  db.log.message_if_empty sql_info(query, "filter")
+proc filter_raw*(db: Db, query: SQL, log: LogFn = nil): seq[JsonNode] =
+  log.if_nil(default_log("filter", query))(db.get_log)
   let pg_query = query.to_nim_postgres_sql
-  db.log(false).with_connection do (conn: auto) -> auto:
+  db.with_connection do (conn: auto) -> auto:
     var rows: seq[JsonNode]
     var columns: db_postgres.DbColumns
     for row in db_postgres.instant_rows(conn, columns, db_postgres.sql(pg_query.query), pg_query.values):
@@ -227,49 +219,48 @@ proc filter_raw*(db: Db, query: SQL): seq[JsonNode] =
     rows
 
 
-proc filter*[T](db: Db, query: SQL, _: type[T]): seq[T] =
-  db.filter_raw(query).map((v) => v.postgres_to(T))
+proc filter*[T](db: Db, query: SQL, _: type[T], log: LogFn = nil): seq[T] =
+  db.filter_raw(query, log).map((v) => v.postgres_to(T))
 
 
 # db.fget_raw, get_raw -----------------------------------------------------------------------------
-proc fget_raw*(db: Db, query: SQL): Option[JsonNode] =
-  db.log.message_if_empty sql_info(query, "get")
-  let rows = db.log(false).filter_raw(query)
+proc fget_raw*(db: Db, query: SQL, log: LogFn = nil): Option[JsonNode] =
+  let rows = db.filter_raw(query, log.if_nil(default_log("get", query)))
   if rows.len > 1: throw fmt"expected single result but got {rows.len} rows"
   if rows.len < 1: return JsonNode.none
   rows[0].some
 
 
-proc get_raw*(db: Db, query: SQL): JsonNode =
-  db.fget_raw(query).get
+proc get_raw*(db: Db, query: SQL, log: LogFn = nil): JsonNode =
+  db.fget_raw(query, log).get
 
 
 # db.fget, get -------------------------------------------------------------------------------------
-proc fget*[T](db: Db, query: SQL, _: type[T]): Option[T] =
-  db.fget_raw(query).map((row) => row.postgres_to(T))
+proc fget*[T](db: Db, query: SQL, _: type[T], log: LogFn = nil): Option[T] =
+  db.fget_raw(query, log).map((row) => row.postgres_to(T))
 
-proc get*[T](db: Db, query: SQL, TT: type[T]): T =
-  db.fget(query, TT).get
+proc get*[T](db: Db, query: SQL, TT: type[T], log: LogFn = nil): T =
+  db.fget(query, TT, log).get
 
 
-proc get*[T](db: Db, query: SQL, TT: type[T], default: T): T =
-  db.fget(query, TT).get(default)
+proc get*[T](db: Db, query: SQL, TT: type[T], default: T, log: LogFn = nil): T =
+  db.fget(query, TT, log).get(default)
 
 
 # db.fget_value, get_value -------------------------------------------------------------------------
-proc fget_value*[T](db: Db, query: SQL, _: type[T]): Option[T] =
-  db.fget_raw(query).map(proc (row: auto): T =
+proc fget_value*[T](db: Db, query: SQL, _: type[T], log: LogFn = nil): Option[T] =
+  db.fget_raw(query, log).map(proc (row: auto): T =
     if row.len > 1: throw fmt"expected single column row, but got {row.len} columns"
     for _, v in row.fields:
       return v.json_to(T)
     throw fmt"expected single column row, but got row without columns"
   )
 
-proc get_value*[T](db: Db, query: SQL, TT: type[T]): T =
-  db.fget_value(query, TT).get
+proc get_value*[T](db: Db, query: SQL, TT: type[T], log: LogFn = nil): T =
+  db.fget_value(query, TT, log).get
 
-proc get_value*[T](db: Db, query: SQL, TT: type[T], default: T): T =
-  db.fget_value(query, TT).get(default)
+proc get_value*[T](db: Db, query: SQL, TT: type[T], default: T, log: LogFn = nil): T =
+  db.fget_value(query, TT, log).get(default)
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -279,7 +270,7 @@ slow_test "db":
   # db.drop
 
   # Executing schema befor any other DB query, will be executed lazily before the first use
-  db.log((info: "apply db schema")).before sql"""
+  db.before sql"""
     drop table if exists users;
     create table users(
       name varchar(100) not null,
@@ -290,7 +281,7 @@ slow_test "db":
     create table times(
       time timestamp not null
     );
-  """
+  """, "apply schema"
 
   block: # CRUD
     db.exec sql"""insert into users (name, age) values ({"Jim"}, {30})"""
