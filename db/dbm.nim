@@ -29,7 +29,7 @@ proc init*(
 
 
 # Logging ------------------------------------------------------------------------------------------
-proc log*(db: Db): Log =
+proc log(db: Db): Log =
   Log.init(db.id)
 
 proc get_log(db: Db): Log =

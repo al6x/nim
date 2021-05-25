@@ -118,15 +118,12 @@ var log_method* = default_log_method # Override to provide custom logging
 
 
 # log.message, debug, info, warn, error ------------------------------------------------------------
-proc message*(log: Log): void =
-  if log.data.len == 0: return
-  log_method(log)
+# proc message*(log: Log): void =
+#   if log.data.len == 0: return
+#   log_method(log)
 
 proc message*(log: Log, msg: tuple): void =
-  log.with(msg).message
-
-proc message_if_empty*(log: Log, msg: tuple): void =
-  if log.is_empty: log.message(msg) else: log.message
+  log_method(log.with(msg))
 
 proc debug*(log: Log, msg: string): void =
   log.message((debug: msg))
