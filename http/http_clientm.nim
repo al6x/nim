@@ -46,11 +46,11 @@ proc http_post*(
 # get_data, post_data ------------------------------------------------------------------------------
 proc get_data*[Res](url: string, timeout_sec = default_timeout_sec, use_pool = false): Res =
   let resp = http_get(url, timeout_sec, use_pool, { "Content-Type": "application/json" })
-  Fallible[Res].from_json(resp.parse_json).get
+  resp.parse_json.json_to(Fallible[Res]).get
 
 proc post_data*[Req, Res](url: string, req: Req, timeout_sec = default_timeout_sec, use_pool = false): Res =
   let resp = http_post(url, req.to_json.to_s, timeout_sec, use_pool, { "Content-Type": "application/json" })
-  Fallible[Res].from_json(resp.parse_json).get
+  resp.parse_json.json_to(Fallible[Res]).get
 
 
 # post_batch ---------------------------------------------------------------------------------------
@@ -61,10 +61,10 @@ proc post_batch*[B, R](
   let json = data.parse_json
   if json.kind == JObject and "is_error" in json:
     for _ in requests:
-      result.add Fallible[R].from_json(json)
+      result.add json.json_to(Fallible[R])
   else:
     for item in json:
-      result.add Fallible[R].from_json(item)
+      result.add item.json_to(Fallible[R])
 
 
 # build_url ----------------------------------------------------------------------------------------

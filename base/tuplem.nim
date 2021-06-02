@@ -4,6 +4,28 @@ proc is_empty*(o: tuple): bool =
   for _, _ in o.field_pairs: return false
   return true
 
+
+func to_tuple1*[T](list: openarray[T]): (T,) =
+  if list.len != 1: throw fmt"expected 1 elements but found {list.len}"
+  (list[0],)
+
+func to_tuple2*[T](list: openarray[T]): (T, T) =
+  if list.len != 2: throw fmt"expected 2 elements but found {list.len}"
+  (list[0], list[1])
+
+func to_tuple3*[T](list: openarray[T]): (T, T, T) =
+  if list.len != 3: throw fmt"expected 3 elements but found {list.len}"
+  (list[0], list[1], list[2])
+
+func to_tuple4*[T](list: openarray[T]): (T, T, T, T) =
+  if list.len != 4: throw fmt"expected 4 elements but found {list.len}"
+  (list[0], list[1], list[2], list[4])
+
+func to_tuple5*[T](list: openarray[T]): (T, T, T, T, T) =
+  if list.len != 5: throw fmt"expected 5 elements but found {list.len}"
+  (list[0], list[1], list[2], list[4], list[5])
+
+
 # map ----------------------------------------------------------------------------------------------
 func map*[V, R](t: (V, ), op: (v: V) -> R): (R, ) =
   (op(t[0]), )

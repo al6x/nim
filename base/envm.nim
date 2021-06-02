@@ -50,10 +50,11 @@ proc `[]`*(env: Env, key: string, default: string): string =
   env.get_optional(key).get(default)
 
 # environment mode ---------------------------------------------------------------------------------
-let environment_mode = env["environment", "development"]
-proc is_production*(env: Env):  bool = environment_mode == "production"
-proc is_test*(env: Env):        bool = environment_mode == "test"
-proc is_development*(env: Env): bool = environment_mode == "development"
+let env_mode = env["env", "dev"]
+if env_mode notin ["dev", "test", "prod"]: throw fmt"invalid env mode {env_mode}"
+proc is_prod*(env: Env): bool = env_mode == "prod"
+proc is_test*(env: Env): bool = env_mode == "test"
+proc is_dev*(env: Env): bool  = env_mode == "dev"
 
 
 # parse_env_variable -------------------------------------------------------------------------------

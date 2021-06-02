@@ -25,7 +25,7 @@ proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after:
       R.error edata["error"].get_str
     else:
       try:
-        edata["value"].to_json(R).success
+        edata["value"].json_to(R).success
       except Exception as e:
         R.error fmt"can't parse {$(R.typeof)} json, {e}"
 

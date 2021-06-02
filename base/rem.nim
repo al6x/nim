@@ -95,34 +95,34 @@ test "find_all":
 
 # parse1,2,3,4 --------------------------------------------------------------------------------------
 proc parse1*(r: Regex, s: string): Option[string] =
-  let foundo = r.parse(s)
-  if foundo.is_none: return
-  let found = foundo.get
-  if found.len == 1: found[0].some else: return
+  r.parse(s).map(proc (found: auto): auto =
+    if found.len != 1: throw fmt"expected 1 match but found {found.len}"
+    found[0]
+  )
 
 proc parse2*(r: Regex, s: string): Option[(string, string)] =
-  let foundo = r.parse(s)
-  if foundo.is_none: return
-  let found = foundo.get
-  if found.len == 2: (found[0], found[1]).some else: return
+  r.parse(s).map(proc (found: auto): auto =
+    if found.len != 2: throw fmt"expected 2 match but found {found.len}"
+    (found[0], found[1])
+  )
 
 proc parse3*(r: Regex, s: string): Option[(string, string, string)] =
-  let foundo = r.parse(s)
-  if foundo.is_none: return
-  let found = foundo.get
-  if found.len == 3: (found[0], found[1], found[2]).some else: return
+  r.parse(s).map(proc (found: auto): auto =
+    if found.len != 3: throw fmt"expected 3 matches but found {found.len}"
+    (found[0], found[1], found[2])
+  )
 
 proc parse4*(r: Regex, s: string): Option[(string, string, string, string)] =
-  let foundo = r.parse(s)
-  if foundo.is_none: return
-  let found = foundo.get
-  if found.len == 4: (found[0], found[1], found[2], found[3]).some else: return
+  r.parse(s).map(proc (found: auto): auto =
+    if found.len != 4: throw fmt"expected 4 matches but found {found.len}"
+    (found[0], found[1], found[2], found[3])
+  )
 
 proc parse5*(r: Regex, s: string): Option[(string, string, string, string, string)] =
-  let foundo = r.parse(s)
-  if foundo.is_none: return
-  let found = foundo.get
-  if found.len == 5: (found[0], found[1], found[2], found[3], found[4]).some else: return
+  r.parse(s).map(proc (found: auto): auto =
+    if found.len != 5: throw fmt"expected 5 matches but found {found.len}"
+    (found[0], found[1], found[2], found[3], found[4])
+  )
 
 test "parse1,2,3,4,5":
   let pattern = re".+ (\d+) (\d+)"

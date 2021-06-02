@@ -3,8 +3,11 @@ import std/jsonutils
 
 export json, jsonutils
 
-proc jsonTo*(json: JsonNode, T: typedesc, options: Joptions): T =
-  fromJson(result, json, options)
+proc to_s*(json: JsonNode, pretty = true): string =
+  if pretty: pretty(json) else: $json
+
+proc json_to*(json: JsonNode, T: typedesc, options: Joptions): T =
+  from_json(result, json, options)
 
 
 # update_from --------------------------------------------------------------------------------------

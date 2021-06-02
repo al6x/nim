@@ -249,7 +249,7 @@ proc nexport_function*[N, A, B, C](fsign: FnSignatureS, fn: proc(n: N, a: A, b: 
 
 
 # nexport_async_function ---------------------------------------------------------------------------
-var catch_node_errors* = env.is_production()
+var catch_node_errors* = env.is_prod()
 # Should be true in production, but in development it's better to set it as false
 
 

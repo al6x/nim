@@ -75,6 +75,7 @@ converter to_option*[T](v: Fallible[T]): Option[T] =
 #   if f.is_error: %f else: %(f.get)
 
 proc from_json_hook*[T](v: var Fallible[T], json: JsonNode) =
+  p(json)
   v = if json.kind == JObject and "is_error" in json:
     if json["is_error"].get_bool:
       let message =
@@ -82,6 +83,7 @@ proc from_json_hook*[T](v: var Fallible[T], json: JsonNode) =
         elif "message" in json: json["message"].get_str
         else:                   "unknown error"
       T.error message
-    else:                         json["value"].json_to(T).success
+    else:
+      json["value"].json_to(T).success
   else:
     json.json_to(T).success

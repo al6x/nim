@@ -6,7 +6,7 @@ from base/fs import nil
 proc read_from_optional*[T](t: type[T], path: string): Option[T] =
   try:
     let json = fs.read path
-    json.parse_json.to_json(T).some
+    json.parse_json.json_to(T).some
   except:
     T.none
 

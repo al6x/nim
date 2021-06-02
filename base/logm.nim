@@ -53,7 +53,8 @@ proc with*(log: Log, msg: tuple): Log =
   for key, value in msg.field_pairs:
     if key == "id": log.ids.add $value
     if key == "ids":
-      for id in value: log.ids.add $id
+      when value is seq:
+        for id in value: log.ids.add $id
     log.data.fields[key] = value.to_json
   log
 
@@ -64,7 +65,7 @@ proc with*(log: Log, id: string | int): Log =
   log
 
 proc with*(log: Log, error: ref Exception): Log =
-  log.with((error: error.message, trace: error.get_stack_trace))
+  log.with((error: error.message, stack: error.get_stack_trace))
 
 
 # log_method ---------------------------------------------------------------------------------------

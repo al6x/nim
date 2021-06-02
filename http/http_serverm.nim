@@ -41,13 +41,13 @@ proc init*(
   _: type[ServerImpl],
   host           = "localhost",
   port           = 8080,
-  catch_errors   = env.is_production(),
-  show_errors    = not env.is_production(),
+  catch_errors   = env.is_prod(),
+  show_errors    = not env.is_prod(),
 
   assets_path       = "/assets",
   assets_file_paths = new_seq[string](),
   max_file_size     = 10_000_000,                  # 10 Mb
-  cache_assets      = env.is_production()
+  cache_assets      = env.is_prod()
 ): ServerImpl =
   ServerImpl(
     host: host, port: port, show_errors: show_errors,
