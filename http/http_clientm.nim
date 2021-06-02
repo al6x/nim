@@ -54,17 +54,18 @@ proc post_data*[Req, Res](url: string, req: Req, timeout_sec = default_timeout_s
 
 
 # post_batch ---------------------------------------------------------------------------------------
-proc post_batch*[B, R](
-  url: string, requests: seq[B], timeout_sec = default_timeout_sec, use_pool = false
-): seq[Fallible[R]] =
+type PostBatchItem*[T] = tuple[path: string, body: T]
+proc post_batch*[Req, Res](
+  url: string, requests: seq[PostBatchItem[Req]], timeout_sec = default_timeout_sec, use_pool = false
+): seq[Fallible[Res]] =
   let data = http_post(url, requests.to_json.to_s, timeout_sec, use_pool, { "Content-Type": "application/json" })
   let json = data.parse_json
   if json.kind == JObject and "is_error" in json:
     for _ in requests:
-      result.add json.json_to(Fallible[R])
+      result.add json.json_to(Fallible[Res])
   else:
     for item in json:
-      result.add item.json_to(Fallible[R])
+      result.add item.json_to(Fallible[Res])
 
 
 # build_url ----------------------------------------------------------------------------------------
