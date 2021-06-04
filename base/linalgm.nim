@@ -18,7 +18,7 @@ func inverse_distance_weighting*(points: seq[Point3D], target: Point2D): float =
   let distances = points.map((p) => ((p.x - x).pow(2) + (p.y - y).pow(2)).sqrt)
 
   # Handling special case when distance is 0
-  let min_distance_i = distances.findi_min
+  let min_distance_i = distances.findi_min.get
   if distances[min_distance_i] < inverse_distance_weighting_minimal_distance:
     return points[min_distance_i].z
 

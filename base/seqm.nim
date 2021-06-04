@@ -138,40 +138,47 @@ func reverse*[T](list: openarray[T]): seq[T] {.inline.} = list.reversed
 
 
 # findi_min/max ------------------------------------------------------------------------------------
-func findi_min*[T](list: openarray[T], op: (T) -> float): int =
-  assert not list.is_empty
+func findi_min*[T](list: openarray[T], op: (T) -> float): Option[int] =
+  if list.is_empty: return
   var (min, min_i) = (op(list[0]), 0)
   for i in 1..(list.len - 1):
     let m = op(list[i])
     if m < min:
       min = m
       min_i = i
-  min_i
+  min_i.some
 
-func findi_min*(list: openarray[float]): int =
+func findi_min*(list: openarray[float]): Option[int] =
   list.findi_min((v) => v)
 
-func findi_max*[T](list: openarray[T], op: (T) -> float): int =
-  assert not list.is_empty
+func findi_max*[T](list: openarray[T], op: (T) -> float): Option[int] =
+  if list.is_empty: return
   var (max, max_i) = (op(list[0]), 0)
   for i in 1..(list.len - 1):
     let m = op(list[i])
     if m > max:
       max = m
       max_i = i
-  max_i
+  max_i.some
 
-func findi_max*(list: openarray[float]): int =
+func findi_max*(list: openarray[float]): Option[int] =
   list.findi_max((v) => v)
 
 test "findi_min/max":
-  assert @[1.0, 2.0, 3.0].findi_min((v) => (v - 2.1).abs) == 1
-  assert @[1.0, 2.0, 3.0].findi_max((v) => (v - 0.5).abs) == 2
+  assert @[1.0, 2.0, 3.0].findi_min((v) => (v - 2.1).abs).get == 1
+  assert @[1.0, 2.0, 3.0].findi_max((v) => (v - 0.5).abs).get == 2
 
 
 # find_min, find_max -------------------------------------------------------------------------------
-func find_min*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_min(op)]
-func find_max*[T](list: openarray[T], op: (T) -> float): T = list[list.findi_max(op)]
+func find_min*[T](list: openarray[T], op: (T) -> float): Option[T] =
+  let i = list.findi_min(op)
+  if i.is_none: return
+  list[i.get].some
+
+func find_max*[T](list: openarray[T], op: (T) -> float): Option[T] =
+  let i = list.findi_max(op)
+  if i.is_none: return
+  list[i.get].some
 
 
 # reject -------------------------------------------------------------------------------------------
@@ -242,6 +249,11 @@ func flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
 # unique -------------------------------------------------------------------------------------------
 func unique*[T](list: openarray[T]): seq[T] =
   list.deduplicate
+
+
+# zip ----------------------------------------------------------------------------------------------
+func zip*[A, B, R](a: openarray[A], b: openarray[B], op: (A, B) -> R): seq[R] =
+  a.zip(b).map((pair) => op(pair[0], pair[1]))
 
 
 # add_capped ---------------------------------------------------------------------------------------

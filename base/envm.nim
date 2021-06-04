@@ -10,7 +10,7 @@ template throw(message: string) = raise newException(Exception, message)
 type Env* = ref object
   values*: Table[string, string]
 
-const special_arguments = { "help": "bool", "test": "bool/string" }.to_table
+const special_arguments = { "help": "bool" }.to_table
 
 # Normalizing keys, so both camel case and underscore keys will be matched
 func normalize_key(v: string): string = v.to_lower.replace("_", "")
@@ -71,7 +71,7 @@ proc parse_env*[T: tuple|object](
   required_args                       = (0, 0),
   required_options: openarray[string] = [],
   env                                 = env
-): (T, seq[string]) =
+): (T, seq[string]) = # (options, args)
   var o = default
 
   # List of keys in object

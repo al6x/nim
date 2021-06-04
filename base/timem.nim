@@ -340,6 +340,7 @@ proc `-`*(a: Time | TimeD | TimeM, b: Time | TimeD | TimeM): TimeInterval =
 test "-":
   assert (TimeD.init(2001, 3, 1) - TimeD.init(2001, 1, 1)).days =~ 59.0
   assert (TimeM.init(2001, 3) - TimeD.init(2001, 1, 1)).days =~ 59.0
+  assert (TimeD.init(2001, 1, 1) - TimeM.init(2001, 3)).days =~ -59.0
 
 
 # Helpers ------------------------------------------------------------------------------------------
