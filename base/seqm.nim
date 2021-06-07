@@ -69,14 +69,14 @@ func findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
       if list[i] == value: return i.some
   int.none
 
-func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
+func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): int =
   if start <= (list.len - 1):
     for i in start..(list.len - 1):
-      if check(list[i]): return i.some
-  int.none
+      if check(list[i]): return i
+  -1
 
 test "findi":
-  assert @["a"].findi((v) => v == "a") == 0.some # From error
+  assert @["a"].findi((v) => v == "a") == 0 # From error
 
 
 # find_by ------------------------------------------------------------------------------------------

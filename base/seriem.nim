@@ -76,20 +76,20 @@ test "extrapolate":
 
 # zip ----------------------------------------------------------------------------------------------
 proc zip*[T](serie_a: seq[(T, float)], serie_b: seq[(T, float)]): seq[(T, float, float)] =
-  var j = 0
+  var bi_start_from = 0
   for i in 0..(serie_a.len - 1):
     let (atime, avalue) = serie_a[i]
-    let bi = serie_b.findi((p) => p.time == atime, j)
-    if bi.is_some:
-      result.add((atime, avalue, serie_b[bi.get].value))
-      j = bi.get + 1
+    let bi = serie_b.findi((p) => p.time == atime, bi_start_from)
+    if bi >= 0:
+      result.add((atime, avalue, serie_b[bi][1]))
+      bi_start_from = bi + 1
     elif not result.is_empty:
       return # not allowing spans
 
 test "zip":
-  let a: PointsM = @[((2000, 1), 1.0), ((2000, 2), 2.0), ((2000, 3), 3.0),                   ((2000, 4), 0.1)]
+  # Spans not allowed
+  let a: PointsM = @[((2000, 1), 1.0), ((2000, 2), 2.0), ((2000, 3), 3.0),                   ((2000, 5), 0.1)]
   let b: PointsM = @[                  ((2000, 2), 0.3), ((2000, 3), 0.2), ((2000, 4), 0.1),                 ]
-
   assert zip(a, b) == @[(TimeM.init(2000, 2), 2.0, 0.3), (TimeM.init(2000, 3), 3.0, 0.2)]
 
 

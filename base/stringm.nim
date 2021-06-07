@@ -17,6 +17,11 @@ proc is_empty*(s: string): bool = s == ""
 proc is_present*(s: string): bool = not s.is_empty
 
 
+# if_empty -----------------------------------------------------------------------------------------
+proc if_empty*(s: string, default: string): string =
+  if s.is_empty: default else: s
+
+
 # when_present -------------------------------------------------------------------------------------
 # func when_present*(s: string, v: string): string =
 #   if s.is_present: v else: ""
