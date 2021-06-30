@@ -26,3 +26,6 @@ proc get*[T](o: Option[T], otherwise: () -> T): T =
 
 proc clean*[T](o: var Option[T]): void =
   o = T.none
+
+# converter to_option*[T: object | tuple | SomeNumber | bool](v: T): Option[T] =
+#   v.some

@@ -71,7 +71,7 @@ proc if_nil*[T](value, otherwise: T): T =
 
 
 # throw --------------------------------------------------------------------------------------------
-template throw*(message: string) = raise newException(Exception, message)
+template throw*(message: string) = raise Exception.new_exception(message)
 template throw*(exception: Exception | ref Exception) = raise exception
 
 # A simple way to message user by throwing an error
