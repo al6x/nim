@@ -72,7 +72,7 @@ var table: seq[CStats] = block:
   table
 
 
-# # Plotting -----------------------------------------------------------------------------------------
+# Plotting -----------------------------------------------------------------------------------------
 plot_base_url  = "http://demos.pl0t.com"
 
 # Can be seen as http://demos.pl0t.com/promising_countries.json:table
