@@ -80,8 +80,8 @@ plot "/promising_countries.json", table, jo {
   columns: [
     { id: "country",       type: "string" },
     { id: "economy_score", type: "number", format: { type: "line"} },
-    { id: "gov_spending",  type: "number", format: { type: "line", ticks: [50, 100] } },
-    { id: "age_0_14",      type: "number", format: { type: "line", ticks: [50, 100] } }
+    { id: "gov_spending",  type: "number", format: { type: "line", ticks: [0, 50, 100] } },
+    { id: "age_0_14",      type: "number", format: { type: "line", ticks: [0, 50, 100] } }
   ],
   column_filters: { economy_score: [">", 1.5] },
   wsort:          { economy_score: 1.6, gov_spending: -1.0, age_0_14: 1.0 },
