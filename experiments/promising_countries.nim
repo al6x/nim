@@ -1,9 +1,9 @@
-import base/[basem, jsonm, saym]
-import ext/csvm
+import ../base/[basem, jsonm, saym]
+import ../ext/csvm
 import pl0t
 
 # Reading data -------------------------------------------------------------------------------------
-const data_path = "./exp/promising_countries"
+const data_path = "./experiments/promising_countries"
 
 # Country age structure
 # https://en.wikipedia.org/wiki/List_of_countries_by_age_structure
