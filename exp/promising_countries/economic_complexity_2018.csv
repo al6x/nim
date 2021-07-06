@@ -1,0 +1,134 @@
+Rank	Country	Economic complexity index (2018)	Change in 5 years (2013-18)	Change in 10 years (2008-18)
+1	Japan	2.43	Steady	Steady
+2	Switzerland	2.17	Increase 1	Increase 1
+3	South Korea	2.11	Increase 4	Increase 8
+4	Germany	2.09	Decrease 2	Decrease 2
+5	Singapore	1.85	Steady	Decrease 1
+6	Austria	1.81	Decrease 2	Increase 1
+7	Czech Republic	1.80	Decrease 1	Increase 2
+8	Sweden	1.70	Steady	Decrease 3
+9	Hungary	1.66	Steady	Increase 5
+10	Slovenia	1.62	Increase 3	Increase 3
+11	United States	1.55	Increase 1	Increase 1
+12	Finland	1.55	Increase 2	Decrease 1
+13	United Kingdom	1.51	Decrease 2	Decrease 5
+14	Italy	1.44	Decrease 2	Increase 3
+15	Slovakia	1.41	Steady	Increase 1
+16	France	1.37	Decrease 2	Decrease 1
+17	Ireland	1.36	Steady	Decrease 7
+18	China	1.34	Steady	Increase 6
+19	Mexico	1.29	Steady	Steady
+20	Israel	1.20	Increase 6	Increase 3
+21	Belgium	1.18	Decrease 1	Decrease 1
+22	Thailand	1.17	Increase 2	Increase 9
+23	Poland	1.10	Steady	Decrease 2
+24	Denmark	1.09	Decrease 3	Decrease 6
+25	Romania	1.09	Steady	Increase 5
+26	Malaysia	1.03	Increase 3	Increase 1
+27	Netherlands	0.98	Steady	Decrease 5
+28	Estonia	0.96	Increase 2	Increase 4
+29	Belarus	0.89	Decrease 7	Decrease 1
+30	Croatia	0.87	Increase 1	Decrease 1
+31	Lithuania	0.86	Increase 5	Increase 10
+32	Spain	0.83	Decrease 4	Decrease 7
+33	Portugal	0.80	Increase 1	Increase 1
+34	Latvia	0.70	Increase 3	Increase 6
+35	Philippines	0.67	Increase 3	Increase 10
+36	Saudi Arabia	0.67	Increase 33	Increase 71
+37	Bosnia and Herzegovina	0.67	Decrease 4	Increase 1
+38	Serbia	0.67	Increase 1	Decrease 2
+39	Canada	0.65	Increase 2	Steady
+40	Turkey	0.64	Increase 2	Increase 2
+41	Bulgaria	0.55	Decrease 1	Increase 5
+42	India	0.54	Increase 10	Increase 8
+43	Norway	0.44	Decrease 8	Decrease 8
+44	Ukraine	0.37	Decrease 1	Steady
+45	Lebanon	0.35	Steady	Decrease 2
+46	Tunisia	0.34	Decrease 2	Increase 8
+47	Costa Rica	0.33	Increase 4	Increase 10
+48	Bahrain	0.30	Increase 10	Increase 37
+49	Brazil	0.21	Decrease 2	Decrease 1
+50	Cyprus	0.18	Decrease 4	Decrease 24
+51	Jordan	0.17	Decrease 1	Decrease 2
+52	Vietnam	0.14	Increase 11	Increase 11
+53	El Salvador	0.13	Increase 2	Increase 7
+54	New Zealand	0.13	Decrease 5	Decrease 3
+55	Greece	0.11	Increase 2	Decrease 3
+56	Colombia	0.10	Increase 4	Decrease 3
+57	North Macedonia	0.07	Increase 11	Increase 8
+58	Trinidad and Tobago	0.05	Increase 24	Increase 23
+59	Kyrgyzstan	0.04	Decrease 11	Increase 8
+60	Uruguay	0.02	Decrease 6	Decrease 5
+61	Indonesia	0.02	Increase 1	Increase 1
+62	United Arab Emirates	-0.01	Increase 18	Increase 6
+63	South Africa	-0.02	Decrease 7	Decrease 7
+64	Russia	-0.04	Increase 1	Decrease 3
+65	Georgia	-0.04	Decrease 1	Increase 21
+66	Egypt	-0.06	Increase 1	Increase 4
+67	Eswatini	-0.08	Decrease 6	Decrease 34
+68	Tanzania	-0.09	Increase 25	Increase 28
+69	Mauritius	-0.17	Decrease 3	Increase 3
+70	Dominican Republic	-0.18	Increase 4	Decrease 6
+71	Moldova	-0.18	Decrease 18	Decrease 13
+72	Chile	-0.18	Steady	Increase 1
+73	Argentina	-0.21	Decrease 14	Decrease 14
+74	Panama	-0.24	Decrease 42	Decrease 37
+75	Qatar	-0.31	Increase 14	Increase 36
+76	Albania	-0.32	Increase 7	Steady
+77	Kenya	-0.34	Decrease 2	Increase 1
+78	Sri Lanka	-0.36	Decrease 1	Decrease 9
+79	Armenia	-0.39	Decrease 8	Decrease 32
+80	Uzbekistan	-0.41	Increase 18	Increase 9
+81	Namibia	-0.43	Decrease 3	Decrease 15
+82	Guatemala	-0.45	Decrease 9	Decrease 11
+83	Oman	-0.48	Increase 14	Increase 17
+84	Botswana	-0.48	Increase 11	Decrease 9
+85	Mali	-0.49	Increase 33	Decrease 8
+86	Uganda	-0.50	Decrease 2	Increase 5
+87	Australia	-0.53	Increase 3	Decrease 5
+88	Burkina Faso	-0.55	Increase 12	Increase 28
+89	Paraguay	-0.55	Decrease 2	Decrease 1
+90	Cambodia	-0.56	Increase 1	Increase 12
+91	Morocco	-0.56	Decrease 6	Decrease 4
+92	Jamaica	-0.58	Decrease 11	Decrease 18
+93	Kazakhstan	-0.59	Increase 16	Decrease 1
+94	Zambia	-0.62	Decrease 15	Increase 12
+95	Senegal	-0.63	Decrease 7	Decrease 2
+96	Laos	-0.63	Increase 12	Increase 5
+97	Ethiopia	-0.66	Increase 19	Increase 7
+98	Honduras	-0.67	Decrease 4	Decrease 1
+99	Pakistan	-0.68	Decrease 3	Decrease 20
+100	Kuwait	-0.70	Increase 19	Increase 33
+101	Iran	-0.71	Decrease 31	Increase 21
+102	Togo	-0.78	Decrease 16	Decrease 12
+103	Ghana	-0.80	Decrease 4	Increase 2
+104	Peru	-0.81	Decrease 12	Decrease 20
+105	Nicaragua	-0.84	Decrease 3	Decrease 7
+106	Turkmenistan	-0.84	Increase 11	Increase 2
+107	Monaco	-0.88	Increase 13	Increase 11
+108	Bangladesh	-0.88	Decrease 2	Decrease 14
+109	Zimbabwe	-0.93	Decrease 2	Decrease 26
+110	Ivory Coast	-0.96	Increase 1	Increase 5
+111	Myanmar	-0.97	Increase 4	Increase 6
+112	Ecuador	-0.97	Decrease 7	Decrease 13
+113	Madagascar	-1.01	Decrease 12	Decrease 18
+114	Mauritania	-1.03	Increase 18	Increase 13
+115	Bolivia	-1.04	Decrease 1	Decrease 12
+116	Tajikistan	-1.09	Decrease 4	Increase 3
+117	Cuba	-1.11	Decrease 41	Decrease 37
+118	Malawi	-1.12	Decrease 15	Decrease 6
+119	Venezuela	-1.14	Increase 2	Increase 1
+120	Liberia	-1.15	Decrease 16	Decrease 10
+121	Mozambique	-1.25	Decrease 8	Decrease 7
+122	Algeria	-1.31	Increase 7	Increase 2
+123	Yemen	-1.31	Decrease 1	Decrease 4
+124	Azerbaijan	-1.37	Increase 1	Decrease 3
+125	Republic of the Congo	-1.42	Increase 3	Increase 3
+126	Gabon	-1.43	Increase 4	Steady
+127	Guinea	-1.43	Decrease 4	Decrease 2
+128	Libya	-1.46	Increase 5	Increase 1
+129	Cameroon	-1.60	Decrease 19	Decrease 20
+130	Papua New Guinea	-1.68	Decrease 3	Decrease 3
+131	Angola	-1.71	Decrease 7	Steady
+132	Democratic Republic of the Congo	-1.80	Decrease 6	Decrease 9
+133	Nigeria	-1.90	Decrease 2	Decrease 3

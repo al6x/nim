@@ -6,11 +6,12 @@ proc map_csv*[T](
   csv_file_path: string,
   map: proc(
     row: proc(key: string): string
-  ): T
+  ): T,
+  separator = ','
 ): seq[T] =
   var parser: CsvParser
   try:
-    parser.open csv_file_path
+    parser.open(csv_file_path, separator = separator)
     parser.read_header_row
     let column_indexes = parser.headers.to_index
     while parser.read_row:
