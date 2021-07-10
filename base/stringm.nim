@@ -1,6 +1,10 @@
-import ./supportm, re, strutils, strformat
+import ./supportm
+import std/[re, strformat]
+import std/strutils except `%`
 
-export strutils, strformat
+export strformat
+export strutils except `%`
+
 
 # trim ---------------------------------------------------------------------------------------------
 func trim*(s: string): string =

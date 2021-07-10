@@ -1,4 +1,4 @@
-import json except to, `%`, `%*`
+import std/json except to, `%`, `%*`
 import std/jsonutils, std/macros
 
 export json except to, `%`, `%*`, pretty, toUgly
@@ -55,9 +55,8 @@ proc toJoImpl(x: NimNode): NimNode {.compileTime.} =
   else:
     result = newCall(bindSym("to_json", brOpen), x)
 
-macro jo*(v: untyped): JsonNode =
-  ## Convert an expression to a JsonNode directly, without having to specify
-  ## `%` for every element.
+macro `%`*(v: untyped): JsonNode =
+  # Convert an expression to a JsonNode directly, without having to specify to_json for every element.
   toJoImpl(v)
 
 macro jinit*[T](TT: type[T], x: untyped): T =
@@ -72,7 +71,8 @@ proc update_from*[T](o: var T, partial: JsonNode): void =
       v = partial.fields[k].json_to(typeof v)
 
 if is_main_module:
-  echo jo { a: 1, b: "b" }
+  let b = "some"
+  echo %{ a: 1, b: "b" }
 
   type Unit = object
     name: string
