@@ -1,5 +1,5 @@
 import osproc
-import base/[jsonm, stringm, falliblem]
+import base/[basem, jsonm, stringm, falliblem]
 
 type ShellArg[B, I, A] = object
   before: B
@@ -13,7 +13,7 @@ proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after:
   let escaped_shell_arg_json = shell_arg_json.replace("\"", "\\\"")
   let cmd = command & " \"" & escaped_shell_arg_json & "\""
   let full_output = exec_cmd_ex(cmd).output
-
+  p full_output
   # Programs can print to stdout, ignoring such output
   assert json_output_token in full_output,
     "shell call output should contain token '{" & json_output_token & "}'"

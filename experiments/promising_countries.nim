@@ -73,6 +73,7 @@ var table: seq[CStats] = block:
 
 
 # Plotting -----------------------------------------------------------------------------------------
+# TODO - add trends and this signal youtube.com/watch?v=-VUjR2oBWhE
 plot_base_url  = "http://demos.pl0t.com"
 
 # Can be seen as http://demos.pl0t.com/promising_countries.json:table

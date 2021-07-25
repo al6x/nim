@@ -1,3 +1,15 @@
+Future in programming languages is not about machines or machine optimised languages. Machines will
+be fine and will be fast. Every 3 year computing powers doubles, algorithms and perf optimisers
+gets better. The problem is not the machines or better compilers.
+
+The bigest problem in Computer Science is old and weak human brain, that's not designed for digital
+world and don't improves every 3 years. The future is in languages who would focus on humans and
+make it easier to work with digital world.
+
+JS data == code, this is so powerful that it beats other languages by mile.
+
+Type Infer is not considered important https://forum.nim-lang.org/t/8259#53213
+
 For me the biggest Nim issue is that its priorities are different from mine. So this criticism is
 biased.
 
@@ -37,8 +49,8 @@ Issues with Nim:
 - object vs ref. and move semantic. To achieve highest performance and hard real-time Nim needs
   fine grained control over object memory layout, object copying and destruction. And it's
   great features if you need it. But if you don't, and in most practical use cases there's no
-  need such high performance. You still need to know and using those primitives, still pay the
-  cost of having to write more complicated code than it could be.
+  need such high performance, you still needs to pay attention to value vs. ref and it's a burden,
+  some [feedback from biologist](http://lh3.github.io/2020/05/17/fast-high-level-programming-languages).
 - No support for parallelism. Nether for CPU nor IO. Async is very unstable and async in general
   is bad approach. But what pretty much makes async in Nim useless is a) the ability to block async
   loop by IO, b) fragmentation by sync and async IO. Writing reliable and fast servers is so hard
@@ -49,7 +61,8 @@ Issues with Nim:
   ignored for years, and all the effort of core devs spent on something like making GC a little
   bit more performant.
 - Macros, works well for simple cases. For complex things macros are very hard to use, like
-  learning different language.
+  learning different language. Because macros are not homoiconic and AST structure is different
+  from the language structure.
 - Macros, allow core devs to ignore feature requests. As when someone points to the lack of feature,
   like "it's hard to initialise objects, too much boilerplate". The answer from the core team
   is, instead of recognizing the problem and finding ways to address it - the answer is
