@@ -1,3 +1,7 @@
+Basically, it's like C, no much sense to use C for web or servers or data analysis. For some bottleneck code, system utils yes, but as a general language, no.
+
+It still surprises me, after 1 year of working heavily with Nim.
+
 Future in programming languages is not about machines or machine optimised languages. Machines will
 be fine and will be fast. Every 3 year computing powers doubles, algorithms and perf optimisers
 gets better. The problem is not the machines or better compilers.
@@ -5,8 +9,6 @@ gets better. The problem is not the machines or better compilers.
 The bigest problem in Computer Science is old and weak human brain, that's not designed for digital
 world and don't improves every 3 years. The future is in languages who would focus on humans and
 make it easier to work with digital world.
-
-JS data == code, this is so powerful that it beats other languages by mile.
 
 Type Infer is not considered important https://forum.nim-lang.org/t/8259#53213
 

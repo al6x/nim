@@ -74,6 +74,13 @@ var table: seq[CStats] = block:
 
 # Plotting -----------------------------------------------------------------------------------------
 # TODO - add trends and this signal youtube.com/watch?v=-VUjR2oBWhE
+# - Maybe don't use GDP / gov-spending as it's a lie, but high-tech exports / gov-spending
+#   there's exports stats https://oec.world/en/profile/country/usa#yearly-exports
+# - Age structure http://data.un.org/Data.aspx?d=POP&f=tableCode%3A22 or
+#   https://www.populationpyramid.net/western-sahara/2019/ it has CSV
+# - Add debt/gdp ratio
+# - Maybe use gdp/population or median house price as proxy to p/e
+# - Add crime rate, with linear weight
 plot_base_url  = "http://demos.pl0t.com"
 
 # Can be seen as http://demos.pl0t.com/promising_countries.json:table
