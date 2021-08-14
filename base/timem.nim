@@ -102,9 +102,7 @@ proc `$`*(t: Time): string =
 
 
 proc to_json_hook*(time: Time): JsonNode = ($time).to_json
-proc from_json_hook*(v: var Time, json: JsonNode) =
-  assert json.kind == JString, "expected json as string for Time"
-  v = Time.init(json.get_str)
+proc from_json_hook*(_: type[Time], json: JsonNode): Time = Time.init(json.get_str)
 
 
 # times.DateTime -----------------------------------------------------------------------------------
@@ -144,8 +142,7 @@ proc `$`*(t: TimeD): string = t.year.align(4) & "-" & t.month.align(2) & "-" & t
 
 
 proc to_json_hook*(time: TimeD): JsonNode = ($time).to_json
-proc from_json_hook*(v: var TimeD, json: JsonNode) =
-  v = TimeD.init(json.get_str)
+proc from_json_hook*(_: type[TimeD], json: JsonNode): TimeD = TimeD.init(json.get_str)
 
 
 # TimeM --------------------------------------------------------------------------------------------
@@ -167,8 +164,7 @@ proc `$`*(t: TimeM): string = t.year.align(4) & "-" & t.month.align(2)
 
 
 proc to_json_hook*(time: TimeM): JsonNode = ($time).to_json
-proc from_json_hook*(v: var TimeM, json: JsonNode) =
-  v = TimeM.init(json.get_str)
+proc from_json_hook*(_: type[TimeM], json: JsonNode): TimeM = TimeM.init(json.get_str)
 
 
 test "epoch":
