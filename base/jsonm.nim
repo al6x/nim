@@ -1,8 +1,9 @@
 import std/json except to, `%`, `%*`
-import std/jsonutils, std/macros
+import std/macros, std/options
+import ./std_jsonutils
 
 export json except to, `%`, `%*`, pretty, toUgly
-export jsonutils except json_to, from_json, Joptions
+export std_jsonutils except json_to, from_json, Joptions
 
 
 proc to_s*(json: JsonNode, pretty = true): string =
@@ -13,17 +14,17 @@ proc json_to*(json: JsonNode, T: typedesc): T =
   from_json(result, json, Joptions(allow_extra_keys: true))
 
 
-proc to_json_hook*[T: tuple](o: T): JsonNode =
-  result = new_JObject()
-  for k, v in o.field_pairs: result[k] = v.to_json
+# proc to_json_hook*[T: tuple](o: T): JsonNode =
+#   result = new_JObject()
+#   for k, v in o.field_pairs: result[k] = v.to_json
 
 proc to_json_hook*(list: openarray[(string, JsonNode)]): JsonNode =
-  # Needed for `toJoImpl` to work properly
+  # Needed for `%` to work properly
   result = newJObject()
   for item in list: result[item[0]] = item[1]
 
-proc to_json_hook*(n: JsonNode): JsonNode =
-  n
+# proc to_json_hook*(n: JsonNode): JsonNode =
+#   n
 
 proc toJoImpl(x: NimNode): NimNode {.compileTime.} =
   # Same as `%*` but:
@@ -70,13 +71,23 @@ proc update_from*[T](o: var T, partial: JsonNode): void =
     if k in partial.fields:
       v = partial.fields[k].json_to(typeof v)
 
-if is_main_module:
+when is_main_module:
   let b = "some"
   echo %{ a: 1, b: "b" }
 
   type Unit = object
     name: string
   echo Unit.jinit { name: "Jim" }
+
+  # Ignoring nil and empty options
+  assert (a: 1.some, b: int.none, c: nil).to_json.to_s(pretty = false) == """{"a":1}"""
+
+  # Encoding enums as stings
+  type SomeEnum* = enum some_name
+  assert SomeEnum.some_name.to_json.to_s == "\"some_name\""
+  assert parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
+
+
 
 
 # Patching jsonutils https://github.com/nim-lang/Nim/issues/18151
