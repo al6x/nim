@@ -6,6 +6,11 @@ export json except to, `%`, `%*`, pretty, toUgly
 export std_jsonutils except json_to, from_json, Joptions
 
 
+template as_json_string*[T](TT: type[T]): void =
+  func to_json_hook*(v: TT): JsonNode = v.to_s.to_json
+  proc from_json_hook*(_: type[T], json: JsonNode): T = T.init(json.get_str)
+
+
 proc to_s*(json: JsonNode, pretty = true): string =
   if pretty: pretty(json) else: $json
 
@@ -86,7 +91,6 @@ when is_main_module:
   type SomeEnum* = enum some_name
   assert SomeEnum.some_name.to_json.to_s == "\"some_name\""
   assert parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
-
 
 
 

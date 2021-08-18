@@ -9,6 +9,12 @@ from ./terminalm as terminal import nil
 export envm
 
 
+template with*[T](TT: type[T], code) =
+  using self: T; using tself: type[T]
+  code
+  using self: void; using tself: void
+
+
 # test ---------------------------------------------------------------------------------------------
 let test_enabled_s    = if "test" in env: env["test"].to_lower else: "false"
 let slow_test_enabled = test_enabled_s == "all"
