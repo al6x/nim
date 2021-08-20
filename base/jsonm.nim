@@ -6,9 +6,9 @@ export json except to, `%`, `%*`, pretty, toUgly
 export std_jsonutils except json_to, from_json, Joptions
 
 
-template as_json_string*[T](TT: type[T]): void =
-  func to_json_hook*(v: TT): JsonNode = v.to_s.to_json
-  proc from_json_hook*(_: type[T], json: JsonNode): T = T.init(json.get_str)
+template json_as_string*[T](_: type[T]): void =
+  func to_json_hook*(v: T): JsonNode = v.to_s.to_json
+  proc from_json_hook*(v: var T, json: JsonNode) = v = T.init(json.get_str)
 
 
 proc to_s*(json: JsonNode, pretty = true): string =

@@ -10,8 +10,15 @@ proc map_csv*[T](
   separator = ','
 ): seq[T] =
   var parser: CsvParser
+
   try:
     parser.open(csv_file_path, separator = separator)
+  except:
+    # closing parser would trigger the null pointer exception and it won't be caught by except
+    # try: parser.close except: discard
+    throw fmt"can't read CSV file, {get_current_exception().message}"
+
+  try:
     parser.read_header_row
     let column_indexes = parser.headers.to_index
     while parser.read_row:

@@ -85,3 +85,26 @@ Issues with Nim:
 - No simple built-in profiler. Not really a problem for people knowing C, as Nim works well with
   C-profilers. But if you don't know C-profilers and just need to find the bottleneck in your code
   there's no simple way, you need to learn how to use C-profilers and how to use it with Nim.
+
+
+
+
+The amount of bugs and suprises in Nim is just mind blowing. I'm using Nim almost a year and it still continue to surprise me every second day. It feels more fragile after 10 years of development than Node.JS in its early days.
+
+I mostly use Nim for data processing. But I also tried to use it for web dev and recently build some web service with Nim. Bugs and missing features keept coming non stop. Eventually I got tired and switched to Node.JS. Finished service in half (or even third) time spent on Nim version, and it worked since without a single issue.
+
+So eventually I given up on using Nim for anything except one-time-run data processing scripts, but even in this simple case, it still work unreliably and surprises are common practice (like null pointers not caught by except clause, etc).
+
+The current state of Nim:
+
+Multicore - unusable for practical projects, there are some experimental work, but nothing more.
+
+Networking - async is working, but immature, lacks features and libraries, buggy, and require expert knowledge to be usable.
+
+Language - the core is nice. But there are so much extra stuff and complications that's using it feels like piloting a space ship. And even when you learn it, it still not enough and Nim keeps surprising you.
+
+Macros - great for simple tings. For anything more complex, to use macros is almost like learning a whole new language.
+
+Simple and very needed issues [like this one](https://github.com/nim-lang/RFCs/issues/8) are ignored for years (5 years). I guess such features considered as insignificant and unimportant.
+
+Nim core team and large part of nim community focus on use cases like command-line utilities, embedded software, system prgramming, and have little interest in server or networking, reliable long running processes, web development, etc. So those domains are not only under developed, but also problems are ignored and marked as non important, and probably won't be addressed in the future too.

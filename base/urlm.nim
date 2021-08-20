@@ -1,4 +1,5 @@
-import ./supportm, ./decode_querym, ./rem, strformat, ./tablem, strutils, ./hashm, options
+import ./supportm, ./decode_querym, ./rem, ./tablem, ./hashm
+import std/[strformat, options, strutils, sugar]
 from uri import nil
 
 type Url* = object
@@ -72,4 +73,4 @@ proc `&`*(base: Url, addon: string): Url =
 
 
 proc subdomain*(host: string): Option[string] =
-  re"^([^\.]+)\.".parse1(host)
+  re"^([^\.]+)\.".parse(host).map((found) => found[0])

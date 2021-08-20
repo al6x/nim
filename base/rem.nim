@@ -4,10 +4,10 @@ from std/options as stdoptions import nil
 
 type Regex* = nre.Regex
 
-# re -----------------------------------------------------------------------------------------------
+
 proc re*(s: string): Regex = nre.re(s)
 
-# match --------------------------------------------------------------------------------------------
+
 proc match*(s: string, r: Regex): bool = nre.contains(s, r)
 
 test "match":
@@ -18,7 +18,7 @@ test "match":
 
   assert "abc".match(re"(?i)B") # case insensitive
 
-# =~ and != ----------------------------------------------------------------------------------------
+
 proc `=~`*(s: string, r: Regex): bool = match(s, r)
 proc `!~`*(s: string, r: Regex): bool = not(s =~ r)
 
@@ -26,14 +26,14 @@ proc `=~`*(r: Regex, s: string): bool = s =~ r
 proc `!~`*(r: Regex, s: string): bool = s !~ r
 
 
-# split --------------------------------------------------------------------------------------------
+
 proc split*(s: string, r: Regex): seq[string] = nre.split(s, r)
 
 test "split":
   assert "abcde".split(re"[bcd]+") == @["a", "e"]
 
 
-# replace ------------------------------------------------------------------------------------------
+
 proc replace*(s: string, r: Regex, by: string): string = nre.replace(s, r, by)
 
 proc replace*(s: string, r: Regex, by: (proc (match: string): string)): string = nre.replace(s, r, by)
@@ -43,7 +43,7 @@ test "replace":
   assert "abcde".replace(re"[bcd]", (match) => match.to_upper) == "aBCDe"
 
 
-# find ---------------------------------------------------------------------------------------------
+
 proc find*(s: string, r: Regex): Option[string] =
   let found = nre.find(s, r)
   if stdoptions.is_some(found): nre.match(stdoptions.get(found)).some else: return
@@ -53,7 +53,7 @@ test "find":
   assert "abcde".find(re"[x]").is_none
 
 
-# parse --------------------------------------------------------------------------------------------
+
 proc parse*(r: Regex, s: string): Option[seq[string]] =
   let found = nre.match(s, r)
   if stdoptions.is_some(found):
@@ -66,7 +66,7 @@ test "parse":
   assert re"[^;]+;".parse("drop table; create table;").is_none
 
 
-# parse_named --------------------------------------------------------------------------------------
+
 proc parse_named*(r: Regex, s: string): Table[string, string] =
   let found = nre.match(s, r)
   if stdoptions.is_some(found):
@@ -78,7 +78,6 @@ test "parse_named":
   assert re".+ (?<a>\d+) (?<b>\d+)".parse_named("a 22 45") == { "a": "22", "b": "45" }.to_table
 
 
-# find_iter ---------------------------------------------------------------------------------------------
 iterator find_iter*(s: string, r: Regex): string =
   for match in nre.find_iter(s, r): yield nre.match(match)
 
@@ -86,45 +85,38 @@ test "find_iter":
   assert to_seq("abcde".find_iter(re"[bcd]")) == @["b", "c", "d"]
 
 
-# find_all -----------------------------------------------------------------------------------------
 proc find_all*(s: string, r: Regex): seq[string] = to_seq(find_iter(s, r))
 
 test "find_all":
   assert "abcde".find_all(re"[bcd]") == @["b", "c", "d"]
   assert "abcde".find_all(re"[x]") == @[]
 
-# parse1,2,3,4 --------------------------------------------------------------------------------------
-proc parse1*(r: Regex, s: string): Option[string] =
-  r.parse(s).map(proc (found: auto): auto =
-    if found.len != 1: throw fmt"expected 1 match but found {found.len}"
-    found[0]
-  )
 
-proc parse2*(r: Regex, s: string): Option[(string, string)] =
-  r.parse(s).map(proc (found: auto): auto =
-    if found.len != 2: throw fmt"expected 2 match but found {found.len}"
-    (found[0], found[1])
-  )
+proc parse1*(r: Regex, s: string): string =
+  let parts = r.parse(s).get
+  if parts.len != 1: throw fmt"expected 1 match but found {parts.len}"
+  parts[0]
 
-proc parse3*(r: Regex, s: string): Option[(string, string, string)] =
-  r.parse(s).map(proc (found: auto): auto =
-    if found.len != 3: throw fmt"expected 3 matches but found {found.len}"
-    (found[0], found[1], found[2])
-  )
+proc parse2*(r: Regex, s: string): (string, string) =
+  let parts = r.parse(s).get
+  if parts.len != 2: throw fmt"expected 2 match but found {parts.len}"
+  (parts[0], parts[1])
 
-proc parse4*(r: Regex, s: string): Option[(string, string, string, string)] =
-  r.parse(s).map(proc (found: auto): auto =
-    if found.len != 4: throw fmt"expected 4 matches but found {found.len}"
-    (found[0], found[1], found[2], found[3])
-  )
+proc parse3*(r: Regex, s: string): (string, string, string) =
+  let parts = r.parse(s).get
+  if parts.len != 3: throw fmt"expected 3 matches but found {parts.len}"
+  (parts[0], parts[1], parts[2])
 
-proc parse5*(r: Regex, s: string): Option[(string, string, string, string, string)] =
-  r.parse(s).map(proc (found: auto): auto =
-    if found.len != 5: throw fmt"expected 5 matches but found {found.len}"
-    (found[0], found[1], found[2], found[3], found[4])
-  )
+proc parse4*(r: Regex, s: string): (string, string, string, string) =
+  let parts = r.parse(s).get
+  if parts.len != 4: throw fmt"expected 4 matches but found {parts.len}"
+  (parts[0], parts[1], parts[2], parts[3])
+
+proc parse5*(r: Regex, s: string): (string, string, string, string, string) =
+  let parts = r.parse(s).get
+  if parts.len != 5: throw fmt"expected 5 matches but found {parts.len}"
+  (parts[0], parts[1], parts[2], parts[3], parts[4])
 
 test "parse1,2,3,4,5":
   let pattern = re".+ (\d+) (\d+)"
-  assert pattern.parse2("a 22 45") == ("22", "45").some
-  assert pattern.parse2("a 22").is_none
+  assert pattern.parse2("a 22 45") == ("22", "45")

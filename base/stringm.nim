@@ -6,7 +6,6 @@ export strformat
 export strutils except `%`
 
 
-# trim ---------------------------------------------------------------------------------------------
 func trim*(s: string): string =
   s.replace(re("\\A[\\n\\s\\t]|[\\n\\s\\t]\\Z"), "")
 
@@ -16,22 +15,16 @@ test "trim":
   assert " a \n b ".trim == "a \n b"
 
 
-# is_empty, is_present -----------------------------------------------------------------------------
 proc is_empty*(s: string): bool = s == ""
+
+
 proc is_present*(s: string): bool = not s.is_empty
 
 
-# if_empty -----------------------------------------------------------------------------------------
 proc if_empty*(s: string, default: string): string =
   if s.is_empty: default else: s
 
 
-# when_present -------------------------------------------------------------------------------------
-# func when_present*(s: string, v: string): string =
-#   if s.is_present: v else: ""
-
-
-# take ---------------------------------------------------------------------------------------------
 proc take*(s: string, n: int): string =
   if n < s.len: s[0..(n - 1)] else: s
 
@@ -40,7 +33,6 @@ test "take":
   assert "ab".take(10) == "ab"
 
 
-# pluralize ----------------------------------------------------------------------------------------
 proc pluralize*(count: int, singular, plural: string): string =
   if count == 1: singular else: plural
 
@@ -52,7 +44,6 @@ test "pluralize":
   assert 2.pluralize("second") == "seconds"
 
 
-# split2,3,4 ---------------------------------------------------------------------------------------
 proc split2*(s: string, by: string): (string, string) =
   let list = s.split(by)
   assert list.len == 2, fmt"expected 2 but found {list.len} elements after splitting {s} by {by}"
@@ -69,6 +60,5 @@ proc split4*(s: string, by: string): (string, string, string, string) =
   (list[0], list[1], list[2], list[3])
 
 
-# format -------------------------------------------------------------------------------------------
 proc format*(n: float | int, precision = 2): string =
   format_float(n, format = ff_decimal, precision = precision)

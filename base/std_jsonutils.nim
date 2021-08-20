@@ -93,10 +93,10 @@ proc to_json_default*(j: JsonNode): JsonNode = j
 #   result = newJArray()
 #   for elem in elements: result.add(%elem)
 
-# proc `%`*[T](table: Table[string, T]|OrderedTable[string, T]): JsonNode =
-#   ## Generic constructor for JSON data. Creates a new ``JObject JsonNode``.
-#   result = newJObject()
-#   for k, v in table: result[k] = %v
+proc to_json_default*[T](table: Table[string, T]|OrderedTable[string, T]): JsonNode =
+  ## Generic constructor for JSON data. Creates a new ``JObject JsonNode``.
+  result = newJObject()
+  for k, v in table: result[k] = v.to_json
 
 # proc `%`*[T](opt: Option[T]): JsonNode =
 #   ## Generic constructor for JSON data. Creates a new ``JNull JsonNode``

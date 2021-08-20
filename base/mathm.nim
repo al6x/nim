@@ -3,11 +3,19 @@ import ./supportm, ./algorithm, std/math, sequtils, strformat, sugar
 export math
 
 
-# requal -------------------------------------------------------------------------------------------
-# Relative float equality
-const requal_default_epsilon = 0.001
-const requal_min_float       = MinFloatNormal / requal_default_epsilon
-func requal*(a: float, b: float, repsilon: float = requal_default_epsilon): bool =
+func rsim*(a: float, b: float): float =
+  assert a.sgn == b.sgn, "rdif requires same sign"
+  let (aabs, babs) = (a.abs, b.abs)
+  let (smaller, larger) = (min(aabs, babs), max(aabs, babs))
+  smaller / larger
+
+test "rsim":
+  assert rsim(1.0, 1.0009).to_s == "0.9991008092716556"
+
+
+const requal_default_rsim = 0.999
+const requal_min_float    = MinFloatNormal / requal_default_rsim
+func requal*(a: float, b: float, rsim: float = requal_default_rsim): bool =
   if a == b:
     true
   elif a.sgn != b.sgn:
@@ -17,7 +25,7 @@ func requal*(a: float, b: float, repsilon: float = requal_default_epsilon): bool
     let babs = b.abs
     let (smaller, larger) = (min(aabs, babs), max(aabs, babs))
     if larger < requal_min_float: true
-    else:                         ((larger - smaller) / larger) < repsilon
+    else:                         (smaller / larger) > rsim
 
 func `=~`*(a: float, b: float): bool {.inline.} = a.requal(b)
 func `!~`*(a: float, b: float): bool {.inline.} = not(a =~ b)

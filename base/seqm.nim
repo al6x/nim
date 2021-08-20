@@ -173,6 +173,12 @@ func filter_map*[V, R](list: openarray[V], convert: (V) -> Option[R]): seq[R] =
     if o.is_some: result.add o.get
 
 
+func filter_map*[V, R](list: openarray[V], convert: (V, int) -> Option[R]): seq[R] =
+  for i, v in list:
+    let o = convert(v, i)
+    if o.is_some: result.add o.get
+
+
 func each*[T](list: openarray[T]; cb: (T) -> void): void {.inline.} =
   for v in list: cb(v)
 

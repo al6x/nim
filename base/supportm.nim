@@ -14,6 +14,9 @@ template with*[T](TT: type[T], code) =
   code
   using self: void; using tself: void
 
+template with*(_: string, code) =
+  code
+
 
 # test ---------------------------------------------------------------------------------------------
 let test_enabled_s    = if "test" in env: env["test"].to_lower else: "false"
