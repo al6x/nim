@@ -250,10 +250,10 @@ test "to_monthly":
 
 
 # Json ---------------------------------------------------------------------------------------------
-proc to_json_hook*(point: PointT | PointD | PointM): JsonNode = [point[0], point[1]].to_json
-proc from_json_hook*(v: var PointT, json: JsonNode) =
-  v = (json.get_elems[0].json_to(Time), json.get_elems[1].get_float)
-proc from_json_hook*(v: var PointD, json: JsonNode) =
-  v = (json.get_elems[0].json_to(TimeD), json.get_elems[1].get_float)
-proc from_json_hook*(v: var PointM, json: JsonNode) =
-  v = (json.get_elems[0].json_to(TimeM), json.get_elems[1].get_float)
+# proc to_json_hook*(point: PointT | PointD | PointM): JsonNode = (point[0], point[1]).to_json
+# proc from_json_hook*(v: var PointT, json: JsonNode) =
+#   v = (json.get_elems[0].json_to(Time), json.get_elems[1].get_float)
+# proc from_json_hook*(v: var PointD, json: JsonNode) =
+#   v = (json.get_elems[0].json_to(TimeD), json.get_elems[1].get_float)
+# proc from_json_hook*(v: var PointM, json: JsonNode) =
+#   v = (json.get_elems[0].json_to(TimeM), json.get_elems[1].get_float)
