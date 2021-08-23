@@ -86,3 +86,7 @@ proc from_json_hook*[T](v: var Fallible[T], json: JsonNode) =
       json["value"].json_to(T).success
   else:
     json.json_to(T).success
+
+proc to_json_hook*[T](v: Fallible[T]): JsonNode =
+  if v.is_error: (is_error: true, message: v.message).to_json
+  else:          v.get.to_json

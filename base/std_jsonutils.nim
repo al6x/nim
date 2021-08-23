@@ -124,12 +124,12 @@ proc to_json_default*(o: enum): JsonNode =
 
 
 # Change begin -------------------------------------------------------------------------------------
-proc to_json_default*(n: JsonNode): JsonNode =
-  n
+# proc to_json_hook*(n: JsonNode): JsonNode =
+#   n
 
-proc to_json_default*[T: tuple](o: T): JsonNode =
-  result = new_JObject()
-  for k, v in o.field_pairs: result[k] = v.to_json
+# proc to_json_default*[T: tuple](o: T): JsonNode =
+#   result = new_JObject()
+#   for k, v in o.field_pairs: result[k] = v.to_json
 # Change end ---------------------------------------------------------------------------------------
 
 
@@ -370,6 +370,9 @@ proc toJson*[T](a: T): JsonNode =
   ## serializes `a` to json; uses `toJsonHook(a: T)` if it's in scope to
   ## customize serialization, see strtabs.toJsonHook for an example.
   when compiles(toJsonHook(a)): result = toJsonHook(a)
+# Change begin -------------------------------------------------------------------------------------
+  elif T is JsonNode: result = a
+# Change ends --------------------------------------------------------------------------------------
   elif T is object | tuple:
     when T is object or isNamedTuple(T):
       result = newJObject()

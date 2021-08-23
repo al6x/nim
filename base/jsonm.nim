@@ -80,6 +80,11 @@ when is_main_module:
   let b = "some"
   echo %{ a: 1, b: "b" }
 
+  let attrs = %{ title: "Some page" }
+  assert ($(attrs)).parse_json == attrs
+
+  assert (a: 1).to_json.to_json.to_s(false) == """{"a":1}"""
+
   type Unit = object
     name: string
   echo Unit.jinit { name: "Jim" }
@@ -92,59 +97,6 @@ when is_main_module:
   assert SomeEnum.some_name.to_json.to_s == "\"some_name\""
   assert parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
 
-
-
-# Patching jsonutils https://github.com/nim-lang/Nim/issues/18151
-#
-# template fromJsonFields(newObj, oldObj, json, discKeys, opt) =
-#   type T = typeof(newObj)
-#   # we could customize whether to allow JNull
-#   checkJson json.kind == JObject, $json.kind
-#   var num, numMatched = 0
-#   for key, val in fieldPairs(newObj):
-#     num.inc
-#     when key notin discKeys:
-#       if json.hasKey key:
-#         numMatched.inc
-#         fromJson(val, json[key])
-# # Change begin --------------------
-# # Allowing field Option[T] to be missing
-#       elif val is Option:
-#         num.dec
-#         fromJson(val, newJNull())
-# # Change end ----------------------
-#       elif opt.allowMissingKeys:
-#         # if there are no discriminant keys the `oldObj` must always have the
-#         # same keys as the new one. Otherwise we must check, because they could
-#         # be set to different branches.
-#         when typeof(oldObj) isnot typeof(nil):
-#           if discKeys.len == 0 or hasField(oldObj, key):
-#             val = accessField(oldObj, key)
-#       else:
-#         checkJson false, $($T, key, json)
-#     else:
-#       if json.hasKey key:
-#         numMatched.inc
-#   let ok =
-# # Change begin --------------------
-# # Always allowing extra keys as option passing is broken in jsonutils
-#     # if opt.allowExtraKeys and opt.allowMissingKeys:
-#     if true and opt.allowMissingKeys:
-#       true
-#     # elif opt.allowExtraKeys:
-#     elif true:
-# # Change begin --------------------
-#       # This check is redundant because if here missing keys are not allowed,
-#       # and if `num != numMatched` it will fail in the loop above but it is left
-#       # for clarity.
-#       assert num == numMatched
-#       num == numMatched
-#     elif opt.allowMissingKeys:
-#       json.len == numMatched
-#     else:
-#       json.len == num and num == numMatched
-
-#   checkJson ok, $(json.len, num, numMatched, $T, json)
 
 
 
