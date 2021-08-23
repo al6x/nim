@@ -1,6 +1,9 @@
 import ./supportm, os, sugar, strutils, ./optionm, strformat
 
-# open_file ----------------------------------------------------------------------------------------
+type FS* = object
+const fs* = FS()
+
+
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
   var file: File
   var opened = file.open(path, mode)
@@ -18,8 +21,7 @@ proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc 
     raise new_exception(IOError, "cannot open: " & path)
 
 
-# move ---------------------------------------------------------------------------------------------
-proc move*(source, dest: string, ensure_parents = true): void =
+proc move*(fs: FS, source, dest: string, ensure_parents = true): void =
   try:
     move_file(source, dest)
   except Exception as e:
@@ -30,13 +32,11 @@ proc move*(source, dest: string, ensure_parents = true): void =
       raise new_exception(IOError, fmt"cannot move: {source} to {dest}, {e.msg}")
 
 
-# read_file ----------------------------------------------------------------------------------------
-proc read*(path: string): string =
+proc read*(fs: FS, path: string): string =
   open_file(path, false, fm_read, (file) => file.read_all)
 
 
-# read_file_optional -------------------------------------------------------------------------------
-proc read_optional*(path: string): Option[string] =
+proc read_optional*(fs: FS, path: string): Option[string] =
   var file: File
   if file.open(path, fm_read):
     defer: file.close
@@ -45,24 +45,21 @@ proc read_optional*(path: string): Option[string] =
     string.none
 
 
-# write --------------------------------------------------------------------------------------------
-proc write*(path, data: string): void =
+proc write*(fs: FS, path, data: string): void =
   discard open_file(path, true, fm_write, proc (file: auto): bool =
     file.write data
     false
   )
 
 
-# append -------------------------------------------------------------------------------------------
-proc append*(path, data: string): void =
+proc append*(fs: FS, path, data: string): void =
   discard open_file(path, true, fm_append, proc (file: auto): bool =
     file.write data
     false
   )
 
 
-# append_line --------------------------------------------------------------------------------------
-proc append_line*(path, data: string): void =
+proc append_line*(fs: FS, path, data: string): void =
   assert not("\n" in data), "appended line can't have newline characters"
   discard open_file(path, true, fm_append, proc (file: auto): bool =
     file.write "\n"
@@ -71,8 +68,7 @@ proc append_line*(path, data: string): void =
   )
 
 
-# exist --------------------------------------------------------------------------------------------
-proc exist*(path: string): bool =
+proc exist*(fs: FS, path: string): bool =
   try:
     discard get_file_info(path)
     true
@@ -80,39 +76,38 @@ proc exist*(path: string): bool =
     false
 
 
-# is_empty_dir -------------------------------------------------------------------------------------
-proc is_empty_dir(path: string): bool =
+proc is_empty_dir(fs: FS, path: string): bool =
   for _ in walk_dir(path, relative = true):
     return false
   true
 
 
-# delete -------------------------------------------------------------------------------------------
-# Deletes file or directory, does nothing if path not exist
-proc delete*(path: string, recursive = false, delete_empty_parents = false) =
+proc delete*(fs: FS, path: string, recursive = false, delete_empty_parents = false) =
+  # Deletes file or directory, does nothing if path not exist
   try:
     remove_file path
   except:
-    if not path.exist:
+    if not fs.exist path:
       return
-    elif path.is_empty_dir or recursive:
+    elif fs.is_empty_dir(path) or recursive:
       remove_dir path
     else:
-      assert path.dir_exists, "internal error, expecting directory to exist"
+      assert dir_exists(path), "internal error, expecting directory to exist"
       throw fmt"can't delete not empty directory '{path}'"
 
-  if delete_empty_parents and path.parent_dir.is_empty_dir:
-    path.parent_dir.delete(recursive = false, delete_empty_parents = true)
+  if delete_empty_parents and fs.is_empty_dir(path.parent_dir):
+    fs.delete(path.parent_dir, recursive = false, delete_empty_parents = true)
 
 
 # Test ---------------------------------------------------------------------------------------------
+
 if is_main_module:
-  write("./tmp/fs/some.txt", "some text")
-  append_line("./tmp/fs/some.txt", "line 1")
-  append_line("./tmp/fs/some.txt", "line 2")
-  echo read("./tmp/fs/some.txt")
-  move("./tmp/fs/some.txt", "./tmp/fs/some_dir/some.text")
-  delete("./tmp/some_dir/some.text", delete_empty_parents = true)
+  fs.write("./tmp/fs/some.txt", "some text")
+  fs.append_line("./tmp/fs/some.txt", "line 1")
+  fs.append_line("./tmp/fs/some.txt", "line 2")
+  echo fs.read("./tmp/fs/some.txt")
+  fs.move("./tmp/fs/some.txt", "./tmp/fs/some_dir/some.text")
+  fs.delete("./tmp/some_dir/some.text", delete_empty_parents = true)
 
   # var list = ""
   # for path in walk_dir("./tmp/fs", relative = true):

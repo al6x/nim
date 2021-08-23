@@ -19,7 +19,7 @@ template with*(_: string, code) =
 
 
 # test ---------------------------------------------------------------------------------------------
-let test_enabled_s    = if "test" in env: env["test"].to_lower else: "false"
+let test_enabled_s    = if "test" in env: env["test"] else: "false"
 let slow_test_enabled = test_enabled_s == "all"
 let test_enabled      = test_enabled_s == "true" or slow_test_enabled
 
