@@ -44,6 +44,97 @@ template slow_test*(name: string, body) =
       quit(e)
 
 
+proc if_nil*[T](value, otherwise: T): T =
+  if value.is_nil: otherwise else: value
+
+
+template throw*(message: string) = raise Exception.new_exception(message)
+template throw*(exception: Exception | ref Exception) = raise exception
+
+
+func message*(e: Exception | ref Exception): string = e.msg
+
+proc quit*(message: string) =
+  stderr.write_line terminal.red(message)
+  # stderr.write_line e.get_stack_trace
+  quit 1
+proc quit*(e: Exception | ref Exception) =
+  quit e.message
+
+
+proc ensure*[V](v: V, check: (V) -> bool, message = "check failed"): V =
+  if check(v): v else: throw(message)
+proc ensure*[V](v: V, check: (V) -> bool, message: () -> string): V =
+  if check(v): v else: throw(message())
+
+
+proc to_ref*[T](o: T): ref T =
+  result.new
+  result[] = o
+
+
+# Making the copy intention explicit
+func copy*[T](o: T): T = o
+func copy*[T](o: ref T): ref T = o[].to_ref
+
+
+proc to_s*[T](o: T): string = $o
+
+
+# proc init*[T](_: type[string], v: T): string = $v
+
+
+template to*[F,T](f: F, _: type[T]): T = T.init(f)
+
+
+proc align*(n: int, digits: int): string = ($n).align(digits, '0')
+
+
+proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
+
+
+func p*(args: varargs[string, `$`]): void = debug_echo args.join(" ")
+
+
+func error_type*(message: string): string =
+  # Extract error type from string message, the last part of `some text :some_type`
+  let error_type_re = nre.re("(?i).*\\s:([a-z0-9_-]+)$")
+  if stdoptions.is_some(nre.match(message, error_type_re)): nre.split(message, nre.re("\\s:"))[^1]
+  else:                                         ""
+
+test "error_type":
+  assert "No security definition has been found :not_found".error_type == "not_found"
+
+
+type Timer* = proc: int
+proc timer_sec*(): Timer =
+  let started_at = nt.utc(nt.now())
+  () => nt.in_seconds(nt.`-`(nt.utc(nt.now()), started_at)).int
+
+proc timer_ms*(): Timer =
+  let started_at = nt.utc(nt.now())
+  () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
+
+
+# proc to_shared_ptr*[T](v: T): ptr T =
+#   result = create_shared(T)
+#   result[] = v
+
+# A simple way to message user by throwing an error
+# type MessageError* = object of Exception
+# template throw_message*(message: string) =
+#   echo terminal.red(message)
+#   quit(0)
+#   # raise newException(MessageError, message)
+
+# unset --------------------------------------------------------------------------------------------
+# type Unset* = object
+
+# const unset* = Unset()
+
+# template is_unset*[T](o: T): bool =
+#   when o is Unset: true else: false
+
 # test with group ----------------------------------------------------------------------------------
 # var test_group_cache = init_table[string, string]()
 # template test*(name: string, group, body) =
@@ -65,107 +156,3 @@ template slow_test*(name: string, body) =
 # aqual --------------------------------------------------------------------------------------------
 # proc aqual*(a: float, b: float, epsilon: float): bool =
 #   (a - b).abs() <= epsilon
-
-
-# unset --------------------------------------------------------------------------------------------
-# type Unset* = object
-
-# const unset* = Unset()
-
-# template is_unset*[T](o: T): bool =
-#   when o is Unset: true else: false
-
-proc if_nil*[T](value, otherwise: T): T =
-  if value.is_nil: otherwise else: value
-
-
-# throw --------------------------------------------------------------------------------------------
-template throw*(message: string) = raise Exception.new_exception(message)
-template throw*(exception: Exception | ref Exception) = raise exception
-
-# A simple way to message user by throwing an error
-# type MessageError* = object of Exception
-# template throw_message*(message: string) =
-#   echo terminal.red(message)
-#   quit(0)
-#   # raise newException(MessageError, message)
-
-
-proc quit*(e: ref Exception) =
-  stderr.write_line terminal.red(e.msg)
-  stderr.write_line e.get_stack_trace
-  quit 1
-
-
-# Exception.message --------------------------------------------------------------------------------
-func message*(e: Exception | ref Exception): string = e.msg
-
-
-# ensure -------------------------------------------------------------------------------------------
-proc ensure*[V](v: V, check: (V) -> bool, message = "check failed"): V =
-  if check(v): v else: throw(message)
-proc ensure*[V](v: V, check: (V) -> bool, message: () -> string): V =
-  if check(v): v else: throw(message())
-
-
-# to_ref -------------------------------------------------------------------------------------------
-proc to_ref*[T](o: T): ref T =
-  result.new
-  result[] = o
-
-
-# Making the copy intention explicit
-func copy*[T](o: T): T = o
-func copy*[T](o: ref T): ref T = o[].to_ref
-
-
-proc to_s*[T](o: T): string = $o
-
-
-
-
-# init ---------------------------------------------------------------------------------------------
-proc init*[T](_: type[string], v: T): string = $v
-
-
-# to -----------------------------------------------------------------------------------------------
-template to*[F,T](f: F, _: type[T]): T = T.init(f)
-
-
-# int.align ----------------------------------------------------------------------------------------
-proc align*(n: int, digits: int): string = ($n).align(digits, '0')
-
-
-# T.$ ----------------------------------------------------------------------------------------------
-proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
-
-
-# p ------------------------------------------------------------------------------------------------
-func p*(args: varargs[string, `$`]): void = debug_echo args.join(" ")
-
-
-# string.error_type --------------------------------------------------------------------------------
-# Extract error type from string message, the last part of `some text :some_type`
-func error_type*(message: string): string =
-  let error_type_re = nre.re("(?i).*\\s:([a-z0-9_-]+)$")
-  if stdoptions.is_some(nre.match(message, error_type_re)): nre.split(message, nre.re("\\s:"))[^1]
-  else:                                         ""
-
-test "error_type":
-  assert "No security definition has been found :not_found".error_type == "not_found"
-
-
-# timer --------------------------------------------------------------------------------------------
-type Timer* = proc: int
-proc timer_sec*(): Timer =
-  let started_at = nt.utc(nt.now())
-  () => nt.in_seconds(nt.`-`(nt.utc(nt.now()), started_at)).int
-
-proc timer_ms*(): Timer =
-  let started_at = nt.utc(nt.now())
-  () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
-
-
-# proc to_shared_ptr*[T](v: T): ptr T =
-#   result = create_shared(T)
-#   result[] = v
