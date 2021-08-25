@@ -85,10 +85,10 @@ template throw*(exception: Exception | ref Exception) = raise exception
 
 # A simple way to message user by throwing an error
 # type MessageError* = object of Exception
-template throw_message*(message: string) =
-  echo terminal.red(message)
-  quit(0)
-  # raise newException(MessageError, message)
+# template throw_message*(message: string) =
+#   echo terminal.red(message)
+#   quit(0)
+#   # raise newException(MessageError, message)
 
 
 proc quit*(e: ref Exception) =
@@ -114,21 +114,14 @@ proc to_ref*[T](o: T): ref T =
   result[] = o
 
 
-# copy.T -------------------------------------------------------------------------------------------
 # Making the copy intention explicit
 func copy*[T](o: T): T = o
 func copy*[T](o: ref T): ref T = o[].to_ref
 
 
-# to_s ---------------------------------------------------------------------------------------------
-proc to_s*[T](o: T): string =
-  $o
+proc to_s*[T](o: T): string = $o
 
 
-# to_shared_ptr ------------------------------------------------------------------------------------
-proc to_shared_ptr*[T](v: T): ptr T =
-  result = create_shared(T)
-  result[] = v
 
 
 # init ---------------------------------------------------------------------------------------------
@@ -171,3 +164,8 @@ proc timer_sec*(): Timer =
 proc timer_ms*(): Timer =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
+
+
+# proc to_shared_ptr*[T](v: T): ptr T =
+#   result = create_shared(T)
+#   result[] = v

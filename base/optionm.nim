@@ -1,6 +1,6 @@
 import ./supportm, options, sugar
 
-export options
+export options except option
 
 
 func ensure*[T](o: Option[T], message: string): T =
@@ -26,3 +26,6 @@ proc get*[T](o: Option[T], otherwise: () -> T): T =
 
 proc clean*[T](o: var Option[T]): void =
   o = T.none
+
+converter to_option*[T: string | int | float | bool](v: T): Option[T] =
+  v.some
