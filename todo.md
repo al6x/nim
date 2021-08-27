@@ -1,3 +1,4 @@
+
 - Add User.log_info method
 
 - Add stats update for `files`, store as counters in PG and update once for every ten requests

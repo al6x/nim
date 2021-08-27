@@ -1,3 +1,4 @@
+import sugar
 import ./supportm, ./stringm, ./seqm, ./sets, ./docm, ./jsonm, ./rem, ./tablem, ./terminalm,
   options, ./envm, ./tuplem
 
@@ -14,10 +15,10 @@ type LogConfig* = ref object
 let log_config = LogConfig(
   # List of components and levels to hide, separated by comma, case insensitive,
   # could be "HTTP" or "debug" or "HTTP_debug"
-  disable_logs: env["disable_logs", ""].to_lower.split(",").to_hash_set,
+  disable_logs: env["disable_logs", ""].to_lower.split(",").filter((s) => not s.is_empty).to_hash_set,
   # List of components that will be logged with debug level, separated by comma, case insensitive,
   # could be "HTTP" or "HTTP,DB"
-  log_as_debug: env["log_as_debug", ""].to_lower.split(",").to_hash_set,
+  log_as_debug: env["log_as_debug", ""].to_lower.split(",").filter((s) => not s.is_empty).to_hash_set,
   log_data:     env["log_data", "false"].parse_bool,
 )
 
@@ -159,16 +160,15 @@ converter to_logfn*(msg: tuple): LogFn =
 #   logfn(log)
 
 # Shortcuts ----------------------------------------------------------------------------------------
-proc debug*(message: string): void = Log.init("Main").debug(message)
+proc debug*(message: string): void = Log.init("").debug(message)
 
-proc info*(message: string): void = Log.init("Main").info(message)
+proc info*(message: string): void = Log.init("").info(message)
 
-proc warn*(message: string): void = Log.init("Main").warn(message)
+proc warn*(message: string): void = Log.init("").warn(message)
 
-proc error*(message: string): void = Log.init("Main").error(message)
+proc error*(message: string): void = Log.init("").error(message)
 
-proc error*(message: string, error: ref Exception): void =
-  Log.init("Main").error(message, error)
+proc error*(message: string, error: ref Exception): void = Log.init("").error(message, error)
 
 
 # Utils --------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import optionm, sugar, algorithm, supportm, sequtils, tables, std/macros
+import optionm, sugar, algorithm, supportm, sequtils, tables
 from random as random import nil
 
 export sequtils

@@ -1,4 +1,4 @@
-import strformat, macros, sugar, strutils, unicode, tables
+import strformat, sugar, strutils, unicode, tables
 from std/times as nt import nil
 from std/nre as nre import nil
 from std/options as stdoptions import nil
