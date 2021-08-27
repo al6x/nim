@@ -1,7 +1,8 @@
-import optionm, sugar, algorithm, supportm, sequtils, tables
+import optionm, sugar, algorithm, supportm, tables
+import sequtils except zip
 from random as random import nil
 
-export sequtils
+export sequtils except zip
 
 
 func contains*[T](list: openarray[T], check: (T) -> bool): bool =
@@ -225,8 +226,13 @@ func unique*[T](list: openarray[T]): seq[T] =
   list.deduplicate
 
 
+func zip*[A, B](a: openarray[A], b: openarray[B]): seq[(A, B)] =
+  # Difference from sequtils.zip is that it requires a and b sizes to be the same
+  assert a.len == b.len
+  sequtils.zip(a, b)
+
 func zip*[A, B, R](a: openarray[A], b: openarray[B], op: (A, B) -> R): seq[R] =
-  a.zip(b).map((pair) => op(pair[0], pair[1]))
+  sequtils.zip(a, b).map((pair) => op(pair[0], pair[1]))
 
 
 proc add_capped*[T](list: var seq[T], v: T, cap: int): void =

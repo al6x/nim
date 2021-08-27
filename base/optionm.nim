@@ -27,5 +27,5 @@ proc get*[T](o: Option[T], otherwise: () -> T): T =
 proc clean*[T](o: var Option[T]): void =
   o = T.none
 
-converter to_option*[T: string | int | float | bool](v: T): Option[T] =
-  v.some
+# converter to_option*[T: string | int | float | bool](v: T): Option[T] =
+#   v.some

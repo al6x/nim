@@ -2,6 +2,8 @@ import std/json except to, `%`, `%*`
 import std/macros, std/options
 import ./std_jsonutils
 
+import ./optionm
+
 export json except to, `%`, `%*`, pretty, toUgly
 export std_jsonutils except json_to, from_json, Joptions
 
@@ -77,17 +79,20 @@ proc update_from*[T](o: var T, partial: JsonNode): void =
       v = partial.fields[k].json_to(typeof v)
 
 when is_main_module:
+  # % helper
   let b = "some"
-  echo %{ a: 1, b: "b" }
+  assert (%{ a: 1, b: "b" }).to_s(false) == """{"a":1,"b":"b"}"""
 
   let attrs = %{ title: "Some page" }
   assert ($(attrs)).parse_json == attrs
 
+  # JsonNode.to_json
   assert (a: 1).to_json.to_json.to_s(false) == """{"a":1}"""
 
+  # jinit
   type Unit = object
     name: string
-  echo Unit.jinit { name: "Jim" }
+  assert (Unit.jinit { name: "Jim" }) == Unit(name: "Jim")
 
   # Ignoring nil and empty options
   assert (a: 1.some, b: int.none, c: nil).to_json.to_s(pretty = false) == """{"a":1}"""
@@ -97,6 +102,8 @@ when is_main_module:
   assert SomeEnum.some_name.to_json.to_s == "\"some_name\""
   assert parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
 
+  # From bugs
+  echo @[(a: 1.0.some)].to_json.to_s(false)
 
 
 
