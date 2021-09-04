@@ -1,4 +1,4 @@
-require osproc
+require std/osproc
 require base/[base, json, string, fallible]
 
 type ShellArg[B, I, A] = object

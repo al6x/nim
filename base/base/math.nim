@@ -1,5 +1,5 @@
 import std/[math, sequtils, strformat, sugar]
-require ./support, ./algorithm
+require ./[support, algorithm]
 
 export math
 

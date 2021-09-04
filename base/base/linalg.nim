@@ -1,4 +1,5 @@
-require ./base, ./math
+require std/sugar
+require ./[support, math, seqm]
 
 type Point2D = tuple[x: float, y: float]
 type Point3D = tuple[x: float, y: float, z: float]

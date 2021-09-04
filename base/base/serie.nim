@@ -1,4 +1,5 @@
-require ./support, ./time, ./math, ./json, ./doc, ./seqm, ./option, ./table, sugar
+require std/sugar
+require ./[support, time, math, json, doc, seqm, option, table]
 
 
 # Points -------------------------------------------------------------------------------------------

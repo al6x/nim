@@ -1,5 +1,5 @@
 require std/[parsecsv, strutils, sugar, strformat]
-require ./support, ./option, ./table
+require ./[support, option, table]
 
 # map_csv ------------------------------------------------------------------------------------------
 proc map_csv*[T](

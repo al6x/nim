@@ -1,4 +1,4 @@
-require ./support, ./string
+require ./[support, string]
 
 
 # T.field_names, o.field_names ---------------------------------------------------------------------

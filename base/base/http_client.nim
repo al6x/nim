@@ -1,6 +1,6 @@
-import sugar, httpclient, strformat
-import base/[basem, jsonm, urlm, seqm, falliblem, tablem, logm]
-from uri import nil
+import std/[sugar, httpclient, strformat]
+require ./[support, json, url, seqm, fallible, table, log]
+from std/uri import nil
 
 let default_timeout_sec = 5
 let http_pool_size_warn = 100
