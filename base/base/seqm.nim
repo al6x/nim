@@ -1,6 +1,7 @@
-import optionm, sugar, algorithm, supportm, tables
+require std/[sugar, algorithm, tables]
 import sequtils except zip
-from random as random import nil
+from std/random as random import nil
+require ./[support, option]
 
 export sequtils except zip
 

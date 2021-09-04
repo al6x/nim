@@ -1,4 +1,4 @@
-import std/macros, std/strutils
+require std/[macros, strutils]
 
 macro autoconvert*(TT: type[enum]) =
   let fname = ident "to" & $(TT)

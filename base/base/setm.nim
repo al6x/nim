@@ -1,6 +1,6 @@
-import sets
+require sets
 
-export sets
+export setsm
 
 # is_empty -----------------------------------------------------------------------------------------
 func is_empty*[T](s: HashSet[T]): bool = s.len == 0

@@ -1,8 +1,24 @@
 import std/[strutils, macros]
 
 macro require*(modules: varargs[untyped]) =
-  result = nnk_stmt_list.newTree()
+  var moduless: seq[string]
+
+  # Normalizing module names, converging `namespace/[a, b]` into `namespace/a, namespace/b`
   for m in modules:
-    let mname = new_ident_node(($m).split("/")[^1] & "m")
+    let ms = m.repr().replace(" ")
+    if "[" in ms:
+      let parts = ms.split("/")
+      if parts.len > 2: raise Exception.new_exception("invalid module name " & ms)
+      let nspace = parts[0]
+      let names = parts[1].replace("[").replace("]").split(",")
+      for name in names:
+        moduless.add nspace & "/" & name
+    else:
+      moduless.add ms
+
+  # Importing modules with added postfix _m
+  result = nnk_stmt_list.new_tree()
+  for m in moduless:
+    let mname = new_ident_node(($m).split("/")[^1] & "_m")
     result.add quote do:
       import `m` as `mname`
