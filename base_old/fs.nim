@@ -1,4 +1,5 @@
-import ./supportm, os, sugar, strutils, ./optionm, strformat
+import ./supportm, ./optionm, ./enumm
+import std/[os, sugar, strutils, strformat]
 
 type FS* = object
 const fs* = FS()
@@ -76,7 +77,23 @@ proc exist*(fs: FS, path: string): bool =
     false
 
 
-proc is_empty_dir(fs: FS, path: string): bool =
+type FsEntryKind* = enum file, file_link, dir, dir_link
+autoconvert FsEntryKind
+
+type FsEntry* = tuple[kind: FsEntryKind, name: string]
+
+proc read_dir*(fs: FS, path: string): seq[FsEntry] =
+  for entry in walk_dir(path, relative = true):
+    let kind =
+      case entry.kind
+      of pcFile:       FsEntryKind.file
+      of pcLinkToFile: FsEntryKind.file_link
+      of pcDir:        FsEntryKind.dir
+      of pcLinkToDir:  FsEntryKind.dir_link
+    result.add (kind, entry.path)
+
+
+proc is_empty_dir*(fs: FS, path: string): bool =
   for _ in walk_dir(path, relative = true):
     return false
   true

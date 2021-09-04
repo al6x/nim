@@ -1,12 +1,11 @@
-import strformat, sugar, strutils, unicode, tables
+import std/[strformat, sugar, strutils, unicode, tables, macros]
 from std/times as nt import nil
 from std/nre as nre import nil
 from std/options as stdoptions import nil
-# from std/os import nil
-import ./envm
+import ./requirem, ./envm
 from ./terminalm as terminal import nil
 
-export envm
+export requirem, envm
 
 
 template with*[T](TT: type[T], code) =
@@ -16,6 +15,10 @@ template with*[T](TT: type[T], code) =
 
 template with*(_: string, code) =
   code
+
+
+type None = object # For optional arguments `proc somefn(v: int | None = none)`
+const none = None()
 
 
 # test ---------------------------------------------------------------------------------------------
@@ -54,10 +57,10 @@ template throw*(exception: Exception | ref Exception) = raise exception
 
 func message*(e: Exception | ref Exception): string = e.msg
 
-proc quit*(message: string) =
-  stderr.write_line terminal.red(message)
-  # stderr.write_line e.get_stack_trace
-  quit 1
+# proc quit*(message: string) =
+#   stderr.write_line terminal.red(message)
+#   # stderr.write_line e.get_stack_trace
+#   quit 1
 proc quit*(e: Exception | ref Exception) =
   quit e.message
 
@@ -94,16 +97,6 @@ proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 
 
 func p*(args: varargs[string, `$`]): void = debug_echo args.join(" ")
-
-
-func error_type*(message: string): string =
-  # Extract error type from string message, the last part of `some text :some_type`
-  let error_type_re = nre.re("(?i).*\\s:([a-z0-9_-]+)$")
-  if stdoptions.is_some(nre.match(message, error_type_re)): nre.split(message, nre.re("\\s:"))[^1]
-  else:                                         ""
-
-test "error_type":
-  assert "No security definition has been found :not_found".error_type == "not_found"
 
 
 type Timer* = proc: int
@@ -156,3 +149,13 @@ proc timer_ms*(): Timer =
 # aqual --------------------------------------------------------------------------------------------
 # proc aqual*(a: float, b: float, epsilon: float): bool =
 #   (a - b).abs() <= epsilon
+
+
+# func error_type*(message: string): string =
+#   # Extract error type from string message, the last part of `some text :some_type`
+#   let error_type_re = nre.re("(?i).*\\s:([a-z0-9_-]+)$")
+#   if stdoptions.is_some(nre.match(message, error_type_re)): nre.split(message, nre.re("\\s:"))[^1]
+#   else:                                         ""
+
+# test "error_type":
+#   assert "No security definition has been found :not_found".error_type == "not_found"
