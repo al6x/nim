@@ -2,7 +2,7 @@ import std/json except to, `%`, `%*`
 import std/macros, std/options
 import ./std_jsonutils
 
-require ./option
+require ./[option, seqm]
 
 export json except to, `%`, `%*`, pretty, toUgly
 export std_jsonutils except json_to, from_json, Joptions
@@ -77,6 +77,25 @@ proc update_from*[T](o: var T, partial: JsonNode): void =
   for k, v in o.field_pairs:
     if k in partial.fields:
       v = partial.fields[k].json_to(typeof v)
+
+
+proc to_columns*[T](tidydata: seq[T]): JsonNode =
+  # Converts tidydata to columnar format to consume less space
+  let records: seq[JsonNode] = tidydata.to_json.elems
+
+  var keys: seq[string]
+  for r in records:
+    for k in r.keys: keys.add k
+  keys = keys.unique
+
+  var columns = new_JObject()
+  for k in keys: columns[k] = new_JArray()
+
+  for r in records:
+    for k in keys:
+      columns[k].add(if k in r: r[k] else: new_JNull())
+  columns
+
 
 when is_main_module:
   # % helper

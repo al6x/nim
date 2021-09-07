@@ -6,6 +6,11 @@ require ./[support, option]
 export sequtils except zip
 
 
+proc fill*[T](len: int, v: T): seq[T] =
+  result.set_len len
+  for i in 0..<len: result[i] = v
+
+
 func contains*[T](list: openarray[T], check: (T) -> bool): bool =
   for v in list:
     if check(v): return true

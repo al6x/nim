@@ -22,4 +22,4 @@ macro require*(modules: varargs[untyped]) =
     let ml = new_lit m
     let mname = new_ident_node(($m).split("/")[^1] & "_m")
     result.add quote do:
-      import `m` as `mname`
+      import `ml` as `mname`
