@@ -1,5 +1,5 @@
 import std/[sugar, httpclient, strformat]
-require ./[support, json, url, seqm, fallible, table, log]
+import ./support, ./json, ./url, ./seqm, ./fallible, ./table, ./log
 from std/uri import nil
 
 let default_timeout_sec = 5

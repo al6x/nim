@@ -1,4 +1,4 @@
-require sequtils, strutils, strformat
+import sequtils, strutils, strformat
 
 type
   TodoPriority* = enum high_e, normal_e, low_e

@@ -1,7 +1,7 @@
-require std/[sugar, algorithm, tables]
+import std/[sugar, algorithm, tables]
 import sequtils except zip
 from std/random as random import nil
-require ./[support, option]
+import ./support, ./option
 
 export sequtils except zip
 
@@ -146,7 +146,7 @@ func findi_max*[T](list: openarray[T], op: (T) -> float): int =
       max_i = i
   max_i
 
-func findi_max*(list: openarray[float]): Option[int] =
+func findi_max*(list: openarray[float]): int =
   list.findi_max((v) => v)
 
 test "findi_min/max":

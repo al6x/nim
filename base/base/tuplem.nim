@@ -1,5 +1,5 @@
-require std/sugar
-require ./support
+import std/sugar
+import ./support
 
 proc is_empty*(o: tuple): bool =
   for _, _ in o.field_pairs: return false

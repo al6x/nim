@@ -1,5 +1,5 @@
-require std/os
-require base, base/doc, ext/persistence
+import std/os
+import base, base/doc, ext/persistence
 
 todo "when waiting - reduce expiration x2 and pass to should_process"
 todo "keep track of duration for 1 month, cap by time, the current duration penalizing is wrong"

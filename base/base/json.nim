@@ -2,7 +2,7 @@ import std/json except to, `%`, `%*`
 import std/macros, std/options
 import ./std_jsonutils
 
-require ./[option, seqm]
+import ./option, ./seqm
 
 export json except to, `%`, `%*`, pretty, toUgly
 export std_jsonutils except json_to, from_json, Joptions

@@ -1,7 +1,7 @@
-require std/[tables, sugar, hashes]
-require ./[option, support]
+import std/[tables, sugar, hashes]
+import ./option, ./support
 
-export tablesm
+export tables
 
 # map ----------------------------------------------------------------------------------------------
 proc map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: (V, K) -> R): Table[K, R] =

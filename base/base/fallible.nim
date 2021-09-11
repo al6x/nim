@@ -1,5 +1,5 @@
-require std/sugar
-require ./[support, option, table, json]
+import std/sugar
+import ./support, ./option, ./table, ./json
 
 type Fallible*[T] = object
   case is_error*: bool

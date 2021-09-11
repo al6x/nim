@@ -1,6 +1,6 @@
 from std/times as times import nil
-import std/[sequtils, sugar, math as stdmath, re as stdre]
-require ./[string, json, support, hash, math]
+import std/[sequtils, sugar, re as stdre]
+import ./stringm, ./json, ./support, ./hash, ./math
 
 with "Helpers":
   const day_hours*  = 24

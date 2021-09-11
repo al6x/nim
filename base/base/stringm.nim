@@ -1,8 +1,8 @@
-require std/[re, strformat]
+import std/[re, strformat]
 import std/strutils except `%`
-require ./support
+import ./support
 
-export strformatm
+export strformat
 export strutils except `%`
 
 

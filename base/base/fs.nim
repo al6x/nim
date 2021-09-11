@@ -1,5 +1,5 @@
-require std/[os, sugar, strutils, strformat]
-require ./[support, option, enumm]
+import std/[os, sugar, strutils, strformat]
+import ./support, ./option, ./enumm
 
 type FS* = object
 const fs* = FS()

@@ -1,5 +1,5 @@
-require std/[times, hashes, random, strutils]
-require ./[support, env, table]
+import std/[times, hashes, random, strutils]
+import ./support, ./env as envm, ./table
 
 export Rand
 

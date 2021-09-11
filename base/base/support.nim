@@ -2,10 +2,10 @@ import std/[strformat, sugar, strutils, unicode, tables, macros]
 from std/times as nt import nil
 from std/nre as nre import nil
 from std/options as stdoptions import nil
-import ./requirem, ./env as envm
+import ./env as envm
 from ./terminal as terminal import nil
 
-export requirem, envm
+export envm
 
 
 template with*[T](TT: type[T], code) =

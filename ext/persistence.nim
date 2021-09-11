@@ -1,5 +1,5 @@
-require sugar
-require base/[json, option, time, fs]
+import sugar
+import base/json, base/option, base/time, base/fs
 
 
 proc read_from_optional*[T](t: type[T], path: string): Option[T] =

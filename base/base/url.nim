@@ -1,6 +1,6 @@
-require std/[strformat, options, strutils, sugar]
+import std/[strformat, options, strutils, sugar]
 from uri import nil
-require ./[support, decode_query, re, table, hash]
+import ./support, ./decode_query, ./re as rem, ./table, ./hash
 
 type Url* = object
   path*:   string

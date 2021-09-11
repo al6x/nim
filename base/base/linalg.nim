@@ -1,5 +1,5 @@
-require std/sugar
-require ./[support, math, seqm]
+import std/sugar
+import ./support, ./math, ./seqm
 
 type Point2D = tuple[x: float, y: float]
 type Point3D = tuple[x: float, y: float, z: float]

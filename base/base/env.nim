@@ -1,4 +1,4 @@
-require std/[strformat, macros, sugar, strutils, os, tables, options]
+import std/[strformat, macros, sugar, strutils, os, tables, options]
 from ./terminal as terminal import nil
 
 

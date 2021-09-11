@@ -1,7 +1,7 @@
 import std/[strutils, sugar, sequtils, strformat, tables]
 from std/nre as nre import nil
 from std/options as stdoptions import nil
-require ./support, ./option
+import ./support, ./option
 
 type Regex* = nre.Regex
 

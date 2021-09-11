@@ -1,7 +1,7 @@
-require std/[options, sugar]
-require ./support
+import std/[options, sugar]
+import ./support
 
-export optionsm except option
+export options except option
 
 
 func ensure*[T](o: Option[T], message: string): T =

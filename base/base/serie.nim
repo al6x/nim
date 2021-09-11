@@ -1,5 +1,4 @@
-require std/sugar
-require ./[support, time, math, json, doc, seqm, option, table]
+import base/[support, time, math, json, doc, seqm, option, table]
 
 
 # Points -------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-require std/osproc
-require base/[base, json, string, fallible]
+import std/osproc
+import base
 
 type ShellArg[B, I, A] = object
   before: B

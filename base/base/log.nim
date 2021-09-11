@@ -1,5 +1,6 @@
-require std/[sugar, options]
-require ./[support, string, seqm, sets, doc, json, re, table, terminal, env, tuplem]
+import std/[sugar, options]
+import ./support, ./stringm, ./seqm, ./setm, ./doc, ./json, ./re as rem, ./table, ./terminal,
+  ./env as envm, ./tuplem
 
 todo "Alter get_env to use env.yml in current dir"
 
