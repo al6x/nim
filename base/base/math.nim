@@ -1,5 +1,5 @@
 import std/[math, sequtils, strformat, sugar, options]
-import ./support, ./algorithm
+import ./support, ./algorithm, ./enumm
 
 export math
 
@@ -44,7 +44,7 @@ func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
 proc `^`*(base: float | int, pow: float | int): float = base.pow(pow)
 
 
-proc cdf*(values: seq[float], normalize = values.len.float, inversed = false): seq[tuple[x: float, p: float]] =
+proc cdf*(values: seq[float], normalize = values.len, inversed = false): seq[tuple[x: float, p: float]] =
   # inversed - calculates X > x instead of X < x
   if values.len == 0: throw "CDF requires non empty list"
   var sorted = values.sorted
@@ -59,37 +59,38 @@ proc cdf*(values: seq[float], normalize = values.len.float, inversed = false): s
       cdf.add (x, previous.p + 1)
 
   for i in 0..<cdf.len:
-    cdf[i].p = cdf[i].p / normalize
+    cdf[i].p = cdf[i].p / normalize.float
   if inversed: cdf.sort
   cdf
 
 test "cdf":
   assert:
-    @[0.3, 0.5, 0.5, 0.8, 0.3].cdf(normalize = 1.0) ==
+    @[0.3, 0.5, 0.5, 0.8, 0.3].cdf(normalize = 1) ==
     @[(0.3, 2.0), (0.5, 4.0), (0.8, 5.0)]
 
   assert:
-    @[1.0/0.3, 1.0/0.5, 1.0/0.5, 1.0/0.8, 1.0/0.3].cdf(normalize = 1.0, inversed = true) ==
+    @[1.0/0.3, 1.0/0.5, 1.0/0.5, 1.0/0.8, 1.0/0.3].cdf(normalize = 1, inversed = true) ==
     @[(1.0/0.8, 5.0), (1.0/0.5, 4.0), (1.0/0.3, 2.0)]
 
 
-proc to_scdf*(cdf: seq[tuple[x: float, p: float]]): seq[tuple[x: float, p: float]] =
-  # Symmetrical CDF, same as CDF for x < 1 and 1-CDF for x > 1
-  #
-  # Altering CDF a little bit, otherwise the last CDF value with p = 1 would
-  # have SCDF p = 1 - 1 = 0
-  let alter = 0.999
-  cdf.map proc (d: auto): auto =
-    let p = if d.x <= 1: alter * d.p else: 1 - alter * d.p
-    (x: d.x, p: p)
+# proc to_scdf*(cdf: seq[tuple[x: float, p: float]]): seq[tuple[x: float, p: float]] =
+#   # Symmetrical CDF, same as CDF for x < 1 and 1-CDF for x > 1
+#   #
+#   # Altering CDF a little bit, otherwise the last CDF value with p = 1 would
+#   # have SCDF p = 1 - 1 = 0
+#   let alter = 0.999
+#   cdf.map proc (d: auto): auto =
+#     let p = if d.x <= 1: alter * d.p else: 1 - alter * d.p
+#     (x: d.x, p: p)
 
 
-proc scdf*(values: seq[float], normalize = values.len.float): seq[tuple[x: float, p: float]] =
+proc scdf*(values: seq[float], normalize = -1): seq[tuple[x: float, p: float]] =
   # Symmetrical CDF, used for multiplicative processes, same as CDF for x < 1 and 1-CDF for x > 1
   var lt1: seq[float]; var gt1: seq[float]
   for v in values:
     if v < 1.0: lt1.add v
     if v > 1.0: gt1.add v
+  let normalize = if normalize == -1: values.len else: normalize
   if lt1.len > 0: result.add cdf(lt1, normalize = normalize)
   if gt1.len > 0: result.add cdf(gt1, normalize = normalize, inversed = true)
 
@@ -97,7 +98,7 @@ test "scdf":
   assert @[
         0.3,     0.5,     0.5,     0.8,     0.3,
     1.0/0.3, 1.0/0.5, 1.0/0.5, 1.0/0.8, 1.0/0.3
-  ].scdf(normalize = 1.0) == @[
+  ].scdf(normalize = 1) == @[
     (    0.3, 2.0), (0.5,     4.0), (0.8,     5.0),
     (1.0/0.8, 5.0), (1.0/0.5, 4.0), (1.0/0.3, 2.0)
   ]
@@ -119,64 +120,50 @@ test "quantile":
   assert quantile([1.0, 2.0, 3.0, 4.0], 0.25) =~ 1.75
 
 
-proc rates*[N: int | float](values: seq[N], span = 1): seq[float] =
-  template rate(a, b: float): float =
-    if a <= 0.0 or b <= 0.0: throw "rates expect non negative values"
-    b / a
+type InterpolateKind* = enum jump
+autoconvert InterpolateKind
 
-  result.set_len values.len - span
-  for i in 0..<(values.len - span):
-    result[i] = rate(values[i], values[i+span])
-
-proc rates*[N: int | float](values: seq[Option[N]], span = 1): seq[float] =
-  # rates r[i] = values[i+span]/values[i]
-  if values.len < span + 1: throw fmt"should have at least {span + 1} values for rates {span}"
+proc interpolate*[N: int | float](values: seq[Option[N]], kind: InterpolateKind = "jump"): seq[N] =
+  if not values.len > 1: throw fmt"should have at least 2 values for interpolate"
   # Allowing only internal undefined spans, begin and end should be defined
-  if values[0].is_none:  throw "rates require first value to be defined"
-  if values[^1].is_none: throw "rates require last value to be defined"
+  if values[0].is_none:  throw "interpolate require first value to be defined"
+  if values[^1].is_none: throw "interpolate require last value to be defined"
 
   # Filling missing values with the next known value.
   # rates will be sudden jumps, not linear interpolation, it makes more sense for financial prices.
-  var filled: seq[N]
-  filled.set_len values.len
-  var i = values.len - 1
-  while i >= 0:
-    filled[i] = if values[i].is_some: values[i].get else: filled[i + 1]
-    i -= 1
+  if kind == "jump":
+    var filled: seq[N]
+    filled.set_len values.len
+    var i = values.len - 1
+    while i >= 0:
+      filled[i] = if values[i].is_some: values[i].get else: filled[i + 1]
+      i -= 1
+    filled
+  else:
+    throw "unsupported"
 
-  filled.rates(span = span)
-
-
-test "rates":
-  let u = float.none
-  proc o(v: int | float): Option[float] = v.float.some
-
-  assert @[
-    o(1), u,   u,   o(2), u,   u,   o(1)
-  ].rates == @[
-          2.0, 1.0, 1.0,  0.5, 1.0, 1.0
-  ]
+test "interpolate":
+  let u = int.none
+  proc o(v: int): Option[int] = v.some
 
   assert @[
-    o(1), u,   u,   o(2)
-  ].rates == @[
-          2.0, 1.0, 1.0
+    o(1), u,   u,   o(2), u,   u,  o(1)
+  ].interpolate == @[
+    1,    2,   2,   2,    1,   1,  1
   ]
 
-  assert @[
-    o(1), o(2), o(4), u, o(16) # missing value will be interpolated into 16
-  ].rates(span = 2) == @[
-          4.0,  8.0, 4.0
-  ]
 
-  # Should check for negative values, as growth can't be negative
-  var failed = false
-  try:
-    discard @[o(1), u, o(-1)].rates
-  except:
-    failed = true
-  assert failed
+proc rate*[N: int | float](values: seq[N], span = 1): seq[float] =
+  if values.len <= span: throw fmt"should have at least {span + 1} values"
+  result.set_len values.len - span
+  for i in 0..<(values.len - span):
+    let (a, b) = (values[i], values[i+span])
+    if a <= 0.0 or b <= 0.0: throw "rates expect non negative values"
+    result[i] = b / a
 
+
+test "rate":
+  assert @[1.0, 2.0, 2.0, 1.0].rate == @[2.0, 1.0, 0.5]
 
   # // Annual revenues
   # assert.equal(differentiate([
@@ -191,6 +178,15 @@ test "rates":
   #   1.007, 1.007, 1.007, 1.007, 1.007, 1.007
   # ])
 
+
+proc diff*[N: int | float](values: seq[N], span = 1): seq[float] =
+  if values.len <= span: throw fmt"should have at least {span + 1} values"
+  result.set_len values.len - span
+  for i in 0..<(values.len - span):
+    result[i] = values[i+span] - values[i]
+
+test "diff":
+  assert @[1.0, 2.0, 2.0, 1.0].diff == @[1.0, 0.0, -1.0]
 
 
 # sum ----------------------------------------------------------------------------------------------
