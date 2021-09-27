@@ -1,3 +1,4 @@
+import std/sugar
 import base/[support, time, math, json, doc, seqm, option, table]
 
 
@@ -91,68 +92,6 @@ test "zip":
   let a: PointsM = @[((2000, 1), 1.0), ((2000, 2), 2.0), ((2000, 3), 3.0),                   ((2000, 5), 0.1)]
   let b: PointsM = @[                  ((2000, 2), 0.3), ((2000, 3), 0.2), ((2000, 4), 0.1),                 ]
   assert zip(a, b) == @[(TimeM.init(2000, 2), 2.0, 0.3), (TimeM.init(2000, 3), 3.0, 0.2)]
-
-
-# differentiate ------------------------------------------------------------------------------------
-# Calculating differences for sparce values
-# export function differentiate(sparce_values: (number | undefined)[]): (number | undefined)[] {
-#   const diffs = fill<number | undefined>(sparce_values.length, undefined)
-
-#   // Converting sparce values to list of defined values and its indices
-#   const values = filter_map(sparce_values, (v, i) => v !== undefined ? [i, v] : false)
-
-#   let index_consistency_check = values[0][0]
-#   for (let j = 0; j < values.length - 1; j++) {
-#     const [i1, v1] = values[j], [i2, v2] = values[j + 1]
-
-#     // Calculating the diff for the whole `i1-i2` span and diff for every i
-#     const span_diff = v2 / v1
-#     if (span_diff <= 0) throw new Error(`differentiate expect positive values`)
-#     const diff_i    = Math.pow(span_diff, 1/(i2 - i1))
-
-#     for (let i = i1; i < i2; i++) {
-#       assert.equal(index_consistency_check, i)
-#       diffs[i + 1] = diff_i
-#       index_consistency_check += 1
-#     }
-#   }
-
-#   assert(diffs[0] === undefined, `first element of diff serie should always be undefined`)
-#   return diffs
-# }
-# test(() => {
-#   const u = undefined
-#   assert.equal(differentiate([
-#     u,   1,   u,   u,   8,   u,   u,   1, u
-#   ]), [
-#     u,   u,   2,   2,   2, 0.5, 0.5, 0.5, u
-#   ])
-
-#   assert.equal(differentiate([
-#     u,   1,   u,   u,   8
-#   ]), [
-#     u,   u,   2,   2,   2
-#   ])
-
-#   // Annual revenues
-#   assert.equal(differentiate([
-#     //  1,     2,     3,     4,     5,     6,     7,     8,     9,    10,    11,    12
-#         u,     u,     u,     u,     u,     1,     u,     u,     u,     u,     u,     u, // 2000-06
-#         u,     u,     u,     u,     u,   1.1,     u,     u,     u,     u,     u,     u, // 2001-06
-#         u,     u,     u,     u,     u,   1.2                                            // 2002-06
-#   ]).map((v) => v ? round(v, 3) : v), [
-#     //  1,     2,     3,     4,     5,     6,     7,     8,     9,    10,    11,    12
-#         u,     u,     u,     u,     u,     u, 1.008, 1.008, 1.008, 1.008, 1.008, 1.008,
-#     1.008, 1.008, 1.008, 1.008, 1.008, 1.008, 1.007, 1.007, 1.007, 1.007, 1.007, 1.007,
-#     1.007, 1.007, 1.007, 1.007, 1.007, 1.007
-#   ])
-
-#   // Should check for negative values
-#   let error_message = undefined
-#   try { differentiate([u,  1, u, -1]) }
-#   catch (e) { error_message = e.message }
-#   assert.equal(error_message, `differentiate expect positive values`)
-# })
 
 
 # extrapolate_median -------------------------------------------------------------------------------

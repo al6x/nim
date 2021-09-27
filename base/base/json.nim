@@ -97,6 +97,16 @@ proc to_columns*[T](tidydata: seq[T]): JsonNode =
   columns
 
 
+# Any ----------------------------------------------------------------------------------------------
+# type Any* = JsonNode
+
+# proc init*(_: type[Any]): Any =
+#   newJObject()
+
+# proc `[]=`*[T](obj: JsonNode, key: string, val: T) =
+#   obj[key] = when T is JsonNode: val else: val.to_json
+
+
 when is_main_module:
   # % helper
   let b = "some"
@@ -104,6 +114,10 @@ when is_main_module:
 
   let attrs = %{ title: "Some page" }
   assert ($(attrs)).parse_json == attrs
+
+  # JsonNode.to_json
+  let char_range: 'a'..'z' = 'a'
+  assert (v: char_range).to_json.to_s(false) == """{"v":"a"}"""
 
   # JsonNode.to_json
   assert (a: 1).to_json.to_json.to_s(false) == """{"a":1}"""
@@ -122,8 +136,14 @@ when is_main_module:
   assert parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
 
   # From bugs
-  echo @[(a: 1.0.some)].to_json.to_s(false)
+  assert @[(a: 1.0.some)].to_json.to_s(false) == """[{"a":1.0}]"""
 
+
+# when is_main_module: # Any
+#   var any = Any.init
+#   any["a"] = "some"
+#   any["b"] = 1
+#   echo any.to_s
 
 
 

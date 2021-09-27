@@ -6,9 +6,17 @@ import ./support, ./option
 export sequtils except zip
 
 
+proc `len=`*[T](s: var seq[T], n: int) =
+  s.set_len n
+
+
 proc fill*[T](len: int, v: T): seq[T] =
-  result.set_len len
+  result.len = len
   for i in 0..<len: result[i] = v
+
+proc fill*[T](len: int, fn: (i: int) -> T): seq[T] =
+  result.len = len
+  for i in 0..<len: result[i] = fn(i)
 
 
 func contains*[T](list: openarray[T], check: (T) -> bool): bool =
@@ -122,7 +130,7 @@ func sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
 func reverse*[T](list: openarray[T]): seq[T] {.inline.} = list.reversed
 
 
-func findi_min*[T](list: openarray[T], op: (T) -> float): int =
+proc findi_min*[T, C](list: openarray[T], op: (T) -> C): int =
   if list.is_empty: throw "can't calculate findi_min on empty list"
   var (min, min_i) = (op(list[0]), 0)
   for i in 1..(list.len - 1):
@@ -132,11 +140,11 @@ func findi_min*[T](list: openarray[T], op: (T) -> float): int =
       min_i = i
   min_i
 
-func findi_min*(list: openarray[float]): int =
+proc findi_min*(list: openarray[float]): int =
   list.findi_min((v) => v)
 
 
-func findi_max*[T](list: openarray[T], op: (T) -> float): int =
+func findi_max*[T, C](list: openarray[T], op: (T) -> C): int =
   if list.is_empty: throw "can't calculate findi_max on empty list"
   var (max, max_i) = (op(list[0]), 0)
   for i in 1..(list.len - 1):
@@ -154,10 +162,10 @@ test "findi_min/max":
   assert @[1.0, 2.0, 3.0].findi_max((v) => (v - 0.5).abs) == 2
 
 
-func find_min*[T](list: openarray[T], op: (T) -> float): T =
+proc find_min*[T, C](list: openarray[T], op: (T) -> C): T =
   list[list.findi_min(op)]
 
-func find_max*[T](list: openarray[T], op: (T) -> float): T =
+func find_max*[T, C](list: openarray[T], op: (T) -> C): T =
   list[list.findi_max(op)]
 
 

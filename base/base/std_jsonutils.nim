@@ -405,6 +405,7 @@ proc toJson*[T](a: T): JsonNode =
 # Change begin -------------------------------------------------------------------------------------
 # Enums should be saved as string by default, not as ordinal
   elif T is enum: result = a.to_json_default
+  elif T is char: result = ($a).to_json_default # for chart ranges 'a'..'z'
 # Change end ---------------------------------------------------------------------------------------
   elif T is Ordinal: result = a.ord.to_json_default
   else: result = a.to_json_default

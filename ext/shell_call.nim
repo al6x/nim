@@ -22,7 +22,7 @@ proc shell_calls*[B, I, A, R](command: string, before: B, inputs: seq[I], after:
   let parsed_json = json_output.parse_json
   for edata in parsed_json.items:
     result.add if edata["is_error"].get_bool:
-      R.error edata["error"].get_str
+      R.error edata["message"].get_str
     else:
       try:
         edata["value"].json_to(R).success
