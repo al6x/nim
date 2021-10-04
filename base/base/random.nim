@@ -3,6 +3,31 @@ import ./support, ./env as envm, ./table
 
 export Rand
 
+with Rand:
+  proc init(tself; seed = 1): Rand =
+    init_rand(seed)
+
+var default_rgen* = Rand.init
+
+
+proc rand*(max: Natural, rgen: var Rand = default_rgen): int =
+  random.rand(rgen, max)
+
+proc rand*(max: float, rgen: var Rand = default_rgen): float =
+  random.rand(rgen, max)
+
+proc rand*(_: type[bool], rgen: var Rand = default_rgen): bool =
+  random.rand(rgen, 1) > 0
+
+proc rand*[V](list: openarray[V], rgen: var Rand = default_rgen): V =
+  list[(list.len - 1).rand(rgen)]
+
+
+proc sample*[V](list: openarray[V], count: int, rgen: var Rand = default_rgen): seq[V] =
+  for _ in 1..count:
+    result.add list.rand(rgen)
+
+
 # secure_rgen --------------------------------------------------------------------------------------
 let seed1: int64 = block:
   let now = get_time()
@@ -13,16 +38,6 @@ proc secure_rgen*(): Rand =
   let now = get_time()
   let seed2 = now.to_unix * 1_000_000_000 + now.nanosecond
   init_rand(@[seed1, seed2].hash)
-
-
-# sample -------------------------------------------------------------------------------------------
-proc sample*[V](list: openarray[V], rgen: var Rand): V =
-  rgen.sample(list)
-
-proc sample*[V](list: openarray[V], count: int, rgen: var Rand): seq[V] =
-  for _ in 1..count:
-    result.add list.sample(rgen)
-
 
 # secure_random_token ------------------------------------------------------------------------------
 let az = "A B C D E F G H I J K L M N O P Q R S T U V W X Y Z"

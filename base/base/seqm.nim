@@ -40,6 +40,13 @@ func fget*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
       if check(v): return v.some
   T.none
 
+func fget*[T](list: openarray[T], check: (T, int) -> bool, start = 0): Option[T] =
+  if start <= (list.len - 1):
+    for i in start..(list.len - 1):
+      let v = list[i]
+      if check(v, i): return v.some
+  T.none
+
 
 func first*[T](list: openarray[T]): T {.inline.} =
   assert not list.is_empty, "can't get first from empty list"
@@ -172,6 +179,10 @@ func find_max*[T, C](list: openarray[T], op: (T) -> C): T =
 func reject*[V](list: openarray[V], op: (V) -> bool): seq[V] =
   list.filter((v) => not op(v))
 
+
+func filter*[V](list: openarray[V], fn: (V, int) -> bool): seq[V] =
+  for i, v in list:
+    if fn(v, i): result.add v
 
 func filter*[V](list: openarray[Option[V]]): seq[V] =
   for o in list:

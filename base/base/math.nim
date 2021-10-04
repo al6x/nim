@@ -4,6 +4,9 @@ import ./support, ./algorithm, ./enumm
 export math
 
 
+type P2* = tuple[x: float, y: float] # 2D Point
+
+
 func rsim*(a: float, b: float): float =
   assert a.sgn == b.sgn, "rdif requires same sign"
   let (aabs, babs) = (a.abs, b.abs)
@@ -42,66 +45,6 @@ test "requal":
 
 func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
 proc `^`*(base: float | int, pow: float | int): float = base.pow(pow)
-
-
-proc cdf*(values: seq[float], normalize = values.len, inversed = false): seq[tuple[x: float, p: float]] =
-  # inversed - calculates X > x instead of X < x
-  if values.len == 0: throw "CDF requires non empty list"
-  var sorted = values.sorted
-  if inversed: sorted.reverse
-
-  var cdf = @[(x: sorted[0], p: 1.0)]
-  for i in 1..<sorted.len:
-    let previous = cdf[^1]; let x = sorted[i]
-    if previous.x == x:
-      cdf[^1].p += 1
-    else:
-      cdf.add (x, previous.p + 1)
-
-  for i in 0..<cdf.len:
-    cdf[i].p = cdf[i].p / normalize.float
-  if inversed: cdf.sort
-  cdf
-
-test "cdf":
-  assert:
-    @[0.3, 0.5, 0.5, 0.8, 0.3].cdf(normalize = 1) ==
-    @[(0.3, 2.0), (0.5, 4.0), (0.8, 5.0)]
-
-  assert:
-    @[1.0/0.3, 1.0/0.5, 1.0/0.5, 1.0/0.8, 1.0/0.3].cdf(normalize = 1, inversed = true) ==
-    @[(1.0/0.8, 5.0), (1.0/0.5, 4.0), (1.0/0.3, 2.0)]
-
-
-# proc to_scdf*(cdf: seq[tuple[x: float, p: float]]): seq[tuple[x: float, p: float]] =
-#   # Symmetrical CDF, same as CDF for x < 1 and 1-CDF for x > 1
-#   #
-#   # Altering CDF a little bit, otherwise the last CDF value with p = 1 would
-#   # have SCDF p = 1 - 1 = 0
-#   let alter = 0.999
-#   cdf.map proc (d: auto): auto =
-#     let p = if d.x <= 1: alter * d.p else: 1 - alter * d.p
-#     (x: d.x, p: p)
-
-
-proc scdf*(values: seq[float], normalize = -1): seq[tuple[x: float, p: float]] =
-  # Symmetrical CDF, used for multiplicative processes, same as CDF for x < 1 and 1-CDF for x > 1
-  var lt1: seq[float]; var gt1: seq[float]
-  for v in values:
-    if v < 1.0: lt1.add v
-    if v > 1.0: gt1.add v
-  let normalize = if normalize == -1: values.len else: normalize
-  if lt1.len > 0: result.add cdf(lt1, normalize = normalize)
-  if gt1.len > 0: result.add cdf(gt1, normalize = normalize, inversed = true)
-
-test "scdf":
-  assert @[
-        0.3,     0.5,     0.5,     0.8,     0.3,
-    1.0/0.3, 1.0/0.5, 1.0/0.5, 1.0/0.8, 1.0/0.3
-  ].scdf(normalize = 1) == @[
-    (    0.3, 2.0), (0.5,     4.0), (0.8,     5.0),
-    (1.0/0.8, 5.0), (1.0/0.5, 4.0), (1.0/0.3, 2.0)
-  ]
 
 
 func quantile*(values: open_array[float], q: float, is_sorted = false): float =
@@ -187,6 +130,17 @@ proc diff*[N: int | float](values: seq[N], span = 1): seq[float] =
 
 test "diff":
   assert @[1.0, 2.0, 2.0, 1.0].diff == @[1.0, 0.0, -1.0]
+
+
+proc range*(a, b: float, count: int): seq[float] =
+  let step = (b - a) / count.float
+  result.add a
+  for i in 1..<count:
+    result.add result[i-1] + step
+  result.add b
+
+test "range":
+  assert range(-1.0, 1.0, 4) == @[-1.0, -0.5, 0.0, 0.5, 1.0]
 
 
 # sum ----------------------------------------------------------------------------------------------

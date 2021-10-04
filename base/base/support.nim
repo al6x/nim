@@ -21,6 +21,10 @@ type None = object # For optional arguments `proc somefn(v: int | None = none)`
 const none = None()
 
 
+template times*(n: int, code: typed) =
+  for _ in 1..n: code
+
+
 # test ---------------------------------------------------------------------------------------------
 let test_enabled_s    = if "test" in env: env["test"] else: "false"
 let slow_test_enabled = test_enabled_s == "all"
