@@ -1,5 +1,5 @@
 import std/[math, sequtils, strformat, sugar, options]
-import ./support, ./algorithm, ./enumm
+import ./support, ./algorithm, ./enumm, ./seqm
 
 export math
 
@@ -31,8 +31,17 @@ func requal*(a: float, b: float, rsim: float = requal_default_rsim): bool =
     if larger < requal_min_float: true
     else:                         (smaller / larger) > rsim
 
-func `=~`*(a: float, b: float): bool {.inline.} = a.requal(b)
-func `!~`*(a: float, b: float): bool {.inline.} = not(a =~ b)
+func requal*[T](a: seq[T], b: seq[T], rsim: float = requal_default_rsim): bool =
+  for i, ai in a:
+    if not ai.requal(b[i], requal_default_rsim): return false
+  return true
+
+func requal*(a: (float, float), b: (float, float), rsim: float = requal_default_rsim): bool =
+  a[0].requal(b[0], requal_default_rsim) and a[1].requal(b[1], requal_default_rsim)
+
+
+func `=~`*[T](a: T, b: T): bool {.inline.} = a.requal(b)
+func `!~`*[T](a: T, b: T): bool {.inline.} = not(a =~ b)
 
 test "requal":
   assert 0.0 !~ 1.0
@@ -63,10 +72,12 @@ test "quantile":
   assert quantile([1.0, 2.0, 3.0, 4.0], 0.25) =~ 1.75
 
 
-type InterpolateKind* = enum jump
-autoconvert InterpolateKind
+type FillMissingKind* = enum jump
+autoconvert FillMissingKind
 
-proc interpolate*[N: int | float](values: seq[Option[N]], kind: InterpolateKind = "jump"): seq[N] =
+proc fill_missing*[N: int | float](values: seq[Option[N]], kind: FillMissingKind = "jump"): seq[N] =
+  # Fill missing values in sequence
+
   if not values.len > 1: throw fmt"should have at least 2 values for interpolate"
   # Allowing only internal undefined spans, begin and end should be defined
   if values[0].is_none:  throw "interpolate require first value to be defined"
@@ -85,13 +96,13 @@ proc interpolate*[N: int | float](values: seq[Option[N]], kind: InterpolateKind 
   else:
     throw "unsupported"
 
-test "interpolate":
+test "fill_missing":
   let u = int.none
   proc o(v: int): Option[int] = v.some
 
   assert @[
     o(1), u,   u,   o(2), u,   u,  o(1)
-  ].interpolate == @[
+  ].fill_missing == @[
     1,    2,   2,   2,    1,   1,  1
   ]
 
@@ -143,7 +154,6 @@ test "range":
   assert range(-1.0, 1.0, 4) == @[-1.0, -0.5, 0.0, 0.5, 1.0]
 
 
-# sum ----------------------------------------------------------------------------------------------
 func sum*(values: openarray[int]): int = values.foldl(a + b, 0)
 
 func sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
@@ -152,31 +162,96 @@ func sum*[T](values: openarray[T], op: (T) -> float): float =
   for v in values: result += op(v)
 
 
-# div_rem ------------------------------------------------------------------------------------------
 func div_rem*(x, y: float | int): (int, int) =
   (x.floor_div(y), x mod y)
 
 
-# median -------------------------------------------------------------------------------------------
 func median*(values: openarray[float], is_sorted = false): float =
   quantile(values, 0.5, is_sorted)
 
 
-# mean ---------------------------------------------------------------------------------------------
 func mean*(values: openarray[float]): float = values.sum() / values.len.to_float
 
 
-# min_max_rate -------------------------------------------------------------------------------------
+
 func min_max_rate*(a: float | int, b: float | int): float =
   assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
   result = min(a.float, b.float) / max(a.float, b.float)
   assert(result >= 0 and result <= 1, "invalid rate")
 
+func max_min_rate*(a: float | int, b: float | int): float =
+  assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
+  result = max(a.float, b.float) / min(a.float, b.float)
+  assert(result >= 1, "invalid rate")
 
-# is_number ----------------------------------------------------------------------------------------
+
 func is_number*(n: float): bool =
   let ntype = n.classify
   ntype == fc_normal or ntype == fc_zero or ntype == fc_neg_zero
+
+
+type Point2D = tuple[x: float, y: float]
+type Point3D = tuple[x: float, y: float, z: float]
+
+
+func idw*(points: openarray[P2], x: float, regularize = 1e-9): float =
+  # Inverse Distance Weighting
+  # regularize - to prevent division by zero for sample points with the same location as query points
+
+  # Ensuring approximated point inside of points
+  let (xmin, xmax) = (points.find_min(p => p.x).x, points.find_max(p => p.x).x)
+  assert(xmin <= x and x <= xmax, "approximated x lies outside of neighbours")
+
+  let distances = points.map(p => (p.x - x).abs)
+  let weights = distances.map(d => 1/(d + regularize))
+  for i, w in weights:
+    result += w * points[i].y
+  result /= weights.sum
+
+test "idw":
+  assert @[(1.0, 2.0), (4.0, 5.0)].idw(2.0) =~ 3.0
+
+# doc({
+#   tags:  ('Math', 'Approximation'],
+#   title: 'Inverse Distance Weighting',
+#   text:  `
+# Inverse Distance Weighted is a deterministic spatial interpolation approach to estimate an unknown value at a
+# location using some known values with corresponding weighted values. It's the weighted average, the weight
+# inverse proportional to the distnance between known and approximated point.
+
+# The approximation for value $x$ for function $z(x)$ found as:
+
+# $$z(x) : x \\rightarrow R$$
+# $$z_x = {{\\sum z_i w_i} \\over \\sum w_i}$$ where
+# $$w_i = distance(x, x_i)^{-1}$$
+
+# This approach frequently used in geography to interpolate the earth surface:
+
+# ![](math/idw.gif)
+#   `
+# })
+
+
+proc interpolate*(efn: seq[P2], x: seq[float], skip = false): seq[P2] =
+  # Interpolate empyrical fn in given x points.
+
+  let (exmin, exmax) = (efn[0].x, efn[^1].x)
+  let x = if skip: x.filter(xi => exmin <= xi and xi <= exmax) else: x
+
+  assert exmin <= x[0],  "lower end of interpolated x is lower than available points"
+  assert exmax >= x[^1], "upper end of interpolated x is higher than available points"
+
+  var j = 0
+  for xi in x:
+    while true:
+      if efn[j].x <= xi and efn[j+1].x >= xi: break
+      j += 1
+
+    result.add (x: xi, y: idw([efn[j], efn[j+1]], xi))
+
+test "interpolate":
+  assert @[(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)].interpolate(@[2.0, 3.0]) =~ @[(2.0, 3.0), (3.0, 4.0)]
+  assert @[(1.0, 2.0), (3.0, 4.0)].interpolate(@[0.0, 2.0, 3.0], true) =~ @[(2.0, 3.0), (3.0, 4.0)]
 
 
 # // min_max_norm --------------------------------------------------------------------------

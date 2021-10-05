@@ -18,16 +18,16 @@ with CRand:
 var default_crgen* = CRand.init
 
 
-proc rand*(max: Natural, rgen: var CRand = default_crgen): int =
+proc crand*(max: Natural, rgen: var CRand = default_crgen): int =
   gsl_rng_uniform_int(rgen.state, (max + 1).culong).int
 
-proc rand*(max: float, rgen: var CRand = default_crgen): float =
+proc crand*(max: float, rgen: var CRand = default_crgen): float =
   max * rgen.rand()
 
-proc rand*(_: type[bool], rgen: var CRand = default_Crgen): bool =
+proc crand*(_: type[bool], rgen: var CRand = default_Crgen): bool =
   1.rand(rgen) > 0
 
-proc rand*[V](list: openarray[V], rgen: var CRand = default_crgen): V =
+proc crand*[V](list: openarray[V], rgen: var CRand = default_crgen): V =
   list[(list.len - 1).rand(rgen)]
 
 
@@ -42,10 +42,21 @@ proc normal_rand*(mu, sigma: float, rgen: var CRand = default_crgen): float =
   mu + gsl_ran_gaussian(rgen.state, sigma)
 
 with Normal:
-  proc fit*(tself; sample: seq[float]): Normal =
-    let mu = sample.sum / sample.len.float
-    let sigma = (sample.map(v => (v - mu)^2.0).sum / sample.len.float)^0.5
+  proc fit*(tself; sample: seq[float], a, b: int): Normal =
+    let len = b - a + 1
+    # let mu = sample.sum / sample.len.float
+    var mu = 0.0
+    for i in a..b: mu += sample[i]
+    mu /= len.float
+
+    # let sigma = (sample.map(v => (v - mu)^2.0).sum / sample.len.float)^0.5
+    var sigma = 0.0
+    for i in a..b: sigma += (sample[i] - mu)^2.0
+    sigma = (sigma / len.float)^0.5
     Normal(mu: mu, sigma: sigma)
+
+  proc fit*(tself; sample: seq[float]): Normal =
+    tself.fit(sample, 0, sample.len - 1)
 
   proc cdf*(self; x: float): float =
     normal_cdf(self.mu, self.sigma, x)

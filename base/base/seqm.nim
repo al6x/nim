@@ -296,6 +296,10 @@ test "group_by":
   assert @["aa", "ab", "bc"].group_by((s) => s[0]) == {'a': @["aa", "ab"], 'b': @["bc"]}.to_table
 
 
+proc to_seq*[K, V](t: Table[K, V]): seq[(K, V)] =
+  for k, v in t: result.add (k, v)
+
+
 proc count_by*[V, K](list: seq[V] | ref seq[V], op: (v: V) -> K): Table[K, int] =
   for v in list:
     let k = op(v)
