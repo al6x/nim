@@ -27,17 +27,6 @@ func to_tuple5*[T](list: openarray[T]): (T, T, T, T, T) =
   (list[0], list[1], list[2], list[4], list[5])
 
 
-func `+`*(a: (float, float), b: (float, float)): (float, float) =
-  (a[0] + b[0], a[1] + b[1])
-
-
-func `+=`*(a: var (float, float), b: (float, float))=
-  a = (a[0] + b[0], a[1] + b[1])
-
-func `/=`*(a: var (float, float), b: float)=
-  a = (a[0] / b, a[1] / b)
-
-
 # map ----------------------------------------------------------------------------------------------
 func map*[V, R](t: (V, ), op: (v: V) -> R): (R, ) =
   (op(t[0]), )

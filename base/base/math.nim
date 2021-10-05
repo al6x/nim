@@ -7,6 +7,25 @@ export math
 type P2* = tuple[x: float, y: float] # 2D Point
 
 
+func `*`*(a: float, b: (float, float)): (float, float) =
+  (a * b[0], a * b[1])
+
+func `+`*(a: float, b: (float, float)): (float, float) =
+  (a + b[0], a + b[1])
+
+
+func `+`*(a: (float, float), b: (float, float)): (float, float) =
+  (a[0] + b[0], a[1] + b[1])
+
+
+func `+=`*(a: var (float, float), b: (float, float))=
+  a = (a[0] + b[0], a[1] + b[1])
+
+func `/=`*(a: var (float, float), b: float)=
+  a = (a[0] / b, a[1] / b)
+
+
+
 func rsim*(a: float, b: float): float =
   assert a.sgn == b.sgn, "rdif requires same sign"
   let (aabs, babs) = (a.abs, b.abs)
@@ -172,6 +191,8 @@ func median*(values: openarray[float], is_sorted = false): float =
 
 func mean*(values: openarray[float]): float = values.sum() / values.len.to_float
 
+
+func domain*(values: openarray[float]): (float, float) = (values.min, values.max)
 
 
 func min_max_rate*(a: float | int, b: float | int): float =

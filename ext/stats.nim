@@ -142,6 +142,20 @@ test "cdf_to_qdf":
   assert qdf.qdf_to_cdf(true) == cdf
 
 
+proc cdf_to_pdf*(cdf: (float) -> float, x: openarray[float]): seq[P2] =
+  assert cdf(x[0]) < 0.0001, "pdf x scale misses left tail"
+  assert (1.0 - cdf(x[^1])) < 0.0001, "pdf x scale misses right tail"
+  var prev = 0.0
+  for xi in x:
+    result.add (xi, cdf(xi) - prev)
+    prev = xi
+
+test "cdf_to_pdf":
+  let uniform = proc (x: float): float =
+    if x < 0: 0.0 elif x <= 1: x else: 1.0
+  let pdf = cdf_to_pdf(uniform, [-0.5, 0.0, 0.5, 1.0, 1.5])
+  assert pdf == @[(-0.5, 0.0), (0.0, 0.5), (0.5, 0.5), (1.0, 0.5), (1.5, 0.0)]
+
 
 proc mean_pqf*(values: seq[float], normalize = true): seq[P2] =
   # P(X <= x, x < mean) and Q(X >= x, x > mean)
