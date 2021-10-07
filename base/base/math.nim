@@ -1,5 +1,6 @@
 import std/[math, sequtils, strformat, sugar, options]
-import ./support, ./algorithm, ./enumm, ./seqm
+import ./support, ./enumm, ./seqm
+from algorithm import sorted
 
 export math
 
@@ -177,19 +178,25 @@ func sum*(values: openarray[int]): int = values.foldl(a + b, 0)
 
 func sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
 
-func sum*[T](values: openarray[T], op: (T) -> float): float =
+func sum*[T; N: int | float](values: openarray[T], op: (T) -> N): N =
   for v in values: result += op(v)
-
 
 func div_rem*(x, y: float | int): (int, int) =
   (x.floor_div(y), x mod y)
 
+func rem*(x, y: int): int =
+  x mod y
 
 func median*(values: openarray[float], is_sorted = false): float =
   quantile(values, 0.5, is_sorted)
 
 
-func mean*(values: openarray[float]): float = values.sum() / values.len.to_float
+func mean*(values: openarray[float]): float =
+  values.sum / values.len.to_float
+
+
+# func norm2*(values: openarray[float]): float =
+#   (values.sum(v => v^2.0))^0.5
 
 
 func domain*(values: openarray[float]): (float, float) = (values.min, values.max)
@@ -215,6 +222,32 @@ type Point2D = tuple[x: float, y: float]
 type Point3D = tuple[x: float, y: float, z: float]
 
 
+func upper_bound*[V, X](points: openarray[V], x: X, cmp: proc(v: V, x: X): int): int =
+  # Returns first element that's greather or equal to x
+  # Implementation in std/algorithm.upper_bound is wrong https://forum.nim-lang.org/t/8484
+  assert cmp(points[^1], x) >= 0, "no upper bound"
+
+  var (a, b) = (0, points.len - 1)
+  while b - a > 1:
+    let i = a + ((b - a) div 2)
+    if cmp(points[i], x) >= 0: b = i
+    else:                     a = i
+
+  # If there are multiple equal elements, taking the first one
+  while b > 0 and cmp(points[b-1], x) >= 0: b -= 1
+  assert cmp(points[b], x) >= 0
+  b
+
+func upper_bound*[T](points: openarray[T], x: T): int =
+  points.upper_bound(x, cmp[T])
+
+test "upper_bound":
+  assert @[1, 3, 5].upper_bound(3) == 1
+  assert @[1, 3, 3, 5, 6].upper_bound(3) == 1
+  assert @[1, 3].upper_bound(3) == 1
+  assert @[3, 4].upper_bound(3) == 0
+
+
 func idw*(points: openarray[P2], x: float, regularize = 1e-9): float =
   # Inverse Distance Weighting
   # regularize - to prevent division by zero for sample points with the same location as query points
@@ -231,6 +264,23 @@ func idw*(points: openarray[P2], x: float, regularize = 1e-9): float =
 
 test "idw":
   assert @[(1.0, 2.0), (4.0, 5.0)].idw(2.0) =~ 3.0
+
+
+func idw2n*(points: openarray[P2], x: float, regularize = 1e-9): float =
+  # Interpolate y for point x using Inverse Distance Weighting and 2 Nearest Neighbors
+  assert points[0].x <= points[^1].x # points should be sorted
+  let upperi = points.upper_bound(x, (p, x) => p.x.cmp(x))
+
+  assert points[0].x <= x, "no lower bound"
+  let loweri = if upperi > 0: upperi - 1 else: upperi
+  assert points[loweri].x <= x
+
+  idw(points[loweri..upperi], x, regularize)
+
+test "idw2n":
+  let points = @[(1.0, 1.0), (2.0, 2.0), (5.0, 5.0)]
+  assert @[1.0, 1.5, 5.0].map(x => points.idw2n(x)) =~ @[1.0, 1.5, 5.0]
+
 
 # doc({
 #   tags:  ('Math', 'Approximation'],

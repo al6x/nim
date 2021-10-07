@@ -9,6 +9,8 @@ with Rand:
 
 var default_rgen* = Rand.init
 
+proc rand*[T: Ordinal or SomeFloat](range: HSlice[T, T], rgen: var Rand = default_rgen): T =
+  random.rand(rgen, range)
 
 proc rand*(max: Natural, rgen: var Rand = default_rgen): int =
   random.rand(rgen, max)
@@ -21,7 +23,6 @@ proc rand*(_: type[bool], rgen: var Rand = default_rgen): bool =
 
 proc rand*[V](list: openarray[V], rgen: var Rand = default_rgen): V =
   list[(list.len - 1).rand(rgen)]
-
 
 proc sample*[V](list: openarray[V], count: int, rgen: var Rand = default_rgen): seq[V] =
   for _ in 1..count:

@@ -142,19 +142,67 @@ test "cdf_to_qdf":
   assert qdf.qdf_to_cdf(true) == cdf
 
 
-proc cdf_to_pdf*(cdf: (float) -> float, x: openarray[float]): seq[P2] =
-  assert cdf(x[0]) < 0.0001, "pdf x scale misses left tail"
-  assert (1.0 - cdf(x[^1])) < 0.0001, "pdf x scale misses right tail"
-  var prev = 0.0
-  for xi in x:
-    result.add (xi, cdf(xi) - prev)
-    prev = xi
+proc inv(monotonefn: ((float) -> float); y, delta: float, xrange_hint = (-1.0, 1.0)): float =
+  # Inverse monotone function, fn(x) -> y => inv(y) -> x
+  var (a, b) = xrange_hint
+  assert a < b
+  var step = b - a
 
-test "cdf_to_pdf":
+  # Ensuring correct range
+  while monotonefn(a) > y:
+    step *= 2
+    a -= step
+  while monotonefn(b) < y:
+    step *= 2
+    b += step
+
+  # Narrowing range
+  while true:
+    let xi = (b + a) / 2.0
+    let yi = monotonefn(xi)
+    if   yi < y - delta: a = xi
+    elif yi > y + delta: b = xi
+    else:                return xi
+
+test "inv":
+  proc fn(x: float): float = x
+  assert inv(fn, y = 2.0, delta = 0.01) =~ 2.0
+
+
+proc cdf_to_hist*(cdf: (float) -> float, intervals: openarray[float], small = 0.0001): seq[P2] =
+  # The `x` are intervals, for each interval an average x used
+  assert cdf(intervals[0]) <= small,          "pdf x scale misses left tail"
+  assert (1.0 - cdf(intervals[^1])) <= small, "pdf x scale misses right tail"
+  var xa = intervals[0]; var pa = cdf(xa)
+  for b in 1..<intervals.len:
+    let xb = intervals[b]
+    let pb = cdf(xb)
+    assert pa <= pb, "cdf should be monotone"
+    assert pb <= 1.0, "cdf can't be greather than 1"
+    result.add (xa + (xb - xa)/2.0, pb - pa)
+    xa = xb; pa = pb
+  let totalp = result.sum(d => d.y)
+  assert 0.99 < totalp and totalp < 1.01, "histogram should sum up to 1"
+  assert result.count(d => d.y > small).float > result.len / 3, "too much empty space in histogram"
+
+proc cdf_to_hist*(cdf: (float) -> float, n: int, small = 0.0001): seq[P2] =
+  let a = inv(cdf, small, delta = small / 2.0)
+  let b = inv(cdf, 1.0 - small, delta = small / 2.0)
+  let margin = 0.1 * (b - a) # Making range a little bit wider
+  cdf_to_hist(cdf, intervals = range(a - margin, b + margin, n + 1), small = small)
+
+test "cdf_to_hist":
   let uniform = proc (x: float): float =
     if x < 0: 0.0 elif x <= 1: x else: 1.0
-  let pdf = cdf_to_pdf(uniform, [-0.5, 0.0, 0.5, 1.0, 1.5])
-  assert pdf == @[(-0.5, 0.0), (0.0, 0.5), (0.5, 0.5), (1.0, 0.5), (1.5, 0.0)]
+
+  block:
+    let hist = cdf_to_hist(uniform, [-0.5, 0.0, 0.5, 1.0, 1.5])
+    assert hist == @[(-0.25, 0.0), (0.25, 0.5), (0.75, 0.5), (1.25, 0.0)]
+
+  block:
+    let hist = cdf_to_hist(uniform, 4)
+    check hist[0].x  =~ 0.0201
+    check hist[^1].x =~ 0.9798
 
 
 proc mean_pqf*(values: seq[float], normalize = true): seq[P2] =
@@ -206,6 +254,18 @@ proc pqf*[D](dist: D, x: seq[float]): seq[P2] =
   for xi in x:
     if   xi < 0: result.add (x: xi, p: dist.cdf(xi))
     elif xi > 0: result.add (x: xi, p: 1 - dist.cdf(xi))
+
+
+
+# proc fit_normal_mu*(sample: seq[float], a, b: int): float =
+#     let len = b - a + 1
+#     for i in a..b: result += sample[i]
+#     result /= len.float
+
+# proc fit_normal_sigma*(mu: float, sample: seq[float], a, b: int): float =
+#     let len = b - a + 1
+#     for i in a..b: result += (sample[i] - mu)^2.0
+#     result = (result / len.float)^0.5
 
 
 
