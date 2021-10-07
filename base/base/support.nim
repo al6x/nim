@@ -213,11 +213,11 @@ proc to_shared_ptr*[T](v: T): ptr T =
   result[] = v
 
 # A simple way to message user by throwing an error
-type MessageError* = object of Exception
-template throw_message*(message: string) =
-  echo terminal.red(message)
-  quit(0)
-  # raise newException(MessageError, message)
+# type MessageError* = object of Exception
+# template throw_message*(message: string) =
+#   echo terminal.red(message)
+#   quit(0)
+#   # raise newException(MessageError, message)
 
 # unset --------------------------------------------------------------------------------------------
 # type Unset* = object

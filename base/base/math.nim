@@ -223,20 +223,14 @@ type Point3D = tuple[x: float, y: float, z: float]
 
 
 func upper_bound*[V, X](points: openarray[V], x: X, cmp: proc(v: V, x: X): int): int =
-  # Returns first element that's greather or equal to x
-  # Implementation in std/algorithm.upper_bound is wrong https://forum.nim-lang.org/t/8484
+  # Returns first element that's greather or equal to x or errors.
+  # The std/algorithm.upper_bound is different, it returns first element that's greater but not equal and
+  # doens't guarantee there's upper bound at all, in such case it returns last element.
   assert cmp(points[^1], x) >= 0, "no upper bound"
-
-  var (a, b) = (0, points.len - 1)
-  while b - a > 1:
-    let i = a + ((b - a) div 2)
-    if cmp(points[i], x) >= 0: b = i
-    else:                     a = i
-
-  # If there are multiple equal elements, taking the first one
-  while b > 0 and cmp(points[b-1], x) >= 0: b -= 1
-  assert cmp(points[b], x) >= 0
-  b
+  var i = algorithm.upper_bound(points, x, cmp)
+  while i > 0 and cmp(points[i-1], x) >= 0: i -= 1 # Handling equal elements
+  assert cmp(points[i], x) >= 0
+  i
 
 func upper_bound*[T](points: openarray[T], x: T): int =
   points.upper_bound(x, cmp[T])
