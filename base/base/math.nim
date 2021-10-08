@@ -256,8 +256,20 @@ func idw*(points: openarray[P2], x: float, regularize = 1e-9): float =
     result += w * points[i].y
   result /= weights.sum
 
+func idw*(a: P2, b: P2, x: float, regularize = 1e-9): float =
+  # Inverse Distance Weighting for 2 points, it's faster than the general version.
+  # regularize - to prevent division by zero for sample points with the same location as query points
+
+  # Ensuring x is between a and b
+  assert((a.x <= x and x <= b.x) or (b.x <= x and x <= a.x), "x lies outside of neighbours")
+
+  let (da, db) = ((x - a.x).abs, (b.x - x).abs)
+  let (wa, wb) = (1/(da + regularize), 1/(db + regularize))
+  (wa * a.y + wb * b.y) / (wa + wb)
+
 test "idw":
   assert @[(1.0, 2.0), (4.0, 5.0)].idw(2.0) =~ 3.0
+  assert idw((1.0, 2.0), (4.0, 5.0), 2.0) =~ 3.0
 
 
 func idw2n*(points: openarray[P2], x: float, regularize = 1e-9): float =
@@ -269,7 +281,7 @@ func idw2n*(points: openarray[P2], x: float, regularize = 1e-9): float =
   let loweri = if upperi > 0: upperi - 1 else: upperi
   assert points[loweri].x <= x
 
-  idw(points[loweri..upperi], x, regularize)
+  idw(points[loweri], points[upperi], x, regularize)
 
 test "idw2n":
   let points = @[(1.0, 1.0), (2.0, 2.0), (5.0, 5.0)]
@@ -298,7 +310,7 @@ test "idw2n":
 
 
 proc interpolate*(efn: seq[P2], x: seq[float], skip = false): seq[P2] =
-  # Interpolate empyrical fn in given x points.
+  # Interpolate empyrical fn in points x using inverse distance weighting with 2 neighbours.
 
   let (exmin, exmax) = (efn[0].x, efn[^1].x)
   let x = if skip: x.filter(xi => exmin <= xi and xi <= exmax) else: x
@@ -312,7 +324,7 @@ proc interpolate*(efn: seq[P2], x: seq[float], skip = false): seq[P2] =
       if efn[j].x <= xi and efn[j+1].x >= xi: break
       j += 1
 
-    result.add (x: xi, y: idw([efn[j], efn[j+1]], xi))
+    result.add (x: xi, y: idw(efn[j], efn[j+1], xi))
 
 test "interpolate":
   assert @[(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)].interpolate(@[2.0, 3.0]) =~ @[(2.0, 3.0), (3.0, 4.0)]

@@ -186,6 +186,7 @@ proc cdf_to_hist*(cdf: (float) -> float, intervals: openarray[float], small = 0.
   assert result.count(d => d.y > small).float > result.len / 3, "too much empty space in histogram"
 
 proc cdf_to_hist*(cdf: (float) -> float, n: int, small = 0.0001): seq[P2] =
+  # TODO Shift hist a little left and right to find better fit, use Anderson Darling to mesure fit
   let a = inv(cdf, small, delta = small / 2.0)
   let b = inv(cdf, 1.0 - small, delta = small / 2.0)
   let margin = 0.1 * (b - a) # Making range a little bit wider
@@ -205,55 +206,48 @@ test "cdf_to_hist":
     check hist[^1].x =~ 0.9798
 
 
-proc mean_pqf*(values: seq[float], normalize = true): seq[P2] =
-  # P(X <= x, x < mean) and Q(X >= x, x > mean)
-  var lt1: seq[float]; var gt1: seq[float]
-  let middle = values.mean
-  for v in values:
-    if v < middle: lt1.add v
-    if v > middle: gt1.add v
 
-  var pqf: seq[P2]
-  if lt1.len > 0: pqf.add cdf(lt1, normalize = false)
-  if gt1.len > 0: pqf.add cdf(gt1, normalize = false, inversed = true)
 
-  if normalize:
-    let total = values.len.float
-    for i in 0..<pqf.len: pqf[i].y = pqf[i].y / total
-  pqf
 
-proc pqf*(values: seq[float], normalize = true): seq[P2] =
-  # P(X <= x, x < 0) and Q(X >= x, x > 0)
-  var lt1: seq[float]; var gt1: seq[float]
-  for v in values:
-    if v < 0.0: lt1.add v
-    if v > 0.0: gt1.add v
 
-  var pqf: seq[P2]
-  if lt1.len > 0: pqf.add cdf(lt1, normalize = false)
-  if gt1.len > 0: pqf.add cdf(gt1, normalize = false, inversed = true)
 
-  if normalize:
-    let total = values.len.float
-    for i in 0..<pqf.len: pqf[i].y = pqf[i].y / total
-  pqf
 
-test "pqf":
-  assert @[
-    -1.0, -2.0, -2.0, -3.0, -1.0,
-     1.0,  2.0,  2.0,  3.0,  1.0
-  ].pqf(normalize = false) == @[
-    (-3.0, 1.0), (-2.0, 3.0), (-1.0, 5.0),
-    ( 1.0, 5.0), ( 2.0, 3.0), ( 3.0, 1.0)
-  ]
 
-proc pqf*[D](dist: D, x: seq[float]): seq[P2] =
-  # P(X <= x, x < 0) and Q(X >= x, x > 0)
-  # Note that only analytical CDF could be converted to SCDF, for empirical CDF the error could
-  # be too large, because of <= and not < inequality in P(X <= x)
-  for xi in x:
-    if   xi < 0: result.add (x: xi, p: dist.cdf(xi))
-    elif xi > 0: result.add (x: xi, p: 1 - dist.cdf(xi))
+
+
+
+# proc pqf*(values: seq[float], normalize = true): seq[P2] =
+#   # P(X <= x, x < 0) and Q(X >= x, x > 0)
+#   var lt1: seq[float]; var gt1: seq[float]
+#   for v in values:
+#     if v < 0.0: lt1.add v
+#     if v > 0.0: gt1.add v
+
+#   var pqf: seq[P2]
+#   if lt1.len > 0: pqf.add cdf(lt1, normalize = false)
+#   if gt1.len > 0: pqf.add cdf(gt1, normalize = false, inversed = true)
+
+#   if normalize:
+#     let total = values.len.float
+#     for i in 0..<pqf.len: pqf[i].y = pqf[i].y / total
+#   pqf
+
+# test "pqf":
+#   assert @[
+#     -1.0, -2.0, -2.0, -3.0, -1.0,
+#      1.0,  2.0,  2.0,  3.0,  1.0
+#   ].pqf(normalize = false) == @[
+#     (-3.0, 1.0), (-2.0, 3.0), (-1.0, 5.0),
+#     ( 1.0, 5.0), ( 2.0, 3.0), ( 3.0, 1.0)
+#   ]
+
+# proc pqf*[D](dist: D, x: seq[float]): seq[P2] =
+#   # P(X <= x, x < 0) and Q(X >= x, x > 0)
+#   # Note that only analytical CDF could be converted to SCDF, for empirical CDF the error could
+#   # be too large, because of <= and not < inequality in P(X <= x)
+#   for xi in x:
+#     if   xi < 0: result.add (x: xi, p: dist.cdf(xi))
+#     elif xi > 0: result.add (x: xi, p: 1 - dist.cdf(xi))
 
 
 
@@ -318,3 +312,21 @@ proc pqf*[D](dist: D, x: seq[float]): seq[P2] =
 #     cdf[i].p = cdf[i].p / normalize.float
 #   if inversed: cdf.sort
 #   cdf
+
+
+# proc mean_pqf*(values: seq[float], normalize = true): seq[P2] =
+#   # P(X <= x, x < mean) and Q(X >= x, x > mean)
+#   var lt1: seq[float]; var gt1: seq[float]
+#   let middle = values.mean
+#   for v in values:
+#     if v < middle: lt1.add v
+#     if v > middle: gt1.add v
+
+#   var pqf: seq[P2]
+#   if lt1.len > 0: pqf.add cdf(lt1, normalize = false)
+#   if gt1.len > 0: pqf.add cdf(gt1, normalize = false, inversed = true)
+
+#   if normalize:
+#     let total = values.len.float
+#     for i in 0..<pqf.len: pqf[i].y = pqf[i].y / total
+#   pqf
