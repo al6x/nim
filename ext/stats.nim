@@ -73,10 +73,10 @@ proc sample*[D](distr: D, count: int, rgen: var CRand = default_crgen): seq[floa
   for _ in 1..count:
     result.add distr.rand(rgen)
 
-proc cdf*(values: seq[float], normalize = true, inversed = false): seq[P2] =
+proc cdf*(sample: seq[float], normalize = true, inversed = false): seq[P2] =
   # inversed - calculates X >= x instead of X <= x
-  if values.len == 0: throw "CDF requires non empty list"
-  var sorted = values.sort
+  if sample.len == 0: throw "CDF requires non empty list"
+  var sorted = sample.sort
   if inversed: sorted = sorted.reverse
 
   var cdf = @[(x: sorted[0], y: 1.0)]
@@ -88,13 +88,13 @@ proc cdf*(values: seq[float], normalize = true, inversed = false): seq[P2] =
       cdf.add (x, previous.y + 1)
 
   if normalize:
-    let total = values.len.float
+    let total = sample.len.float
     for i in 0..<cdf.len: cdf[i].y = cdf[i].y / total
   if inversed: cdf = cdf.reverse
   cdf
 
-proc qdf*(values: seq[float], normalize = true): seq[P2] =
-  cdf(values, normalize = normalize, inversed = true)
+proc qdf*(sample: seq[float], normalize = true): seq[P2] =
+  cdf(sample, normalize = normalize, inversed = true)
 
 test "cdf":
   assert:

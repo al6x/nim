@@ -5,7 +5,8 @@ from algorithm import sorted
 export math
 
 
-type P2* = tuple[x: float, y: float] # 2D Point
+type P2* = tuple[x: float, y: float]          # 2D Point
+type P3 = tuple[x: float, y: float, z: float] # 3D Point
 
 
 func `*`*(a: float, b: (float, float)): (float, float) =
@@ -127,30 +128,29 @@ test "fill_missing":
   ]
 
 
-proc rate*[N: int | float](values: seq[N], span = 1): seq[float] =
-  if values.len <= span: throw fmt"should have at least {span + 1} values"
-  result.set_len values.len - span
-  for i in 0..<(values.len - span):
-    let (a, b) = (values[i], values[i+span])
-    if a <= 0.0 or b <= 0.0: throw "rates expect non negative values"
-    result[i] = b / a
-
-
-test "rate":
-  assert @[1.0, 2.0, 2.0, 1.0].rate == @[2.0, 1.0, 0.5]
-
-  # // Annual revenues
-  # assert.equal(differentiate([
-  #   //  1,     2,     3,     4,     5,     6,     7,     8,     9,    10,    11,    12
-  #       u,     u,     u,     u,     u,     1,     u,     u,     u,     u,     u,     u, // 2000-06
-  #       u,     u,     u,     u,     u,   1.1,     u,     u,     u,     u,     u,     u, // 2001-06
-  #       u,     u,     u,     u,     u,   1.2                                            // 2002-06
-  # ]).map((v) => v ? round(v, 3) : v), [
-  #   //  1,     2,     3,     4,     5,     6,     7,     8,     9,    10,    11,    12
-  #       u,     u,     u,     u,     u,     u, 1.008, 1.008, 1.008, 1.008, 1.008, 1.008,
-  #   1.008, 1.008, 1.008, 1.008, 1.008, 1.008, 1.007, 1.007, 1.007, 1.007, 1.007, 1.007,
-  #   1.007, 1.007, 1.007, 1.007, 1.007, 1.007
-  # ])
+# proc rate*[N: int | float](values: seq[N], span = 1): seq[float] =
+#   if values.len <= span: throw fmt"should have at least {span + 1} values"
+#   result.set_len values.len - span
+#   for i in 0..<(values.len - span):
+#     let (a, b) = (values[i], values[i+span])
+#     if a <= 0.0 or b <= 0.0: throw "rates expect non negative values"
+#     result[i] = b / a
+#
+# test "rate":
+#   assert @[1.0, 2.0, 2.0, 1.0].rate == @[2.0, 1.0, 0.5]
+#
+# // Annual revenues
+# assert.equal(differentiate([
+#   //  1,     2,     3,     4,     5,     6,     7,     8,     9,    10,    11,    12
+#       u,     u,     u,     u,     u,     1,     u,     u,     u,     u,     u,     u, // 2000-06
+#       u,     u,     u,     u,     u,   1.1,     u,     u,     u,     u,     u,     u, // 2001-06
+#       u,     u,     u,     u,     u,   1.2                                            // 2002-06
+# ]).map((v) => v ? round(v, 3) : v), [
+#   //  1,     2,     3,     4,     5,     6,     7,     8,     9,    10,    11,    12
+#       u,     u,     u,     u,     u,     u, 1.008, 1.008, 1.008, 1.008, 1.008, 1.008,
+#   1.008, 1.008, 1.008, 1.008, 1.008, 1.008, 1.007, 1.007, 1.007, 1.007, 1.007, 1.007,
+#   1.007, 1.007, 1.007, 1.007, 1.007, 1.007
+# ])
 
 
 proc diff*[N: int | float](values: seq[N], span = 1): seq[float] =
@@ -181,11 +181,13 @@ func sum*(values: openarray[float]): float = values.foldl(a + b, 0.0)
 func sum*[T; N: int | float](values: openarray[T], op: (T) -> N): N =
   for v in values: result += op(v)
 
+
 func div_rem*(x, y: float | int): (int, int) =
   (x.floor_div(y), x mod y)
 
 func rem*(x, y: int): int =
   x mod y
+
 
 func median*(values: openarray[float], is_sorted = false): float =
   quantile(values, 0.5, is_sorted)
@@ -216,10 +218,6 @@ func max_min_rate*(a: float | int, b: float | int): float =
 func is_number*(n: float): bool =
   let ntype = n.classify
   ntype == fc_normal or ntype == fc_zero or ntype == fc_neg_zero
-
-
-type Point2D = tuple[x: float, y: float]
-type Point3D = tuple[x: float, y: float, z: float]
 
 
 func upper_bound*[V, X](points: openarray[V], x: X, cmp: proc(v: V, x: X): int): int =
@@ -311,6 +309,7 @@ test "idw2n":
 
 proc interpolate*(efn: seq[P2], x: seq[float], skip = false): seq[P2] =
   # Interpolate empyrical fn in points x using inverse distance weighting with 2 neighbours.
+  # skip - skip efn values that lies outside of x
 
   let (exmin, exmax) = (efn[0].x, efn[^1].x)
   let x = if skip: x.filter(xi => exmin <= xi and xi <= exmax) else: x
