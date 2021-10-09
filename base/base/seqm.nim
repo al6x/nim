@@ -48,7 +48,7 @@ func fget*[T](list: openarray[T], check: (T, int) -> bool, start = 0): Option[T]
   T.none
 
 
-func first*[T](list: openarray[T]): T {.inline.} =
+func first*[T](list: openarray[T]): T =
   assert not list.is_empty, "can't get first from empty list"
   list[0]
 
@@ -60,7 +60,7 @@ func first_optional*[T](list: openarray[T]): Option[T] =
   if list.is_empty: T.none else: list[0].some
 
 
-func last*[T](list: openarray[T]): T {.inline.} =
+func last*[T](list: openarray[T]): T =
   assert not list.is_empty, "can't get last from empty list"
   list[^1]
 
