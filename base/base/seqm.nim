@@ -83,7 +83,8 @@ func findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
       if list[i] == value: return i.some
   int.none
 
-func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): int =
+echo "change output to Option[int]"
+proc findi*[T](list: openarray[T], check: (T) -> bool, start = 0): int =
   if start <= (list.len - 1):
     for i in start..(list.len - 1):
       if check(list[i]): return i
@@ -92,7 +93,7 @@ func findi*[T](list: openarray[T], check: (T) -> bool, start = 0): int =
 test "findi":
   assert @["a"].findi((v) => v == "a") == 0 # From error
 
-
+echo "change to find"
 template find_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
   var result: Option[T]
   for v in `list`:
@@ -125,6 +126,7 @@ func map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} 
   for i, v in list: result.add(op(v, i))
 
 
+echo "change to sort"
 func sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
 
 test "sort_by":
@@ -289,6 +291,7 @@ proc init*[R, A, B, C](_: type[seq[R]], list: seq[(A, B, C)]): seq[R] =
   list.map(proc (v: (A, B, C)): R = R.init(v[0], v[1], v[2]))
 
 
+echo "rename to group"
 proc group_by*[V, K](list: seq[V] | ref seq[V], op: (V) -> K): Table[K, seq[V]] =
   for v in list: result.mget_or_put(op(v), @[]).add v
 
@@ -300,6 +303,7 @@ proc to_seq*[K, V](t: Table[K, V]): seq[(K, V)] =
   for k, v in t: result.add (k, v)
 
 
+echo "rename to count"
 proc count_by*[V, K](list: seq[V] | ref seq[V], op: (v: V) -> K): Table[K, int] =
   for v in list:
     let k = op(v)

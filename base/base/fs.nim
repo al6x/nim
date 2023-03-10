@@ -78,7 +78,7 @@ proc exist*(fs: FS, path: string): bool =
 
 
 type FsEntryKind* = enum file, file_link, dir, dir_link
-autoconvert FsEntryKind
+# autoconvert FsEntryKind
 
 type FsEntry* = tuple[kind: FsEntryKind, name: string]
 

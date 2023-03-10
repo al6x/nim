@@ -10,7 +10,7 @@ template throw(message: string) = raise newException(Exception, message)
 type Env* = ref object
   values*: Table[string, string]
 
-const special_arguments = { "help": "bool" }.to_table
+# const special_arguments = { "help": "bool" }.to_table
 
 # Normalizing keys, so both camel case and underscore keys will be matched
 func normalize_key(v: string): string = v.to_lower.replace("_", "")
@@ -27,7 +27,8 @@ let env* = block:
         let pair = token.split("=", 2)
         # Keys are normalized, lowercased with replaced `_`
         result.values[pair[0].normalize_key] = pair[1]
-      elif token.normalize_key in special_arguments:
+      # elif token.normalize_key in special_arguments:
+      else:
         # Non key/value argument with name matching `T.key` treating as boolean key/value
         result.values[token.normalize_key] = "true"
 
@@ -61,7 +62,7 @@ proc is_dev*(env: Env): bool  = env_mode == "dev"
 proc parse_string_as(_: type[int],    v: string): int    = v.parse_int
 proc parse_string_as(_: type[float],  v: string): float  = v.parse_float
 proc parse_string_as(_: type[string], v: string): string = v
-proc parse_string_as(_: type[bool],   v: string): bool   = v.to_lower in ["true", "yes"]
+proc parse_string_as(_: type[bool],   v: string): bool   = v.to_lower in ["true", "t", "yes", "y"]
 
 
 # parse_env ----------------------------------------------------------------------------------------
@@ -72,7 +73,7 @@ proc parse_env*[T: tuple|object](
   required_options: openarray[string] = [],
   env                                 = env
 ): (T, seq[string]) = # (options, args)
-  var o = default
+  var o = default; var help = false
 
   # List of keys in object
   var object_keys, normalized_object_keys: seq[string]
@@ -92,14 +93,17 @@ proc parse_env*[T: tuple|object](
         let pair = token.split("=", 2)
         # Keys are normalized, lowercased with replaced `_`
         options[pair[0].normalize_key] = pair[1]
-      elif token.normalize_key in normalized_object_keys or token.normalize_key in special_arguments:
+      # elif token.normalize_key in normalized_object_keys or token.normalize_key in special_arguments:
+      elif token.normalize_key in normalized_object_keys:
         # Non key/value argument with name matching `T.key` treating as boolean key/value
         options[token.normalize_key] = "true"
+      elif token.normalize_key == "help":
+        help = true
       else:
         args.add token
 
   block: # Printing help
-    if "help" in options and options["help"] == "true":
+    if help:
       if required_args[1] > 0:
         if required_args[1] == required_args[0]:
           echo fmt"arguments count {required_args[0]}"
@@ -107,10 +111,11 @@ proc parse_env*[T: tuple|object](
           echo fmt"arguments count {required_args[0]}..{required_args[1]}"
 
       for k, v in o.field_pairs:
-        echo "  - " & k & ", " & $(typeof v) & (if k in required_options: ", required" else: "")
+        echo "  - " & k & ": " & $(typeof v) & (if k in required_options: ", required" else: "")
       echo ""
-      for k, v in special_arguments:
-        echo terminal.grey(fmt"  - {k}, {v}")
+      # for k, v in special_arguments:
+      #   echo terminal.grey(fmt"  - {k}, {v}")
+      echo terminal.grey(fmt"  - help: bool")
 
       quit(0)
 
@@ -120,7 +125,8 @@ proc parse_env*[T: tuple|object](
     if args.len < required_args[0] or args.len > required_args[1]:
       throw fmt"Expected {required_args[0]}..{required_args[1]} arguments, but got {args.len}"
     for k, _ in options:
-      if k notin normalized_object_keys and k notin special_arguments:
+      # if k notin normalized_object_keys and k notin special_arguments:
+      if k notin normalized_object_keys and k != "help":
         throw fmt"Unknown option '{k}'"
 
     func ktype(k: string): string =
@@ -141,11 +147,11 @@ proc parse_env*[T: tuple|object](
 
 
 # Test ---------------------------------------------------------------------------------------------
-# nim c -r envm.nim file=a.txt some_flag lines=2 something
+# nim c -r base/base/env.nim file=a.txt some_flag lines=2 something
 if is_main_module:
   type Config = object
     file:      string
-    lines:     int
+    lines:    int
     some_flag: bool
 
   echo Config.parse_env(

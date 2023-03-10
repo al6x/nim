@@ -28,7 +28,8 @@ template times*(n: int, code: typed) =
 # test ---------------------------------------------------------------------------------------------
 let test_enabled_s    = if "test" in env: env["test"] else: "false"
 let slow_test_enabled = test_enabled_s == "all"
-let test_enabled      = test_enabled_s == "true" or slow_test_enabled
+let test_enabled      = test_enabled_s in ["true", "t", "yes", "y"] or slow_test_enabled
+
 
 template test*(name: string, body) =
   if test_enabled or name.to_lower == test_enabled_s:
@@ -112,7 +113,7 @@ proc timer_ms*(): Timer =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 
-
+echo "remove check"
 macro check*(conditions: untyped, info = ""): untyped =
   ## Verify if a statement or a list of statements is true.
   ## A helpful error message and set checkpoints are printed out on
@@ -208,6 +209,7 @@ macro check*(conditions: untyped, info = ""): untyped =
         checkpoint(`lineinfo` & ": Check failed: " & `callLit` & " " & `infoLit`)
         quit()
 
+echo "remove to_share_ptr"
 proc to_shared_ptr*[T](v: T): ptr T =
   result = create_shared(T)
   result[] = v

@@ -1,4 +1,4 @@
-Future Nim STD Library.
+Extensions for Nim standard library.
 
 - Fixing outdated stuff like old functions written with `var arg` style.
 - Fixing conflicts with iterators like `table.keys`.

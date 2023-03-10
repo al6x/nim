@@ -5,7 +5,7 @@ from algorithm import sorted
 export math
 
 
-type P2* = tuple[x: float, y: float]          # 2D Point
+type P2* = tuple[x: float, y: float]         # 2D Point
 type P3 = tuple[x: float, y: float, z: float] # 3D Point
 
 
@@ -46,11 +46,10 @@ func requal*(a: float, b: float, rsim: float = requal_default_rsim): bool =
   elif a.sgn != b.sgn:
     false
   else:
-    let aabs = a.abs
-    let babs = b.abs
+    let (aabs, babs) = (a.abs, b.abs)
     let (smaller, larger) = (min(aabs, babs), max(aabs, babs))
     if larger < requal_min_float: true
-    else:                         (smaller / larger) > rsim
+    else:                        (smaller / larger) > rsim
 
 func requal*[T](a: seq[T], b: seq[T], rsim: float = requal_default_rsim): bool =
   for i, ai in a:
@@ -94,9 +93,9 @@ test "quantile":
 
 
 type FillMissingKind* = enum jump
-autoconvert FillMissingKind
+# autoconvert FillMissingKind
 
-proc fill_missing*[N: int | float](values: seq[Option[N]], kind: FillMissingKind = "jump"): seq[N] =
+proc fill_missing*[N: int | float](values: seq[Option[N]], kind: FillMissingKind = jump): seq[N] =
   # Fill missing values in sequence
 
   if not values.len > 1: throw fmt"should have at least 2 values for interpolate"
@@ -106,7 +105,7 @@ proc fill_missing*[N: int | float](values: seq[Option[N]], kind: FillMissingKind
 
   # Filling missing values with the next known value.
   # rates will be sudden jumps, not linear interpolation, it makes more sense for financial prices.
-  if kind == "jump":
+  if kind == jump:
     var filled: seq[N]
     filled.set_len values.len
     var i = values.len - 1
@@ -209,10 +208,11 @@ func min_max_rate*(a: float | int, b: float | int): float =
   result = min(a.float, b.float) / max(a.float, b.float)
   assert(result >= 0 and result <= 1, "invalid rate")
 
-func max_min_rate*(a: float | int, b: float | int): float =
-  assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
-  result = max(a.float, b.float) / min(a.float, b.float)
-  assert(result >= 1, "invalid rate")
+# func max_min_rate*(a: float | int, b: float | int): float =
+#   echo "use 1/min_max_rate"
+#   assert(((a >= 0 and b >= 0) or (a <= 0 and b <= 0)), fmt"different signs for min_max_rate {a} {b}")
+#   result = max(a.float, b.float) / min(a.float, b.float)
+#   assert(result >= 1, "invalid rate")
 
 
 func is_number*(n: float): bool =
