@@ -1,6 +1,6 @@
-import std/[strformat, options, strutils, sugar]
-from uri import nil
-import ./support, ./decode_query, ./re as rem, ./table, ./hash
+import std/[strformat, options, strutils, sugar, sequtils]
+from uri as nuri import nil
+import ./support, ./re as rem, ./table, ./hash
 
 type Url* = object
   path*:   string
@@ -28,9 +28,9 @@ proc init*(
   let rel = Url.init(path, query)
   Url(is_full: true, scheme: scheme, host: host, port: port, path: rel.path, query: rel.query)
 
-proc init*(_: type[Url], uri: uri.Uri): Url =
+proc init*(_: type[Url], uri: nuri.Uri): Url =
   var query: Table[string, string]
-  for k, v in decode_query(uri.query): query[k] = v
+  for _, (k, v) in to_seq(nuri.decode_query(uri.query)): query[k] = v
   let is_full = uri.hostname != ""
   if is_full:
     let port_s = if uri.port == "": "80" else: uri.port
@@ -40,8 +40,8 @@ proc init*(_: type[Url], uri: uri.Uri): Url =
     Url.init(path = uri.path, query = query)
 
 proc parse*(_: type[Url], url: string): Url =
-  var parsed = uri.init_uri()
-  uri.parse_uri(url, parsed)
+  var parsed = nuri.init_uri()
+  nuri.parse_uri(url, parsed)
   Url.init parsed
 
 proc hash*(url: Url): Hash = url.autohash
@@ -49,7 +49,7 @@ proc hash*(url: Url): Hash = url.autohash
 proc `$`*(url: Url): string =
   var query: seq[(string, string)]
   for k, v in url.query: query.add (k, v)
-  var query_s = if query.len > 0: "?" & uri.encode_query(query) else: ""
+  var query_s = if query.len > 0: "?" & nuri.encode_query(query) else: ""
   if url.is_full:
     let port = if url.port == 80: "" else: fmt":{url.port}"
     fmt"{url.scheme}://{url.host}{port}{url.path}{query_s}"
@@ -74,3 +74,12 @@ proc `&`*(base: Url, addon: string): Url =
 
 proc subdomain*(host: string): Option[string] =
   re"^([^\.]+)\.".parse(host).map((found) => found[0])
+
+# Test ---------------------------------------------------------------------------------------------
+# nim c -r base/base/url.nim
+if is_main_module:
+  let url = Url.parse("http://host.com/path?a=b&c=d")
+  echo url
+  echo url.query
+
+  echo url.path
