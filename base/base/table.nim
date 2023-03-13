@@ -3,6 +3,13 @@ import ./option, ./support
 
 export tables
 
+proc del*[K, V](table: var Table[K, V], cond: (K, V) -> bool): seq[K] =
+  var delete_keys: seq[K]
+  for k, v in table:
+    if cond(k, v): delete_keys.add k
+  for k in delete_keys: table.del k
+  delete_keys
+
 # map ----------------------------------------------------------------------------------------------
 proc map*[K, V, R](table: Table[K, V] | ref Table[K, V], convert: (V, K) -> R): Table[K, R] =
   for k, v in table: result[k] = convert(v, k)

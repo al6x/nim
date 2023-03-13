@@ -73,7 +73,7 @@ test "take":
   assert @[1, 2, 3].take(10) == @[1, 2, 3]
 
 
-proc delete*[T](s: var seq[T], cond: (T) -> bool): void =
+proc del*[T](s: var seq[T], cond: (T) -> bool): void =
   s = s.filter((v) => not cond(v))
 
 

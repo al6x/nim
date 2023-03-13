@@ -15,7 +15,7 @@
         for (let key of keys) event[key] = raw_event[key]
         page_log.info("event", event)
         try {   await send("post", location.href, { type: "event", session_id, event }) }
-        catch { page_log.error("can't send event", data) }
+        catch { page_log.error("can't send event") }
       }
       document.body.addEventListener("click", handle)
     }
@@ -36,8 +36,8 @@
         if ("eval" in response) {
           page_log.info("eval", response.eval)
           eval("'use strict'; " + response.eval)
-        } else if (response.keys() == 0) {
-          page_log.info("empty response")
+        } else if (Object.keys(response).length == 0) {
+          // page_log.info("empty response")
         } else {
           const error = new Error("unknown response")
           page_log.error("unknown response", response)
