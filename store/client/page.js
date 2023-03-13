@@ -22,11 +22,10 @@
 
     async _pull() {
       page_log.info("started")
-      let init = true
       while (true) {
         let response
         try {
-          response = await send("post", location.href, { type: "pull", init, session_id: this.session_id }, -1)
+          response = await send("post", location.href, { type: "pull", session_id: this.session_id }, -1)
         } catch {
           page_log.warn("retrying")
           await sleep(1000)

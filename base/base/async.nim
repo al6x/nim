@@ -27,6 +27,9 @@ proc spawn_async*[T](afn: proc: Future[T], check = true) =
         discard
   asyncdispatch.call_soon on_next_tick
 
+proc spawn_async*(fn: proc: void, check = true) =
+  spawn_async((proc: Future[void] {.async.} = fn()), check)
+
 
 # timeout ------------------------------------------------------------------------------------------
 proc with_timeout*[T](future: Future[T], timeout_ms: int, message = "timed out"): Future[T] {.async.} =

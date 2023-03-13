@@ -1,6 +1,12 @@
 import base, base/[url, async]
 import std/[deques, httpcore, asynchttpserver, asyncnet]
 
+proc init*(_: type[Url], request: Request): Url =
+  let url = Url.init(request.url) # doesn't have host
+  let host_port = request.headers["host"].split(":")
+  let (host, port) = if host_port.len == 1: (host_port[0], 80) else: (host_port[0], host_port[1].parse_int)
+  Url.init(scheme = "", host = host, port = port, path = url.path, query = url.query)
+
 proc respond*(req: Request, content: string, ctype: string): Future[void] {.async.} =
   await req.respond(Http200, content, new_http_headers([("Content-Type", ctype)]))
 
