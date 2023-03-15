@@ -291,23 +291,30 @@ proc init*[R, A, B, C](_: type[seq[R]], list: seq[(A, B, C)]): seq[R] =
   list.map(proc (v: (A, B, C)): R = R.init(v[0], v[1], v[2]))
 
 
-echo "rename to group"
-proc group_by*[V, K](list: seq[V] | ref seq[V], op: (V) -> K): Table[K, seq[V]] =
+# proc group_by*[V, K](list: seq[V] | ref seq[V], op: (V) -> K): Table[K, seq[V]] =
+#   for v in list: result.mget_or_put(op(v), @[]).add v
+proc group*[V, K](list: seq[V], op: (V) -> K): Table[K, seq[V]] =
   for v in list: result.mget_or_put(op(v), @[]).add v
 
-test "group_by":
-  assert @["aa", "ab", "bc"].group_by((s) => s[0]) == {'a': @["aa", "ab"], 'b': @["bc"]}.to_table
+test "group":
+  assert @["aa", "ab", "bc"].group((s) => s[0]) == {'a': @["aa", "ab"], 'b': @["bc"]}.to_table
 
 
 proc to_seq*[K, V](t: Table[K, V]): seq[(K, V)] =
   for k, v in t: result.add (k, v)
 
 
-echo "rename to count"
-proc count_by*[V, K](list: seq[V] | ref seq[V], op: (v: V) -> K): Table[K, int] =
+# proc count_by*[V, K](list: seq[V] | ref seq[V], op: (v: V) -> K): Table[K, int] =
+#   for v in list:
+#     let k = op(v)
+#     result[k] = result.get_or_default(k, 0) + 1
+proc count*[V, K](list: seq[V], op: (v: V) -> K): Table[K, int] =
   for v in list:
     let k = op(v)
     result[k] = result.get_or_default(k, 0) + 1
 
-test "count_by":
-  assert @["aa", "ab", "bc"].count_by((s) => s[0]) == {'a': 2, 'b': 1}.to_table
+test "count":
+  assert @["aa", "ab", "bc"].count((s) => s[0]) == {'a': 2, 'b': 1}.to_table
+
+proc init*[T](_: type[seq[T]]): seq[T] =
+  new_seq[T]()

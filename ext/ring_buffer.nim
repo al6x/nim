@@ -33,16 +33,24 @@ proc add*[T](self: var RingBuffer[T], values: openarray[T]) =
   for v in values: self.add v
 
 iterator items*[T](self: RingBuffer[T]): T =
-  for i in 0..<self.count: yield self.data[(self.oldest + i) mod self.data.len]
+  for i in 0..<self.count: yield self[i]
+
+proc `[]`*[T](self: RingBuffer[T], i: int): T =
+  self.data[(self.oldest + i) mod self.data.len]
 
 test "RingBuffer":
   var b = RingBuffer[int].init(3)
   b.add 1
+  assert b.len == 1
   assert b == RingBuffer[int](data: @[1, 0, 0], oldest: 0, count: 1)
   b.add 2
+  assert b.to_seq == @[1, 2]
   b.add 3
+  assert b[1] == 2
   assert b == RingBuffer[int](data: @[1, 2, 3], oldest: 0, count: 3)
   b.add 4
+  assert b[1] == 3
+  assert b.len == 3
   assert b == RingBuffer[int](data: @[4, 2, 3], oldest: 1, count: 3)
   assert b.addget(5) == 2
   assert b == RingBuffer[int](data: @[4, 5, 3], oldest: 2, count: 3)

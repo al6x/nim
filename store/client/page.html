@@ -1,11 +1,11 @@
 <html>
   <head>
-    <script src="/_client/page.js"></script>
-  </head>
-  <body>
-    <p>hi</p>
-    <script>
+    <script type="module">
+      import { Page } from "/_client/page.js"
       new Page("{session_id}")
     </script>
+  </head>
+  <body>
+    <p id="eid"><button>hi</button></p>
   </body>
 </html>

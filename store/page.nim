@@ -1,32 +1,63 @@
 #!/usr/bin/env nim c -r
 
-import base, base/[url, async]
 import std/[deques, httpcore, asynchttpserver, asyncnet]
-import page/helpers
+import base, base/[url, async], ext/ring_buffer, page/helpers
 
 
 # App ----------------------------------------------------------------------------------------------
+type SpecialInputKeys* = enum alt, ctrl, meta, shift
+type InEventType* = enum location, click
+type InEvent* = object
+  case kind*: InEventType
+  of location:
+    path*:  seq[string]
+    query*: Table[string, string]
+  of click:
+    id*:   string
+    keys*: seq[string]
+
+type OutEventType* = enum eval
+type OutEvent* = object
+  kind*: OutEventType
+  code*: string
+
 type App* = ref object of RootObj
   id*: string
 
+method process*(self: App, event: InEvent): Option[OutEvent] {.base.} =
+  throw "not implemented"
+
 type Apps* = ref Table[string, proc: App]
 
-# method run(app: App): void {.base.} = throw "not implemented"
-
-proc get(apps: Apps, url: Url): (App, Deque[JsonNode]) =
+proc get(apps: Apps, url: Url): (App, InEvent) =
   # Returns app and initial events, like going to given url
   let id = if url.host == "localhost": url.query.ensure("_app", "_app query parameter required") else: url.host
   let app = apps[].ensure(id, fmt"Error, unknown application '{id}'")()
 
   var query = url.query
   query.del "_app"
-  let location_event = %{ type: "location", path: url.path.replace(re"/$", "").split("/"), query: query }
+  let path = url.path.replace(re"/$", "").split("/").reject(is_empty)
+  let location_event = InEvent(kind: location, path: path, query: query)
 
-  (app, @[location_event].to_deque)
+  (app, location_event)
 
 
 # Page ---------------------------------------------------------------------------------------------
 let log = Log.init("Page")
+
+type PullEventKind = enum expired, eval, ignore
+type PullEvent = object
+  case kind: PullEventKind
+  of expired:
+    discard
+  of eval:
+    code: string
+  of ignore:
+    discard
+
+proc to(e: OutEvent, _: type[PullEvent]): PullEvent =
+  assert e.kind == eval
+  PullEvent(kind: eval, code: e.code)
 
 # Processing Browser events decoupled from the HTTP networking, to avoid async complications.
 # Browser events are collected in indbox via async http handler, and then processed separatelly via
@@ -35,37 +66,36 @@ let log = Log.init("Page")
 type Session = ref object
   id:               string
   app:              App
-  inbox:            Deque[JsonNode]
-  outbox:           Deque[JsonNode]
+  inbox:            Deque[InEvent]
+  outbox:           Deque[OutEvent]
   last_accessed_ms: Timer
 
-proc init(_: type[Session], session_id: string, app: App, inbox: Deque[JsonNode]): Session =
-  Session(id: session_id, app: app, inbox: inbox)
+proc init(_: type[Session], session_id: string, app: App, inbox: Deque[InEvent]): Session =
+  Session(id: session_id, app: app, inbox: inbox, last_accessed_ms: timer_ms())
 
-proc mprocess*(s: Session, event: JsonNode): Option[JsonNode] =
-  (%{ eval: "console.log(\"ok\")" }).some
-
-proc mprocess(s: Session): void =
+proc process(s: Session): void =
   while s.inbox.len > 0:
-    let res = s.mprocess s.inbox.pop_first
+    let res = s.app.process s.inbox.pop_first
     if not res.is_empty: s.outbox.add_last(res.get)
 
-proc mon_event(s: Session, event: JsonNode): void =
-  log.with(s.id).info("session event")
+proc on_event(s: Session, event: InEvent): void =
+  log.with(s.id).with(event.to_json).info("session event")
   s.inbox.add_last(event)
 
-proc mon_pull(s: Session): Option[JsonNode] =
-  if s.outbox.len > 0: s.outbox.pop_first.some else: JsonNode.none
+proc on_pull(s: Session): Option[PullEvent] =
+  if s.outbox.len > 0: s.outbox.pop_first.to(PullEvent).some else: PullEvent.none
 
 type Sessions = ref Table[string, Session]
 # type ProcessSession[S] = proc(session: S, event: JsonNode): Option[JsonNode]
 
-proc mprocess(sessions: Sessions, session_timeout_ms: int) =
+proc process(sessions: Sessions) =
+  for _, s in sessions: s.process
+
+proc collect_garbage(sessions: Sessions, session_timeout_ms: int) =
   let deleted = sessions[].del (_, s) => s.last_accessed_ms() > session_timeout_ms
   for session_id in deleted: log.with(session_id).info("session closed")
-  for _, s in sessions: s.mprocess
 
-proc mbuild_http_handler(sessions: Sessions, apps: Apps, pull_timeout_ms: int): auto =
+proc build_http_handler(sessions: Sessions, apps: Apps, pull_timeout_ms: int): auto =
   return proc (req: Request): Future[void] {.async, gcsafe.} =
     let url = Url.init(req)
     if req.req_method == HttpGet:
@@ -75,38 +105,39 @@ proc mbuild_http_handler(sessions: Sessions, apps: Apps, pull_timeout_ms: int): 
         await req.respond(Http404, "")
       else:
         let session_id = secure_random_token(6)
+        let (app, initial_event) = apps.get(url)
+        let session = Session.init(session_id, app, @[initial_event].to_deque)
+        sessions[][session_id] = session
+        log.with(session_id).with(initial_event.to_json).info("session opened")
         await req.serve_client_page(url, session_id)
     elif req.req_method == HttpPost:
       let data = req.body.parse_json
-      let (session_id, etype) = (data["session_id"].get_str, data["type"].get_str)
+      let (session_id, kind) = (data["session_id"].get_str, data["kind"].get_str)
       if session_id notin sessions[]:
-        let (app, inbox) = apps.get(url)
-        let session = Session.init(session_id, app, inbox)
-        sessions[][session_id] = session
-        log.with(session_id).info("session opened")
-      let session = sessions[][session_id]
-      session.last_accessed_ms = timer_ms()
-
-      if etype == "event":
-        let event = data["event"].ensure((e) => e.kind == JObject, "invalid event type")
-        session.mon_event(event)
-        await req.respond_json(%{})
-      elif etype == "pull":
-        let timer = timer_ms()
-        while true:
-          if timer() > pull_timeout_ms:
-            await req.respond_json(%{})
-            break
-          let res = session.mon_pull
-          if not res.is_empty:
-            await req.respond_json(res.get)
-            break
-          await sleep_async(1)
+        await req.respond_json(PullEvent(kind: expired))
       else:
-        log.with(session_id).warn("unknown request")
-        await req.respond_json(%{})
+        let session = sessions[][session_id]
+        session.last_accessed_ms = timer_ms()
+        if kind == "event":
+          let event = data["event"].ensure((e) => e.kind == JObject, "invalid event type").json_to(InEvent)
+          session.on_event(event)
+          await req.respond_json(PullEvent(kind: ignore))
+        elif kind == "pull":
+          let timer = timer_ms()
+          while true:
+            if timer() > pull_timeout_ms:
+              await req.respond_json(PullEvent(kind: ignore))
+              break
+            let res = session.on_pull
+            if not res.is_empty:
+              await req.respond_json(res.get)
+              break
+            await sleep_async(1)
+        else:
+          log.with(session_id).warning("unknown request")
+          await req.respond_json(PullEvent(kind: ignore))
     else:
-      log.warn("unknown request")
+      log.warning("unknown request")
 
 proc run_page*(
   apps:                Apps,
@@ -116,27 +147,17 @@ proc run_page*(
 ): void =
   let sessions = Sessions()
   var server = new_async_http_server()
-  spawn_async server.serve(Port(port), mbuild_http_handler(sessions, apps, pull_timeout_ms), "localhost")
+  spawn_async server.serve(Port(port), build_http_handler(sessions, apps, pull_timeout_ms), "localhost")
+
+  # add_timer((session_timeout_ms/2).int, () => sessions.collect_garbage(session_timeout_ms), once = false)
+  add_timer(100, () => sessions.collect_garbage(session_timeout_ms), once = false)
 
   log.info "started"
   spawn_async(() => say "started", false)
 
   while true:
     poll(1)
-    sessions.mprocess(session_timeout_ms)
-
-
-# Debug --------------------------------------------------------------------------------------------
-
-
-type Runtime = ref object of App
-
-method run(app: Runtime): void =
-  throw "not implemented"
-
-
-
-
+    sessions.process() # extracting it from the async to have clean stack trace
 
 
 # Test ---------------------------------------------------------------------------------------------
@@ -145,7 +166,7 @@ method run(app: Runtime): void =
 # proc process*(session: TestSession, event: JsonNode): Option[JsonNode] =
 #   (%{ eval: "console.log(\"ok\")" }).some
 
-if is_main_module:
-  let apps = Apps()
-  apps[]["runtime"] = proc: App = Runtime()
-  run_page(apps, port = 8080)
+# if is_main_module:
+#   let apps = Apps()
+#   apps[]["runtime"] = proc: App = Runtime()
+#   run_page(apps, port = 8080)
