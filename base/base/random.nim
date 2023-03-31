@@ -1,11 +1,10 @@
 import std/[times, hashes, random, strutils]
-import ./support, ./env as envm, ./table
+import ./env as envm, ./table
 
 export Rand
 
-with Rand:
-  proc init(tself; seed = 1): Rand =
-    init_rand(seed)
+proc init(tself: type[Rand], seed = 1): Rand =
+  init_rand(seed)
 
 var default_rgen* = Rand.init
 

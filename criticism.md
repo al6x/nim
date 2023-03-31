@@ -108,3 +108,11 @@ Macros - great for simple tings. For anything more complex, to use macros is alm
 Simple and very needed issues [like this one](https://github.com/nim-lang/RFCs/issues/8) are ignored for years (5 years). I guess such features considered as insignificant and unimportant.
 
 Nim core team and large part of nim community focus on use cases like command-line utilities, embedded software, system prgramming, and have little interest in server or networking, reliable long running processes, web development, etc. So those domains are not only under developed, but also problems are ignored and marked as non important, and probably won't be addressed in the future too.
+
+# Anoying examples
+
+The `assert` won't print values, `assert actual == expected`, no way to know the value of actual from the output.
+
+The string format don't have escape, this fails `"a\"b".replace(re"\"", "")` but this works `"a\"b".replace(re("\""), "")`.
+
+The `iterator.to_seq` not working, need to do `to_seq(iterator)`.

@@ -1,10 +1,11 @@
 import std/[sugar, algorithm, tables]
 import sequtils except zip
 from std/random as random import nil
-import ./support, ./option
+import ./option, ./test
 
 export sequtils except zip
 
+template throw(message: string) = raise Exception.new_exception(message)
 
 proc `len=`*[T](s: var seq[T], n: int) =
   s.set_len n
@@ -69,8 +70,9 @@ proc take*[T](s: openarray[T], n: int): seq[T] =
   if n < s.len: s[0..(n - 1)] else: s.to_seq
 
 test "take":
-  assert @[1, 2, 3].take(2) == @[1, 2]
-  assert @[1, 2, 3].take(10) == @[1, 2, 3]
+  check:
+    @[1, 2, 3].take(2) == @[1, 2]
+    @[1, 2, 3].take(10) == @[1, 2, 3]
 
 
 proc del*[T](s: var seq[T], cond: (T) -> bool): void =
@@ -83,17 +85,26 @@ func findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
       if list[i] == value: return i.some
   int.none
 
-echo "change output to Option[int]"
-proc findi*[T](list: openarray[T], check: (T) -> bool, start = 0): int =
+proc findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
   if start <= (list.len - 1):
     for i in start..(list.len - 1):
-      if check(list[i]): return i
-  -1
+      if check(list[i]): return i.some
+  int.none
+# proc findi*[T](list: openarray[T], check: (T) -> bool, start = 0): int =
+#   if start <= (list.len - 1):
+#     for i in start..(list.len - 1):
+#       if check(list[i]): return i
+#   -1
 
 test "findi":
-  assert @["a"].findi((v) => v == "a") == 0 # From error
+  check @["a"].findi((v) => v == "a") == 0.some # From error
 
-echo "change to find"
+template find_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
+  var result: Option[T]
+  for v in `list`:
+    if v.`field` == `value`: result = v.some
+  result
+
 template find_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
   var result: Option[T]
   for v in `list`:
@@ -102,7 +113,7 @@ template find_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
 
 test "find_by":
   let people = @[(name: "John"), (name: "Sarah")]
-  assert people.find_by(name, "Sarah").get == (name: "Sarah")
+  check people.find_by(name, "Sarah").get == (name: "Sarah")
   # expand_macros:
   #   echo people.find_by(name, "John")
 
@@ -116,24 +127,24 @@ template pick*[T](list: openarray[T], field: untyped): untyped =
 
 test "pick":
   let people = @[(name: "John"), (name: "Sarah")]
-  assert people.pick(name) == @["John", "Sarah"]
+  check people.pick(name) == @["John", "Sarah"]
 
   proc name_fn(o: tuple[name: string]): string = o.name
-  assert people.pick(name_fn) == @["John", "Sarah"]
+  check people.pick(name_fn) == @["John", "Sarah"]
 
 
 func map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} =
   for i, v in list: result.add(op(v, i))
 
 
-echo "change to sort"
-func sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
+func sort*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
+# func sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
 
 test "sort_by":
-  assert @[(3, 2), (1, 3)].sort_by((v) => v) == @[(1, 3), (3, 2)]
+  check @[(3, 2), (1, 3)].sort((v) => v) == @[(1, 3), (3, 2)]
 
 
-func sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
+proc sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
 
 
 func reverse*[T](list: openarray[T]): seq[T] {.inline.} = list.reversed
@@ -153,7 +164,7 @@ proc findi_min*(list: openarray[float]): int =
   list.findi_min((v) => v)
 
 
-func findi_max*[T, C](list: openarray[T], op: (T) -> C): int =
+proc findi_max*[T, C](list: openarray[T], op: (T) -> C): int =
   if list.is_empty: throw "can't calculate findi_max on empty list"
   var (max, max_i) = (op(list[0]), 0)
   for i in 1..(list.len - 1):
@@ -163,18 +174,18 @@ func findi_max*[T, C](list: openarray[T], op: (T) -> C): int =
       max_i = i
   max_i
 
-func findi_max*(list: openarray[float]): int =
+proc findi_max*(list: openarray[float]): int =
   list.findi_max((v) => v)
 
 test "findi_min/max":
-  assert @[1.0, 2.0, 3.0].findi_min((v) => (v - 2.1).abs) == 1
-  assert @[1.0, 2.0, 3.0].findi_max((v) => (v - 0.5).abs) == 2
+  check @[1.0, 2.0, 3.0].findi_min((v) => (v - 2.1).abs) == 1
+  check @[1.0, 2.0, 3.0].findi_max((v) => (v - 0.5).abs) == 2
 
 
 proc find_min*[T, C](list: openarray[T], op: (T) -> C): T =
   list[list.findi_min(op)]
 
-func find_max*[T, C](list: openarray[T], op: (T) -> C): T =
+proc find_max*[T, C](list: openarray[T], op: (T) -> C): T =
   list[list.findi_max(op)]
 
 
@@ -235,8 +246,8 @@ func batches*[T](list: openarray[T], size: int): seq[seq[T]] =
     result.add batch
 
 test "batches":
-  assert @[1, 2, 3].batches(2) == @[@[1, 2], @[3]]
-  assert @[1, 2].batches(2) == @[@[1, 2]]
+  check @[1, 2, 3].batches(2) == @[@[1, 2], @[3]]
+  check @[1, 2].batches(2) == @[@[1, 2]]
 
 
 func flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
@@ -268,7 +279,7 @@ test "add_capped":
   l.add_capped(1, 2)
   l.add_capped(2, 2)
   l.add_capped(3, 2)
-  assert l == @[2, 3]
+  check l == @[2, 3]
 
 
 proc prepend_capped*[T](list: var seq[T], v: T, cap: int): void =
@@ -280,9 +291,10 @@ test "prepend_capped":
   l.prepend_capped(1, 2)
   l.prepend_capped(2, 2)
   l.prepend_capped(3, 2)
-  assert l == @[3, 2]
+  check l == @[3, 2]
 
-
+proc init*[T](_: type[seq[T]]): seq[T] =
+  discard
 proc init*[R, A](_: type[seq[R]], list: seq[A]): seq[R] =
   list.map(proc (v: A): R = R.init(v))
 proc init*[R, A, B](_: type[seq[R]], list: seq[(A, B)]): seq[R] =
@@ -297,7 +309,7 @@ proc group*[V, K](list: seq[V], op: (V) -> K): Table[K, seq[V]] =
   for v in list: result.mget_or_put(op(v), @[]).add v
 
 test "group":
-  assert @["aa", "ab", "bc"].group((s) => s[0]) == {'a': @["aa", "ab"], 'b': @["bc"]}.to_table
+  check @["aa", "ab", "bc"].group((s) => s[0]) == {'a': @["aa", "ab"], 'b': @["bc"]}.to_table
 
 
 proc to_seq*[K, V](t: Table[K, V]): seq[(K, V)] =
@@ -314,7 +326,4 @@ proc count*[V, K](list: seq[V], op: (v: V) -> K): Table[K, int] =
     result[k] = result.get_or_default(k, 0) + 1
 
 test "count":
-  assert @["aa", "ab", "bc"].count((s) => s[0]) == {'a': 2, 'b': 1}.to_table
-
-proc init*[T](_: type[seq[T]]): seq[T] =
-  new_seq[T]()
+  check @["aa", "ab", "bc"].count((s) => s[0]) == {'a': 2, 'b': 1}.to_table

@@ -15,7 +15,7 @@ type
     of todo:
       priority: TodoPriority
 
-converter to_doc_level*(s: string): TodoPriority = parse_enum[TodoPriority](fmt"{s}_e")
+# converter to_doc_level*(s: string): TodoPriority = parse_enum[TodoPriority](fmt"{s}_e")
 
 var docs*: seq[DocItem]
 

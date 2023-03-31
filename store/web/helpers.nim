@@ -17,7 +17,7 @@ proc respond_json*[T](req: Request, data: T): Future[void] {.async.} =
   await req.respond(data.to_json.to_s, "application/json")
 
 proc read_client_file*(path: string): string =
-  fs.read("store/client" & path)
+  fs.read("store/web/client" & path)
 
 proc serve_client_files*(req: Request, url: Url): Future[void] {.async.} =
   let data = read_client_file url.path.replace("/_client")

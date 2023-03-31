@@ -1,5 +1,7 @@
 import std/sugar
-import ./support
+# import ./support
+
+template throw(message: string) = raise Exception.new_exception(message)
 
 proc is_empty*(o: tuple): bool =
   for _, _ in o.field_pairs: return false

@@ -20,18 +20,10 @@ proc to_s*(json: JsonNode, pretty = true): string =
 proc json_to*(json: JsonNode, T: typedesc): T =
   from_json(result, json, Joptions(allow_extra_keys: true))
 
-
-# proc to_json_hook*[T: tuple](o: T): JsonNode =
-#   result = new_JObject()
-#   for k, v in o.field_pairs: result[k] = v.to_json
-
 proc to_json_hook*(list: openarray[(string, JsonNode)]): JsonNode =
   # Needed for `%` to work properly
   result = newJObject()
   for item in list: result[item[0]] = item[1]
-
-# proc to_json_hook*(n: JsonNode): JsonNode =
-#   n
 
 proc toJoImpl(x: NimNode): NimNode {.compileTime.} =
   # Same as `%*` but:
@@ -97,46 +89,37 @@ proc to_columns*[T](tidydata: seq[T]): JsonNode =
   columns
 
 
-# Any ----------------------------------------------------------------------------------------------
-# type Any* = JsonNode
-
-# proc init*(_: type[Any]): Any =
-#   newJObject()
-
-# proc `[]=`*[T](obj: JsonNode, key: string, val: T) =
-#   obj[key] = when T is JsonNode: val else: val.to_json
-
-
+# Test ----------------------------------------------------------------------------------------------
 when is_main_module:
   # % helper
   let b = "some"
-  assert (%{ a: 1, b: "b" }).to_s(false) == """{"a":1,"b":"b"}"""
+  check (%{ a: 1, b: "b" }).to_s(false) == """{"a":1,"b":"b"}"""
 
   let attrs = %{ title: "Some page" }
-  assert ($(attrs)).parse_json == attrs
+  check ($(attrs)).parse_json == attrs
 
   # JsonNode.to_json
   let char_range: 'a'..'z' = 'a'
-  assert (v: char_range).to_json.to_s(false) == """{"v":"a"}"""
+  check (v: char_range).to_json.to_s(false) == """{"v":"a"}"""
 
   # JsonNode.to_json
-  assert (a: 1).to_json.to_json.to_s(false) == """{"a":1}"""
+  check (a: 1).to_json.to_json.to_s(false) == """{"a":1}"""
 
   # jinit
   type Unit = object
     name: string
-  assert (Unit.jinit { name: "Jim" }) == Unit(name: "Jim")
+  check (Unit.jinit { name: "Jim" }) == Unit(name: "Jim")
 
   # Ignoring nil and empty options
-  assert (a: 1.some, b: int.none, c: nil).to_json.to_s(pretty = false) == """{"a":1}"""
+  check (a: 1.some, b: int.none, c: nil).to_json.to_s(pretty = false) == """{"a":1}"""
 
   # Encoding enums as stings
   type SomeEnum* = enum some_name
-  assert SomeEnum.some_name.to_json.to_s == "\"some_name\""
-  assert parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
+  check SomeEnum.some_name.to_json.to_s == "\"some_name\""
+  check parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
 
   # From bugs
-  assert @[(a: 1.0.some)].to_json.to_s(false) == """[{"a":1.0}]"""
+  check @[(a: 1.0.some)].to_json.to_s(false) == """[{"a":1.0}]"""
 
 
 # when is_main_module: # Any
@@ -165,3 +148,19 @@ when is_main_module:
 
 # T.from_json ----------------------------------------------------------------------------------------
 # proc from_json*[T](_: type[T], json: string): T = json.parse_json.to(T)
+
+
+# proc to_json_hook*[T: tuple](o: T): JsonNode =
+#   result = new_JObject()
+#   for k, v in o.field_pairs: result[k] = v.to_json
+
+# proc to_json_hook*(n: JsonNode): JsonNode =
+#   n
+
+# type Any* = JsonNode
+
+# proc init*(_: type[Any]): Any =
+#   newJObject()
+
+# proc `[]=`*[T](obj: JsonNode, key: string, val: T) =
+#   obj[key] = when T is JsonNode: val else: val.to_json

@@ -1,6 +1,6 @@
 from std/times as times import nil
 import std/[sequtils, sugar, re as stdre]
-import ./stringm, ./json, ./support, ./hash, ./math
+import ./stringm, ./json, ./support, ./hash, ./math, ./test
 
 with "Helpers":
   const day_hours*  = 24
@@ -74,7 +74,7 @@ with Time:
 
   test "to_datetime":
     let t = Time.now
-    assert Time.init(t.to_datetime) == t
+    check Time.init(t.to_datetime) == t
 
   json_as_string Time
 
@@ -156,14 +156,15 @@ test "epoch":
     let t = times.parse(time, format, times.utc())
     times.to_unix(times.to_time(t)).int
 
-  assert nt_epoch("2000-01-01 01:01:01") == Time.init("2000-01-01 01:01:01").epoch
-  assert nt_epoch("2002-02-01 01:01:01") == Time.init("2002-02-01 01:01:01").epoch
+  check:
+    nt_epoch("2000-01-01 01:01:01") == Time.init("2000-01-01 01:01:01").epoch
+    nt_epoch("2002-02-01 01:01:01") == Time.init("2002-02-01 01:01:01").epoch
 
-  assert nt_epoch("2000-01-01 00:00:01") == TimeD.init("2000-01-01").epoch
-  assert nt_epoch("2002-02-01 00:00:01") == TimeD.init("2002-02-01").epoch
+    nt_epoch("2000-01-01 00:00:01") == TimeD.init("2000-01-01").epoch
+    nt_epoch("2002-02-01 00:00:01") == TimeD.init("2002-02-01").epoch
 
-  assert nt_epoch("2000-01-01 00:00:01") == TimeM.init("2000-01").epoch
-  assert nt_epoch("2002-02-01 00:00:01") == TimeM.init("2002-02").epoch
+    nt_epoch("2000-01-01 00:00:01") == TimeM.init("2000-01").epoch
+    nt_epoch("2002-02-01 00:00:01") == TimeM.init("2002-02").epoch
 
 
 type TInterval* = object
@@ -200,16 +201,17 @@ proc `-`*(t: Time, i: TInterval): Time =
   Time.init(t.epoch - i.seconds)
 
 test "-":
-  assert (Time.init("2001-03-01 00:00:01") - 2.seconds) == Time.init("2001-02-28 23:59:59")
+  check (Time.init("2001-03-01 00:00:01") - 2.seconds) == Time.init("2001-02-28 23:59:59")
 
 
 proc `-`*(a: Time | TimeD | TimeM, b: Time | TimeD | TimeM): TInterval =
   TInterval.init(a.epoch - b.epoch)
 
 test "-":
-  assert (TimeD.init(2001, 3, 1) - TimeD.init(2001, 1, 1)).days =~ 59.0
-  assert (TimeM.init(2001, 3) - TimeD.init(2001, 1, 1)).days =~ 59.0
-  assert (TimeD.init(2001, 1, 1) - TimeM.init(2001, 3)).days =~ -59.0
+  check:
+    (TimeD.init(2001, 3, 1) - TimeD.init(2001, 1, 1)).days =~ 59.0
+    (TimeM.init(2001, 3) - TimeD.init(2001, 1, 1)).days =~ 59.0
+    (TimeD.init(2001, 1, 1) - TimeM.init(2001, 3)).days =~ -59.0
 
 
 proc `+`*(t: Time, ti: TInterval): Time =
@@ -219,8 +221,9 @@ proc `-`*(t: Time, ti: TInterval): Time =
   Time.init(t.epoch - ti.seconds)
 
 test "days":
-  assert 12.hours.days =~ 0.5
-  assert 2.minutes.seconds == 120
+  check:
+    12.hours.days =~ 0.5
+    2.minutes.seconds == 120
 
 
 type CInterval* = object
@@ -253,11 +256,12 @@ proc `+`*(t: TimeM, ti: CInterval): TimeM =
   TimeM.init(years, months)
 
 test "+":
-  assert (TimeM.init(2001, 1)  + 2.months)  == TimeM.init(2001, 3)
-  assert (TimeM.init(2001, 1)  + 12.months) == TimeM.init(2002, 1)
-  assert (TimeM.init(2001, 1)  + 14.months) == TimeM.init(2002, 3)
-  assert (TimeM.init(2001, 11) + 1.months)  == TimeM.init(2001, 12)
-  assert (TimeM.init(2001, 11) + 13.months) == TimeM.init(2002, 12)
+  check:
+    (TimeM.init(2001, 1)  + 2.months)  == TimeM.init(2001, 3)
+    (TimeM.init(2001, 1)  + 12.months) == TimeM.init(2002, 1)
+    (TimeM.init(2001, 1)  + 14.months) == TimeM.init(2002, 3)
+    (TimeM.init(2001, 11) + 1.months)  == TimeM.init(2001, 12)
+    (TimeM.init(2001, 11) + 13.months) == TimeM.init(2002, 12)
 
 
 proc format_humanized(days, hours, minutes, seconds: int, short: bool): string =
@@ -292,10 +296,11 @@ proc humanize*(self: TInterval, round = true, short = false): string =
   self.seconds.humanize_impl(round = round, short = short)
 
 test "humanize":
-  assert 12.hours.humanize(round = false, short = true) == "12h"
-  assert 70.minutes.humanize(round = false, short = true) == "1h 10m"
+  check:
+    12.hours.humanize(round = false, short = true) == "12h"
+    70.minutes.humanize(round = false, short = true) == "1h 10m"
 
-  assert 130.minutes.humanize() == "2 hours"
+    130.minutes.humanize() == "2 hours"
 
 
 proc `$`*(self: TInterval): string =

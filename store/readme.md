@@ -10,7 +10,6 @@ Enable
 echo "
 rdr pass inet proto tcp from any to any port 80 -> 127.0.0.1 port 8080
 " | sudo pfctl -ef -
-sudo pfctl -s nat
 ```
 
 Disable
@@ -18,11 +17,12 @@ Disable
 ```
 echo "
 " | sudo pfctl -ef -
-sudo pfctl -s nat
 ```
+
+sudo pfctl -F all -f /etc/pf.conf
 
 Show
 
 ```
-sudo pfctl -s rules
+sudo pfctl -s nat
 ```

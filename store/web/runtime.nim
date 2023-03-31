@@ -1,4 +1,4 @@
-import base, ext/ring_buffer
+import base, ext/ring_buffer, ../web/app
 import ../page
 
 type Element* = ref object of RootObj

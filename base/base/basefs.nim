@@ -4,7 +4,6 @@ import ./support, ./option, ./enumm
 type FS* = object
 const fs* = FS()
 
-
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
   var file: File
   var opened = file.open(path, mode)
@@ -117,7 +116,6 @@ proc delete*(fs: FS, path: string, recursive = false, delete_empty_parents = fal
 
 
 # Test ---------------------------------------------------------------------------------------------
-
 if is_main_module:
   fs.write("./tmp/fs/some.txt", "some text")
   fs.append_line("./tmp/fs/some.txt", "line 1")

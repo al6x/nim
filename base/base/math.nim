@@ -1,9 +1,10 @@
 import std/[math, sequtils, strformat, sugar, options]
-import ./support, ./enumm, ./seqm
+import ./test, ./enumm, ./seqm
 from algorithm import sorted
 
 export math
 
+template throw(message: string) = raise Exception.new_exception(message)
 
 type P2* = tuple[x: float, y: float]         # 2D Point
 type P3 = tuple[x: float, y: float, z: float] # 3D Point
@@ -35,7 +36,7 @@ func rsim*(a: float, b: float): float =
   smaller / larger
 
 test "rsim":
-  assert rsim(1.0, 1.0009).to_s == "0.9991008092716556"
+  check $rsim(1.0, 1.0009) == "0.9991008092716556"
 
 
 const requal_default_rsim = 0.999
@@ -64,12 +65,12 @@ func `=~`*[T](a: T, b: T): bool {.inline.} = a.requal(b)
 func `!~`*[T](a: T, b: T): bool {.inline.} = not(a =~ b)
 
 test "requal":
-  assert 0.0 !~ 1.0
-  assert 1.0 !~ 0.0
-  assert 0.0 =~ 0.0
-  assert 1.0 =~ 1.0009
-  assert 1.0 !~ 1.0011
-  assert 1.0 !~ -1.0
+  check 0.0 !~ 1.0
+  check 1.0 !~ 0.0
+  check 0.0 =~ 0.0
+  check 1.0 =~ 1.0009
+  check 1.0 !~ 1.0011
+  check 1.0 !~ -1.0
 
 
 func pow*(x, y: int): int = pow(x.to_float, y.to_float).to_int
@@ -87,9 +88,9 @@ func quantile*(values: open_array[float], q: float, is_sorted = false): float =
     sorted[base]
 
 test "quantile":
-  assert quantile([1.0, 2.0, 3.0], 0.5) =~ 2.0
-  assert quantile([1.0, 2.0, 3.0, 4.0], 0.5) =~ 2.5
-  assert quantile([1.0, 2.0, 3.0, 4.0], 0.25) =~ 1.75
+  check quantile([1.0, 2.0, 3.0], 0.5) =~ 2.0
+  check quantile([1.0, 2.0, 3.0, 4.0], 0.5) =~ 2.5
+  check quantile([1.0, 2.0, 3.0, 4.0], 0.25) =~ 1.75
 
 
 type FillMissingKind* = enum jump
@@ -120,7 +121,7 @@ test "fill_missing":
   let u = int.none
   proc o(v: int): Option[int] = v.some
 
-  assert @[
+  check @[
     o(1), u,   u,   o(2), u,   u,  o(1)
   ].fill_missing == @[
     1,    2,   2,   2,    1,   1,  1
@@ -159,7 +160,7 @@ proc diff*[N: int | float](values: seq[N], span = 1): seq[float] =
     result[i] = values[i+span] - values[i]
 
 test "diff":
-  assert @[1.0, 2.0, 2.0, 1.0].diff == @[1.0, 0.0, -1.0]
+  check @[1.0, 2.0, 2.0, 1.0].diff == @[1.0, 0.0, -1.0]
 
 
 proc range*(a, b: float, count: int): seq[float] =
@@ -170,7 +171,7 @@ proc range*(a, b: float, count: int): seq[float] =
   result.add b
 
 test "range":
-  assert range(-1.0, 1.0, 4) == @[-1.0, -0.5, 0.0, 0.5, 1.0]
+  check range(-1.0, 1.0, 4) == @[-1.0, -0.5, 0.0, 0.5, 1.0]
 
 
 func sum*(values: openarray[int]): int = values.foldl(a + b, 0)
@@ -220,7 +221,7 @@ func is_number*(n: float): bool =
   ntype == fc_normal or ntype == fc_zero or ntype == fc_neg_zero
 
 
-func upper_bound*[V, X](points: openarray[V], x: X, cmp: proc(v: V, x: X): int): int =
+proc upper_bound*[V, X](points: openarray[V], x: X, cmp: proc(v: V, x: X): int): int =
   # Returns first element that's greather or equal to x or errors.
   # The std/algorithm.upper_bound is different, it returns first element that's greater but not equal and
   # doens't guarantee there's upper bound at all, in such case it returns last element.
@@ -230,17 +231,18 @@ func upper_bound*[V, X](points: openarray[V], x: X, cmp: proc(v: V, x: X): int):
   assert cmp(points[i], x) >= 0
   i
 
-func upper_bound*[T](points: openarray[T], x: T): int =
+proc upper_bound*[T](points: openarray[T], x: T): int =
   points.upper_bound(x, cmp[T])
 
 test "upper_bound":
-  assert @[1, 3, 5].upper_bound(3) == 1
-  assert @[1, 3, 3, 5, 6].upper_bound(3) == 1
-  assert @[1, 3].upper_bound(3) == 1
-  assert @[3, 4].upper_bound(3) == 0
+  check:
+    @[1, 3, 5].upper_bound(3) == 1
+    @[1, 3, 3, 5, 6].upper_bound(3) == 1
+    @[1, 3].upper_bound(3) == 1
+    @[3, 4].upper_bound(3) == 0
 
 
-func idw*(points: openarray[P2], x: float, regularize = 1e-9): float =
+proc idw*(points: openarray[P2], x: float, regularize = 1e-9): float =
   # Inverse Distance Weighting
   # regularize - to prevent division by zero for sample points with the same location as query points
 
@@ -254,7 +256,7 @@ func idw*(points: openarray[P2], x: float, regularize = 1e-9): float =
     result += w * points[i].y
   result /= weights.sum
 
-func idw*(a: P2, b: P2, x: float, regularize = 1e-9): float =
+proc idw*(a: P2, b: P2, x: float, regularize = 1e-9): float =
   # Inverse Distance Weighting for 2 points, it's faster than the general version.
   # regularize - to prevent division by zero for sample points with the same location as query points
 
@@ -266,11 +268,12 @@ func idw*(a: P2, b: P2, x: float, regularize = 1e-9): float =
   (wa * a.y + wb * b.y) / (wa + wb)
 
 test "idw":
-  assert @[(1.0, 2.0), (4.0, 5.0)].idw(2.0) =~ 3.0
-  assert idw((1.0, 2.0), (4.0, 5.0), 2.0) =~ 3.0
+  check:
+    @[(1.0, 2.0), (4.0, 5.0)].idw(2.0) =~ 3.0
+    idw((1.0, 2.0), (4.0, 5.0), 2.0) =~ 3.0
 
 
-func idw2n*(points: openarray[P2], x: float, regularize = 1e-9): float =
+proc idw2n*(points: openarray[P2], x: float, regularize = 1e-9): float =
   # Interpolate y for point x using Inverse Distance Weighting and 2 Nearest Neighbors
   assert points[0].x <= points[^1].x # points should be sorted
   let upperi = points.upper_bound(x, (p, x) => p.x.cmp(x))
@@ -283,7 +286,7 @@ func idw2n*(points: openarray[P2], x: float, regularize = 1e-9): float =
 
 test "idw2n":
   let points = @[(1.0, 1.0), (2.0, 2.0), (5.0, 5.0)]
-  assert @[1.0, 1.5, 5.0].map(x => points.idw2n(x)) =~ @[1.0, 1.5, 5.0]
+  check @[1.0, 1.5, 5.0].map(x => points.idw2n(x)) =~ @[1.0, 1.5, 5.0]
 
 
 # doc({
@@ -326,8 +329,9 @@ proc interpolate*(efn: seq[P2], x: seq[float], skip = false): seq[P2] =
     result.add (x: xi, y: idw(efn[j], efn[j+1], xi))
 
 test "interpolate":
-  assert @[(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)].interpolate(@[2.0, 3.0]) =~ @[(2.0, 3.0), (3.0, 4.0)]
-  assert @[(1.0, 2.0), (3.0, 4.0)].interpolate(@[0.0, 2.0, 3.0], true) =~ @[(2.0, 3.0), (3.0, 4.0)]
+  check:
+    @[(1.0, 2.0), (3.0, 4.0), (5.0, 6.0)].interpolate(@[2.0, 3.0]) =~ @[(2.0, 3.0), (3.0, 4.0)]
+    @[(1.0, 2.0), (3.0, 4.0)].interpolate(@[0.0, 2.0, 3.0], true) =~ @[(2.0, 3.0), (3.0, 4.0)]
 
 
 # // min_max_norm --------------------------------------------------------------------------

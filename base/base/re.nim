@@ -1,10 +1,11 @@
 import std/[strutils, sugar, sequtils, strformat, tables]
 from std/nre as nre import nil
 from std/options as stdoptions import nil
-import ./support, ./option
+import ./test, ./option
+
+template throw(message: string) = raise Exception.new_exception(message)
 
 type Regex* = nre.Regex
-
 
 proc re*(s: string): Regex = nre.re(s)
 
@@ -12,12 +13,12 @@ proc re*(s: string): Regex = nre.re(s)
 proc match*(s: string, r: Regex): bool = nre.contains(s, r)
 
 test "match":
-  assert "abc".match(re"b")
-  assert "abc".match(re"abc")
-  assert "abc".match(re"^abc$")
-  assert not "abc".match(re"d")
-
-  assert "abc".match(re"(?i)B") # case insensitive
+  check:
+    "abc".match(re"b")
+    "abc".match(re"abc")
+    "abc".match(re"^abc$")
+    not "abc".match(re"d")
+    "abc".match(re"(?i)B") # case insensitive
 
 
 proc `=~`*(s: string, r: Regex): bool = match(s, r)
@@ -31,17 +32,34 @@ proc `!~`*(r: Regex, s: string): bool = s !~ r
 proc split*(s: string, r: Regex): seq[string] = nre.split(s, r)
 
 test "split":
-  assert "abcde".split(re"[bcd]+") == @["a", "e"]
+  check "abcde".split(re"[bcd]+") == @["a", "e"]
 
 
 
 proc replace*(s: string, r: Regex, by: string): string = nre.replace(s, r, by)
 
-proc replace*(s: string, r: Regex, by: (proc (match: string): string)): string = nre.replace(s, r, by)
+proc replace*(s: string, r: Regex, by: (proc (match: string): string)): string =
+  nre.replace(s, r, proc (nre_match: nre.RegexMatch): string =
+    let captures = nre.captures(nre_match)
+    by(nre.`[]`(captures, 0))
+  )
+
+proc replace*(s: string, r: Regex, by: (proc (match1, match2: string): string)): string =
+  nre.replace(s, r, proc (nre_match: nre.RegexMatch): string =
+    let captures = nre.captures(nre_match)
+    by(nre.`[]`(captures, 0), nre.`[]`(captures, 1))
+  )
+
+# proc mreplace_multiple*(s: string, r: Regex, by: (proc (matches: seq[string]): string)): string =
+#   nre.replace(s, r, proc (nre_match: nre.RegexMatch): string =
+#     by(to_seq(nre.items(nre.captures(nre_match))).map((match) => match.get))
+#   )
 
 test "replace":
-  assert "abcde".replace(re"[bcd]", "_") == "a___e"
-  assert "abcde".replace(re"[bcd]", (match) => match.to_upper) == "aBCDe"
+  check:
+    "abcd".replace(re"[bc]", "_") == "a__d"
+    "abcd".replace(re"a([bc]+)", (match) => match.to_upper) == "BCd"
+    "abcde".replace(re"a(.)c(.)", (m1, m2) => @[m1, m2].map(to_upper).join("")) == "BDe"
 
 
 
@@ -50,8 +68,9 @@ proc find*(s: string, r: Regex): Option[string] =
   if stdoptions.is_some(found): nre.match(stdoptions.get(found)).some else: return
 
 test "find":
-  assert "abcde".find(re"[bcd]") == "b".some
-  assert "abcde".find(re"[x]").is_none
+  check:
+    "abcde".find(re"[bcd]") == "b".some
+    "abcde".find(re"[x]").is_none
 
 
 
@@ -63,8 +82,9 @@ proc parse*(r: Regex, s: string): Option[seq[string]] =
       return captures.some
 
 test "parse":
-  assert re".+ (\d+) (\d+)".parse("a 22 45") == @["22", "45"].some
-  assert re"[^;]+;".parse("drop table; create table;").is_none
+  check:
+    re".+ (\d+) (\d+)".parse("a 22 45") == @["22", "45"].some
+    re"[^;]+;".parse("drop table; create table;").is_none
 
 
 
@@ -76,21 +96,22 @@ proc parse_named*(r: Regex, s: string): Table[string, string] =
     return
 
 test "parse_named":
-  assert re".+ (?<a>\d+) (?<b>\d+)".parse_named("a 22 45") == { "a": "22", "b": "45" }.to_table
+  check re".+ (?<a>\d+) (?<b>\d+)".parse_named("a 22 45") == { "a": "22", "b": "45" }.to_table
 
 
 iterator find_iter*(s: string, r: Regex): string =
   for match in nre.find_iter(s, r): yield nre.match(match)
 
 test "find_iter":
-  assert to_seq("abcde".find_iter(re"[bcd]")) == @["b", "c", "d"]
+  check to_seq("abcde".find_iter(re"[bcd]")) == @["b", "c", "d"]
 
 
 proc find_all*(s: string, r: Regex): seq[string] = to_seq(find_iter(s, r))
 
 test "find_all":
-  assert "abcde".find_all(re"[bcd]") == @["b", "c", "d"]
-  assert "abcde".find_all(re"[x]") == @[]
+  check:
+    "abcde".find_all(re"[bcd]") == @["b", "c", "d"]
+    "abcde".find_all(re"[x]")   == new_seq[string]()
 
 
 proc parse1*(r: Regex, s: string): string =
@@ -120,4 +141,4 @@ proc parse5*(r: Regex, s: string): (string, string, string, string, string) =
 
 test "parse1,2,3,4,5":
   let pattern = re".+ (\d+) (\d+)"
-  assert pattern.parse2("a 22 45") == ("22", "45")
+  check pattern.parse2("a 22 45") == ("22", "45")
