@@ -49,15 +49,18 @@ proc format_data(data: JsonNode): string =
       data.delete("exception")
     if "stack" in data:
       data.delete("stack")
-    let json = data.to_s
+    let json = data.to_s(false)
     if json != "{}":
       let clean_json = json
-        .replace(re"^\{\n|\n\}$", "")
-        .replace(re",\n  ", ",\n")
-        .replace(re("\"([^\"]+)\": "), (match) => match & ": ")
+        .replace(re"^\{|\}$", "")
+        # .replace(re"^\{\n|\n\}$", "")
+        # .replace(re"\n  ", "\n")
+        .replace(re("\":"), "\": ")
+        .replace(re(",\""), ", \"")
+        .replace(re("\"([^\"]+)\":"), (match) => match & ":")
         .trim
       let oneline_json = clean_json.replace(re",[\n\s]+", ", ")
-      return if oneline_json.len < 50:
+      return if oneline_json.len < 70:
         (" " & oneline_json).grey
       else:
         ("\n" & clean_json).replace("\n", "\n" & indent).grey
@@ -80,7 +83,7 @@ proc format_message(data: JsonNode, msg: string): string =
   resolved
   # if console_log.log_data: resolved & (" | " & msg).grey else: resolved
 
-proc emit_to_console(m: LogMessage): void =
+proc emit_to_console*(m: LogMessage): void =
   # Detecting level and message
   # var level = ""; var msg = ""
   # for l in ["debug", "info", "warn", "error"]:
@@ -136,6 +139,8 @@ if is_main_module:
   log.with((id: "MSFT",)).with((currency: "USD",)).info("getting prices in {currency}")
 
   log.id("MSFT").warn "no response"
+
+  log.id("MSFT").with((kind: "Option", option: (currency: "USD", right: "Call", strike: 600))).info("processing")
 
   # Printing stack trace
   try:

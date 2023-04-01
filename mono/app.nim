@@ -32,11 +32,4 @@ type Apps* = ref Table[string, proc: App]
 proc get*(self: Apps, url: Url): App =
   # Returns app and initial events, like going to given url
   let id = if url.host == "localhost": url.query.ensure("_app", "_app query parameter required") else: url.host
-  let app = self[].ensure(id, fmt"Error, unknown application '{id}'")()
-
-  var query = url.query
-  query.del "_app"
-  let path = url.path.replace(re"/$", "").split("/").reject(is_empty)
-  let location_event = InEvent(kind: location, path: path, query: query)
-
-  app
+  self[].ensure(id, fmt"Error, unknown application '{id}'")()

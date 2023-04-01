@@ -29,8 +29,8 @@ proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[v
     if not session.outbox.is_empty:
       let events = session.outbox.to_seq
       session.outbox.clear
-      if events.len == 1:  session.log.with(events[0]).info "<<"
-      else:                session.log.with(events).info "<<"
+      if events.len == 1:  session.log.with(events[0]).info ">>"
+      else:                session.log.with(events).info ">>"
       await req.respond_json events
       break
     if timer() > pull_timeout_ms:
@@ -87,13 +87,18 @@ proc run_http_server*(
     sessions.process() # extracting it from the async to have clean stack trace
 
 
-# # Test ---------------------------------------------------------------------------------------------
+# Test ---------------------------------------------------------------------------------------------
 # type TestSession* = ref object
 
 # proc process*(session: TestSession, event: JsonNode): Option[JsonNode] =
 #   (%{ eval: "console.log(\"ok\")" }).some
 
-# if is_main_module:
-#   let apps = Apps()
-#   apps[]["runtime"] = proc: App = Runtime()
-#   run_page(apps, port = 8080)
+type TestApp* = ref object of App
+
+method process*(self: TestApp, event: InEvent): seq[OutEvent] =
+  @[OutEvent(kind: eval, code: fmt"console.log('event {event.kind} processed')")]
+
+if is_main_module:
+  let apps = Apps()
+  apps[]["test"] = proc: App = TestApp()
+  run_http_server(apps, port = 2000)

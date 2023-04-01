@@ -16,15 +16,15 @@ proc respond*(req: Request, content: string): Future[void] {.async.} =
 proc respond_json*[T](req: Request, data: T): Future[void] {.async.} =
   await req.respond(data.to_json.to_s, "application/json")
 
-proc read_client_file*(path: string): string =
-  fs.read("store/web/client" & path)
+proc read_asset_file*(path: string): string =
+  fs.read("mono/http/assets" & path)
 
 proc serve_asset_files*(req: Request, url: Url): Future[void] {.async.} =
-  let data = read_client_file url.path.replace("/_client")
+  let data = read_asset_file url.path.replace("/_assets")
   if url.path =~ re"\.js$": await req.respond(data, "text/javascript")
   else:                     await req.respond(data)
 
 proc serve_app_html*(req: Request, url: Url, session_id: string): Future[void] {.async.} =
-  let data = read_client_file("/page.html")
+  let data = read_asset_file("/page.html")
     .replace("{session_id}", session_id)
   await req.respond(data, "text/html")

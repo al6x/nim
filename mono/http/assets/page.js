@@ -1,7 +1,7 @@
 export class Page {
   constructor(session_id) {
     this.session_id = session_id
-    this.log = Log("page")
+    this.log = Log("")
     this._listen_to_dom_events()
     this._pull()
   }
@@ -32,7 +32,7 @@ export class Page {
 
   async _pull() {
     this.log.info("started")
-    while (true) {
+    main_loop: while (true) {
       let out_events
       try {
         out_events = await send("post", location.href, { kind: "pull", session_id: this.session_id }, -1)
@@ -50,14 +50,12 @@ export class Page {
       }
 
       for (const event of out_events) {
+        this.log.info("<<", event)
         if (event.kind == "expired") {
-          this.log.info("<<", event)
           document.body.style.opacity = 0.3
-          break
+          break main_loop
         } else if (event.kind == "eval") {
-          this.log.info("<<", event)
           eval("'use strict'; " + event.code)
-        } else if (event.kind == "ignore") {
         } else {
           const error = new Error("unknown response")
           this.log.error("unknown event", res)
@@ -116,7 +114,7 @@ function Log(component, enabled = true) {
     warn(msg, data = {})  {}
   }
 
-  component = component.substring(0, 4).toUpperCase().padEnd(4)
+  component = component.substring(0, 4).toLowerCase().padEnd(4)
   return {
     info(msg, data = {})  { console.log("  " + component + " " + msg, data) },
     error(msg, data = {}) { console.log("E " + component + " " + msg, data) },
