@@ -1,19 +1,18 @@
+import ./supportm
 import std/[re, strformat]
 import std/strutils except `%`
-import ./test
 
 export strformat
 export strutils except `%`
 
 
-proc trim*(s: string): string =
-  s.replace(re("\\A[\\n\\s\\t]+|[\\n\\s\\t]+\\Z"), "")
+func trim*(s: string): string =
+  s.replace(re("\\A[\\n\\s\\t]|[\\n\\s\\t]\\Z"), "")
 
 test "trim":
-  check:
-    "".trim == ""
-    " a b ".trim == "a b"
-    " a \n b ".trim == "a \n b"
+  assert "".trim == ""
+  assert " a b ".trim == "a b"
+  assert " a \n b ".trim == "a \n b"
 
 
 proc is_empty*(s: string): bool = s == ""
@@ -30,9 +29,8 @@ proc take*(s: string, n: int): string =
   if n < s.len: s[0..(n - 1)] else: s
 
 test "take":
-  check:
-    "abcd".take(2) == "ab"
-    "ab".take(10) == "ab"
+  assert "abcd".take(2) == "ab"
+  assert "ab".take(10) == "ab"
 
 
 proc pluralize*(count: int, singular, plural: string): string =
@@ -42,9 +40,8 @@ proc pluralize*(count: int, singular: string): string =
   if count == 1: singular else: singular & "s"
 
 test "pluralize":
-  check:
-    1.pluralize("second") == "second"
-    2.pluralize("second") == "seconds"
+  assert 1.pluralize("second") == "second"
+  assert 2.pluralize("second") == "seconds"
 
 
 proc split2*(s: string, by: string): (string, string) =
@@ -65,5 +62,3 @@ proc split4*(s: string, by: string): (string, string, string, string) =
 
 proc format*(n: float | int, precision = 2): string =
   format_float(n, format = ff_decimal, precision = precision)
-
-proc align*(n: int, digits: int): string = ($n).align(digits, '0')

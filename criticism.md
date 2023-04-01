@@ -116,3 +116,7 @@ The `assert` won't print values, `assert actual == expected`, no way to know the
 The string format don't have escape, this fails `"a\"b".replace(re"\"", "")` but this works `"a\"b".replace(re("\""), "")`.
 
 The `iterator.to_seq` not working, need to do `to_seq(iterator)`.
+
+The `to_seq` not overloaded properly [link](https://forum.nim-lang.org/t/10056)
+
+Tons of random bugs like this one.

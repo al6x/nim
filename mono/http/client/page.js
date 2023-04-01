@@ -33,9 +33,9 @@ export class Page {
   async _pull() {
     this.log.info("started")
     while (true) {
-      let res
+      let out_events
       try {
-        res = await send("post", location.href, { kind: "pull", session_id: this.session_id }, -1)
+        out_events = await send("post", location.href, { kind: "pull", session_id: this.session_id }, -1)
         document.body.style.opacity = 1.0
       } catch {
         document.body.style.opacity = 0.7
@@ -44,18 +44,25 @@ export class Page {
         continue
       }
 
-      if (res.kind == "expired") {
-        document.body.style.opacity = 0.3
-        this.log.info("session expired")
-        break
-      } else if (res.kind == "eval") {
-        this.log.info("eval", res.code)
-        eval("'use strict'; " + res.code)
-      } else if (res.kind == "ignore") {
-      } else {
-        const error = new Error("unknown response")
-        this.log.error("unknown response", res)
+      if (!Array.isArray(out_events)) {
+        this.log.error("invalid pull response", out_events)
         throw error
+      }
+
+      for (const event of out_events) {
+        if (event.kind == "expired") {
+          this.log.info("<<", event)
+          document.body.style.opacity = 0.3
+          break
+        } else if (event.kind == "eval") {
+          this.log.info("<<", event)
+          eval("'use strict'; " + event.code)
+        } else if (event.kind == "ignore") {
+        } else {
+          const error = new Error("unknown response")
+          this.log.error("unknown event", res)
+          throw error
+        }
       }
     }
   }

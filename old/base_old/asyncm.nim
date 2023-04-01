@@ -1,4 +1,4 @@
-import base, std/asyncdispatch
+import ./supportm, ./rem, asyncdispatch
 
 export asyncdispatch except async_check, with_timeout, add_timer
 
@@ -26,9 +26,6 @@ proc spawn_async*[T](afn: proc: Future[T], check = true) =
       except:
         discard
   asyncdispatch.call_soon on_next_tick
-
-proc spawn_async*(fn: proc: void, check = true) =
-  spawn_async((proc: Future[void] {.async.} = fn()), check)
 
 
 # timeout ------------------------------------------------------------------------------------------

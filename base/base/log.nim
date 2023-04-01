@@ -21,7 +21,7 @@ type Log* = object
 var log_emitters*: seq[proc(message: LogMessage): void] # it's possible to add custom emitters
 
 proc init*(tself: type[Log], module: string, id: string): Log =
-  Log(module: module.some, id: id.some)
+  Log(module: module.some, lid: @[id].some)
 
 proc init*(tself: type[Log], module: string): Log =
   Log(module: module.some)
@@ -60,11 +60,12 @@ proc with*(self: Log, msg: tuple): Log =
       log.data.get.fields[key] = value.to_json
   log
 
-proc with*(self: Log, data: JsonNode): Log =
+proc with*[T](self: Log, data: T): Log =
   var log = self
-  assert data.kind == JObject, "object required"
+  let json_data = data.to_json
+  assert json_data.kind == JObject, "object required"
   if log.data.is_empty: log.data = new_JObject().some
-  for k, v in data.fields: log.data.get[k] = v
+  for k, v in json_data.fields: log.data.get[k] = v
   log
 
 proc with*(self: Log, id: string | int): Log =

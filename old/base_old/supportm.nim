@@ -1,25 +1,50 @@
-import std/[sugar, strutils]
+import std/[strformat, sugar, strutils, unicode, tables, macros]
 from std/times as nt import nil
+from std/nre as nre import nil
+from std/options as stdoptions import nil
+import ./requirem, ./envm
+from ./terminalm as terminal import nil
 
-# import std/[strformat, sugar, strutils, unicode, tables, macros]
-# from std/nre as nre import nil
-# from std/options as stdoptions import nil
-# import ./env as envm
-# from ./terminal as terminal import nil
+export requirem, envm
 
-# export envm
+
+template with*[T](TT: type[T], code) =
+  using self: T; using tself: type[T]
+  code
+  using self: void; using tself: void
+
+template with*(_: string, code) =
+  code
 
 
 type None = object # For optional arguments `proc somefn(v: int | None = none)`
 const none = None()
 
 
-proc is_empty*[T](self: T): bool =
-  self.len == 0
+# test ---------------------------------------------------------------------------------------------
+let test_enabled_s    = if "test" in env: env["test"] else: "false"
+let slow_test_enabled = test_enabled_s == "all"
+let test_enabled      = test_enabled_s == "true" or slow_test_enabled
 
+template test*(name: string, body) =
+  if test_enabled or name.to_lower == test_enabled_s:
+    let pos = instantiation_info()
+    echo "  test | " & pos.filename.split(".")[0] & " " & name
+    try:
+      body
+    except Exception as e:
+      echo terminal.red("  test | '" & name & "' failed")
+      quit(e)
 
-template times*(n: int, code: typed) =
-  for _ in 1..n: code
+template slow_test*(name: string, body) =
+  if slow_test_enabled or name.to_lower == test_enabled_s:
+    let pos = instantiation_info()
+    echo "  test | " & pos.filename.split(".")[0] & " " & name
+    try:
+      body
+    except Exception as e:
+      echo terminal.red("  test | '" & name & "' failed")
+      quit(e)
 
 
 proc if_nil*[T](value, otherwise: T): T =
@@ -32,7 +57,10 @@ template throw*(exception: Exception | ref Exception) = raise exception
 
 func message*(e: Exception | ref Exception): string = e.msg
 
-
+# proc quit*(message: string) =
+#   stderr.write_line terminal.red(message)
+#   # stderr.write_line e.get_stack_trace
+#   quit 1
 proc quit*(e: Exception | ref Exception) =
   quit e.message
 
@@ -62,6 +90,9 @@ proc to_s*[T](o: T): string = $o
 template to*[F,T](f: F, _: type[T]): T = T.init(f)
 
 
+proc align*(n: int, digits: int): string = ($n).align(digits, '0')
+
+
 proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 
 
@@ -78,20 +109,9 @@ proc timer_ms*(): Timer =
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 
 
-template with*[T](TT: type[T], code) =
-  using self: T; using tself: type[T]
-  code
-  using self: void; using tself: void
-
-template with*(_: string, code) =
-  code
-
-
 # proc to_shared_ptr*[T](v: T): ptr T =
 #   result = create_shared(T)
 #   result[] = v
-
-
 
 # A simple way to message user by throwing an error
 # type MessageError* = object of Exception
@@ -139,35 +159,3 @@ template with*(_: string, code) =
 
 # test "error_type":
 #   assert "No security definition has been found :not_found".error_type == "not_found"
-
-
-# test ---------------------------------------------------------------------------------------------
-# let test_enabled_s    = if "test" in env: env["test"] else: "false"
-# let slow_test_enabled = test_enabled_s == "all"
-# let test_enabled      = test_enabled_s in ["true", "t", "yes", "y"] or slow_test_enabled
-
-
-# template test*(name: string, body) =
-#   if test_enabled or name.to_lower == test_enabled_s:
-#     let pos = instantiation_info()
-#     echo "  test | " & pos.filename.split(".")[0] & " " & name
-#     try:
-#       body
-#     except Exception as e:
-#       echo terminal.red("  test | '" & name & "' failed")
-#       quit(e)
-
-# template slow_test*(name: string, body) =
-#   if slow_test_enabled or name.to_lower == test_enabled_s:
-#     let pos = instantiation_info()
-#     echo "  test | " & pos.filename.split(".")[0] & " " & name
-#     try:
-#       body
-#     except Exception as e:
-#       echo terminal.red("  test | '" & name & "' failed")
-#       quit(e)
-
-# proc quit*(message: string) =
-#   stderr.write_line terminal.red(message)
-#   # stderr.write_line e.get_stack_trace
-#   quit 1

@@ -1,6 +1,6 @@
-import std/[sequtils, tables]
-from std/uri as nurim import nil
-import base
+import ./supportm, ./decode_querym, ./rem, ./tablem, ./hashm
+import std/[strformat, options, strutils, sugar]
+from uri import nil
 
 type Url* = object
   path*:   string
@@ -28,20 +28,20 @@ proc init*(
   let rel = Url.init(path, query)
   Url(is_full: true, scheme: scheme, host: host, port: port, path: rel.path, query: rel.query)
 
-proc init*(_: type[Url], nuri: nurim.Uri): Url =
+proc init*(_: type[Url], uri: uri.Uri): Url =
   var query: Table[string, string]
-  for _, (k, v) in sequtils.to_seq(nurim.decode_query(nuri.query)): query[k] = v
-  let is_full = nuri.hostname != ""
+  for k, v in decode_query(uri.query): query[k] = v
+  let is_full = uri.hostname != ""
   if is_full:
-    let port_s = if nuri.port == "": "80" else: nuri.port
-    Url.init(scheme = nuri.scheme, host = nuri.hostname, port = port_s.parse_int,
-      path = nuri.path, query = query)
+    let port_s = if uri.port == "": "80" else: uri.port
+    Url.init(scheme = uri.scheme, host = uri.hostname, port = port_s.parse_int,
+      path = uri.path, query = query)
   else:
-    Url.init(path = nuri.path, query = query)
+    Url.init(path = uri.path, query = query)
 
 proc parse*(_: type[Url], url: string): Url =
-  var parsed = nurim.init_uri()
-  nurim.parse_uri(url, parsed)
+  var parsed = uri.init_uri()
+  uri.parse_uri(url, parsed)
   Url.init parsed
 
 proc hash*(url: Url): Hash = url.autohash
@@ -49,7 +49,7 @@ proc hash*(url: Url): Hash = url.autohash
 proc `$`*(url: Url): string =
   var query: seq[(string, string)]
   for k, v in url.query: query.add (k, v)
-  var query_s = if query.len > 0: "?" & nurim.encode_query(query) else: ""
+  var query_s = if query.len > 0: "?" & uri.encode_query(query) else: ""
   if url.is_full:
     let port = if url.port == 80: "" else: fmt":{url.port}"
     fmt"{url.scheme}://{url.host}{port}{url.path}{query_s}"
@@ -71,17 +71,6 @@ proc `&`*(base, addon: Url): Url =
 proc `&`*(base: Url, addon: string): Url =
   base & Url.parse(addon)
 
-proc path_parts*(self: Url): seq[string] =
-  self.path.split("/").reject(is_empty)
 
 proc subdomain*(host: string): Option[string] =
   re"^([^\.]+)\.".parse(host).map((found) => found[0])
-
-# Test ---------------------------------------------------------------------------------------------
-# nim c -r base/base/url.nim
-if is_main_module:
-  let url = Url.parse("http://host.com/path?a=b&c=d")
-  echo url
-  echo url.query
-
-  echo url.path
