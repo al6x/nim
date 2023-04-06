@@ -83,8 +83,8 @@ proc run_http_server*(
   spawn_async(() => say "started", false)
 
   while true:
-    poll(1)
-    sessions.process() # extracting it from the async to have clean stack trace
+    poll 1
+    sessions.process # extracting it from the async to have clean stack trace
 
 
 # Test ---------------------------------------------------------------------------------------------

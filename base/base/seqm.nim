@@ -75,7 +75,7 @@ test "take":
     @[1, 2, 3].take(10) == @[1, 2, 3]
 
 
-proc del*[T](s: var seq[T], cond: (T) -> bool): void =
+proc delete*[T](s: var seq[T], cond: (T) -> bool): void =
   s = s.filter((v) => not cond(v))
 
 
@@ -214,7 +214,7 @@ func filter_map*[V, R](list: openarray[V], convert: (V, int) -> Option[R]): seq[
     if o.is_some: result.add o.get
 
 
-func each*[T](list: openarray[T]; cb: (T) -> void): void {.inline.} =
+proc each*[T](list: openarray[T]; cb: (T) -> void): void {.inline.} =
   for v in list: cb(v)
 
 
@@ -228,9 +228,9 @@ func shuffle*[T](list: openarray[T], rand: random.Rand): seq[T] =
   random.shuffle(rand, result)
 
 
-func count*[T](list: openarray[T], check: (T) -> bool): int {.inline.} =
+proc count*[T](list: openarray[T], fn: (T) -> bool): int {.inline.} =
   for v in list:
-    if check(v): result.inc 1
+    if fn(v): result.inc 1
 
 
 func batches*[T](list: openarray[T], size: int): seq[seq[T]] =
@@ -320,10 +320,10 @@ proc to_seq*[K, V](t: Table[K, V]): seq[(K, V)] =
 #   for v in list:
 #     let k = op(v)
 #     result[k] = result.get_or_default(k, 0) + 1
-proc count*[V, K](list: seq[V], op: (v: V) -> K): Table[K, int] =
+proc counts*[V, K](list: seq[V], op: (v: V) -> K): Table[K, int] =
   for v in list:
     let k = op(v)
     result[k] = result.get_or_default(k, 0) + 1
 
-test "count":
-  check @["aa", "ab", "bc"].count((s) => s[0]) == {'a': 2, 'b': 1}.to_table
+test "counts":
+  check @["aa", "ab", "bc"].counts((s) => s[0]) == {'a': 2, 'b': 1}.to_table

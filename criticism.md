@@ -119,4 +119,73 @@ The `iterator.to_seq` not working, need to do `to_seq(iterator)`.
 
 The `to_seq` not overloaded properly [link](https://forum.nim-lang.org/t/10056)
 
-Tons of random bugs like this one.
+Lambda doesn't work with `void` return type, code below would fail
+
+```Nim
+import std/sugar
+
+proc on_click(fn: proc(event: string): void): void =
+  discard
+
+on_click((e) => discard)
+```
+
+Inability to resolve (overload) property attr and proc with same name.
+
+```Nim
+import std/tables
+
+type Element* = ref object
+  tag*:   string
+  attrs*: Table[string, string]
+
+proc attrs*[T](self: T, attrs: tuple): T =
+  for k, v in attrs.field_pairs:
+    self.attrs[k] = $v
+  return self
+
+proc h*(tag: string): Element =
+  Element(tag: tag)
+
+echo h("dif").attrs((class: "some"))[]
+```
+
+Need to wrap `discard` into brackets, doesn't compile without it
+
+```Nim
+import std/sugar
+
+proc on_click(fn: (string) -> void): void =
+  discard
+
+on_click((e: string) => (discard)) # <=
+```
+
+Inheritance doesn't autocast to parent type, code below would fail because Cow can't be added to
+collection of type Animal
+
+```
+type Animal = ref object of RootObj
+type Cow = ref object of Animal
+var animals: seq[Animal]
+animals.add Cow()                    # <= works
+let animals2: seq[Animal] = @[Cow()] # <= error
+```
+
+Templates may produce unexpected results
+
+```Nim
+type Some = ref object
+  v: int
+
+template somefn(a: Some): int =
+  a.v = 2
+  a.v
+
+let some = Some(v: 1)
+echo somefn(some)       # => 2
+
+echo somefn(Some(v: 1)) # => 1
+```
+
+Tons of random inconsistiencies like these.

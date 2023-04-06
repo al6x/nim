@@ -3,6 +3,14 @@ import ./option, ./support, ./test
 
 export tables
 
+proc init*[K, V](_: type[Table[K, V]]): Table[K, V] =
+  discard
+
+proc init*[K, V](_: type[ref Table[K, V]]): ref Table[K, V] =
+  result.new
+
+
+# map ----------------------------------------------------------------------------------------------
 proc delete*[K, V](table: var Table[K, V], cond: (K, V) -> bool): Table[K, V] =
   for k, v in table:
     if cond(k, v): result[k] = v
