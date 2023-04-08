@@ -188,4 +188,22 @@ echo somefn(some)       # => 2
 echo somefn(Some(v: 1)) # => 1
 ```
 
+Object variant can't share same field name, code below would fail to compile. And this problem is
+refused to be fixed and the suggestion is to just share that field on all variant branches, which is
+defeats the whole point of using object variants.
+
+```Nim
+type EventType* = enum location, click, change
+type Event* = object
+  case kind*: EventType
+  of location:
+    location*: Url
+  of click:
+    el_id*: string
+    click*: ClickEvent
+  of change:
+    el_id*:  string # <= Error, redefinition of el_id
+    change*: ChangeEvent
+```
+
 Tons of random inconsistiencies like these.

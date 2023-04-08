@@ -1,7 +1,11 @@
 import std/macros
-import base, ext/url, ./app
+import base, ext/url, ./component
 
 # h ------------------------------------------------------------------------------------------------
+# converter to_html_elements*(el: HtmlElement): seq[HtmlElement] =
+#   # Needed to return single or multiple html elements from render
+#   @[el]
+
 template `+`*(node: HtmlElement): void =
   it.children.add node
 

@@ -6,7 +6,6 @@ type
   SpecialInputKeys* = enum alt, ctrl, meta, shift
 
   ClickEvent* = object
-    id*:   string
     keys*: seq[SpecialInputKeys]
   ClickHandler* = proc(e: ClickEvent): void
 
@@ -20,6 +19,12 @@ type
   BlurEvent* = object
   BlurHandler* = proc(e: BlurEvent): void
 
+  InputEvent* = object
+    value*: string
+  InputHandler* = proc(e: InputEvent): void
+
+  TimeoutEvent* = object
+
   HtmlElementExtras* = ref object
     # on_focus, on_drag, on_drop, on_keypress, on_keyup
     on_click*:    Option[ClickHandler]
@@ -27,6 +32,7 @@ type
     on_keydown*:  Option[KeydownHandler]
     on_change*:   Option[ChangeHandler]
     on_blur*:     Option[BlurHandler]
+    on_input*:    Option[InputHandler]
     set_value*:   Option[(proc(v: string): void)]
 
   HtmlElement* = ref object
@@ -37,13 +43,26 @@ type
     nattrs_cached*: Option[JsonNode]
 
 # InEvent ------------------------------------------------------------------------------------------
-type InEventType* = enum location, click
+type InEventType* = enum location, click, dblclick, keydown, change, blur, input, timeout
 type InEvent* = object
+  el*: seq[int]
   case kind*: InEventType
   of location:
     location*: Url
   of click:
     click*: ClickEvent
+  of dblclick:
+    dblclick*: ClickEvent
+  of keydown:
+    keydown*: KeydownEvent
+  of change:
+    change*: ChangeEvent
+  of blur:
+    blur*: BlurEvent
+  of input:
+    input*: InputEvent
+  of timeout:
+    discard
 
 
 # OutEvent -----------------------------------------------------------------------------------------
@@ -52,40 +71,45 @@ type UpdateAttrsCommand* = object
   del*: Option[seq[string]]
 
 type MoveChildcommand* = object
-  id*:    string
-  after*: Option[string] # id of element it should be after, if not defined it will be first
+  i*:     int
+  after*: Option[int] # id of element it should be after, if not defined it will be first
 
 type AddChildcommand* = object
-  id*:    string
-  after*: Option[string] # id of element it should be after, if not defined it will be first
+  after*: Option[int] # id of element it should be after, if not defined it will be first
+  el*:    JsonNode
 
-type UpdateChildreneCommand* = object
-  del*:  Option[seq[string]]
+type UpdateChildCommand* = object
+  del*:  Option[seq[int]]
   move*: Option[seq[MoveChildcommand]]
   add*:  Option[seq[AddChildcommand]]
 
-type OutEventType* = enum update_document, update_element
+type OutEventType* = enum eval, update_element
 type OutEvent* = object
   case kind*: OutEventType
-  of update_document:
-    title*:    Option[string]
-    location*: Option[string]
+  of eval:
+    code*: string
   of update_element:
-    id*:       string
+    id*:       seq[int]
     attrs*:    Option[UpdateAttrsCommand]
-    children*: Option[UpdateChildreneCommand]
-    elements*: Option[seq[JsonNode]] # List of new Elements
+    children*: Option[UpdateChildCommand]
 
 
 # Component ----------------------------------------------------------------------------------------
 type Component* = ref object of RootObj
-  children:        Table[string, Component]
-  children_built*: HashSet[string] # Needed to track and destroy old children
+  previous_tree:  Option[HtmlElement]
+  children:       Table[string, Component]
+  children_built: HashSet[string] # Needed to track and destroy old children
 
 method after_create*(self: Component): void {.base.} =
   discard
 
 method before_destroy*(self: Component): void {.base.} =
+  discard
+
+method on_location*(self: Component, path: Url): void {.base.} =
+  discard
+
+method render*(self: Component): HtmlElement {.base.} =
   discard
 
 proc after_render*(self: Component): void =
@@ -106,10 +130,81 @@ proc get_child_component*[T](self: Component, _: type[T], id: string, set_attrs:
   child.set_attrs # setting on new or overriding attributes on existing children
   child
 
+proc get_element(self: Component, el_path: seq[int]): HtmlElement
+
+proc process_in_event*(self: Component, event: InEvent): bool =
+  template if_handler_found(handler_name, code): bool =
+    let el = self.get_element event.el
+    if el.extras.is_some and el.extras.get.`handler_name`.is_some:
+      let handler {.inject.} = el.extras.get.`handler_name`.get
+      code
+      true
+    else:
+      false
+
+  case event.kind
+  of location:
+    self.on_location event.location
+    true
+  of click:
+    if_handler_found on_click:
+      handler event.click
+  of dblclick:
+    if_handler_found on_dblclick:
+      handler event.dblclick
+  of keydown:
+    if_handler_found on_keydown:
+      handler event.keydown
+  of change:
+    if_handler_found on_change:
+      handler event.change
+  of blur:
+    if_handler_found on_blur:
+      handler event.blur
+  of input:
+    # Setting value on binded variable
+    let el = self.get_element event.el
+    if el.extras.is_some and el.extras.get.set_value.is_some:
+      let set_value = el.extras.get.set_value.get
+      set_value event.input.value
+
+    if_handler_found on_input:
+      handler event.input
+  of timeout:
+    true
+
+proc process*(self: Component, events: seq[InEvent]): seq[OutEvent] =
+  let state_changed_maybe = events.any((event) => self.process_in_event event)
+  if not state_changed_maybe: return @[]
+
+  let tree = self.render
+
+
+
+
+
+  #   HtmlElementExtras* = ref object
+  #   # on_focus, on_drag, on_drop, on_keypress, on_keyup
+  #   on_click*:    Option[ClickHandler]
+  #   on_dblclick*: Option[ClickHandler]
+  #   on_keydown*:  Option[KeydownHandler]
+  #   on_change*:   Option[ChangeHandler]
+  #   on_blur*:     Option[BlurHandler]
+  #   set_value*:   Option[(proc(v: string): void)]
+
+  # HtmlElement* = ref object
+  #   tag*:           string
+  #   attrs*:         JsonNode
+  #   children*:      seq[HtmlElement]
+  #   extras*:        Option[HtmlElementExtras]
+  #   nattrs_cached*: Option[JsonNode]
 
 
 
 # HtmlElement --------------------------------------------------------------------------------------
+proc get_element(self: Component, el_path: seq[int]): HtmlElement =
+  discard
+
 proc nattrs*(self: HtmlElement): JsonNode =
   # Normalised attributes. HtmlElement stores attributes in shortcut format,
   # like`"tag: ul.todos checked"`, normalisation delayed to improve performance.

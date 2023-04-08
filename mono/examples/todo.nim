@@ -1,4 +1,4 @@
-import base, ../app, ../h
+import base, ../component, ../h
 
 
 # Model --------------------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ type TodosView = ref object of Component
 proc set_attrs(self: TodosView, items: Todos = @[], filter: Filter = all): void =
   self.items = items; self.filter = filter
 
-proc render(self: TodosView): HtmlElement =
+method render(self: TodosView): HtmlElement =
   let completed_count = self.items.count((item) => item.completed)
   let active_count    = self.items.len - completed_count
   let all_completed   = completed_count == self.items.len
