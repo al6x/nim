@@ -1,8 +1,5 @@
 # parse_env_variable -------------------------------------------------------------------------------
-proc parse_string_as(_: type[int],    v: string): int    = v.parse_int
-proc parse_string_as(_: type[float],  v: string): float  = v.parse_float
-proc parse_string_as(_: type[string], v: string): string = v
-proc parse_string_as(_: type[bool],   v: string): bool   = v.to_lower in ["true", "t", "yes", "y"]
+
 
 
 # parse_env ----------------------------------------------------------------------------------------
@@ -80,8 +77,8 @@ proc parse_env*[T: tuple|object](
   # Parsing and casting into object
   for k, v in o.field_pairs:
     let nk = k.normalize_key
-    if nk in options:      v = parse_string_as(typeof v, options[nk])
-    elif nk in env.values: v = parse_string_as(typeof v, env.values[nk])
+    if nk in options:      v = typeof(v).parse options[nk]
+    elif nk in env.values: v = typeof(v).parse env.values[nk]
 
   (o, args)
 

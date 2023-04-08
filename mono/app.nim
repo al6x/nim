@@ -5,10 +5,6 @@ import ./helpers
 type
   SpecialInputKeys* = enum alt, ctrl, meta, shift
 
-  Location* = object
-    path*:  seq[string]
-    query*: Table[string, string]
-
   ClickEvent* = object
     id*:   string
     keys*: seq[SpecialInputKeys]
@@ -25,13 +21,13 @@ type
   BlurHandler* = proc(e: BlurEvent): void
 
   HtmlElementExtras* = ref object
+    # on_focus, on_drag, on_drop, on_keypress, on_keyup
     on_click*:    Option[ClickHandler]
     on_dblclick*: Option[ClickHandler]
     on_keydown*:  Option[KeydownHandler]
     on_change*:   Option[ChangeHandler]
     on_blur*:     Option[BlurHandler]
-    bind_string_value*: Option[(proc(v: string): void)]
-    bind_bool_value*:   Option[(proc(v: bool): void)]
+    set_value*:   Option[(proc(v: string): void)]
 
   HtmlElement* = ref object
     tag*:           string
@@ -45,7 +41,7 @@ type InEventType* = enum location, click
 type InEvent* = object
   case kind*: InEventType
   of location:
-    location*: Location
+    location*: Url
   of click:
     click*: ClickEvent
 
@@ -142,22 +138,6 @@ proc to_json_hook*(self: HtmlElement): JsonNode =
     self.nattrs.copy.alter((attrs: JsonNode) => (attrs["children"] = self.children.to_json))
 
 
-# # App ----------------------------------------------------------------------------------------------
-# type App* = ref object of RootObj
-#   # App represents both window.document and window.document.body
-#   title*:            string
-#   location*:         Location
-#   attrs*:            Table[string, string] # attrs of document.body
-#   children*:         seq[Element]          # children of document.body
-#   on_click_handler*: Option[proc(e: ClickEvent): void]
-
-# method process*(self: App, event: InEvent): seq[OutEvent] =
-#   throw "not implemented"
-
-# method on_create*(self: App): void {.base.} = discard
-# method on_destroy*(self: App): void {.base.} = discard
-
-
 # # Apps ---------------------------------------------------------------------------------------------
 # type Apps* = ref Table[string, proc: App]
 
@@ -165,20 +145,3 @@ proc to_json_hook*(self: HtmlElement): JsonNode =
 #   # Returns app and initial events, like going to given url
 #   let id = if url.host == "localhost": url.query.ensure("_app", "_app query parameter required") else: url.host
 #   self[].ensure(id, fmt"Error, unknown application '{id}'")()
-
-
-
-
-# # # if is_main_module:
-
-
-# # # type HElement* = ref object
-# # #   tag*:       string
-# # #   attrs*:     Table[string, string]
-# # #   children*:  seq[HElement]
-
-# # # type HApp* = ref object
-# # #   title*:       string
-# # #   location*:    Location
-# # #   attrs*:       Table[string, string]
-# # #   children*:    seq[HElement]

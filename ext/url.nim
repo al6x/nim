@@ -1,4 +1,3 @@
-import std/[sequtils, tables]
 from std/uri as nurim import nil
 import base
 
@@ -76,6 +75,9 @@ proc path_parts*(self: Url): seq[string] =
 
 proc subdomain*(host: string): Option[string] =
   re"^([^\.]+)\.".parse(host).map((found) => found[0])
+
+proc to_json_hook*(url: Url): JsonNode =
+  url.to_s.to_json
 
 # Test ---------------------------------------------------------------------------------------------
 # nim c -r base/base/url.nim

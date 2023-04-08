@@ -1,4 +1,5 @@
-import base, ./app, std/macros
+import std/macros
+import base, ext/url, ./app
 
 # h ------------------------------------------------------------------------------------------------
 template `+`*(node: HtmlElement): void =
@@ -47,29 +48,10 @@ proc extras_getset*(self: HtmlElement): HtmlElementExtras =
 
 template bind_to*(element: HtmlElement, variable): HtmlElement =
   let el = element
-  when `variable` is bool:
-    discard el.value `variable`
-    el.extras_getset.bind_bool_value = (proc (v: bool): void =
-      `variable` = v
-    ).some
-  elif `variable` is string:
-    echo "use single bind_value and cast inside"
-    discard el.value `variable`
-    el.extras_getset.bind_string_value = (proc (v: string): void =
-      `variable` = v
-    ).some
-  elif `variable` is Option[bool]:
-    discard el.value `variable`
-    el.extras_getset.bind_bool_value = (proc (v: bool): void =
-      `variable` = v.some
-    ).some
-  elif `variable` is Option[string]:
-    discard el.value `variable`
-    el.extras_getset.bind_string_value = (proc (v: string): void =
-      `variable` = v.some
-    ).some
-  else:
-    throw "invalid binding variable type"
+  discard el.value variable
+  el.extras_getset.set_value = (proc (v: string): void {.closure.} =
+    variable = typeof(variable).parse v
+  ).some
   el
 
 proc on_click*(self: HtmlElement, fn: proc(e: ClickEvent): void): HtmlElement =
@@ -114,6 +96,18 @@ test "h":
 
   check html.to_json ==
     """{"class":"c1","tag":"ul","children":[{"class":"c2 c3","text":"t1","tag":"li"}]}""".parse_json
+
+# document_h ---------------------------------------------------------------------------------------
+# template document_h*(title: string, location: Url, code): HtmlElement =
+#   h"document":
+#     discard it.attr("title", title)
+#     discard it.attr("location", location)
+#     code
+
+# test "document_h":
+#   let html = document_h("t1", Url.init("/a")):
+#     + h"div"
+#   check html.to_json == """{"title":"t1","location":"/a","tag":"document","children":[{"tag":"div"}]}""".parse_json
 
 
 # stateful h ---------------------------------------------------------------------------------------

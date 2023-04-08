@@ -44,8 +44,7 @@ proc render(self: TodoView): HtmlElement =
       + h"input.toggle type: checkbox"
         # Feature: two way binding with autocast
         .bind_to(self.item.completed)
-      + h"label"
-        .text(self.item.text)
+      + h"label".text(self.item.text)
         .on_dblclick(proc = self.editing = self.item.text.some)
       + h"button.destroy"
         .on_click(proc = self.on_delete(self.item.id))
@@ -95,14 +94,14 @@ proc render(self: TodosView): HtmlElement =
 
   h"header.header":
     + h"h1".text("todos")
-    + h"input.new-todo autofocus"
-      .attr("placeholder", "What needs to be done?")
+    + h"input.new-todo autofocus".attr("placeholder", "What needs to be done?")
       .bind_to(self.new_todo)
       .on_keydown(create_new)
 
     if not self.items.is_empty:
       + h"section.main":
-        + h"input.toggle-all type=checkbox".value(all_completed)
+        + h"input.toggle-all type=checkbox"
+          .value(all_completed)
           .on_change(toggle_all)
         + h"label for=toggle-all".text("Mark all as complete")
 
@@ -116,15 +115,18 @@ proc render(self: TodosView): HtmlElement =
             + h"strong".text(active_count)
             + h"span".text((if active_count == 1: "item" else: "items") & " left")
 
+          proc filter_class(filter: Filter): string =
+            if self.filter == filter: ".selected"  else: ""
+
           + h"ul.filters":
             + h"li":
-              + h"a".class(if self.filter == all:       "selected"  else: "").text("All")
+              + h"a{all.filter_class}".text("All")
                 .on_click(set_filter(all))
             + h"li":
-              + h"a".class(if self.filter == active:    "selected"  else: "").text("Active")
+              + h"a{active.filter_class}".text("Active")
                 .on_click(set_filter(active))
             + h"li":
-              + h"a".class(if self.filter == completed: "selected"  else: "").text("Completed")
+              + h"a{completed.filter_class}".text("Completed")
                 .on_click(set_filter(completed))
 
           if all_completed:
