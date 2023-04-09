@@ -76,6 +76,7 @@ type InEvent* = object
 # OutEvent -----------------------------------------------------------------------------------------
 type UpdateElement* = ref object
   el*:           seq[int]
+  set*:          Option[JsonNode]
   set_attrs*:    Option[Table[string, JsonNode]]
   del_attrs*:    Option[seq[string]]
   set_children*: Option[Table[string, JsonNode]]
@@ -115,18 +116,23 @@ proc after_render*(self: Component): void =
   self.children_built.clear
   old.values.each(before_destroy) # triggering :before_destroy
 
-proc get_child_component*[T](self: Component, _: type[T], id: string, set_attrs: (proc(component: T): void)): T =
+proc get_child_component*[T](self: Component, _: type[T], id: string): T =
   let full_id = $(T) & "/" & id
   self.children_built.add full_id
   if full_id notin self.children:
     let child = when compiles(T.init): T.init else: T()
     child.after_create
     self.children[full_id] = child
-  let child = self.children[full_id].T
+  self.children[full_id].T
+
+proc get_child_component*[T](
+  self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T): void)
+): T =
+  let child = self.get_child_component(ChildT, id)
   child.set_attrs # setting on new or overriding attributes on existing children
   child
 
-proc get(self: HtmlElement, el_path: seq[int]): HtmlElement
+proc get*(self: HtmlElement, el_path: seq[int]): HtmlElement
 
 template process_in_event*[C](self: C, event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
@@ -179,24 +185,21 @@ proc process*[C](self: C, events: seq[InEvent]): seq[OutEvent] =
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   var new_tree: HtmlElement = self.render
-  # Root always should be document, auto creating if it's not
-  if new_tree.nattrs["tag"].get_str != "document":
-    new_tree = HtmlElement.init(tag = "document", children = @[new_tree])
+  # # Root always should be document, auto creating if it's not
+  # if new_tree.nattrs["tag"].get_str != "document":
+  #   new_tree = HtmlElement.init(tag = "document", children = @[new_tree])
   self.after_render
 
-  let current_tree = self.current_tree.get(HtmlElement.init(tag = "document"))
-  let updates = diff(@[], new_tree, current_tree)
+  let updates = if self.current_tree.is_some:
+    diff(@[], new_tree, self.current_tree.get)
+  else:
+    @[UpdateElement(el: @[], set: new_tree.to_json.some)]
   self.current_tree = new_tree.some
 
   @[OutEvent(kind: update_element, updates: updates)]
 
 
 # HtmlElement --------------------------------------------------------------------------------------
-proc get(self: HtmlElement, el_path: seq[int]): HtmlElement =
-  result = self
-  for i in el_path: result = result.children[i]
-
-
 proc nattrs*(self: HtmlElement): JsonNode =
   # Normalised attributes. HtmlElement stores attributes in shortcut format,
   # like`"tag: ul.todos checked"`, normalisation delayed to improve performance.
@@ -218,6 +221,11 @@ test "nattrs":
   check HtmlElement.init(tag = "ul.todos", attrs = (class: "editing").to_json).nattrs ==
     """{"class":"todos editing","tag":"ul"}""".parse_json
 
+proc get*(self: HtmlElement, el_path: seq[int]): HtmlElement =
+  result = self
+  for i in el_path:
+    result = result.children[i]
+
 proc to_json_hook*(self: HtmlElement): JsonNode =
   var json = if self.children.is_empty:
     self.nattrs.sort
@@ -234,12 +242,16 @@ proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[Up
       result.add diff(id & [i], new_child, old_child)
     return
 
-  var update = UpdateElement(el: id.to_seq)
+  let update = UpdateElement(el: id.to_seq)
   result.add update
-  block: # Attrs
-    let (new_attrs, old_attrs) = (new_el.nattrs, old_el.nattrs)
-    assert new_attrs["tag"] == old_attrs["tag"], "elements have different tags"
 
+  let (new_attrs, old_attrs) = (new_el.nattrs, old_el.nattrs)
+  block: # tag
+    if new_attrs["tag"] != old_attrs["tag"]:
+      update.set = new_el.to_json.some
+      return
+
+  block: # Attrs
     var set_attrs: Table[string, JsonNode]
     for k, v in new_attrs:
       if k notin old_attrs or v != old_attrs[k]:

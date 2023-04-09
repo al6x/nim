@@ -20,21 +20,21 @@ template test*(name: string, body) =
   if test_variable == "true" or test_variable == "fast" or test_variable == name:
     let pos = instantiation_info()
     print_test_info(false, pos.filename, name, false)
-    try:
-      body
-    except Exception as e:
-      print_test_info(false, pos.filename, name, true)
-      quit e.msg
+    # try:
+    body
+    # except Exception as e:
+    #   print_test_info(false, pos.filename, name, true)
+    #   quit e.msg
 
 template slow_test*(name: string, body) =
   let test_variable = env["test", "false"]
   if test_variable == "true" or test_variable == name:
     print_test_info(true, pos.filename, name, false)
-    try:
-      body
-    except Exception as e:
-      print_test_info(true, pos.filename, name, true)
-      quit e.msg
+    # try:
+    body
+    # except Exception as e:
+    #   print_test_info(true, pos.filename, name, true)
+    #   quit e.msg
 
 if is_main_module:
   test "some":

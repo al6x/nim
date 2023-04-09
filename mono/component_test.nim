@@ -72,33 +72,33 @@ proc render(self: CounterTest): HtmlElement =
 type CounterParentTest = ref object of Component
 
 proc render(self: CounterParentTest): HtmlElement =
-  h".counter_parent":
+  h".parent":
     + self.h(CounterTest, "counter")
 
 test "counter":
   let app = CounterParentTest()
-  let out1 = app.process @[]
-  let out1_expected = %[{ kind: "update_element", updates: [
-    { el: [], set_children: {
-      "0": { class: "counter_parent", children: [
+
+  block: # Rendering initial HTML
+    let res = app.process @[]
+    let initial_html =
+      %{ class: "parent", children: [
         { class: "counter", children: [
           { tag: "input", value: "some", type: "text" },
           { tag: "button", text: "+" },
           { text: "some 0" },
         ] }
       ] }
-    } }
-  ] } ]
-  # p out1.to_json.sort.to_s(false)
-  # p out1_expected.sort.to_s(false)
-  check out1.to_json == out1_expected
+    let expected = %[{ kind: "update_element", updates: [ { el: [], set: initial_html } ] }]
+    check res.to_json == expected
 
-  # Changing input and clicking on button
-  let events2 = @[
-    InEvent(kind: input, el: @[0, 0], input: InputEvent(value: "another")), # changing input
-    InEvent(kind: click, el: @[0, 1], click: ClickEvent()),                 # clicking
-  ]
-  p 0
-  let out2 = app.process events2
-  p 1
-  p out2.to_json.to_s
+  block: # Changing input
+    let res = app.process @[InEvent(kind: input, el: @[0, 0], input: InputEvent(value: "another"))]
+    check:
+      app.get_child_component(CounterTest, "counter").CounterTest.text == "another"
+      res.is_empty # changing input without listener shouldn't trigger re-render
+
+  block: # Clicking on button
+    let res = app.process @[InEvent(kind: click, el: @[0, 1], click: ClickEvent())]
+    check: res.to_json == %[{ kind: "update_element", updates: [
+      { el: [0,2], set_attrs: { text: "another 1" } }
+    ]}]

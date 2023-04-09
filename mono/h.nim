@@ -55,6 +55,7 @@ template bind_to*(element: HtmlElement, variable): HtmlElement =
   discard el.value variable
   el.extras_getset.set_value = (proc (v: string): void {.closure.} =
     variable = typeof(variable).parse v
+    el.attrs["value"] = variable.to_json # updating value on the element, to avoid it being detected by diff
   ).some
   el
 
