@@ -80,16 +80,23 @@ test "counter":
 
   block: # Rendering initial HTML
     let res = app.process @[]
-    let initial_html =
-      %{ class: "parent", children: [
-        { class: "counter", children: [
-          { tag: "input", value: "some", type: "text" },
-          { tag: "button", text: "+" },
-          { text: "some 0" },
-        ] }
-      ] }
-    let expected = %[{ kind: "update_element", updates: [ { el: [], set: initial_html } ] }]
-    check res.to_json == expected
+    # let initial_html =
+    #   %{ class: "parent", children: [
+    #     { class: "counter", children: [
+    #       { tag: "input", value: "some", type: "text" },
+    #       { tag: "button", text: "+" },
+    #       { text: "some 0" },
+    #     ] }
+    #   ] }
+    # let expected = %[{ kind: "update_element", updates: [ { el: [], set: initial_html } ] }]
+    check res.to_html == """
+      <div class="parent">
+        <div class="counter">
+          <input type="text" value="some"/>
+          <button>+</button>
+          <div>some 0</div>
+        </div>
+      </div>""".dedent
 
   block: # Changing input
     let res = app.process @[InEvent(kind: input, el: @[0, 0], input: InputEvent(value: "another"))]

@@ -147,3 +147,78 @@ template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[
   # )
   # let html = child.render
   # when html is seq: html else: @[html]
+
+# escape_html --------------------------------------------------------------------------------------
+const ESCAPE_HTML_MAP = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  """: "&quot;",
+  """: "&#39;"
+}.to_table
+
+proc escape_html*(html: string): string =
+  html.replace(re"""([&<>'"])""", (c) => ESCAPE_HTML_MAP[c])
+
+test "escape_html":
+  assert escape_html("<div>") == """&lt;div&gt;"""
+
+# to_html ------------------------------------------------------------------------------------------
+proc escape_html_text(s: string): string = s.escape_html
+proc escape_html_attr(k: string, v: JsonNode): string =
+  k.escape_html & "=" & (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false))
+
+proc to_html*(el: JsonNode, indent = ""): string =
+  assert el.kind == JObject, "to_html element data should be JObject"
+  var tag = "div"
+  var attr_tokens: seq[string]
+  for k, v in el.sort.fields:
+    if k == "tag":        tag = v.get_str
+    elif k == "children": discard
+    elif k == "text":     discard
+    else:                 attr_tokens.add escape_html_attr(k, v)
+  result.add indent & "<" & tag
+  if not attr_tokens.is_empty:
+    result.add " " & attr_tokens.join(" ")
+  if "text" in el:
+    assert "children" notin el, "to_html doesn't support both text and children"
+    let text = el["text"].get_str
+    result.add ">" & text.escape_html_text & "</" & tag & ">"
+  elif "children" in el:
+    let children = el["children"]
+    assert children.kind == JArray, "to_html element children should be JArray"
+    result.add ">\n"
+    for v in children:
+      result.add v.to_html(indent & "  ") & "\n"
+    result.add indent & "</" & tag & ">"
+  else:
+    result.add "/>"
+
+test "to_html":
+  let el = %{ class: "parent", children: [
+    { class: "counter", children: [
+      { tag: "input", value: "some", type: "text" },
+      { tag: "button", text: "+" },
+    ] }
+  ] }
+  let html = """
+    <div class="parent">
+      <div class="counter">
+        <input type="text" value="some"/>
+        <button>+</button>
+      </div>
+    </div>""".dedent
+  check el.to_html == html
+
+proc to_html*(events: seq[OutEvent]): string =
+  assert events.len == 1, "to_html can't convert more than single event"
+  assert events[0].kind == update_element, "to_html can't convert event other than update_element"
+  assert events[0].updates.len == 1, "to_html can't convert more than single update"
+  let update = events[0].updates[0]
+  assert update.el == @[], "to_html can convert only root element"
+  assert (
+    update.set_attrs.is_none and update.del_attrs.is_none and
+    update.set_children.is_none and update.del_children.is_none
+  ), "to_html requires all changes other than `set` be empty"
+  assert update.set.is_some, "to_html the `set` required"
+  update.set.get.to_html
