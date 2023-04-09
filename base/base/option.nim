@@ -21,6 +21,10 @@ func is_present*[T](o: Option[T]): bool {.inline.} = o.is_some
 
 # proc set*[T](v: T): Option[T] {.inline.} = v.some
 
+proc getset*[T](o: var Option[T], v: T): T =
+  if o.is_none:
+    o = v.some
+  o.get
 
 proc get*[T](o: Option[T], otherwise: () -> T): T =
   if o.is_some: o.get else: otherwise()

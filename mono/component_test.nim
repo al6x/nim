@@ -1,5 +1,5 @@
 # component.h --------------------------------------------------------------------------------------
-import base, ./app, ./h
+import base, ext/url, ./component, ./h
 
 type Child1 = ref object of Component
   v1: int
@@ -25,3 +25,80 @@ proc render(self: Parent1): HtmlElement =
 test "component.h":
   let parent = Parent1()
   discard parent.render()
+
+# diff ---------------------------------------------------------------------------------------------
+test "diff":
+  template tdiff(id, a, b, s) =
+    check diff(id, a, b).to_json == s
+
+  tdiff [0], h"#i.a r".text("t1"), h".b c".text("t0"), %[
+    { el:[0], set_attrs: { class: "a", id: "i", r: "true", text: "t1" }, del_attrs: ["c"] }
+  ]
+
+  block:
+    let a = h".a2":
+      + h".b2".text("bbb2")
+      + h".c2"
+    let b = h".a1 aa1":
+      + h".b1 bb1".text("bbb1")
+      + h"span.c1"
+      + h"d1"
+    tdiff [0], a, b, %[
+      { el: [0], set_attrs: { class: "a2" }, del_attrs: ["aa1"], del_children: [2], set_children: {
+        "1": { class: "c2" }
+      } },
+      { el: [0, 0], set_attrs: { class: "b2", text: "bbb2" }, del_attrs: ["bb1"] }
+    ]
+
+
+# counter ------------------------------------------------------------------------------------------
+type CounterTest = ref object of Component
+  count: int
+  text:  string
+
+proc init(_: type[CounterTest]): CounterTest =
+  CounterTest(text: "some")
+
+proc render(self: CounterTest): HtmlElement =
+  h".counter":
+    + h"input type=text"
+        .bind_to(self.text)
+    + h"button"
+      .text("+")
+      .on_click(proc = (self.count += 1))
+    + h""
+      .text(fmt"{self.text} {self.count}")
+
+type CounterParentTest = ref object of Component
+
+proc render(self: CounterParentTest): HtmlElement =
+  h".counter_parent":
+    + self.h(CounterTest, "counter")
+
+test "counter":
+  let app = CounterParentTest()
+  let out1 = app.process @[]
+  let out1_expected = %[{ kind: "update_element", updates: [
+    { el: [], set_children: {
+      "0": { class: "counter_parent", children: [
+        { class: "counter", children: [
+          { tag: "input", value: "some", type: "text" },
+          { tag: "button", text: "+" },
+          { text: "some 0" },
+        ] }
+      ] }
+    } }
+  ] } ]
+  # p out1.to_json.sort.to_s(false)
+  # p out1_expected.sort.to_s(false)
+  check out1.to_json == out1_expected
+
+  # Changing input and clicking on button
+  let events2 = @[
+    InEvent(kind: input, el: @[0, 0], input: InputEvent(value: "another")), # changing input
+    InEvent(kind: click, el: @[0, 1], click: ClickEvent()),                 # clicking
+  ]
+  p 0
+  let out2 = app.process events2
+  p 1
+  p out2.to_json.to_s

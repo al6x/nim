@@ -24,10 +24,10 @@ template `+`*(component: Component): void =
   it.children.add c.render()
 
 template h*(html: string): HtmlElement =
-  HtmlElement(tag: fmt(html, '{', '}'), attrs: new_JObject())
+  HtmlElement.init(tag = fmt(html, '{', '}'))
 
 template h*(html: string, code): HtmlElement =
-  let node = HtmlElement(tag: fmt(html, '{', '}'), attrs: new_JObject())
+  let node = HtmlElement.init(tag = fmt(html, '{', '}'))
   block:
     let it {.inject.} = node
     code
@@ -122,6 +122,9 @@ template h*[T](
   let html = child.render
   when html is seq: html else: @[html]
 
+template h*[T](self: Component, ChildT: type[T], id: string): seq[HtmlElement] =
+  self.h(ChildT, id, proc(c: T): void = (discard))
+
 macro call_fn*(f, self, t: typed): typed =
   var args = newSeq[NimNode]()
   let ty = getTypeImpl(t)
@@ -137,8 +140,9 @@ macro call_fn*(f, self, t: typed): typed =
   result = newCall(f, args)
 
 template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[HtmlElement] =
-  let child = self.get_child_component(ChildT, id, proc(c: T): void =
-    set_attrs.call_fn(c, attrs)
-  )
-  let html = child.render
-  when html is seq: html else: @[html]
+  self.h(ChildT, id, proc(c: T): void = set_attrs.call_fn(c, attrs))
+  # let child = self.get_child_component(ChildT, id, proc(c: T): void =
+  #   set_attrs.call_fn(c, attrs)
+  # )
+  # let html = child.render
+  # when html is seq: html else: @[html]

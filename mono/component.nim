@@ -42,6 +42,14 @@ type
     extras*:        Option[HtmlElementExtras]
     nattrs_cached*: Option[JsonNode]
 
+proc init*(_: type[HtmlElement], tag = "", attrs = new_JObject(), children = seq[HtmlElement].init): HtmlElement =
+  HtmlElement(tag: tag, attrs: attrs, children: children)
+
+proc shallow_equal(self, other: HtmlElement): bool =
+  # Avoiding attribute normalisation as it's a heavy operation
+  self.tag == other.tag and self.attrs == other.attrs and self.children.len == other.children.len
+
+
 # InEvent ------------------------------------------------------------------------------------------
 type InEventType* = enum location, click, dblclick, keydown, change, blur, input, timeout
 type InEvent* = object
@@ -66,22 +74,12 @@ type InEvent* = object
 
 
 # OutEvent -----------------------------------------------------------------------------------------
-type UpdateAttrsCommand* = object
-  set*: Option[Table[string, string]]
-  del*: Option[seq[string]]
-
-type MoveChildcommand* = object
-  i*:     int
-  after*: Option[int] # id of element it should be after, if not defined it will be first
-
-type AddChildcommand* = object
-  after*: Option[int] # id of element it should be after, if not defined it will be first
-  el*:    JsonNode
-
-type UpdateChildCommand* = object
-  del*:  Option[seq[int]]
-  move*: Option[seq[MoveChildcommand]]
-  add*:  Option[seq[AddChildcommand]]
+type UpdateElement* = ref object
+  el*:           seq[int]
+  set_attrs*:    Option[Table[string, JsonNode]]
+  del_attrs*:    Option[seq[string]]
+  set_children*: Option[Table[string, JsonNode]]
+  del_children*: Option[seq[int]]
 
 type OutEventType* = enum eval, update_element
 type OutEvent* = object
@@ -89,14 +87,12 @@ type OutEvent* = object
   of eval:
     code*: string
   of update_element:
-    id*:       seq[int]
-    attrs*:    Option[UpdateAttrsCommand]
-    children*: Option[UpdateChildCommand]
+    updates*: seq[UpdateElement]
 
 
 # Component ----------------------------------------------------------------------------------------
 type Component* = ref object of RootObj
-  previous_tree:  Option[HtmlElement]
+  current_tree:   Option[HtmlElement]
   children:       Table[string, Component]
   children_built: HashSet[string] # Needed to track and destroy old children
 
@@ -106,11 +102,11 @@ method after_create*(self: Component): void {.base.} =
 method before_destroy*(self: Component): void {.base.} =
   discard
 
-method on_location*(self: Component, path: Url): void {.base.} =
-  discard
+# method on_location*(self: Component, path: Url): void {.base.} =
+#   discard
 
-method render*(self: Component): HtmlElement {.base.} =
-  discard
+# method render*(self: Component): HtmlElement {.base.} =
+#   discard
 
 proc after_render*(self: Component): void =
   # Removing old child components
@@ -130,11 +126,11 @@ proc get_child_component*[T](self: Component, _: type[T], id: string, set_attrs:
   child.set_attrs # setting on new or overriding attributes on existing children
   child
 
-proc get_element(self: Component, el_path: seq[int]): HtmlElement
+proc get(self: HtmlElement, el_path: seq[int]): HtmlElement
 
-proc process_in_event*(self: Component, event: InEvent): bool =
+template process_in_event*[C](self: C, event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
-    let el = self.get_element event.el
+    let el = self.current_tree.get.get event.el
     if el.extras.is_some and el.extras.get.`handler_name`.is_some:
       let handler {.inject.} = el.extras.get.`handler_name`.get
       code
@@ -144,8 +140,11 @@ proc process_in_event*(self: Component, event: InEvent): bool =
 
   case event.kind
   of location:
-    self.on_location event.location
-    true
+    when compiles(self.on_location event.location):
+      self.on_location event.location
+      true
+    else:
+      false
   of click:
     if_handler_found on_click:
       handler event.click
@@ -163,7 +162,7 @@ proc process_in_event*(self: Component, event: InEvent): bool =
       handler event.blur
   of input:
     # Setting value on binded variable
-    let el = self.get_element event.el
+    let el = self.current_tree.get.get event.el
     if el.extras.is_some and el.extras.get.set_value.is_some:
       let set_value = el.extras.get.set_value.get
       set_value event.input.value
@@ -173,37 +172,30 @@ proc process_in_event*(self: Component, event: InEvent): bool =
   of timeout:
     true
 
-proc process*(self: Component, events: seq[InEvent]): seq[OutEvent] =
+proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[UpdateElement]
+
+proc process*[C](self: C, events: seq[InEvent]): seq[OutEvent] =
   let state_changed_maybe = events.any((event) => self.process_in_event event)
-  if not state_changed_maybe: return @[]
+  if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
-  let tree = self.render
+  var new_tree: HtmlElement = self.render
+  # Root always should be document, auto creating if it's not
+  if new_tree.nattrs["tag"].get_str != "document":
+    new_tree = HtmlElement.init(tag = "document", children = @[new_tree])
+  self.after_render
 
+  let current_tree = self.current_tree.get(HtmlElement.init(tag = "document"))
+  let updates = diff(@[], new_tree, current_tree)
+  self.current_tree = new_tree.some
 
-
-
-
-  #   HtmlElementExtras* = ref object
-  #   # on_focus, on_drag, on_drop, on_keypress, on_keyup
-  #   on_click*:    Option[ClickHandler]
-  #   on_dblclick*: Option[ClickHandler]
-  #   on_keydown*:  Option[KeydownHandler]
-  #   on_change*:   Option[ChangeHandler]
-  #   on_blur*:     Option[BlurHandler]
-  #   set_value*:   Option[(proc(v: string): void)]
-
-  # HtmlElement* = ref object
-  #   tag*:           string
-  #   attrs*:         JsonNode
-  #   children*:      seq[HtmlElement]
-  #   extras*:        Option[HtmlElementExtras]
-  #   nattrs_cached*: Option[JsonNode]
-
+  @[OutEvent(kind: update_element, updates: updates)]
 
 
 # HtmlElement --------------------------------------------------------------------------------------
-proc get_element(self: Component, el_path: seq[int]): HtmlElement =
-  discard
+proc get(self: HtmlElement, el_path: seq[int]): HtmlElement =
+  result = self
+  for i in el_path: result = result.children[i]
+
 
 proc nattrs*(self: HtmlElement): JsonNode =
   # Normalised attributes. HtmlElement stores attributes in shortcut format,
@@ -223,15 +215,63 @@ proc nattrs*(self: HtmlElement): JsonNode =
   return self.nattrs_cached.get
 
 test "nattrs":
-  check HtmlElement(tag: "ul.todos", attrs: (class: "editing").to_json).nattrs ==
+  check HtmlElement.init(tag = "ul.todos", attrs = (class: "editing").to_json).nattrs ==
     """{"class":"todos editing","tag":"ul"}""".parse_json
 
 proc to_json_hook*(self: HtmlElement): JsonNode =
-  if self.children.is_empty:
-    self.nattrs
+  var json = if self.children.is_empty:
+    self.nattrs.sort
   else:
-    self.nattrs.copy.alter((attrs: JsonNode) => (attrs["children"] = self.children.to_json))
+    self.nattrs.sort.alter((attrs: JsonNode) => (attrs["children"] = self.children.to_json))
+  if "tag" in json and json["tag"].get_str == "div": json.delete "tag"
+  json
 
+proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[UpdateElement] =
+  # Using shallow_equal to avoid attribute normalisation as it's a heavy operation
+  if new_el.shallow_equal(old_el):
+    for i, new_child in new_el.children:
+      let old_child = old_el.children[i]
+      result.add diff(id & [i], new_child, old_child)
+    return
+
+  var update = UpdateElement(el: id.to_seq)
+  result.add update
+  block: # Attrs
+    let (new_attrs, old_attrs) = (new_el.nattrs, old_el.nattrs)
+    assert new_attrs["tag"] == old_attrs["tag"], "elements have different tags"
+
+    var set_attrs: Table[string, JsonNode]
+    for k, v in new_attrs:
+      if k notin old_attrs or v != old_attrs[k]:
+        set_attrs[k] = v
+
+    var del_attrs: seq[string]
+    for k, v in old_attrs:
+      if k notin new_attrs:
+        del_attrs.add k
+
+    if not set_attrs.is_empty: update.set_attrs = set_attrs.some
+    if not del_attrs.is_empty: update.del_attrs = del_attrs.some
+
+  block: # Children
+    var set_children: Table[string, JsonNode]
+    for i, new_child in new_el.children:
+      if i > old_el.children.high:
+        set_children[$i] = new_child.to_json
+      else:
+        let old_child = old_el.children[i]
+        if (not new_child.shallow_equal(old_child)) and (new_child.nattrs["tag"] != old_child.nattrs["tag"]):
+          # If tag is different replacing
+          set_children[$i] = new_child.to_json
+        else:
+          result.add diff(id & [i], new_child, old_child)
+
+    var del_children: seq[int]
+    if new_el.children.len < old_el.children.len:
+      del_children = ((new_el.children.high + 1)..old_el.children.high).to_seq
+
+    if not set_children.is_empty: update.set_children = set_children.some
+    if not del_children.is_empty: update.del_children = del_children.some
 
 # # Apps ---------------------------------------------------------------------------------------------
 # type Apps* = ref Table[string, proc: App]
@@ -239,4 +279,4 @@ proc to_json_hook*(self: HtmlElement): JsonNode =
 # proc build*(self: Apps, url: Url): App =
 #   # Returns app and initial events, like going to given url
 #   let id = if url.host == "localhost": url.query.ensure("_app", "_app query parameter required") else: url.host
-#   self[].ensure(id, fmt"Error, unknown application '{id}'")()
+#   self[].ensure(id, fmt"Error, unknown application '{id}'")()old_attrs

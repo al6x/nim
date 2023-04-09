@@ -2,7 +2,8 @@ import std/[strutils]
 import ./env as envm, ./check
 from ./terminal as terminal import nil
 
-export check, strutils
+export check
+export strutils.align_left # avoiding exporting all as it contains `%` which overrides json.%
 
 template print_test_info(slow: bool, filename, testname: string, failed: bool): void =
   const id_len = 7

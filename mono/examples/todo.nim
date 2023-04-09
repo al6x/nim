@@ -41,7 +41,7 @@ proc render(self: TodoView): HtmlElement =
   # Feature: compact HTML template syntax
   h"li.todo-list{class_modifier}":
     + h".view":
-      + h"input.toggle type: checkbox"
+      + h"input.toggle type=checkbox"
         # Feature: two way binding with autocast
         .bind_to(self.item.completed)
       + h"label".text(self.item.text)
@@ -67,7 +67,7 @@ type TodosView = ref object of Component
 proc set_attrs(self: TodosView, items: Todos = @[], filter: Filter = all): void =
   self.items = items; self.filter = filter
 
-method render(self: TodosView): HtmlElement =
+proc render(self: TodosView): HtmlElement =
   let completed_count = self.items.count((item) => item.completed)
   let active_count    = self.items.len - completed_count
   let all_completed   = completed_count == self.items.len

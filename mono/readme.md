@@ -1,7 +1,11 @@
+# Todo
+
+- Render initial page as HTML for search engines, and for static site HTML?
+
 # Deployment options
 
 It's basically an object with one function that gets input as JSON and outputs JSON, and you can
-`ui.process(json): json` use it in whatewer way you want.
+`ui.process(json): json` use it in whatewer way you want.r
 
 UI has two parts, the **UI itself**, the actual UI running Nim code, and the **Proxy View** that has no
 code or logic and just renders the HTML it gets as string from the actual UI.
@@ -21,7 +25,7 @@ network traffic going to be small as UI sends only diffs.
 Because all communication happens as JSON messages, the UI state could be saved and reestored,
 recorded and replayed.
 
-Work as stateless, without need to occupy server memory between requests.
+Work as statefull or stateless, without need to occupy server memory between requests.
 
 Persist UI state between server reloads.
 

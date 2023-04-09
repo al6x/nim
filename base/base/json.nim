@@ -1,8 +1,8 @@
 import std/json except to, `%`, `%*`
-import std/macros, std/options
+import std/[macros, options, tables, algorithm]
 import ./std_jsonutils
 
-import ./option, ./seqm
+import ./option, ./seqm, ./check
 
 export json except to, `%`, `%*`, pretty, toUgly
 export std_jsonutils except json_to, from_json, Joptions
@@ -88,6 +88,22 @@ proc to_columns*[T](tidydata: seq[T]): JsonNode =
       columns[k].add(if k in r: r[k] else: new_JNull())
   columns
 
+proc sort*(node: JsonNode): JsonNode =
+  # Nim JSON is different depends on inserting order, sorting to make it the same.
+  var copy: JsonNode
+  if node.kind == JObject:
+    copy = new_JObject()
+    for k, v in node.fields:
+      copy[k] = v.sort
+    copy.fields.sort(cmp)
+  elif node.kind == JArray:
+    copy = new_JArray()
+    for v in node:
+      copy.add v.sort
+  else:
+    copy = node.copy
+  copy
+
 
 # Test ----------------------------------------------------------------------------------------------
 when is_main_module:
@@ -120,6 +136,9 @@ when is_main_module:
 
   # From bugs
   check @[(a: 1.0.some)].to_json.to_s(false) == """[{"a":1.0}]"""
+
+  # Stable, with sorted object keys
+  check (%{ a: 1, b: 2 }).sort.to_s(false) == (%{ b: 2, a: 1 }).sort.to_s(false)
 
 
 # when is_main_module: # Any
