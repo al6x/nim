@@ -140,8 +140,8 @@ when is_main_module:
   proc build_app(url: Url): App =
     let app = TodosView()
     app.set_attrs(items = @[TodoItem(text: "Buy Milk")])
-    return proc(events: seq[InEvent]): seq[OutEvent] =
-      app.process events
+    return proc(events: seq[InEvent], session_id: string): seq[OutEvent] =
+      app.process(events, session_id)
 
-  let assets_path = current_source_path().parent_dir.absolute_path & "/assets"
+  let assets_path = current_source_path().parent_dir.absolute_path & "/todo"
   run_http_server(build_app, port = 2000, asset_paths = @[assets_path])

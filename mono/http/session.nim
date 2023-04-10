@@ -1,5 +1,5 @@
 import std/[deques]
-import base, ../component
+import base, ../core
 
 type SessionPostEventKind* = enum event, pull
 type SessionPostEvent* = object
@@ -24,7 +24,7 @@ type SessionPullEvent* = object
 # Browser events are collected in indbox via async http handler, and then processed separatelly via
 # sync process. Result of processing stored in outbox, which periodically checked by async HTTP handler
 # and sent to Browser if needed.
-type App* = (seq[InEvent]) -> seq[OutEvent]
+type App* = proc(events: seq[InEvent], session_id: string): seq[OutEvent]
 
 type Session* = ref object
   id*:               string
@@ -41,7 +41,7 @@ proc log*(self: Session): Log =
 
 proc process(self: Session): void =
   if self.inbox.is_empty: return
-  self.outbox.add self.app self.inbox
+  self.outbox.add self.app(self.inbox, self.id)
   self.inbox.clear
 
 type Sessions* = ref Table[string, Session]

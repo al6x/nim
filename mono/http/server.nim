@@ -1,6 +1,6 @@
 import std/[httpcore, asynchttpserver, asyncnet, deques, os]
 import base, ext/[url, async]
-import ./session, ./helpers, ../component, ../h
+import ./session, ./helpers, ../core
 
 let http_log = Log.init "http"
 
@@ -18,7 +18,7 @@ proc handle_app_load(
   session.log.info "created"
   let location = InEvent(kind: location, location: url)
   session.inbox.add location
-  session.log.with(location).info "<<"
+  session.log.with((location: url)).info "<<"
 
   # Processing in another async process, it's inefficient but help to avoid messy async error stack traces.
   while session.outbox.is_empty: await sleep_async 1
@@ -90,7 +90,7 @@ proc run_http_server*(
 ): void =
   # Files with same names will be taken from first path when found, this way system assets like `page.html`
   # could be overriden.
-  var asset_paths = asset_paths & [current_source_path().parent_dir.absolute_path & "/assets"]
+  var asset_paths = asset_paths & [current_source_path().parent_dir.parent_dir.absolute_path & "/browser"]
 
   let sessions = Sessions()
   var server = new_async_http_server()

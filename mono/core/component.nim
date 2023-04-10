@@ -183,11 +183,13 @@ template process_in_event*[C](self: C, event: InEvent): bool =
 
 proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[UpdateElement]
 
-proc process*[C](self: C, events: seq[InEvent]): seq[OutEvent] =
+proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   let state_changed_maybe = events.any((event) => self.process_in_event event)
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   var new_tree: HtmlElement = self.render
+  new_tree.attrs["mono"] = true.to_json
+  if not id.is_empty: new_tree.attrs["mono_id"] = id.to_json
   # # Root always should be document, auto creating if it's not
   # if new_tree.nattrs["tag"].get_str != "document":
   #   new_tree = HtmlElement.init(tag = "document", children = @[new_tree])

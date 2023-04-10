@@ -50,8 +50,9 @@ proc `$`*(url: Url): string =
   for k, v in url.query: query.add (k, v)
   var query_s = if query.len > 0: "?" & nurim.encode_query(query) else: ""
   if url.is_full:
-    let port = if url.port == 80: "" else: fmt":{url.port}"
-    fmt"{url.scheme}://{url.host}{port}{url.path}{query_s}"
+    let port   = if url.port == 80: "" else: fmt":{url.port}"
+    let scheme = if url.scheme.is_empty: "" else: fmt"{url.scheme}://"
+    fmt"{scheme}{url.host}{port}{url.path}{query_s}"
   else:
     fmt"{url.path}{query_s}"
 
