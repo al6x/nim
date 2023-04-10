@@ -26,6 +26,7 @@ test "component.h":
   let parent = Parent1()
   discard parent.render()
 
+
 # diff ---------------------------------------------------------------------------------------------
 test "diff":
   template tdiff(id, a, b, s) =
@@ -52,43 +53,34 @@ test "diff":
 
 
 # counter ------------------------------------------------------------------------------------------
-type CounterTest = ref object of Component
+type Counter = ref object of Component
   count: int
   text:  string
 
-proc init(_: type[CounterTest]): CounterTest =
-  CounterTest(text: "some")
+proc init(_: type[Counter]): Counter =
+  Counter(text: "some")
 
-proc render(self: CounterTest): HtmlElement =
+proc render(self: Counter): HtmlElement =
   h".counter":
     + h"input type=text"
-        .bind_to(self.text)
+      .bind_to(self.text)
     + h"button"
       .text("+")
       .on_click(proc = (self.count += 1))
     + h""
       .text(fmt"{self.text} {self.count}")
 
-type CounterParentTest = ref object of Component
+type CounterParent = ref object of Component
 
-proc render(self: CounterParentTest): HtmlElement =
+proc render(self: CounterParent): HtmlElement =
   h".parent":
-    + self.h(CounterTest, "counter")
+    + self.h(Counter, "counter")
 
 test "counter":
-  let app = CounterParentTest()
+  let app = CounterParent()
 
   block: # Rendering initial HTML
     let res = app.process @[]
-    # let initial_html =
-    #   %{ class: "parent", children: [
-    #     { class: "counter", children: [
-    #       { tag: "input", value: "some", type: "text" },
-    #       { tag: "button", text: "+" },
-    #       { text: "some 0" },
-    #     ] }
-    #   ] }
-    # let expected = %[{ kind: "update_element", updates: [ { el: [], set: initial_html } ] }]
     check res.to_html == """
       <div class="parent">
         <div class="counter">
@@ -101,7 +93,7 @@ test "counter":
   block: # Changing input
     let res = app.process @[InEvent(kind: input, el: @[0, 0], input: InputEvent(value: "another"))]
     check:
-      app.get_child_component(CounterTest, "counter").CounterTest.text == "another"
+      app.get_child_component(Counter, "counter").Counter.text == "another" # binding
       res.is_empty # changing input without listener shouldn't trigger re-render
 
   block: # Clicking on button
@@ -109,3 +101,15 @@ test "counter":
     check: res.to_json == %[{ kind: "update_element", updates: [
       { el: [0,2], set_attrs: { text: "another 1" } }
     ]}]
+
+
+
+# let initial_html =
+#   %{ class: "parent", children: [
+#     { class: "counter", children: [
+#       { tag: "input", value: "some", type: "text" },
+#       { tag: "button", text: "+" },
+#       { text: "some 0" },
+#     ] }
+#   ] }
+# let expected = %[{ kind: "update_element", updates: [ { el: [], set: initial_html } ] }]

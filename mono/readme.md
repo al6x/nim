@@ -1,11 +1,22 @@
+# Features
+
+- Reactive, like Svelte, with compact and clean code.
+- Stateful Components.
+- Bidirectional data binding to inputs.
+- Fast initial page load.
+- SEO friendly.
+- It's a library, not framework, could be used in multiple ways. In-browser SPA, statefull
+  server-side with proxy in browser, stateless server-side, statefull server side but without
+  server memory consumption, storing state in serializable session.
+
 # Todo
 
 - Render initial page as HTML for search engines, and for static site HTML?
 
 # Deployment options
 
-It's basically an object with one function that gets input as JSON and outputs JSON, and you can
-`ui.process(json): json` use it in whatewer way you want.r
+It's basically an object with one function that gets input as produces `let out = ui.process(in)` use
+input, output and object iself could be serialised and used in whatewer way.
 
 UI has two parts, the **UI itself**, the actual UI running Nim code, and the **Proxy View** that has no
 code or logic and just renders the HTML it gets as string from the actual UI.
