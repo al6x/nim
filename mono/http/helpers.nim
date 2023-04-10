@@ -1,5 +1,5 @@
 import base, ext/[url, async]
-import std/[deques, httpcore, asynchttpserver, asyncnet]
+import std/[deques, httpcore, asynchttpserver, asyncnet, os]
 
 proc init*(_: type[Url], request: Request): Url =
   let url = Url.init(request.url) # doesn't have host
@@ -16,16 +16,26 @@ proc respond*(req: Request, content: string): Future[void] {.async.} =
 proc respond_json*[T](req: Request, data: T): Future[void] {.async.} =
   await req.respond(data.to_json.to_s, "application/json")
 
-proc read_asset_file*(path: string): string =
-  fs.read("mono/http/assets" & path)
+proc read_asset_file*(asset_paths: seq[string], path: string): string =
+  for asset_path in asset_paths:
+    let try_path = asset_path & path
+    if fs.exist(try_path):
+      return fs.read(try_path)
+  throw fmt"no asset file '{path}'"
 
-proc serve_asset_files*(req: Request, url: Url): Future[void] {.async.} =
-  let data = read_asset_file url.path.replace("/_assets")
-  if url.path =~ re"\.js$": await req.respond(data, "text/javascript")
-  else:                     await req.respond(data)
+proc serve_asset_files*(req: Request, asset_paths: seq[string], url: Url): Future[void] {.async.} =
+  let data = read_asset_file(asset_paths, url.path.replace("/assets/", "/"))
+  let (dir, name, ext) = url.path.split_file
+  case ext
+  of ".js":  await req.respond(data, "text/javascript; charset=UTF-8")
+  of ".css": await req.respond(data, "text/css; charset=UTF-8")
+  else:      await req.respond(data)
 
-proc serve_app_html*(req: Request, url: Url, session_id, html: string): Future[void] {.async.} =
-  let data = read_asset_file("/page.html")
+proc serve_app_html*(
+  req: Request, asset_paths: seq[string], url: Url, session_id, html: string, meta: string
+): Future[void] {.async.} =
+  let data = read_asset_file(asset_paths, "/page.html")
     .replace("{session_id}", session_id)
     .replace("{html}", html)
+    .replace("{meta}", meta)
   await req.respond(data, "text/html")

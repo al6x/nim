@@ -165,18 +165,17 @@ test "escape_html":
 
 # to_html ------------------------------------------------------------------------------------------
 proc escape_html_text(s: string): string = s.escape_html
-proc escape_html_attr(k: string, v: JsonNode): string =
-  k.escape_html & "=" & (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false))
+proc escape_html_attr_name(name: string): string = name.escape_html
+proc escape_html_attr_value(v: JsonNode): string =
+  (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
 
 proc to_html*(el: JsonNode, indent = ""): string =
   assert el.kind == JObject, "to_html element data should be JObject"
-  var tag = "div"
+  let tag = if "tag" in el: el["tag"].get_str else: "div"
   var attr_tokens: seq[string]
   for k, v in el.sort.fields:
-    if k == "tag":        tag = v.get_str
-    elif k == "children": discard
-    elif k == "text":     discard
-    else:                 attr_tokens.add escape_html_attr(k, v)
+    if k in ["tag", "children", "text"]: continue
+    attr_tokens.add k.escape_html_attr_name & "=" & v.escape_html_attr_value
   result.add indent & "<" & tag
   if not attr_tokens.is_empty:
     result.add " " & attr_tokens.join(" ")
@@ -210,7 +209,42 @@ test "to_html":
     </div>""".dedent
   check el.to_html == html
 
-proc to_html*(events: seq[OutEvent]): string =
+proc to_html_and_document(el: JsonNode): tuple[html: string, document: JsonNode] =
+  # If the root element is "document", excluding it from the HTML
+  assert el.kind == JObject, "to_html element data should be JObject"
+  let tag = if "tag" in el: el["tag"].get_str else: "div"
+  if tag == "document":
+    let document = el.copy
+    document.delete "tag"
+    document.delete "children"
+    var html = ""
+    let children = el["children"]
+    assert children.kind == JArray, "to_html element children should be JArray"
+    (children.to_seq.map((el) => el.to_html).join("\n"), document)
+  else:
+    (el.to_html, new_JObject())
+
+proc document_to_meta(document: JsonNode): string =
+  assert document.kind == JObject, "document_to_meta document should be JObject"
+  var tags: seq[string]
+  for k, v in document.sort.fields:
+    tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & "/>"
+  tags.join("\n")
+
+proc to_meta_html*(el: JsonNode): tuple[html, meta: string] =
+  let (html, document) = el.to_html_and_document
+  (html, document.document_to_meta)
+
+test "to_meta_html":
+  let el = %{ tag: "document", title: "some", children: [
+    { class: "counter" }
+  ] }
+  check el.to_meta_html == (
+    html: """<div class="counter"/>""",
+    meta: """<meta name="title" content="some"/>"""
+  )
+
+proc initial_html_el*(events: seq[OutEvent]): JsonNode =
   assert events.len == 1, "to_html can't convert more than single event"
   assert events[0].kind == update_element, "to_html can't convert event other than update_element"
   assert events[0].updates.len == 1, "to_html can't convert more than single update"
@@ -221,4 +255,4 @@ proc to_html*(events: seq[OutEvent]): string =
     update.set_children.is_none and update.del_children.is_none
   ), "to_html requires all changes other than `set` be empty"
   assert update.set.is_some, "to_html the `set` required"
-  update.set.get.to_html
+  update.set.get

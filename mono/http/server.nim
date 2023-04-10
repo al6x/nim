@@ -1,30 +1,33 @@
-import std/[httpcore, asynchttpserver, asyncnet, deques]
+import std/[httpcore, asynchttpserver, asyncnet, deques, os]
 import base, ext/[url, async]
 import ./session, ./helpers, ../component, ../h
 
 let http_log = Log.init "http"
 
 # Apps ---------------------------------------------------------------------------------------------
-type BuildApp* = (Url) -> App
+type BuildApp* = proc (url: Url): App
 
-proc handle_app_load(req: Request, sessions: Sessions, url: Url, build_app: BuildApp): Future[void] {.async.} =
-  # Creating session, initial event and serving app.html
+proc handle_app_load(
+  req: Request, sessions: Sessions, url: Url, build_app: BuildApp, asset_paths: seq[string],
+): Future[void] {.async.} =
+  # Creating session, initial location event and serving app.html
   let app = build_app url
   let session_id = secure_random_token(6)
   let session = Session.init(session_id, app)
   sessions[][session_id] = session
   session.log.info "created"
+  let location = InEvent(kind: location, location: url)
+  session.inbox.add location
+  session.log.with(location).info "<<"
 
   # Processing in another async process, it's inefficient but help to avoid messy async error stack traces.
-  let event = InEvent(kind: location, location: url)
-  session.inbox.add event
-  session.log.with(event).info "<<"
-  while session.outbox.is_empty: await sleep_async(1)
-  let html = session.outbox.to_html
+  while session.outbox.is_empty: await sleep_async 1
+
+  let (html, meta) = session.outbox.initial_html_el.to_meta_html
   session.outbox.clear
   session.log.info ">> initial html"
 
-  await req.serve_app_html(url, session_id, html)
+  await req.serve_app_html(asset_paths, url, session_id, html, meta)
 
 proc handle_app_in_event(req: Request, session: Session, event: InEvent): Future[void] {.async.} =
   # Processing happen in another async process, it's inefficient but help to avoid messy async error stack traces.
@@ -45,18 +48,20 @@ proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[v
     if timer() > pull_timeout_ms:
       await req.respond_json seq[int].init
       break
-    await sleep_async(1)
+    await sleep_async 1
 
-proc build_http_handler(sessions: Sessions, build_app: BuildApp, pull_timeout_ms: int): auto =
+proc build_http_handler(
+  sessions: Sessions, build_app: BuildApp, asset_paths: seq[string], pull_timeout_ms: int
+): auto =
   return proc (req: Request): Future[void] {.async, gcsafe.} =
     let url = Url.init(req)
     if req.req_method == HttpGet: # GET
-      if url.path =~ re"^/_assets/":
-        await req.serve_asset_files(url)
+      if url.path =~ re"^/assets/":
+        await req.serve_asset_files(asset_paths, url)
       elif url.path == "/favicon.ico":
         await req.respond(Http404, "")
       else:
-        await req.handle_app_load(sessions, url, build_app)
+        await req.handle_app_load(sessions, url, build_app, asset_paths)
     elif req.req_method == HttpPost: # POST
       let post_event = req.body.parse_json.json_to SessionPostEvent
       if post_event.session_id notin sessions[]:
@@ -79,12 +84,18 @@ proc build_http_handler(sessions: Sessions, build_app: BuildApp, pull_timeout_ms
 proc run_http_server*(
   build_app:           BuildApp,
   port:                int,
+  asset_paths        = seq[string].init,
   pull_timeout_ms    = 2000,
   session_timeout_ms = 6000
 ): void =
+  # Files with same names will be taken from first path when found, this way system assets like `page.html`
+  # could be overriden.
+  var asset_paths = asset_paths & [current_source_path().parent_dir.absolute_path & "/assets"]
+
   let sessions = Sessions()
   var server = new_async_http_server()
-  spawn_async server.serve(Port(port), build_http_handler(sessions, build_app, pull_timeout_ms), "localhost")
+  let handler = build_http_handler(sessions, build_app, asset_paths, pull_timeout_ms)
+  spawn_async server.serve(Port(port), handler, "localhost")
 
   add_timer((session_timeout_ms/2).int, () => sessions.collect_garbage(session_timeout_ms), once = false)
 
@@ -97,16 +108,9 @@ proc run_http_server*(
 
 
 # Test ---------------------------------------------------------------------------------------------
-when is_main_module:
-  import ../examples/todo
-
-  proc build_app(url: Url): App =
-    let app = TodosView()
-    app.set_attrs()
-    return proc(events: seq[InEvent]): seq[OutEvent] =
-      app.process events
-
-  run_http_server(build_app, port = 2000)
+# when is_main_module:
+#   import ../examples/todo
+#   run_todo()
 
 # let id = if url.host == "localhost": url.query.ensure("_app", "_app query parameter required") else: url.host
 # self[].ensure(id, fmt"Error, unknown application '{id}'")()old_attrs

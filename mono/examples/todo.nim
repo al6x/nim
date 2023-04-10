@@ -1,5 +1,4 @@
-import base, ../component, ../h
-
+import base, mono/core
 
 # Model --------------------------------------------------------------------------------------------
 type TodoItemState* = enum active, completed
@@ -133,3 +132,16 @@ proc render*(self: TodosView): HtmlElement =
           if all_completed:
             + h"button.clear-completed".text("Delete completed")
               .on_click(proc = self.items.delete((item) => item.completed))
+
+when is_main_module:
+  # Deploying to Nim Server, also could be compiled to JS and deployed to Browser or Desktop App with WebView
+  import mono/http, std/os
+
+  proc build_app(url: Url): App =
+    let app = TodosView()
+    app.set_attrs(items = @[TodoItem(text: "Buy Milk")])
+    return proc(events: seq[InEvent]): seq[OutEvent] =
+      app.process events
+
+  let assets_path = current_source_path().parent_dir.absolute_path & "/assets"
+  run_http_server(build_app, port = 2000, asset_paths = @[assets_path])
