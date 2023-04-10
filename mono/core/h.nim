@@ -1,10 +1,5 @@
 import std/macros
-import base, ext/url, ./component
-
-# h ------------------------------------------------------------------------------------------------
-# converter to_html_elements*(el: HtmlElement): seq[HtmlElement] =
-#   # Needed to return single or multiple html elements from render
-#   @[el]
+import base, ext/url, ./component, ./html_element
 
 template `+`*(node: HtmlElement): void =
   it.children.add node
@@ -102,19 +97,6 @@ test "h":
   check html.to_json ==
     """{"class":"c1","tag":"ul","children":[{"class":"c2 c3","text":"t1","tag":"li"}]}""".parse_json
 
-# document_h ---------------------------------------------------------------------------------------
-# template document_h*(title: string, location: Url, code): HtmlElement =
-#   h"document":
-#     discard it.attr("title", title)
-#     discard it.attr("location", location)
-#     code
-
-# test "document_h":
-#   let html = document_h("t1", Url.init("/a")):
-#     + h"div"
-#   check html.to_json == """{"title":"t1","location":"/a","tag":"document","children":[{"tag":"div"}]}""".parse_json
-
-
 # stateful h ---------------------------------------------------------------------------------------
 template h*[T](
   self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T): void)
@@ -148,111 +130,21 @@ template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[
   # let html = child.render
   # when html is seq: html else: @[html]
 
-# escape_html --------------------------------------------------------------------------------------
-const ESCAPE_HTML_MAP = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  """: "&quot;",
-  """: "&#39;"
-}.to_table
 
-proc escape_html*(html: string): string =
-  html.replace(re"""([&<>'"])""", (c) => ESCAPE_HTML_MAP[c])
 
-test "escape_html":
-  assert escape_html("<div>") == """&lt;div&gt;"""
+# document_h ---------------------------------------------------------------------------------------
+# template document_h*(title: string, location: Url, code): HtmlElement =
+#   h"document":
+#     discard it.attr("title", title)
+#     discard it.attr("location", location)
+#     code
 
-# to_html ------------------------------------------------------------------------------------------
-proc escape_html_text(s: string): string = s.escape_html
-proc escape_html_attr_name(name: string): string = name.escape_html
-proc escape_html_attr_value(v: JsonNode): string =
-  (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
+# test "document_h":
+#   let html = document_h("t1", Url.init("/a")):
+#     + h"div"
+#   check html.to_json == """{"title":"t1","location":"/a","tag":"document","children":[{"tag":"div"}]}""".parse_json
 
-proc to_html*(el: JsonNode, indent = ""): string =
-  assert el.kind == JObject, "to_html element data should be JObject"
-  let tag = if "tag" in el: el["tag"].get_str else: "div"
-  var attr_tokens: seq[string]
-  for k, v in el.sort.fields:
-    if k in ["tag", "children", "text"]: continue
-    attr_tokens.add k.escape_html_attr_name & "=" & v.escape_html_attr_value
-  result.add indent & "<" & tag
-  if not attr_tokens.is_empty:
-    result.add " " & attr_tokens.join(" ")
-  if "text" in el:
-    assert "children" notin el, "to_html doesn't support both text and children"
-    let text = el["text"].get_str
-    result.add ">" & text.escape_html_text & "</" & tag & ">"
-  elif "children" in el:
-    let children = el["children"]
-    assert children.kind == JArray, "to_html element children should be JArray"
-    result.add ">\n"
-    for v in children:
-      result.add v.to_html(indent & "  ") & "\n"
-    result.add indent & "</" & tag & ">"
-  else:
-    result.add "/>"
-
-test "to_html":
-  let el = %{ class: "parent", children: [
-    { class: "counter", children: [
-      { tag: "input", value: "some", type: "text" },
-      { tag: "button", text: "+" },
-    ] }
-  ] }
-  let html = """
-    <div class="parent">
-      <div class="counter">
-        <input type="text" value="some"/>
-        <button>+</button>
-      </div>
-    </div>""".dedent
-  check el.to_html == html
-
-proc to_html_and_document(el: JsonNode): tuple[html: string, document: JsonNode] =
-  # If the root element is "document", excluding it from the HTML
-  assert el.kind == JObject, "to_html element data should be JObject"
-  let tag = if "tag" in el: el["tag"].get_str else: "div"
-  if tag == "document":
-    let document = el.copy
-    document.delete "tag"
-    document.delete "children"
-    var html = ""
-    let children = el["children"]
-    assert children.kind == JArray, "to_html element children should be JArray"
-    (children.to_seq.map((el) => el.to_html).join("\n"), document)
-  else:
-    (el.to_html, new_JObject())
-
-proc document_to_meta(document: JsonNode): string =
-  assert document.kind == JObject, "document_to_meta document should be JObject"
-  var tags: seq[string]
-  for k, v in document.sort.fields:
-    tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & "/>"
-  tags.join("\n")
-
-proc to_meta_html*(el: JsonNode): tuple[html, meta: string] =
-  let (html, document) = el.to_html_and_document
-  (html, document.document_to_meta)
-
-test "to_meta_html":
-  let el = %{ tag: "document", title: "some", children: [
-    { class: "counter" }
-  ] }
-  check el.to_meta_html == (
-    html: """<div class="counter"/>""",
-    meta: """<meta name="title" content="some"/>"""
-  )
-
-proc initial_html_el*(events: seq[OutEvent]): JsonNode =
-  assert events.len == 1, "to_html can't convert more than single event"
-  assert events[0].kind == update_element, "to_html can't convert event other than update_element"
-  assert events[0].updates.len == 1, "to_html can't convert more than single update"
-  let update = events[0].updates[0]
-  assert update.el == @[], "to_html can convert only root element"
-  assert (
-    update.set_attrs.is_none and update.del_attrs.is_none and
-    update.set_children.is_none and update.del_children.is_none
-  ), "to_html requires all changes other than `set` be empty"
-  assert update.set.is_some, "to_html the `set` required"
-  update.set.get
+# h ------------------------------------------------------------------------------------------------
+# converter to_html_elements*(el: HtmlElement): seq[HtmlElement] =
+#   # Needed to return single or multiple html elements from render
+#   @[el]
