@@ -14,9 +14,11 @@ type
   KeydownHandler* = proc(e: KeydownEvent): void
 
   ChangeEvent* = object
+    stub*: string # otherwise json doesn't work
   ChangeHandler* = proc(e: ChangeEvent): void
 
   BlurEvent* = object
+    stub*: string # otherwise json doesn't work
   BlurHandler* = proc(e: BlurEvent): void
 
   InputEvent* = object
@@ -24,6 +26,7 @@ type
   InputHandler* = proc(e: InputEvent): void
 
   TimeoutEvent* = object
+    stub*: string # otherwise json doesn't work
 
   HtmlElementExtras* = ref object
     # on_focus, on_drag, on_drop, on_keypress, on_keyup
@@ -284,11 +287,3 @@ proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[Up
 
     if not set_children.is_empty: update.set_children = set_children.some
     if not del_children.is_empty: update.del_children = del_children.some
-
-# # Apps ---------------------------------------------------------------------------------------------
-# type Apps* = ref Table[string, proc: App]
-
-# proc build*(self: Apps, url: Url): App =
-#   # Returns app and initial events, like going to given url
-#   let id = if url.host == "localhost": url.query.ensure("_app", "_app query parameter required") else: url.host
-#   self[].ensure(id, fmt"Error, unknown application '{id}'")()old_attrs

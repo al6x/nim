@@ -5,9 +5,7 @@
 - Bidirectional data binding to inputs.
 - Fast initial page load.
 - SEO friendly.
-- It's a library, not framework, could be used in multiple ways. In-browser SPA, statefull
-  server-side with proxy in browser, stateless server-side, statefull server side but without
-  server memory consumption, storing state in serializable session.
+- Lots of deployment options, Browser, Desktop, Mobile, Server.
 
 # Todo
 
@@ -15,8 +13,9 @@
 
 # Deployment options
 
-It's basically an object with one function that gets input as produces `let out = ui.process(in)` use
-input, output and object iself could be serialised and used in whatewer way.
+Unline other UI frameworks it doesn't requires any dependency or environment. It's just a function that
+get JSON string as input and respond with JSON string as output `let out = ui.process(in)`. So it could
+be used in whatever ways and environments Browser, Desktop, Mobile, Server.
 
 UI has two parts, the **UI itself**, the actual UI running Nim code, and the **Proxy View** that has no
 code or logic and just renders the HTML it gets as string from the actual UI.

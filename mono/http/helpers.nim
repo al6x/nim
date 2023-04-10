@@ -24,7 +24,8 @@ proc serve_asset_files*(req: Request, url: Url): Future[void] {.async.} =
   if url.path =~ re"\.js$": await req.respond(data, "text/javascript")
   else:                     await req.respond(data)
 
-proc serve_app_html*(req: Request, url: Url, session_id: string): Future[void] {.async.} =
+proc serve_app_html*(req: Request, url: Url, session_id, html: string): Future[void] {.async.} =
   let data = read_asset_file("/page.html")
     .replace("{session_id}", session_id)
+    .replace("{html}", html)
   await req.respond(data, "text/html")

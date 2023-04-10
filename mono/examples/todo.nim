@@ -2,15 +2,15 @@ import base, ../component, ../h
 
 
 # Model --------------------------------------------------------------------------------------------
-type TodoItemState = enum active, completed
+type TodoItemState* = enum active, completed
 
-type TodoItem = ref object
-  text:      string
-  completed: bool
+type TodoItem* = ref object
+  text*:      string
+  completed*: bool
 
-type Todos = seq[TodoItem]
+type Todos* = seq[TodoItem]
 
-proc id(self: TodoItem): string =
+proc id*(self: TodoItem): string =
   self.text
 
 
@@ -18,15 +18,15 @@ proc id(self: TodoItem): string =
 const enter_key  = 13; const escape_key = 27
 
 # Feature: stateful component, preserving its state between renders
-type TodoView = ref object of Component
+type TodoView* = ref object of Component
   on_delete: proc(id: string): void
   editing:   Option[string] # value of `editing` field going to be maintained between requests
   item:      TodoItem
 
-proc set_attrs(self: TodoView, item: TodoItem, on_delete: (proc(id: string): void)): void =
+proc set_attrs*(self: TodoView, item: TodoItem, on_delete: (proc(id: string): void)): void =
   self.item = item; self.on_delete = on_delete
 
-proc render(self: TodoView): HtmlElement =
+proc render*(self: TodoView): HtmlElement =
   proc handle_edit(e: KeydownEvent): void =
     if e.key == enter_key:
       self.item.text = self.editing.get
@@ -56,18 +56,18 @@ proc render(self: TodoView): HtmlElement =
 
 
 # TodosView -----------------------------------------------------------------------------------------
-type Filter = enum all, active, completed
+type TodosViewFilter* = enum all, active, completed
 
-type TodosView = ref object of Component
+type TodosView* = ref object of Component
   items:      Todos
-  filter:     Filter
+  filter:     TodosViewFilter
   new_todo:   string
   toggle_all: bool
 
-proc set_attrs(self: TodosView, items: Todos = @[], filter: Filter = all): void =
+proc set_attrs*(self: TodosView, items: Todos = @[], filter: TodosViewFilter = all): void =
   self.items = items; self.filter = filter
 
-proc render(self: TodosView): HtmlElement =
+proc render*(self: TodosView): HtmlElement =
   let completed_count = self.items.count((item) => item.completed)
   let active_count    = self.items.len - completed_count
   let all_completed   = completed_count == self.items.len
@@ -89,7 +89,7 @@ proc render(self: TodosView): HtmlElement =
   proc on_delete(id: string): void =
     self.items.delete((item) => item.id == id)
 
-  proc set_filter(filter: Filter): auto =
+  proc set_filter(filter: TodosViewFilter): auto =
     proc = self.filter = filter
 
   h"header.header":
@@ -108,6 +108,7 @@ proc render(self: TodosView): HtmlElement =
         + h"ul.todo-list":
           for item in filtered:
             # Feature: statefull componenets, attr names and values are typesafe
+            let item = item
             + self.h(TodoView, item.id, (on_delete: on_delete, item: item))
 
         + h"footer.footer":
@@ -115,7 +116,7 @@ proc render(self: TodosView): HtmlElement =
             + h"strong".text(active_count)
             + h"span".text((if active_count == 1: "item" else: "items") & " left")
 
-          proc filter_class(filter: Filter): string =
+          proc filter_class(filter: TodosViewFilter): string =
             if self.filter == filter: ".selected"  else: ""
 
           + h"ul.filters":

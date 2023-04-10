@@ -327,3 +327,6 @@ proc counts*[V, K](list: seq[V], op: (v: V) -> K): Table[K, int] =
 
 test "counts":
   check @["aa", "ab", "bc"].counts((s) => s[0]) == {'a': 2, 'b': 1}.to_table
+
+proc clear*[V](list: var seq[V]): void =
+  list.set_len 0
