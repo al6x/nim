@@ -31,11 +31,11 @@ proc serve_asset_files*(req: Request, asset_paths: seq[string], url: Url): Futur
   of ".css": await req.respond(data, "text/css; charset=UTF-8")
   else:      await req.respond(data)
 
-proc serve_app_html*(
-  req: Request, asset_paths: seq[string], url: Url, session_id, html: string, meta: string
-): Future[void] {.async.} =
-  let data = read_asset_file(asset_paths, "/page.html")
-    .replace("{session_id}", session_id)
-    .replace("{html}", html)
-    .replace("{meta}", meta)
-  await req.respond(data, "text/html")
+# proc serve_app_html*(
+#   req: Request, asset_paths: seq[string], page_fname: string, session_id, html: string, meta: string
+# ): Future[void] {.async.} =
+#   let data = read_asset_file(asset_paths, "/" & page_fname)
+#     .replace("{session_id}", session_id)
+#     .replace("{html}", html)
+#     .replace("{meta}", meta)
+#   await req.respond(data, "text/html")

@@ -1,5 +1,5 @@
 # component.h --------------------------------------------------------------------------------------
-import base, ext/url, ./component, ./h
+import base, ext/url, ./html_element, ./component, ./h
 
 type Child1 = ref object of Component
   v1: int
@@ -81,8 +81,8 @@ test "counter":
 
   block: # Rendering initial HTML
     let res = app.process @[]
-    check res.to_html == """
-      <div class="parent">
+    check res.initial_html_el.to_html == """
+      <div class="parent" mono_id="">
         <div class="counter">
           <input type="text" value="some"/>
           <button>+</button>

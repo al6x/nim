@@ -5,13 +5,14 @@ import ./session, ./helpers, ../core
 let http_log = Log.init "http"
 
 # Apps ---------------------------------------------------------------------------------------------
-type BuildApp* = proc (url: Url): App
+type AppPage*  = proc(meta, html: string): string
+type BuildApp* = proc (url: Url): tuple[page: AppPage, app: App]
 
 proc handle_app_load(
   req: Request, sessions: Sessions, url: Url, build_app: BuildApp, asset_paths: seq[string],
 ): Future[void] {.async.} =
   # Creating session, initial location event and serving app.html
-  let app = build_app url
+  let (page, app) = build_app url
   let session_id = secure_random_token(6)
   let session = Session.init(session_id, app)
   sessions[][session_id] = session
@@ -23,11 +24,11 @@ proc handle_app_load(
   # Processing in another async process, it's inefficient but help to avoid messy async error stack traces.
   while session.outbox.is_empty: await sleep_async 1
 
-  let (html, meta) = session.outbox.initial_html_el.to_meta_html
+  let (meta, html) = session.outbox.initial_html_el.to_meta_html
   session.outbox.clear
   session.log.info ">> initial html"
 
-  await req.serve_app_html(asset_paths, url, session_id, html, meta)
+  await req.respond(page(meta, html), "text/html; charset=UTF-8")
 
 proc handle_app_in_event(req: Request, session: Session, event: InEvent): Future[void] {.async.} =
   # Processing happen in another async process, it's inefficient but help to avoid messy async error stack traces.

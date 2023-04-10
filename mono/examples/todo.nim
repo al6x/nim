@@ -137,11 +137,30 @@ when is_main_module:
   # Deploying to Nim Server, also could be compiled to JS and deployed to Browser or Desktop App with WebView
   import mono/http, std/os
 
-  proc build_app(url: Url): App =
-    let app = TodosView()
-    app.set_attrs(items = @[TodoItem(text: "Buy Milk")])
-    return proc(events: seq[InEvent], session_id: string): seq[OutEvent] =
-      app.process(events, session_id)
+  let page: AppPage = proc(meta, html: string): string =
+    fmt"""
+      <html>
+        <head>
+          <link rel="stylesheet" href="/assets/todomvc-app.css"/>
+          <script type="module" src="/assets/mono.js"></script>
+        </head>
+        <body>
+          <section class="todoapp">
+      {html}
+          </section>
+        </body>
+      </html>
+    """.dedent
 
+  proc build_app(url: Url): tuple[page: AppPage, app: App] =
+    let todos = TodosView()
+    todos.set_attrs(items = @[TodoItem(text: "Buy Milk")])
+
+    let app: App = proc(events: seq[InEvent], session_id: string): seq[OutEvent] =
+      todos.process(events, session_id)
+
+    (page, app)
+
+  # Path to folder with CSS styles and images
   let assets_path = current_source_path().parent_dir.absolute_path & "/todo"
   run_http_server(build_app, port = 2000, asset_paths = @[assets_path])

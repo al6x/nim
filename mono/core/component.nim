@@ -116,8 +116,7 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   var new_tree: HtmlElement = self.render
-  new_tree.attrs["mono"] = true.to_json
-  if not id.is_empty: new_tree.attrs["mono_id"] = id.to_json
+  new_tree.attrs["mono_id"] = id.to_json
   # # Root always should be document, auto creating if it's not
   # if new_tree.nattrs["tag"].get_str != "document":
   #   new_tree = HtmlElement.init(tag = "document", children = @[new_tree])

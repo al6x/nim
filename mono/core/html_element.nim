@@ -239,6 +239,9 @@ proc to_html*(el: JsonNode, indent = ""): string =
   else:
     result.add "/>"
 
+proc to_html*(el: HtmlElement): string =
+  el.to_json.to_html
+
 test "to_html":
   let el = %{ class: "parent", children: [
     { class: "counter", children: [
@@ -254,6 +257,8 @@ test "to_html":
       </div>
     </div>""".dedent
   check el.to_html == html
+
+  check HtmlElement.init.to_html == "<div/>"
 
 proc to_html_and_document(el: JsonNode): tuple[html: string, document: JsonNode] =
   # If the root element is "document", excluding it from the HTML
@@ -277,15 +282,15 @@ proc document_to_meta(document: JsonNode): string =
     tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & "/>"
   tags.join("\n")
 
-proc to_meta_html*(el: JsonNode): tuple[html, meta: string] =
+proc to_meta_html*(el: JsonNode): tuple[meta, html: string] =
   let (html, document) = el.to_html_and_document
-  (html, document.document_to_meta)
+  (meta: document.document_to_meta, html: html)
 
 test "to_meta_html":
   let el = %{ tag: "document", title: "some", children: [
     { class: "counter" }
   ] }
   check el.to_meta_html == (
-    html: """<div class="counter"/>""",
-    meta: """<meta name="title" content="some"/>"""
+    meta: """<meta name="title" content="some"/>""",
+    html: """<div class="counter"/>"""
   )
