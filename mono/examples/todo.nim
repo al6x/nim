@@ -138,11 +138,15 @@ when is_main_module:
   import mono/http, std/os
 
   let page: AppPage = proc(meta, html: string): string =
-    fmt"""
+    """
+      <!DOCTYPE html>
       <html>
         <head>
           <link rel="stylesheet" href="/assets/todomvc-app.css"/>
-          <script type="module" src="/assets/mono.js"></script>
+          <script type="module">
+            import { run } from "/assets/mono.js"
+            run()
+          </script>
         </head>
         <body>
           <section class="todoapp">
@@ -150,14 +154,14 @@ when is_main_module:
           </section>
         </body>
       </html>
-    """.dedent
+    """.replace("{html}", html).dedent
 
   proc build_app(url: Url): tuple[page: AppPage, app: App] =
     let todos = TodosView()
     todos.set_attrs(items = @[TodoItem(text: "Buy Milk")])
 
-    let app: App = proc(events: seq[InEvent], session_id: string): seq[OutEvent] =
-      todos.process(events, session_id)
+    let app: App = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
+      todos.process(events, mono_id)
 
     (page, app)
 

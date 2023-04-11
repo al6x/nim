@@ -1,22 +1,24 @@
 import std/[deques]
 import base, ../core
 
-type SessionPostEventKind* = enum event, pull
+type SessionPostEventKind* = enum events, pull
 type SessionPostEvent* = object
-  session_id*: string
+  mono_id*: string
   case kind*: SessionPostEventKind
-  of event:
-    event*: InEvent
+  of events:
+    events*: seq[InEvent]
   of pull:
     discard
 
-type SessionPullEventKind* = enum expired, eval, error
+type SessionPullEventKind* = enum events, ignore, expired, error
 type SessionPullEvent* = object
   case kind*: SessionPullEventKind
+  of events:
+    events*: seq[OutEvent]
+  of ignore:
+    discard
   of expired:
     discard
-  of eval:
-    code*: string
   of error:
     message*: string
 
@@ -24,7 +26,7 @@ type SessionPullEvent* = object
 # Browser events are collected in indbox via async http handler, and then processed separatelly via
 # sync process. Result of processing stored in outbox, which periodically checked by async HTTP handler
 # and sent to Browser if needed.
-type App* = proc(events: seq[InEvent], session_id: string): seq[OutEvent]
+type App* = proc(events: seq[InEvent], mono_id: string): seq[OutEvent]
 
 type Session* = ref object
   id*:               string
@@ -33,8 +35,8 @@ type Session* = ref object
   outbox*:           seq[OutEvent]
   last_accessed_ms*: Timer
 
-proc init*(_: type[Session], session_id: string, app: App): Session =
-  Session(id: session_id, app: app, last_accessed_ms: timer_ms())
+proc init*(_: type[Session], mono_id: string, app: App): Session =
+  Session(id: mono_id, app: app, last_accessed_ms: timer_ms())
 
 proc log*(self: Session): Log =
   Log.init("Session", self.id)

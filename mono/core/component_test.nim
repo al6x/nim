@@ -84,7 +84,7 @@ test "counter":
     check res.initial_html_el.to_html == """
       <div class="parent" mono_id="">
         <div class="counter">
-          <input type="text" value="some"/>
+          <input type="text" value="some" />
           <button>+</button>
           <div>some 0</div>
         </div>
@@ -98,7 +98,7 @@ test "counter":
 
   block: # Clicking on button
     let res = app.process @[InEvent(kind: click, el: @[0, 1], click: ClickEvent())]
-    check: res.to_json == %[{ kind: "update_element", updates: [
+    check: res.to_json == %[{ kind: "update", updates: [
       { el: [0,2], set_attrs: { text: "another 1" } }
     ]}]
 
@@ -112,4 +112,4 @@ test "counter":
 #       { text: "some 0" },
 #     ] }
 #   ] }
-# let expected = %[{ kind: "update_element", updates: [ { el: [], set: initial_html } ] }]
+# let expected = %[{ kind: "update", updates: [ { el: [], set: initial_html } ] }]

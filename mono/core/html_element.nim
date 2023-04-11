@@ -227,8 +227,11 @@ proc to_html*(el: JsonNode, indent = ""): string =
     result.add " " & attr_tokens.join(" ")
   if "text" in el:
     assert "children" notin el, "to_html doesn't support both text and children"
-    let text = el["text"].get_str
-    result.add ">" & text.escape_html_text & "</" & tag & ">"
+    let safe_text = if el["text"].kind == JString:
+      el["text"].get_str.escape_html_text
+    else:
+      el["text"].to_s(false).escape_html_text
+    result.add ">" & safe_text & "</" & tag & ">"
   elif "children" in el:
     let children = el["children"]
     assert children.kind == JArray, "to_html element children should be JArray"
@@ -237,7 +240,7 @@ proc to_html*(el: JsonNode, indent = ""): string =
       result.add v.to_html(indent & "  ") & "\n"
     result.add indent & "</" & tag & ">"
   else:
-    result.add "/>"
+    result.add " />"
 
 proc to_html*(el: HtmlElement): string =
   el.to_json.to_html
@@ -252,13 +255,15 @@ test "to_html":
   let html = """
     <div class="parent">
       <div class="counter">
-        <input type="text" value="some"/>
+        <input type="text" value="some" />
         <button>+</button>
       </div>
     </div>""".dedent
   check el.to_html == html
 
-  check HtmlElement.init.to_html == "<div/>"
+  check HtmlElement.init.to_html == "<div />"
+
+  check (%{ text: 0 }).to_html == "<div>0</div>" # from error
 
 proc to_html_and_document(el: JsonNode): tuple[html: string, document: JsonNode] =
   # If the root element is "document", excluding it from the HTML
@@ -279,7 +284,7 @@ proc document_to_meta(document: JsonNode): string =
   assert document.kind == JObject, "document_to_meta document should be JObject"
   var tags: seq[string]
   for k, v in document.sort.fields:
-    tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & "/>"
+    tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & " />"
   tags.join("\n")
 
 proc to_meta_html*(el: JsonNode): tuple[meta, html: string] =
@@ -291,6 +296,6 @@ test "to_meta_html":
     { class: "counter" }
   ] }
   check el.to_meta_html == (
-    meta: """<meta name="title" content="some"/>""",
-    html: """<div class="counter"/>"""
+    meta: """<meta name="title" content="some" />""",
+    html: """<div class="counter" />"""
   )

@@ -24,13 +24,13 @@ type
     of timeout:
       discard
 
-  OutEventType* = enum eval, update_element
+  OutEventType* = enum eval, update
 
   OutEvent* = object
     case kind*: OutEventType
     of eval:
       code*: string
-    of update_element:
+    of update:
       updates*: seq[UpdateElement]
 
   Component* = ref object of RootObj
@@ -128,13 +128,13 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
     @[UpdateElement(el: @[], set: new_tree.to_json.some)]
   self.current_tree = new_tree.some
 
-  @[OutEvent(kind: update_element, updates: updates)]
+  @[OutEvent(kind: update, updates: updates)]
 
 
 # HtmlElement --------------------------------------------------------------------------------------
 proc initial_html_el*(events: seq[OutEvent]): JsonNode =
   assert events.len == 1, "to_html can't convert more than single event"
-  assert events[0].kind == update_element, "to_html can't convert event other than update_element"
+  assert events[0].kind == update, "to_html can't convert event other than update"
   assert events[0].updates.len == 1, "to_html can't convert more than single update"
   let update = events[0].updates[0]
   assert update.el == @[], "to_html can convert only root element"

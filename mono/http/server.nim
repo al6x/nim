@@ -13,9 +13,9 @@ proc handle_app_load(
 ): Future[void] {.async.} =
   # Creating session, initial location event and serving app.html
   let (page, app) = build_app url
-  let session_id = secure_random_token(6)
-  let session = Session.init(session_id, app)
-  sessions[][session_id] = session
+  let mono_id = secure_random_token(6)
+  let session = Session.init(mono_id, app)
+  sessions[][mono_id] = session
   session.log.info "created"
   let location = InEvent(kind: location, location: url)
   session.inbox.add location
@@ -30,11 +30,12 @@ proc handle_app_load(
 
   await req.respond(page(meta, html), "text/html; charset=UTF-8")
 
-proc handle_app_in_event(req: Request, session: Session, event: InEvent): Future[void] {.async.} =
+proc handle_app_in_event(req: Request, session: Session, events: seq[InEvent]): Future[void] {.async.} =
   # Processing happen in another async process, it's inefficient but help to avoid messy async error stack traces.
-  session.inbox.add event
-  session.log.with(event).info "<<"
-  await req.respond_json seq[int].init
+  session.inbox.add events
+  for event in events:
+    session.log.with(event).info "<<"
+  await req.respond("{}", "application/json")
 
 proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[void] {.async.} =
   let timer = timer_ms()
@@ -42,12 +43,12 @@ proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[v
     if not session.outbox.is_empty:
       let events = session.outbox
       session.outbox.clear
-      if events.len == 1:  session.log.with(events[0]).info ">>"
-      else:                session.log.with(events).info ">>"
-      await req.respond_json events
+      for event in events:
+        session.log.with(event).info ">>"
+      await req.respond_json SessionPullEvent(kind: SessionPullEventKind.events, events: events)
       break
     if timer() > pull_timeout_ms:
-      await req.respond_json seq[int].init
+      await req.respond_json SessionPullEvent(kind: ignore)
       break
     await sleep_async 1
 
@@ -65,19 +66,19 @@ proc build_http_handler(
         await req.handle_app_load(sessions, url, build_app, asset_paths)
     elif req.req_method == HttpPost: # POST
       let post_event = req.body.parse_json.json_to SessionPostEvent
-      if post_event.session_id notin sessions[]:
-        await req.respond_json @[SessionPullEvent(kind: expired)]
+      if post_event.mono_id notin sessions[]:
+        await req.respond_json SessionPullEvent(kind: expired)
       else:
-        let session = sessions[][post_event.session_id]
+        let session = sessions[][post_event.mono_id]
         session.last_accessed_ms = timer_ms()
         case post_event.kind
-        of event:
-          await req.handle_app_in_event(session, post_event.event)
+        of events:
+          await req.handle_app_in_event(session, post_event.events)
         of pull:
           await req.handle_pull(session, pull_timeout_ms)
         else:
-          session.log.with(event).error("unknown post event")
-          await req.respond_json(@[SessionPullEvent(kind: error, message: "unknown app in event")])
+          session.log.with((event: post_event)).error("unknown post event")
+          await req.respond_json SessionPullEvent(kind: error, message: "unknown app in event")
     else:
       http_log.error(fmt"Unknown request ${req.req_method}: ${url}")
       await req.respond "Unknown request"

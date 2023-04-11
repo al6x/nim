@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "es2018",
+      "dom",
+      // "dom.iterable"
+    ]
+  }
+}
