@@ -52,8 +52,8 @@ proc to_ref*[T](o: T): ref T =
 
 
 # Making the copy intention explicit
-func copy*[T](o: T): T = o
-func copy*[T](o: ref T): ref T = o[].to_ref
+# func copy*[T](o: T): T = o
+# func copy*[T](o: ref T): ref T = o[].to_ref
 
 
 proc to_s*[T](o: T): string = $o

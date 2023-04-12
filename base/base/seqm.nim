@@ -330,3 +330,9 @@ test "counts":
 
 proc clear*[V](list: var seq[V]): void =
   list.set_len 0
+
+proc copy*[V](list: seq[V]): seq[V] =
+  list.map((v) => v)
+
+proc any*(list: openarray[bool]): bool =
+  list.any((v) => v)

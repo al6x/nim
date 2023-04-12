@@ -43,8 +43,9 @@ proc log*(self: Session): Log =
 
 proc process(self: Session): void =
   if self.inbox.is_empty: return
-  self.outbox.add self.app(self.inbox, self.id)
+  let inbox = self.inbox.copy
   self.inbox.clear
+  self.outbox.add self.app(inbox, self.id)
 
 type Sessions* = ref Table[string, Session]
 # type ProcessSession[S] = proc(session: S, event: JsonNode): Option[JsonNode]

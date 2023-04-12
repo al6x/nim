@@ -383,8 +383,8 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
   if (del_children) {
     // Sorting by position descending
     let positions = [...del_children]
-    positions.sort((a, b) => a - b).reverse
-
+    positions.sort((a, b) => a - b)
+    positions.reverse()
     for (const pos of positions) {
       assert(pos <= el.children.length, "del_children index out of bounds")
       el.children[pos].remove()
@@ -399,17 +399,3 @@ function assert(cond: boolean, message = "assertion failed") {
 function arrays_equal<T>(a: T[], b: T[]): boolean {
   return JSON.stringify(a) == JSON.stringify(b)
 }
-
-// Different HTML inputs use different attributes for value
-// function normalise_value(el: Record<string, unknown>): void {
-//   if (!("value" in el)) return
-//   let tag: string = "tag" in el ? el["tag"] as string : "div"
-//   let value = el["value"]
-//   delete el["value"]
-//   if (tag == "input" && el["type"] == "checkbox") {
-//     assert(typeof value == "boolean", "checkbox should have boolean value type")
-//     if (value) el["checked"] = true
-//   } else {
-//     el["value"] = value
-//   }
-// }

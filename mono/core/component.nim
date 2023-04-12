@@ -101,12 +101,14 @@ template process_in_event*[C](self: C, event: InEvent): bool =
       handler event.blur
   of input:
     # Setting value on binded variable
-    let el = self.current_tree.get.get event.el
-    var render_for_input_change = false
-    if el.extras.is_some and el.extras.get.set_value.is_some:
-      let set_value = el.extras.get.set_value.get
-      set_value.handler event.input.value
-      render_for_input_change = not set_value.delay
+    let render_for_input_change = block:
+      let el = self.current_tree.get.get event.el
+      if el.extras.is_some and el.extras.get.set_value.is_some:
+        let set_value = el.extras.get.set_value.get
+        set_value.handler event.input.value
+        not set_value.delay
+      else:
+        false
 
     let render_for_input_handler = if_handler_found on_input:
       handler event.input
@@ -116,7 +118,7 @@ template process_in_event*[C](self: C, event: InEvent): bool =
     true
 
 proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
-  let state_changed_maybe = events.any((event) => self.process_in_event event)
+  let state_changed_maybe = events.map((event) => self.process_in_event event).any
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   var new_tree: HtmlElement = self.render
