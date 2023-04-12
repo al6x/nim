@@ -132,7 +132,10 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
     @[UpdateElement(el: @[], set: new_tree.to_json.some)]
   self.current_tree = new_tree.some
 
-  @[OutEvent(kind: update, updates: updates)]
+  if updates.is_empty:
+    @[]
+  else:
+    @[OutEvent(kind: update, updates: updates)]
 
 
 # HtmlElement --------------------------------------------------------------------------------------

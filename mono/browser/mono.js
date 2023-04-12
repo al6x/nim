@@ -2,7 +2,7 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-console.log.bind(console);
+console.log.bind(console), window;
 function run() {
     listen_to_dom_events();
     let mono_ids = get_mono_ids();
@@ -61,7 +61,9 @@ function listen_to_dom_events() {
         post_event(found.mono_id, {
             kind: 'change',
             el: found.path,
-            change: {}
+            change: {
+                stub: ""
+            }
         });
     }
     document.body.addEventListener("change", on_change);
@@ -71,7 +73,9 @@ function listen_to_dom_events() {
         post_event(found.mono_id, {
             kind: 'blur',
             el: found.path,
-            blur: {}
+            blur: {
+                stub: ""
+            }
         });
     }
     document.body.addEventListener("blur", on_blur);
@@ -335,6 +339,8 @@ function apply_update(root, update) {
             if (k == "text") {
                 if (el.children.length > 0) el.innerHTML = "";
                 el.innerText = v;
+            } else if (k == "value") {
+                el.value = v;
             } else {
                 el.setAttribute(k, v);
             }

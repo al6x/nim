@@ -97,7 +97,7 @@ proc render*(self: TodosView): HtmlElement =
 
     if not self.items.is_empty:
       + h"section.main":
-        + h"input.toggle-all type=checkbox"
+        + h"input#toggle-all.toggle-all type=checkbox"
           .value(all_completed)
           .on_change(toggle_all)
         + h"label for=toggle-all".text("Mark all as complete")

@@ -1,13 +1,13 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
 
-let p = console.log.bind(console)
+let p = console.log.bind(console), global = window as any
 
 // In events
 type SpecialInputKeys = 'alt' | 'ctrl' | 'meta' | 'shift'
 interface ClickEvent { special_keys: SpecialInputKeys[] }
 interface KeydownEvent { key: string, special_keys: SpecialInputKeys[] }
-interface ChangeEvent {}
-interface BlurEvent {}
+interface ChangeEvent { stub: string }
+interface BlurEvent { stub: string }
 interface InputEvent { value: string }
 
 type InEvent =
@@ -89,14 +89,14 @@ function listen_to_dom_events() {
   async function on_change(raw_event: Event) {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_change")
     if (!found) return
-    post_event(found.mono_id, { kind: 'change', el: found.path, change: {} })
+    post_event(found.mono_id, { kind: 'change', el: found.path, change: { stub: "" } })
   }
   document.body.addEventListener("change", on_change)
 
   async function on_blur(raw_event: FocusEvent) {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_blur")
     if (!found) return
-    post_event(found.mono_id, { kind: 'blur', el: found.path, blur: {} })
+    post_event(found.mono_id, { kind: 'blur', el: found.path, blur: { stub: "" } })
   }
   document.body.addEventListener("blur", on_blur)
 
@@ -291,28 +291,9 @@ function get_value(el: HTMLInputElement): string {
   }
 }
 
-// Different HTML inputs use different attributes for value
-// function normalise_value(el: Record<string, unknown>): void {
-//   if (!("value" in el)) return
-//   let tag: string = "tag" in el ? el["tag"] as string : "div"
-//   let value = el["value"]
-//   delete el["value"]
-//   if (tag == "input" && el["type"] == "checkbox") {
-//     assert(typeof value == "boolean", "checkbox should have boolean value type")
-//     if (value) el["checked"] = true
-//   } else {
-//     el["value"] = value
-//   }
-// }
-
 function to_element(data: Record<string, unknown>): HTMLElement {
   let tag: string = "tag" in data ? data["tag"] as string : "div"
   let el = document.createElement(tag)
-
-  // if ("value" in data) {
-  //   data = { ...data }
-  //   normalise_value(data)
-  // }
 
   for (const k in data) {
     if (["tag", "children", "text"].indexOf(k) >= 0) continue
@@ -353,6 +334,8 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
       if (k == "text") {
         if (el.children.length > 0) el.innerHTML = ""
         el.innerText = v
+      } else if (k == "value") {
+        (el as HTMLInputElement).value = v // doesn't work with setAttribute
       } else {
         el.setAttribute(k, v)
       }
@@ -410,3 +393,17 @@ function assert(cond: boolean, message = "assertion failed") {
 function arrays_equal<T>(a: T[], b: T[]): boolean {
   return JSON.stringify(a) == JSON.stringify(b)
 }
+
+// Different HTML inputs use different attributes for value
+// function normalise_value(el: Record<string, unknown>): void {
+//   if (!("value" in el)) return
+//   let tag: string = "tag" in el ? el["tag"] as string : "div"
+//   let value = el["value"]
+//   delete el["value"]
+//   if (tag == "input" && el["type"] == "checkbox") {
+//     assert(typeof value == "boolean", "checkbox should have boolean value type")
+//     if (value) el["checked"] = true
+//   } else {
+//     el["value"] = value
+//   }
+// }
