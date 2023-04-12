@@ -76,7 +76,6 @@ proc render*(self: TodosView): HtmlElement =
     of active:    self.items.filter((item) => not item.completed)
 
   proc create_new(e: KeydownEvent): void =
-    echo ["create_new", self.new_todo, e.key]
     if e.key == "Enter" and not self.new_todo.is_empty:
       self.items.add(TodoItem(text: self.new_todo, completed: false))
       self.new_todo = ""
