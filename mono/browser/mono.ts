@@ -4,19 +4,19 @@ let p = console.log.bind(console)
 
 // In events
 type SpecialInputKeys = 'alt' | 'ctrl' | 'meta' | 'shift'
-interface ClickEvent { keys: SpecialInputKeys[] }
-interface KeydownEvent { key: number }
+interface ClickEvent { special_keys: SpecialInputKeys[] }
+interface KeydownEvent { key: string, special_keys: SpecialInputKeys[] }
 interface ChangeEvent {}
 interface BlurEvent {}
 interface InputEvent { value: string }
 
 type InEvent =
   { kind: 'click',    el: number[], click: ClickEvent } |
-  { kind: 'dblclick', el: number[], click: ClickEvent } |
+  { kind: 'dblclick', el: number[], dblclick: ClickEvent } |
   { kind: 'keydown',  el: number[], keydown: KeydownEvent } |
   { kind: 'change',   el: number[], change: ChangeEvent } |
   { kind: 'blur',     el: number[], blur: BlurEvent } |
-  { kind: 'input',    el: number[], click: InputEvent }
+  { kind: 'input',    el: number[], input: InputEvent }
 
 // Out events
 interface UpdateElement {
@@ -53,23 +53,90 @@ export function run() {
 }
 
 function listen_to_dom_events() {
+  let changed_inputs: { [k: string]: InEvent } = {} // Keeping track of changed inputs
+
+  async function on_click(raw_event: MouseEvent) {
+    let found = find_el_with_listener(raw_event.target as HTMLElement, "on_click")
+    if (!found) return
+    post_event(found.mono_id, { kind: 'click', el: found.path,
+      click: { special_keys: get_keys(raw_event) }
+    })
+  }
+  document.body.addEventListener("click", on_click)
+
+  async function on_dblclick(raw_event: MouseEvent) {
+    let found = find_el_with_listener(raw_event.target as HTMLElement, "on_dblclick")
+    if (!found) return
+    post_event(found.mono_id, { kind: 'dblclick', el: found.path,
+      dblclick: { special_keys: get_keys(raw_event) }
+    })
+  }
+  document.body.addEventListener("dblclick", on_dblclick)
+
+  async function on_keydown(raw_event: KeyboardEvent) {
+    let keydown: KeydownEvent = { key: raw_event.key, special_keys: get_keys(raw_event) }
+    // Ignoring some events
+    if (keydown.key == "Meta" && arrays_equal(keydown.special_keys, ["meta"])) {
+      return
+    }
+
+    let found = find_el_with_listener(raw_event.target as HTMLElement, "on_keydown")
+    if (!found) return
+    post_event(found.mono_id, { kind: 'keydown', el: found.path, keydown })
+  }
+  document.body.addEventListener("keydown", on_keydown)
+
+  async function on_change(raw_event: Event) {
+    let found = find_el_with_listener(raw_event.target as HTMLElement, "on_change")
+    if (!found) return
+    post_event(found.mono_id, { kind: 'change', el: found.path, change: {} })
+  }
+  document.body.addEventListener("change", on_change)
+
+  async function on_blur(raw_event: FocusEvent) {
+    let found = find_el_with_listener(raw_event.target as HTMLElement, "on_blur")
+    if (!found) return
+    post_event(found.mono_id, { kind: 'blur', el: found.path, blur: {} })
+  }
+  document.body.addEventListener("blur", on_blur)
+
+  async function on_input(raw_event: Event) {
+    let found = find_el_with_listener(raw_event.target as HTMLElement)
+    if (!found) throw new Error("can't find element for input event")
+
+    let input = raw_event.target! as HTMLInputElement
+    let input_key = found.path.join(",")
+    let in_event: InEvent = { kind: 'input', el: found.path, input: { value: get_value(input) } }
+
+    if (input.getAttribute("on_input") == "delay") {
+      // Performance optimisation, avoinding sending every change, and keeping only the last value
+      changed_inputs[input_key] = in_event
+    } else {
+      delete changed_inputs[input_key]
+      post_event(found.mono_id, in_event)
+    }
+  }
+  document.body.addEventListener("input", on_input)
+
+  function get_keys(raw_event: MouseEvent | KeyboardEvent): SpecialInputKeys[] {
+    let keys: SpecialInputKeys[] = []
+    if (raw_event.altKey) keys.push("alt")
+    if (raw_event.ctrlKey) keys.push("ctrl")
+    if (raw_event.shiftKey) keys.push("shift")
+    if (raw_event.metaKey) keys.push("meta")
+    return keys
+  }
+
   async function post_event(mono_id: string, event: InEvent): Promise<void> {
+    // Sending changed input events with event
+    let input_events = Object.values(changed_inputs)
+    changed_inputs = {}
+
     Log("").info(">>", event)
-    let data: SessionPostEvent = { kind: 'events', mono_id, events: [event] }
+    let data: SessionPostEvent = { kind: 'events', mono_id, events: [...input_events, event] }
     try   { await send("post", location.href, data) }
     catch { Log("http").error("can't send event") }
   }
-
-  async function on_click(raw_event: MouseEvent) {
-    let click: ClickEvent = { keys: [] }
-    if (raw_event.altKey) click.keys.push("alt")
-    if (raw_event.ctrlKey) click.keys.push("ctrl")
-    if (raw_event.shiftKey) click.keys.push("shift")
-    if (raw_event.metaKey) click.keys.push("meta")
-    let [el, mono_id] = get_el_path(raw_event.target as HTMLElement)
-    post_event(mono_id, { kind: 'click', el, click })
-  }
-  document.body.addEventListener("click", on_click)
 }
 
 async function pull(mono_id: string): Promise<void> {
@@ -172,24 +239,27 @@ function find_one(query: string): HTMLElement {
   return el as HTMLElement
 }
 
-function get_el_path(target: HTMLElement): [number[], string] {
-  let path: number[] = [], current = target
+function find_el_with_listener(
+  target: HTMLElement, listener: string | undefined = undefined
+): { mono_id: string, path: number[] } | undefined {
+  // Finds if there's element with specific listener
+  let path: number[] = [], current = target, el_with_listener_found = false
   while (true) {
-    // target && target != document.body
-    if (current.hasAttribute("mono_id")) {
-      return [path, current.getAttribute("mono_id")!]
+    el_with_listener_found = el_with_listener_found || (listener === undefined) || current.hasAttribute(listener)
+    if (el_with_listener_found && current.hasAttribute("mono_id")) {
+      return { mono_id: current.getAttribute("mono_id")!, path }
     }
     let parent = current.parentElement
     if (!parent) break
     for (var i = 0; i < parent.children.length; i++) {
       if (parent.children[i] == current) {
-        path.unshift(i)
+        if (el_with_listener_found) path.unshift(i)
         break
       }
     }
     current = parent
   }
-  throw new Error("can't find root element with mono_id attribute")
+  return undefined
 }
 
 function sleep(ms: number): Promise<void> {
@@ -211,9 +281,39 @@ function Log(component: string, enabled = true) {
   }
 }
 
+// Different HTML inputs use different attributes for value
+function get_value(el: HTMLInputElement): string {
+  let tag = el.tagName.toLowerCase()
+  if (tag == "input" && el.type == "checkbox") {
+    return "" + el.checked
+  } else {
+    return "" + el.value
+  }
+}
+
+// Different HTML inputs use different attributes for value
+// function normalise_value(el: Record<string, unknown>): void {
+//   if (!("value" in el)) return
+//   let tag: string = "tag" in el ? el["tag"] as string : "div"
+//   let value = el["value"]
+//   delete el["value"]
+//   if (tag == "input" && el["type"] == "checkbox") {
+//     assert(typeof value == "boolean", "checkbox should have boolean value type")
+//     if (value) el["checked"] = true
+//   } else {
+//     el["value"] = value
+//   }
+// }
+
 function to_element(data: Record<string, unknown>): HTMLElement {
   let tag: string = "tag" in data ? data["tag"] as string : "div"
   let el = document.createElement(tag)
+
+  // if ("value" in data) {
+  //   data = { ...data }
+  //   normalise_value(data)
+  // }
+
   for (const k in data) {
     if (["tag", "children", "text"].indexOf(k) >= 0) continue
     el.setAttribute(k, "" + data[k])
@@ -305,4 +405,8 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
 
 function assert(cond: boolean, message = "assertion failed") {
   if (!cond) throw new Error(message)
+}
+
+function arrays_equal<T>(a: T[], b: T[]): boolean {
+  return JSON.stringify(a) == JSON.stringify(b)
 }

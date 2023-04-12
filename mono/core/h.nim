@@ -45,14 +45,24 @@ proc extras_getset*(self: HtmlElement): HtmlElementExtras =
   if self.extras.is_none: self.extras = HtmlElementExtras().some
   self.extras.get
 
-template bind_to*(element: HtmlElement, variable): HtmlElement =
+proc init*(_: type[SetValueHandler], handler: (proc(v: string): void), delay: bool): SetValueHandler =
+  SetValueHandler(handler: handler, delay: delay)
+
+template bind_to*(element: HtmlElement, variable, delay): HtmlElement =
   let el = element
   discard el.value variable
-  el.extras_getset.set_value = (proc (v: string): void {.closure.} =
-    variable = typeof(variable).parse v
-    el.attrs["value"] = variable.to_json # updating value on the element, to avoid it being detected by diff
+
+  el.extras_getset.set_value = SetValueHandler.init(
+    (proc(v: string): void {.closure.} =
+      variable = typeof(variable).parse v
+      el.attrs["value"] = variable.to_json # updating value on the element, to avoid it being detected by diff
+    ),
+    delay
   ).some
   el
+
+template bind_to*(element: HtmlElement, variable): HtmlElement =
+  bind_to(element, variable, false)
 
 proc on_click*(self: HtmlElement, fn: proc(e: ClickEvent): void): HtmlElement =
   self.extras_getset.on_click = fn.some

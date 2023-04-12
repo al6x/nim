@@ -4,11 +4,12 @@ type
   SpecialInputKeys* = enum alt, ctrl, meta, shift
 
   ClickEvent* = object
-    keys*: seq[SpecialInputKeys]
+    special_keys*: seq[SpecialInputKeys]
   ClickHandler* = proc(e: ClickEvent): void
 
   KeydownEvent* = object
-    key*: int
+    key*:          string
+    special_keys*: seq[SpecialInputKeys]
   KeydownHandler* = proc(e: KeydownEvent): void
 
   ChangeEvent* = object
@@ -26,6 +27,10 @@ type
   TimeoutEvent* = object
     stub*: string # otherwise json doesn't work
 
+  SetValueHandler* = object
+    handler*: (proc(v: string): void)
+    delay*:   bool # Performance optimisation, if set to true it won't cause re-render
+
   HtmlElementExtras* = ref object
     # on_focus, on_drag, on_drop, on_keypress, on_keyup
     on_click*:    Option[ClickHandler]
@@ -34,7 +39,7 @@ type
     on_change*:   Option[ChangeHandler]
     on_blur*:     Option[BlurHandler]
     on_input*:    Option[InputHandler]
-    set_value*:   Option[(proc(v: string): void)]
+    set_value*:   Option[SetValueHandler]
 
   HtmlElement* = ref object
     tag*:           string
@@ -135,12 +140,34 @@ proc get*(self: HtmlElement, el_path: seq[int]): HtmlElement =
   for i in el_path:
     result = result.children[i]
 
+# Different HTML inputs use different attributes for value
+proc normalise_value*(el: JsonNode): void =
+  let tag = if "tag" in el: el["tag"].get_str else: "div"
+  if tag == "input" and "type" in el and el["type"].get_str == "checkbox":
+    let value = el["value"]
+    el.delete "value"
+    assert value.kind == JBool, "checkbox should have boolean value type"
+    if value.get_bool:
+      el["checked"] = true.to_json
+
 proc to_json_hook*(self: HtmlElement): JsonNode =
   var json = if self.children.is_empty:
     self.nattrs.sort
   else:
     self.nattrs.sort.alter((attrs: JsonNode) => (attrs["children"] = self.children.to_json))
+
   if "tag" in json and json["tag"].get_str == "div": json.delete "tag"
+
+  if "value" in json: json.normalise_value
+
+  if self.extras.is_some:
+    if self.extras.get.on_click.is_some:    json["on_click"] = true.to_json
+    if self.extras.get.on_dblclick.is_some: json["on_dblclick"] = true.to_json
+    if self.extras.get.on_keydown.is_some:  json["on_keydown"] = true.to_json
+    if self.extras.get.on_change.is_some:   json["on_change"] = true.to_json
+    if self.extras.get.on_blur.is_some:     json["on_blur"] = true.to_json
+    if self.extras.get.on_input.is_some:    json["on_input"] = true.to_json
+
   json
 
 proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[UpdateElement] =
@@ -215,11 +242,14 @@ proc escape_html_attr_name(name: string): string = name.escape_html
 proc escape_html_attr_value(v: JsonNode): string =
   (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
 
+
 proc to_html*(el: JsonNode, indent = ""): string =
   assert el.kind == JObject, "to_html element data should be JObject"
   let tag = if "tag" in el: el["tag"].get_str else: "div"
   var attr_tokens: seq[string]
-  for k, v in el.sort.fields:
+  let el = el.sort
+  # el.normalise_value
+  for k, v in el.fields:
     if k in ["tag", "children", "text"]: continue
     attr_tokens.add k.escape_html_attr_name & "=" & v.escape_html_attr_value
   result.add indent & "<" & tag
@@ -231,11 +261,11 @@ proc to_html*(el: JsonNode, indent = ""): string =
       el["text"].get_str.escape_html_text
     else:
       el["text"].to_s(false).escape_html_text
-    result.add ">" & safe_text & "</" & tag & ">"
+    result.add " >" & safe_text & "</" & tag & ">"
   elif "children" in el:
     let children = el["children"]
     assert children.kind == JArray, "to_html element children should be JArray"
-    result.add ">\n"
+    result.add " >\n"
     for v in children:
       result.add v.to_html(indent & "  ") & "\n"
     result.add indent & "</" & tag & ">"

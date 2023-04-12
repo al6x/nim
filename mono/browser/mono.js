@@ -11,12 +11,107 @@ function run() {
     pull(mono_ids[0]);
 }
 function listen_to_dom_events() {
+    let changed_inputs = {};
+    async function on_click(raw_event) {
+        let found = find_el_with_listener(raw_event.target, "on_click");
+        if (!found) return;
+        post_event(found.mono_id, {
+            kind: 'click',
+            el: found.path,
+            click: {
+                special_keys: get_keys(raw_event)
+            }
+        });
+    }
+    document.body.addEventListener("click", on_click);
+    async function on_dblclick(raw_event) {
+        let found = find_el_with_listener(raw_event.target, "on_dblclick");
+        if (!found) return;
+        post_event(found.mono_id, {
+            kind: 'dblclick',
+            el: found.path,
+            dblclick: {
+                special_keys: get_keys(raw_event)
+            }
+        });
+    }
+    document.body.addEventListener("dblclick", on_dblclick);
+    async function on_keydown(raw_event) {
+        let keydown = {
+            key: raw_event.key,
+            special_keys: get_keys(raw_event)
+        };
+        if (keydown.key == "Meta" && arrays_equal(keydown.special_keys, [
+            "meta"
+        ])) {
+            return;
+        }
+        let found = find_el_with_listener(raw_event.target, "on_keydown");
+        if (!found) return;
+        post_event(found.mono_id, {
+            kind: 'keydown',
+            el: found.path,
+            keydown
+        });
+    }
+    document.body.addEventListener("keydown", on_keydown);
+    async function on_change(raw_event) {
+        let found = find_el_with_listener(raw_event.target, "on_change");
+        if (!found) return;
+        post_event(found.mono_id, {
+            kind: 'change',
+            el: found.path,
+            change: {}
+        });
+    }
+    document.body.addEventListener("change", on_change);
+    async function on_blur(raw_event) {
+        let found = find_el_with_listener(raw_event.target, "on_blur");
+        if (!found) return;
+        post_event(found.mono_id, {
+            kind: 'blur',
+            el: found.path,
+            blur: {}
+        });
+    }
+    document.body.addEventListener("blur", on_blur);
+    async function on_input(raw_event) {
+        let found = find_el_with_listener(raw_event.target);
+        if (!found) throw new Error("can't find element for input event");
+        let input = raw_event.target;
+        let input_key = found.path.join(",");
+        let in_event = {
+            kind: 'input',
+            el: found.path,
+            input: {
+                value: get_value(input)
+            }
+        };
+        if (input.getAttribute("on_input") == "delay") {
+            changed_inputs[input_key] = in_event;
+        } else {
+            delete changed_inputs[input_key];
+            post_event(found.mono_id, in_event);
+        }
+    }
+    document.body.addEventListener("input", on_input);
+    function get_keys(raw_event) {
+        let keys = [];
+        if (raw_event.altKey) keys.push("alt");
+        if (raw_event.ctrlKey) keys.push("ctrl");
+        if (raw_event.shiftKey) keys.push("shift");
+        if (raw_event.metaKey) keys.push("meta");
+        return keys;
+    }
     async function post_event(mono_id, event) {
+        let input_events = Object.values(changed_inputs);
+        changed_inputs = {};
         Log("").info(">>", event);
         let data = {
             kind: 'events',
             mono_id,
             events: [
+                ...input_events,
                 event
             ]
         };
@@ -26,22 +121,6 @@ function listen_to_dom_events() {
             Log("http").error("can't send event");
         }
     }
-    async function on_click(raw_event) {
-        let click = {
-            keys: []
-        };
-        if (raw_event.altKey) click.keys.push("alt");
-        if (raw_event.ctrlKey) click.keys.push("ctrl");
-        if (raw_event.shiftKey) click.keys.push("shift");
-        if (raw_event.metaKey) click.keys.push("meta");
-        let [el, mono_id] = get_el_path(raw_event.target);
-        post_event(mono_id, {
-            kind: 'click',
-            el,
-            click
-        });
-    }
-    document.body.addEventListener("click", on_click);
 }
 async function pull(mono_id) {
     let log = Log("");
@@ -157,26 +236,27 @@ function find_one(query) {
     if (!el) throw new Error("query_one haven't found any " + query);
     return el;
 }
-function get_el_path(target) {
-    let path = [], current = target;
+function find_el_with_listener(target, listener = undefined) {
+    let path = [], current = target, el_with_listener_found = false;
     while(true){
-        if (current.hasAttribute("mono_id")) {
-            return [
-                path,
-                current.getAttribute("mono_id")
-            ];
+        el_with_listener_found = el_with_listener_found || listener === undefined || current.hasAttribute(listener);
+        if (el_with_listener_found && current.hasAttribute("mono_id")) {
+            return {
+                mono_id: current.getAttribute("mono_id"),
+                path
+            };
         }
         let parent = current.parentElement;
         if (!parent) break;
         for(var i = 0; i < parent.children.length; i++){
             if (parent.children[i] == current) {
-                path.unshift(i);
+                if (el_with_listener_found) path.unshift(i);
                 break;
             }
         }
         current = parent;
     }
-    throw new Error("can't find root element with mono_id attribute");
+    return undefined;
 }
 function sleep(ms) {
     return new Promise((resolve, _reject)=>{
@@ -203,6 +283,14 @@ function Log(component, enabled = true) {
             console.log("W " + component + " " + msg, data);
         }
     };
+}
+function get_value(el) {
+    let tag = el.tagName.toLowerCase();
+    if (tag == "input" && el.type == "checkbox") {
+        return "" + el.checked;
+    } else {
+        return "" + el.value;
+    }
 }
 function to_element(data) {
     let tag = "tag" in data ? data["tag"] : "div";
@@ -296,5 +384,8 @@ function apply_update(root, update) {
 }
 function assert(cond, message = "assertion failed") {
     if (!cond) throw new Error(message);
+}
+function arrays_equal(a, b) {
+    return JSON.stringify(a) == JSON.stringify(b);
 }
 export { run as run };

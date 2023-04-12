@@ -37,6 +37,6 @@ proc parse*(_: type[string], v: string): string = v
 proc parse*(_: type[bool],   v: string): bool   =
   if   v == "true":  true
   elif v == "false": false
-  else:              v.to_lower in ["true", "t", "yes", "y", "1"]
+  else:              v.to_lower in ["true", "t", "yes", "y", "on", "1"]
 proc parse*[T](_: type[Option[T]], v: string): Option[T] =
   if v == "": T.none else: T.parse(v).some

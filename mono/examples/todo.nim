@@ -14,8 +14,6 @@ proc id*(self: TodoItem): string =
 
 
 # TodoView -----------------------------------------------------------------------------------------
-const enter_key  = 13; const escape_key = 27
-
 # Feature: stateful component, preserving its state between renders
 type TodoView* = ref object of Component
   on_delete: proc(id: string): void
@@ -27,10 +25,10 @@ proc set_attrs*(self: TodoView, item: TodoItem, on_delete: (proc(id: string): vo
 
 proc render*(self: TodoView): HtmlElement =
   proc handle_edit(e: KeydownEvent): void =
-    if e.key == enter_key:
+    if e.key == "Enter":
       self.item.text = self.editing.get
       self.editing.clear
-    elif e.key == escape_key:
+    elif e.key == "Escape":
       self.editing.clear
 
   let class_modifier =
@@ -78,7 +76,7 @@ proc render*(self: TodosView): HtmlElement =
     of active:    self.items.filter((item) => not item.completed)
 
   proc create_new(e: KeydownEvent): void =
-    if e.key == enter_key and not self.new_todo.is_empty:
+    if e.key == "Enter" and not self.new_todo.is_empty:
       self.items.add(TodoItem(text: self.new_todo, completed: false))
       self.new_todo = ""
 
@@ -94,7 +92,7 @@ proc render*(self: TodosView): HtmlElement =
   h"header.header":
     + h"h1".text("todos")
     + h"input.new-todo autofocus".attr("placeholder", "What needs to be done?")
-      .bind_to(self.new_todo)
+      .bind_to(self.new_todo, true)
       .on_keydown(create_new)
 
     if not self.items.is_empty:

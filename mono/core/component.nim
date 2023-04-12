@@ -102,12 +102,16 @@ template process_in_event*[C](self: C, event: InEvent): bool =
   of input:
     # Setting value on binded variable
     let el = self.current_tree.get.get event.el
+    var render_for_input_change = false
     if el.extras.is_some and el.extras.get.set_value.is_some:
       let set_value = el.extras.get.set_value.get
-      set_value event.input.value
+      set_value.handler event.input.value
+      render_for_input_change = not set_value.delay
 
-    if_handler_found on_input:
+    let render_for_input_handler = if_handler_found on_input:
       handler event.input
+
+    render_for_input_change or render_for_input_handler
   of timeout:
     true
 
