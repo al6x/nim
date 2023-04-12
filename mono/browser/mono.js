@@ -325,6 +325,12 @@ function el_by_path(root, path) {
     }
     return el;
 }
+let attr_properties = [
+    "value"
+];
+let boolean_attr_properties = [
+    "checked"
+];
 function apply_update(root, update) {
     let el = el_by_path(root, update.el);
     let set = update.set;
@@ -339,8 +345,10 @@ function apply_update(root, update) {
             if (k == "text") {
                 if (el.children.length > 0) el.innerHTML = "";
                 el.innerText = v;
-            } else if (k == "value") {
-                el.value = v;
+            } else if (boolean_attr_properties.includes(k)) {
+                el[k] = !!v;
+            } else if (attr_properties.includes(k)) {
+                el[k] = v;
             } else {
                 el.setAttribute(k, v);
             }
@@ -352,6 +360,8 @@ function apply_update(root, update) {
             assert(k != "children", "del_attrs can't del children");
             if (k == "text") {
                 el.innerText = "";
+            } else if (boolean_attr_properties.includes(k)) {
+                el[k] = false;
             } else {
                 el.removeAttribute(k);
             }

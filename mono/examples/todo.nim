@@ -36,7 +36,7 @@ proc render*(self: TodoView): HtmlElement =
     (if self.editing.is_some: ".editing" else: "")
 
   # Feature: compact HTML template syntax
-  h"li.todo-list{class_modifier}":
+  h"li{class_modifier}":
     + h".view":
       + h"input.toggle type=checkbox"
         # Feature: two way binding with autocast
@@ -45,11 +45,11 @@ proc render*(self: TodoView): HtmlElement =
         .on_dblclick(proc = self.editing = self.item.text.some)
       + h"button.destroy"
         .on_click(proc = self.on_delete(self.item.id))
-      if self.editing.is_some:
-        + h"input.edit autofocus"
-          .bind_to(self.editing)
-          .on_keydown(handle_edit)
-          .on_blur(proc = self.editing = string.none)
+    if self.editing.is_some:
+      + h"input#edit.edit autofocus"
+        .bind_to(self.editing)
+        .on_keydown(handle_edit)
+        .on_blur(proc = self.editing = string.none)
 
 
 # TodosView -----------------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ proc render*(self: TodosView): HtmlElement =
       self.new_todo = ""
 
   proc toggle_all(e: ChangeEvent): void =
-    self.items.each((item: TodoItem) => (item.completed = self.toggle_all))
+    self.items.each((item: TodoItem) => (item.completed = not all_completed))
 
   proc on_delete(id: string): void =
     self.items.delete((item) => item.id == id)

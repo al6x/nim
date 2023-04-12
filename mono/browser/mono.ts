@@ -319,6 +319,8 @@ function el_by_path(root: HTMLElement, path: number[]): HTMLElement {
   return el
 }
 
+let attr_properties = ["value"]
+let boolean_attr_properties = ["checked"]
 function apply_update(root: HTMLElement, update: UpdateElement) {
   let el = el_by_path(root, update.el)
   let set = update.set
@@ -334,8 +336,10 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
       if (k == "text") {
         if (el.children.length > 0) el.innerHTML = ""
         el.innerText = v
-      } else if (k == "value") {
-        (el as HTMLInputElement).value = v // doesn't work with setAttribute
+      } else if (boolean_attr_properties.includes(k)) {
+        (el as any)[k] = !!v
+      } else if (attr_properties.includes(k)) {
+        (el as any)[k] = v
       } else {
         el.setAttribute(k, v)
       }
@@ -348,6 +352,8 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
       assert(k != "children", "del_attrs can't del children")
       if (k == "text") {
         el.innerText = ""
+      } else if (boolean_attr_properties.includes(k)) {
+        (el as any)[k] = false
       } else {
         el.removeAttribute(k)
       }

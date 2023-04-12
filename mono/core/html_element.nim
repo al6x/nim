@@ -182,6 +182,9 @@ proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[Up
   result.add update
 
   let (new_attrs, old_attrs) = (new_el.nattrs, old_el.nattrs)
+  if "value" in new_attrs: new_attrs.normalise_value
+  if "value" in old_attrs: old_attrs.normalise_value
+
   block: # tag
     if new_attrs["tag"] != old_attrs["tag"]:
       update.set = new_el.to_json.some
