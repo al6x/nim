@@ -142,19 +142,22 @@ when is_main_module:
       <!DOCTYPE html>
       <html>
         <head>
-          <link rel="stylesheet" href="/assets/todomvc-app.css"/>
-          <script type="module">
-            import { run } from "/assets/mono.js"
-            run()
-          </script>
+          <link rel="stylesheet" href="/assets/todo.css"/>
         </head>
         <body>
           <section class="todoapp">
+
       {html}
+
+      <script type="module">
+        import { run } from "/assets/mono.js"
+        run()
+      </script>
+
           </section>
         </body>
       </html>
-    """.replace("{html}", html).dedent
+    """.dedent.replace("{html}", html)
 
   proc build_app(url: Url): tuple[page: AppPage, app: App] =
     let todos = TodosView()
@@ -166,5 +169,5 @@ when is_main_module:
     (page, app)
 
   # Path to folder with CSS styles and images
-  let assets_path = current_source_path().parent_dir.absolute_path & "/todo"
+  let assets_path = current_source_path().parent_dir.absolute_path
   run_http_server(build_app, port = 2000, asset_paths = @[assets_path])
