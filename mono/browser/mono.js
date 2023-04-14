@@ -2,7 +2,7 @@
 // deno-lint-ignore-file
 // This code was bundled using `deno bundle` and it's not recommended to edit it manually
 
-let p = console.log.bind(console), global = window;
+console.log.bind(console), window;
 function run() {
     listen_to_dom_events();
     let mono_ids = get_mono_ids();
@@ -393,7 +393,6 @@ function apply_update(root, update) {
         ];
         positions.sort((a, b)=>a - b);
         positions.reverse();
-        p(positions);
         for (const pos of positions){
             assert(pos <= el.children.length, "del_children index out of bounds");
             el.children[pos].remove();
