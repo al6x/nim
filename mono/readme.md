@@ -1,6 +1,6 @@
 UI library for Nim, similar to Svelte.
 
-**High development productivity**, simple and clean code are main priorities.
+**High productivity, simple and clean code** are main priorities.
 
 Checkout the [Todo](examples/todo.nim) example.
 
@@ -15,7 +15,7 @@ Checkout the [Todo](examples/todo.nim) example.
 
 # Possible problems
 
-It's working, see TodoApp example, byt some edge cases may not be tested.
+Some edge cases may not be tested.
 
 JSON uses non standard library, because std/json has too many issues. If you have problems with JSON try
 importing `base/json`.
@@ -60,7 +60,3 @@ recorded and replayed.
 Work as statefull or stateless, without need to occupy server memory between requests.
 
 Persist UI state between server reloads.
-
-# Optional Optimisations
-
-Don't send on_change events if no handlers registered.
