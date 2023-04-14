@@ -29,6 +29,7 @@ template test*(name: string, body) =
 template slow_test*(name: string, body) =
   let test_variable = env["test", "false"]
   if test_variable == "true" or test_variable == name:
+    let pos = instantiation_info()
     print_test_info(true, pos.filename, name, false)
     # try:
     body

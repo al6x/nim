@@ -7,10 +7,11 @@ template throw(message: string) = raise Exception.new_exception(message)
 
 type Regex* = nre.Regex
 
-proc re*(s: string): Regex = nre.re(s)
+proc re*(s: string): Regex =
+  nre.re(s)
 
-
-proc match*(s: string, r: Regex): bool = nre.contains(s, r)
+proc match*(s: string, r: Regex): bool =
+  nre.contains(s, r)
 
 test "match":
   check:

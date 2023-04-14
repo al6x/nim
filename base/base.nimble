@@ -1,8 +1,8 @@
-version     = "1.0.0"
-author      = "Alex Craft http://al6x.com"
+version     = "2.0.0"
+author      = "Alex Craft https://github.com/al6x"
 description = "Extensions for Nim standard library"
 license     = "MIT"
 
 srcDir = "."
 
-requires "nim >= 1.4.2"
+requires "nim >= 1.6"

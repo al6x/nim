@@ -1,3 +1,9 @@
+UI library for Nim, similar to Svelte.
+
+**High development productivity**, simple and clean code are main priorities.
+
+Checkout the [Todo](examples/todo.nim) example.
+
 # Features
 
 - Reactive, like Svelte, with compact and clean code.
@@ -7,9 +13,25 @@
 - SEO friendly.
 - Lots of deployment options, Browser, Desktop, Mobile, Server.
 
+# Possible problems
+
+It's working, see TodoApp example, byt some edge cases may not be tested.
+
+JSON uses non standard library, because std/json has too many issues. If you have problems with JSON try
+importing `base/json`.
+
+# Development and contribuging
+
+Checkout the repo, then run
+
+- `nim r mono/test test` for tests.
+- `nim r mono/examples/todo` for example.
+
+Checkout code in the `mono/core` folder, especially the `mono/core/component_test` to understand how it works.
+
 # Todo
 
-- Render initial page as HTML for search engines, and for static site HTML?
+- Browser Adapter with multiple widgets in the page and interactive charts
 
 # Deployment options
 

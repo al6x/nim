@@ -105,7 +105,7 @@ test "h":
         .on_click(proc (e: auto): void = discard)
 
   check html.to_json ==
-    """{"class":"c1","tag":"ul","children":[{"class":"c2 c3","text":"t1","tag":"li"}]}""".parse_json
+    """{"class":"c1","tag":"ul","children":[{"class":"c2 c3","text":"t1","tag":"li","on_click":true}]}""".parse_json
 
 # stateful h ---------------------------------------------------------------------------------------
 template h*[T](

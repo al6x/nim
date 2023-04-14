@@ -128,7 +128,7 @@ proc nattrs*(self: HtmlElement): JsonNode =
       else:
         nattrs[k] = v.to_json
     if "tag" notin nattrs: nattrs["tag"] = "div".to_json
-    self.nattrs_cached = nattrs.some
+    self.nattrs_cached = nattrs.sort.some
   return self.nattrs_cached.get
 
 test "nattrs":
@@ -227,23 +227,24 @@ proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[Up
 # escape_html --------------------------------------------------------------------------------------
 const ESCAPE_HTML_MAP = {
   "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  """: "&quot;",
-  """: "&#39;"
+  "<":  "&lt;",
+  ">":  "&gt;",
+  "\"": "&quot;",
+  "'":  "&#39;"
 }.to_table
 
 proc escape_html*(html: string): string =
   html.replace(re"""([&<>'"])""", (c) => ESCAPE_HTML_MAP[c])
 
 test "escape_html":
-  assert escape_html("<div>") == """&lt;div&gt;"""
+  check escape_html("""<div attr="val">""") == "&lt;div attr=&quot;val&quot;&gt;"
 
 # to_html ------------------------------------------------------------------------------------------
 proc escape_html_text(s: string): string = s.escape_html
 proc escape_html_attr_name(name: string): string = name.escape_html
 proc escape_html_attr_value(v: JsonNode): string =
-  (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
+  # (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
+  "\"" & (if v.kind == JString: v.get_str.escape_html else: v.to_s(false).escape_html) & "\""
 
 
 proc to_html*(el: JsonNode, indent = ""): string =
@@ -264,16 +265,16 @@ proc to_html*(el: JsonNode, indent = ""): string =
       el["text"].get_str.escape_html_text
     else:
       el["text"].to_s(false).escape_html_text
-    result.add " >" & safe_text & "</" & tag & ">"
+    result.add ">" & safe_text & "</" & tag & ">"
   elif "children" in el:
     let children = el["children"]
     assert children.kind == JArray, "to_html element children should be JArray"
-    result.add " >\n"
+    result.add ">\n"
     for v in children:
       result.add v.to_html(indent & "  ") & "\n"
     result.add indent & "</" & tag & ">"
   else:
-    result.add " />"
+    result.add "/>"
 
 proc to_html*(el: HtmlElement): string =
   el.to_json.to_html
@@ -288,13 +289,13 @@ test "to_html":
   let html = """
     <div class="parent">
       <div class="counter">
-        <input type="text" value="some" />
+        <input type="text" value="some"/>
         <button>+</button>
       </div>
     </div>""".dedent
   check el.to_html == html
 
-  check HtmlElement.init.to_html == "<div />"
+  check HtmlElement.init.to_html == "<div/>"
 
   check (%{ text: 0 }).to_html == "<div>0</div>" # from error
 
@@ -317,7 +318,7 @@ proc document_to_meta(document: JsonNode): string =
   assert document.kind == JObject, "document_to_meta document should be JObject"
   var tags: seq[string]
   for k, v in document.sort.fields:
-    tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & " />"
+    tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & "/>"
   tags.join("\n")
 
 proc to_meta_html*(el: JsonNode): tuple[meta, html: string] =
@@ -329,6 +330,6 @@ test "to_meta_html":
     { class: "counter" }
   ] }
   check el.to_meta_html == (
-    meta: """<meta name="title" content="some" />""",
-    html: """<div class="counter" />"""
+    meta: """<meta name="title" content="some"/>""",
+    html: """<div class="counter"/>"""
   )
