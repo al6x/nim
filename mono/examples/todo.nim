@@ -1,13 +1,14 @@
 import base, mono/core
 
 # Model --------------------------------------------------------------------------------------------
-type TodoItemState* = enum active, completed
+type
+  TodoItemState* = enum active, completed
 
-type TodoItem* = ref object
-  text*:      string
-  completed*: bool
+  TodoItem* = ref object
+    text*:      string
+    completed*: bool
 
-type Todos* = seq[TodoItem]
+  Todos* = seq[TodoItem]
 
 proc id*(self: TodoItem): string =
   self.text
