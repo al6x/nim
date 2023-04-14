@@ -178,7 +178,7 @@ async function pull(mono_id: string): Promise<void> {
       case 'ignore':
         break
       case 'expired':
-        document.body.style.opacity = "0.3"
+        document.body.style.opacity = "0.4"
         log.info("expired")
         break main_loop
       case 'error':

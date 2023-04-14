@@ -89,7 +89,7 @@ proc run_http_server*(
   asset_paths        = seq[string].init,
   pull_timeout_ms    = 2000,
   session_timeout_ms = 6000
-): void =
+) =
   # Files with same names will be taken from first path when found, this way system assets like `page.html`
   # could be overriden.
   var asset_paths = asset_paths & [current_source_path().parent_dir.parent_dir.absolute_path & "/browser"]

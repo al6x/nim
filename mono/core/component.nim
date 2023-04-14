@@ -38,13 +38,13 @@ type
     children:       Table[string, Component]
     children_built: HashSet[string] # Needed to track and destroy old children
 
-method after_create*(self: Component): void {.base.} =
+method after_create*(self: Component) {.base.} =
   discard
 
-method before_destroy*(self: Component): void {.base.} =
+method before_destroy*(self: Component) {.base.} =
   discard
 
-proc after_render*(self: Component): void =
+proc after_render*(self: Component) =
   # Removing old child components
   self.children.values.each(after_render)
   let old = self.children.delete((id, child) => id notin self.children_built)
@@ -61,7 +61,7 @@ proc get_child_component*[T](self: Component, _: type[T], id: string): T =
   self.children[full_id].T
 
 proc get_child_component*[T](
-  self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T): void)
+  self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T))
 ): T =
   let child = self.get_child_component(ChildT, id)
   child.set_attrs # setting on new or overriding attributes on existing children

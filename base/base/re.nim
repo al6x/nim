@@ -101,13 +101,15 @@ test "parse_named":
 
 
 iterator find_iter*(s: string, r: Regex): string =
-  for match in nre.find_iter(s, r): yield nre.match(match)
+  for match in nre.find_iter(s, r):
+    yield nre.match(match)
 
 test "find_iter":
   check to_seq("abcde".find_iter(re"[bcd]")) == @["b", "c", "d"]
 
 
-proc find_all*(s: string, r: Regex): seq[string] = to_seq(find_iter(s, r))
+proc find_all*(s: string, r: Regex): seq[string] =
+  to_seq(find_iter(s, r))
 
 test "find_all":
   check:

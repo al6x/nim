@@ -5,30 +5,30 @@ type
 
   ClickEvent* = object
     special_keys*: seq[SpecialInputKeys]
-  ClickHandler* = proc(e: ClickEvent): void
+  ClickHandler* = proc(e: ClickEvent)
 
   KeydownEvent* = object
     key*:          string
     special_keys*: seq[SpecialInputKeys]
-  KeydownHandler* = proc(e: KeydownEvent): void
+  KeydownHandler* = proc(e: KeydownEvent)
 
   ChangeEvent* = object
     stub*: string # otherwise json doesn't work
-  ChangeHandler* = proc(e: ChangeEvent): void
+  ChangeHandler* = proc(e: ChangeEvent)
 
   BlurEvent* = object
     stub*: string # otherwise json doesn't work
-  BlurHandler* = proc(e: BlurEvent): void
+  BlurHandler* = proc(e: BlurEvent)
 
   InputEvent* = object
     value*: string
-  InputHandler* = proc(e: InputEvent): void
+  InputHandler* = proc(e: InputEvent)
 
   TimeoutEvent* = object
     stub*: string # otherwise json doesn't work
 
   SetValueHandler* = object
-    handler*: (proc(v: string): void)
+    handler*: (proc(v: string))
     delay*:   bool # Performance optimisation, if set to true it won't cause re-render
 
   HtmlElementExtras* = ref object
@@ -104,7 +104,7 @@ proc parse_tag*(expression: string): Table[string, string] =
       result[tokens[0]] = if tokens.len > 1: tokens[1] else: "true"
 
 test "parse_tag":
-  template check_attrs(tag: string, expected): void =
+  template check_attrs(tag: string, expected) =
     check parse_tag(tag) == expected.to_table
 
   check_attrs "span#id.c1.c2 type=checkbox required", {
@@ -141,7 +141,7 @@ proc get*(self: HtmlElement, el_path: seq[int]): HtmlElement =
     result = result.children[i]
 
 # Different HTML inputs use different attributes for value
-proc normalise_value*(el: JsonNode): void =
+proc normalise_value*(el: JsonNode) =
   let tag = if "tag" in el: el["tag"].get_str else: "div"
   if tag == "input" and "type" in el and el["type"].get_str == "checkbox":
     let value = el["value"]

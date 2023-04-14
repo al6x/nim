@@ -41,7 +41,7 @@ proc init*(_: type[Session], mono_id: string, app: App): Session =
 proc log*(self: Session): Log =
   Log.init("Session", self.id)
 
-proc process(self: Session): void =
+proc process(self: Session) =
   if self.inbox.is_empty: return
   let inbox = self.inbox.copy
   self.inbox.clear

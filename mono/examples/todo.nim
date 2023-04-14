@@ -16,15 +16,15 @@ proc id*(self: TodoItem): string =
 # TodoView -----------------------------------------------------------------------------------------
 # Feature: stateful component, preserving its state between renders
 type TodoView* = ref object of Component
-  on_delete: proc(id: string): void
+  on_delete: proc(id: string)
   editing:   Option[string] # value of `editing` field going to be maintained between requests
   item:      TodoItem
 
-proc set_attrs*(self: TodoView, item: TodoItem, on_delete: (proc(id: string): void)): void =
+proc set_attrs*(self: TodoView, item: TodoItem, on_delete: (proc(id: string))) =
   self.item = item; self.on_delete = on_delete
 
 proc render*(self: TodoView): HtmlElement =
-  proc handle_edit(e: KeydownEvent): void =
+  proc handle_edit(e: KeydownEvent) =
     if e.key == "Enter":
       self.item.text = self.editing.get
       self.editing.clear
@@ -61,7 +61,7 @@ type TodosView* = ref object of Component
   new_todo:   string
   toggle_all: bool
 
-proc set_attrs*(self: TodosView, items: Todos = @[], filter: TodosViewFilter = all): void =
+proc set_attrs*(self: TodosView, items: Todos = @[], filter: TodosViewFilter = all) =
   self.items = items; self.filter = filter
 
 proc render*(self: TodosView): HtmlElement =
@@ -75,15 +75,15 @@ proc render*(self: TodosView): HtmlElement =
     of completed: self.items.filter((item) => item.completed)
     of active:    self.items.filter((item) => not item.completed)
 
-  proc create_new(e: KeydownEvent): void =
+  proc create_new(e: KeydownEvent) =
     if e.key == "Enter" and not self.new_todo.is_empty:
       self.items.add(TodoItem(text: self.new_todo, completed: false))
       self.new_todo = ""
 
-  proc toggle_all(e: ChangeEvent): void =
+  proc toggle_all(e: ChangeEvent) =
     self.items.each((item: TodoItem) => (item.completed = not all_completed))
 
-  proc on_delete(id: string): void =
+  proc on_delete(id: string) =
     self.items.delete((item) => item.id == id)
 
   proc set_filter(filter: TodosViewFilter): auto =

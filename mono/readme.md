@@ -17,8 +17,8 @@ Checkout the [Todo](examples/todo.nim) example.
 
 Some edge cases may not be tested.
 
-JSON uses non standard library, because std/json has too many issues. If you have problems with JSON try
-importing `base/json`.
+Some surprises with JSON, I use non standard json library, because std/json has too many
+issues.
 
 # Development and contribuging
 
@@ -31,7 +31,9 @@ Checkout code in the `mono/core` folder, especially the `mono/core/component_tes
 
 # Todo
 
-- Browser Adapter with multiple widgets in the page and interactive charts
+- Browser Adapter with multiple widgets in the page and interactive charts.
+- Twitter exapmle and Chat example.
+- Better Async/Actor/Networking code.
 
 # Deployment options
 

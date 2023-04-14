@@ -30,7 +30,7 @@ proc init(tself: type[Runtime], logs_cap = 1000): Runtime =
   log_emitters.add (m) => runtime.logs.add(m)
   runtime
 
-method run(app: Runtime): void =
+method run(app: Runtime) =
   throw "not implemented"
 
 if is_main_module:
