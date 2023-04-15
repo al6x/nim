@@ -49,10 +49,11 @@ The whole library is just one function
 let out: seq[OutEvent] = component.process(events: seq[InEvent])
 ```
 
-Other packages are adapter to connect this function to different environments like browser or server and
-provide transport like HTTP for messages.
-
 Checkout [core](core), especially the `mono/core/component_test` to see how it works.
+
+Other packages are adapters to connect that function to different environments like Browser or Server.
+And provide transport for messages, like HTTP. You could replace it with your own adapter and transport,
+like WebSocket.
 
 # Todo
 
