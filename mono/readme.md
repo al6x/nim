@@ -34,7 +34,7 @@ I'm using it for some private app, and going to fix bugs as I'll encounter it.
 
 Some edge cases may not be tested, some HTML inputs haven't been tested.
 
-Currently `-mm:orc` doesn't work, it's going to work with the next nim release.
+Currently `-mm:orc` doesn't work, will work with the next nim release.
 
 # Development and contribuging
 
