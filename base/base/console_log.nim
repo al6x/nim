@@ -4,6 +4,7 @@ import ./log, ./setm, ./env as envm, ./re as rem, ./json, ./stringm, ./seqm, ./t
 type ConsoleLog = ref object
   disable_logs: HashSet[string]
   log_as_debug: HashSet[string]
+  max_line_len: int
   # log_data:     bool
 
 let console_log = ConsoleLog(
@@ -14,6 +15,7 @@ let console_log = ConsoleLog(
   # could be "HTTP" or "HTTP,DB"
   log_as_debug: env["log_as_debug", ""].to_lower.split(",").filter((s) => not s.is_empty).to_hash_set,
   # log_data:     env["log_data", "false"].parse_bool,
+  max_line_len: env["max_line_len", "120"].parse_int,
 )
 
 const max_module_len = 4
@@ -60,10 +62,11 @@ proc format_data(data: JsonNode): string =
         .replace(re("\"([^\"]+)\":"), (match) => match & ":")
         .trim
       let oneline_json = clean_json.replace(re",[\n\s]+", ", ")
-      return if oneline_json.len < 70:
-        (" " & oneline_json).grey
-      else:
-        ("\n" & clean_json).replace("\n", "\n" & indent).grey
+      return oneline_json
+      # return if oneline_json.len < 70:
+      #   (" " & oneline_json).grey
+      # else:
+      #   ("\n" & clean_json).replace("\n", "\n" & indent).grey
   ""
 
 proc format_message(data: JsonNode, msg: string): string =
@@ -100,23 +103,38 @@ proc emit_to_console*(m: LogMessage): void =
   if m.module.is_some and not console_log.is_enabled(m.module.get, m.level): return
 
   # Formatting message
-  let line =
+  var data_line = format_data(data)
+  var msg_line =
+    "  " &
     format_module(m.module.get("")) & module_id_delimiter &
     format_id(m.id.get(seq[string].init)) & " " &
     format_message(data, m.message) &
-    format_data(data)
+    (if data_line.is_empty: "" else: " ")
+
+  # Limiting line length
+  if msg_line.len > console_log.max_line_len:
+    data_line = ""
+    msg_line = msg_line.take(console_log.max_line_len - 3) & "..."
+  elif (msg_line.len + data_line.len) > console_log.max_line_len:
+    if (msg_line.len + 3) > console_log.max_line_len:
+      data_line = ""
+      msg_line = msg_line.take(console_log.max_line_len - 3) & "..."
+    else:
+      data_line = data_line.take(console_log.max_line_len - 3 - msg_line.len) & "..."
 
   # Formatting level
   case m.level
   of debug:
-    echo "  " & line.grey
+    echo (msg_line & data_line).grey
   of info:
     let as_grey = console_log.is_debug(m.module.get(""))
-    echo "  " & (if as_grey: line.grey else: line)
+    echo (if as_grey: (msg_line & data_line).grey else: msg_line & data_line.grey)
   of warn:
-    echo ("W " & line).yellow
+    msg_line[0] = 'W'
+    echo msg_line.yellow & data_line.grey
   of error:
-    stderr.write_line ("E " & line).red
+    msg_line[0] = 'E'
+    stderr.write_line msg_line.red & data_line.grey
 
   # Printing exception and stack if exist
   if "exception" in data:

@@ -105,7 +105,7 @@ proc run_http_server*(
   # Triggering timer event periodically, to check for any background state changes
   add_timer(timer_event_ms, () => sessions.add_timer_event, once = false)
 
-  http_log.info "started"
+  http_log.with((port: port)).info "started"
   spawn_async(() => say "started", false)
 
   while true:
