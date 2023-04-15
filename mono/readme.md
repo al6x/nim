@@ -28,6 +28,8 @@ If there's any issues with nimble install, install it manually:
 
 Then run [todo example](examples/todo.nim) and start experimenting.
 
+Use `import base/log; log_emitters.len = 0` to silence the default console logger.
+
 # Limitations
 
 I'm using it for some private app, and going to fix bugs as I'll encounter it.
