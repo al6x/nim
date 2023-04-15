@@ -145,6 +145,7 @@ when is_main_module:
       <!DOCTYPE html>
       <html>
         <head>
+          <link rel="stylesheet" href="/assets/mono.css"/>
           <link rel="stylesheet" href="/assets/todo.css"/>
         </head>
         <body>
