@@ -71,12 +71,13 @@ proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 template p*(args) = echo args
 
 
-type Timer* = proc: int
-proc timer_sec*(): Timer =
+type TimerSec* = proc: int
+proc timer_sec*(): TimerSec =
   let started_at = nt.utc(nt.now())
   () => nt.in_seconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 
-proc timer_ms*(): Timer =
+type TimerMs* = proc: int
+proc timer_ms*(): TimerMs =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 

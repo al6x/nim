@@ -38,7 +38,7 @@ proc handle_app_in_event(req: Request, session: Session, events: seq[InEvent]): 
   await req.respond("{}", "application/json")
 
 proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[void] {.async.} =
-  let timer = timer_ms()
+  let timout_timer = timer_ms()
   while true:
     if not session.outbox.is_empty:
       let events = session.outbox
@@ -47,7 +47,7 @@ proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[v
         session.log.with(event).info ">>"
       await req.respond_json SessionPullEvent(kind: SessionPullEventKind.events, events: events)
       break
-    if timer() > pull_timeout_ms:
+    if timout_timer() > pull_timeout_ms:
       await req.respond_json SessionPullEvent(kind: ignore)
       break
     await sleep_async 1
@@ -87,6 +87,7 @@ proc run_http_server*(
   build_app:           BuildApp,
   port:                int,
   asset_paths        = seq[string].init,
+  timer_event_ms     = 500,
   pull_timeout_ms    = 2000,
   session_timeout_ms = 6000
 ) =
@@ -100,6 +101,9 @@ proc run_http_server*(
   spawn_async server.serve(Port(port), handler, "localhost")
 
   add_timer((session_timeout_ms/2).int, () => sessions.collect_garbage(session_timeout_ms), once = false)
+
+  # Triggering timer event periodically, to check for any background state changes
+  add_timer(timer_event_ms, () => sessions.add_timer_event, once = false)
 
   http_log.info "started"
   spawn_async(() => say "started", false)

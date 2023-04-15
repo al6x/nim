@@ -24,8 +24,8 @@ type
     value*: string
   InputHandler* = proc(e: InputEvent)
 
-  TimeoutEvent* = object
-    stub*: string # otherwise json doesn't work
+  # TimeoutEvent* = object
+  #   stub*: string # otherwise json doesn't work
 
   SetValueHandler* = object
     handler*: (proc(v: string))

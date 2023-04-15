@@ -8,7 +8,8 @@ type
     text*:      string
     completed*: bool
 
-  Todos* = seq[TodoItem]
+  Todo* = ref object
+    items*: seq[TodoItem]
 
 proc id*(self: TodoItem): string =
   self.text
@@ -16,15 +17,15 @@ proc id*(self: TodoItem): string =
 
 # TodoView -----------------------------------------------------------------------------------------
 # Feature: stateful component, preserving its state between renders
-type TodoView* = ref object of Component
+type TodoItemView* = ref object of Component
   on_delete: proc(id: string)
   editing:   Option[string] # value of `editing` field going to be maintained between requests
   item:      TodoItem
 
-proc set_attrs*(self: TodoView, item: TodoItem, on_delete: (proc(id: string))) =
+proc set_attrs*(self: TodoItemView, item: TodoItem, on_delete: (proc(id: string))) =
   self.item = item; self.on_delete = on_delete
 
-proc render*(self: TodoView): HtmlElement =
+proc render*(self: TodoItemView): HtmlElement =
   proc handle_edit(e: KeydownEvent) =
     if e.key == "Enter":
       self.item.text = self.editing.get
@@ -54,40 +55,40 @@ proc render*(self: TodoView): HtmlElement =
 
 
 # TodosView -----------------------------------------------------------------------------------------
-type TodosViewFilter* = enum all, active, completed
+type TodoViewFilter* = enum all, active, completed
 
-type TodosView* = ref object of Component
-  items:      Todos
-  filter:     TodosViewFilter
+type TodoView* = ref object of Component
+  todo:       Todo
+  filter:     TodoViewFilter
   new_todo:   string
   toggle_all: bool
 
-proc set_attrs*(self: TodosView, items: Todos = @[], filter: TodosViewFilter = all) =
-  self.items = items; self.filter = filter
+proc set_attrs*(self: TodoView, todo: Todo = Todo(), filter: TodoViewFilter = all) =
+  self.todo = todo; self.filter = filter
 
-proc render*(self: TodosView): HtmlElement =
-  let completed_count = self.items.count((item) => item.completed)
-  let active_count    = self.items.len - completed_count
-  let all_completed   = completed_count == self.items.len
+proc render*(self: TodoView): HtmlElement =
+  let completed_count = self.todo.items.count((item) => item.completed)
+  let active_count    = self.todo.items.len - completed_count
+  let all_completed   = completed_count == self.todo.items.len
 
   let filtered =
     case self.filter:
-    of all:       self.items
-    of completed: self.items.filter((item) => item.completed)
-    of active:    self.items.filter((item) => not item.completed)
+    of all:       self.todo.items
+    of completed: self.todo.items.filter((item) => item.completed)
+    of active:    self.todo.items.filter((item) => not item.completed)
 
   proc create_new(e: KeydownEvent) =
     if e.key == "Enter" and not self.new_todo.is_empty:
-      self.items.add(TodoItem(text: self.new_todo, completed: false))
+      self.todo.items.add(TodoItem(text: self.new_todo, completed: false))
       self.new_todo = ""
 
   proc toggle_all(e: ChangeEvent) =
-    self.items.each((item: TodoItem) => (item.completed = not all_completed))
+    self.todo.items.each((item: TodoItem) => (item.completed = not all_completed))
 
   proc on_delete(id: string) =
-    self.items.delete((item) => item.id == id)
+    self.todo.items.delete((item) => item.id == id)
 
-  proc set_filter(filter: TodosViewFilter): auto =
+  proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
   h"header.header":
@@ -96,7 +97,7 @@ proc render*(self: TodosView): HtmlElement =
       .bind_to(self.new_todo, true)
       .on_keydown(create_new)
 
-    if not self.items.is_empty:
+    if not self.todo.items.is_empty:
       + h"section.main":
         + h"input#toggle-all.toggle-all type=checkbox"
           .value(all_completed)
@@ -107,14 +108,14 @@ proc render*(self: TodosView): HtmlElement =
           for item in filtered:
             # Feature: statefull componenets, attr names and values are typesafe
             let item = item
-            + self.h(TodoView, item.id, (on_delete: on_delete, item: item))
+            + self.h(TodoItemView, item.id, (on_delete: on_delete, item: item))
 
         + h"footer.footer":
           + h"span.todo-count":
             + h"strong".text(active_count)
             + h"span".text((if active_count == 1: "item" else: "items") & " left")
 
-          proc filter_class(filter: TodosViewFilter): string =
+          proc filter_class(filter: TodoViewFilter): string =
             if self.filter == filter: ".selected"  else: ""
 
           + h"ul.filters":
@@ -130,7 +131,10 @@ proc render*(self: TodosView): HtmlElement =
 
           if all_completed:
             + h"button.clear-completed".text("Delete completed")
-              .on_click(proc = self.items.delete((item) => item.completed))
+              .on_click(proc = self.todo.items.delete((item) => item.completed))
+
+proc on_timer*(self: TodoView): bool =
+  true
 
 when is_main_module:
   # Deploying to Nim Server, also could be compiled to JS and deployed to Browser or Desktop App with WebView
@@ -158,13 +162,14 @@ when is_main_module:
       </html>
     """.dedent.replace("{html}", html)
 
-  let todos = TodosView()
+  let todo = Todo(items: @[TodoItem(text: "Buy Milk")])
 
   proc build_app(url: Url): tuple[page: AppPage, app: App] =
-    todos.set_attrs(items = @[TodoItem(text: "Buy Milk")])
+    let todo_view = TodoView()
+    todo_view.set_attrs(todo = todo)
 
     let app: App = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
-      todos.process(events, mono_id)
+      todo_view.process(events, mono_id)
 
     (page, app)
 

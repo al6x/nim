@@ -2,7 +2,7 @@ import base, ext/url, std/macros
 import ./html_element
 
 type
-  InEventType* = enum location, click, dblclick, keydown, change, blur, input, timeout
+  InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer
 
   InEvent* = object
     el*: seq[int]
@@ -21,7 +21,7 @@ type
       blur*: BlurEvent
     of input:
       input*: InputEvent
-    of timeout:
+    of timer: # Triggered periodically, to check and pick any background changes in state
       discard
 
   OutEventType* = enum eval, update
@@ -114,8 +114,11 @@ template process_in_event*[C](self: C, event: InEvent): bool =
       handler event.input
 
     render_for_input_change or render_for_input_handler
-  of timeout:
-    true
+  of timer:
+    when compiles(self.on_timer):
+      self.on_timer
+    else:
+      false
 
 proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   let state_changed_maybe = events.map((event) => self.process_in_event event).any

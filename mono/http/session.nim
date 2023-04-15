@@ -33,7 +33,7 @@ type Session* = ref object
   app*:              App
   inbox*:            seq[InEvent]
   outbox*:           seq[OutEvent]
-  last_accessed_ms*: Timer
+  last_accessed_ms*: TimerMs
 
 proc init*(_: type[Session], mono_id: string, app: App): Session =
   Session(id: mono_id, app: app, last_accessed_ms: timer_ms())
@@ -54,9 +54,12 @@ proc process*(sessions: Sessions) =
   # p sessions
   for _, s in sessions: s.process
 
-proc collect_garbage*(this: Sessions, session_timeout_ms: int) =
-  let deleted = this[].delete (_, s) => s.last_accessed_ms() > session_timeout_ms
+proc collect_garbage*(self: Sessions, session_timeout_ms: int) =
+  let deleted = self[].delete (_, s) => s.last_accessed_ms() > session_timeout_ms
   for session in deleted.values: session.log.info("closed")
+
+proc add_timer_event*(self: Sessions) =
+  for id, session in self: session.inbox.add(InEvent(kind: timer))
 
 
 # proc to(e: OutEvent, _: type[SessionPostEvent]): SessionPostEvent =
