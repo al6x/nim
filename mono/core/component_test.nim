@@ -113,15 +113,3 @@ test "counter":
     check res.to_json == %[{ kind: "update", updates: [
       { el: [0, 3], set_attrs: { text: "a2 b2 1" } }
     ]}]
-
-
-
-# let initial_html =
-#   %{ class: "parent", children: [
-#     { class: "counter", children: [
-#       { tag: "input", value: "some", type: "text" },
-#       { tag: "button", text: "+" },
-#       { text: "some 0" },
-#     ] }
-#   ] }
-# let expected = %[{ kind: "update", updates: [ { el: [], set: initial_html } ] }]

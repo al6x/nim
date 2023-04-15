@@ -28,9 +28,13 @@ Then run [todo example](examples/todo.nim) and start experimenting.
 
 # Limitations
 
-Some edge cases may not be tested, some HTML inputs haven't been tested, so there could be bugs.
+Some edge cases may not be tested, some HTML inputs haven't been tested.
 
-I'm using it to build some private app, and going to fix bugs as I'll encounter it... :)
+Currently `-mm:orc` not work, going to be fixed with the next nim release.
+
+I use it with `threads:off`, the multicore will be added when multicore in Nim will be be mature enough.
+
+I'm using it for some private app, and going to fix bugs as I'll encounter it... :)
 
 # Development and contribuging
 

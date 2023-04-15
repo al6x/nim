@@ -122,13 +122,11 @@ template process_in_event*[C](self: C, event: InEvent): bool =
 
 proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   let state_changed_maybe = events.map((event) => self.process_in_event event).any
+  # Optimisation, skipping render if there's no changes
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   var new_tree: HtmlElement = self.render
   new_tree.attrs["mono_id"] = id.to_json
-  # # Root always should be document, auto creating if it's not
-  # if new_tree.nattrs["tag"].get_str != "document":
-  #   new_tree = HtmlElement.init(tag = "document", children = @[new_tree])
   self.after_render
 
   let updates = if self.current_tree.is_some:
@@ -137,10 +135,8 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
     @[UpdateElement(el: @[], set: new_tree.to_json.some)]
   self.current_tree = new_tree.some
 
-  if updates.is_empty:
-    @[]
-  else:
-    @[OutEvent(kind: update, updates: updates)]
+  if updates.is_empty: @[]
+  else:                @[OutEvent(kind: update, updates: updates)]
 
 
 # HtmlElement --------------------------------------------------------------------------------------
