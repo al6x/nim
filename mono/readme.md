@@ -9,6 +9,7 @@ Checkout the [Todo](examples/todo.nim) example.
 - Reactive, like Svelte, with compact and clean code.
 - Stateful Components.
 - Bidirectional data binding to inputs.
+- Sharing data among multiple UI instances or browsers.
 - Fast initial page load.
 - SEO friendly.
 - Flexible deployment: Server, Browser, Desktop, Mobile.
