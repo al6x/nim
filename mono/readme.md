@@ -1,4 +1,4 @@
-UI library for Nim, similar to Svelte.
+UI library for Nim.
 
 **High productivity, simple and clean code** are main priorities.
 
