@@ -28,7 +28,9 @@ Then run [todo example](examples/todo.nim) and start experimenting.
 
 # Limitations
 
-Some edge cases may not be tested.
+Some edge cases may not be tested, some HTML inputs haven't been tested, so there could be bugs.
+
+I'm using it to build some private app, and going to fix bugs as I'll encounter it... :)
 
 # Development and contribuging
 
