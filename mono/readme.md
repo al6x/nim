@@ -4,6 +4,8 @@ UI library for Nim.
 
 Checkout the [Todo](examples/todo.nim) example.
 
+Inspired by Svelte and Ruby.
+
 # Features
 
 - Reactive, like Svelte, with compact and clean code.
@@ -28,13 +30,13 @@ Then run [todo example](examples/todo.nim) and start experimenting.
 
 # Limitations
 
+I'm using it for some private app, and going to fix bugs as I'll encounter it.
+
 Some edge cases may not be tested, some HTML inputs haven't been tested.
 
-Currently `-mm:orc` doesn't work, it's going to be fixed with the next nim release.
+Currently `-mm:orc` doesn't work, it's going to work with the next nim release.
 
-I use it with `threads:off`, the multicore will be added when multicore in Nim will be be mature enough.
-
-I'm using it for some private app, and going to fix bugs as I'll encounter it.
+I use it with `threads:off`, the multicore will be added when multicore in Nim will be be mature.
 
 # Development and contribuging
 
