@@ -21,7 +21,7 @@ Checkout the [Todo](examples/todo.nim) example.
 If there's any issues with nimble install, install it manually:
 
 - Download two libraries [base](../base) and this library - mono.
-- Add them to nim build paths.
+- Add both to nim build paths.
 - Check if code `import base, mono/core` works.
 
 Then run [todo example](examples/todo.nim) and start experimenting.
