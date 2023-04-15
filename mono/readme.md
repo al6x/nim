@@ -11,7 +11,7 @@ Checkout the [Todo](examples/todo.nim) example.
 - Bidirectional data binding to inputs.
 - Fast initial page load.
 - SEO friendly.
-- Lots of deployment options, Browser, Desktop, Mobile, Server.
+- Flexible deployment: Server, Browser, Desktop, Mobile.
 
 # Install
 
@@ -36,32 +36,42 @@ Checkout the repo, then run
 - `nim r mono/test test` for tests.
 - `nim r mono/examples/todo` for example.
 
-Checkout code in the `mono/core` folder, especially the `mono/core/component_test` to understand how it works.
+The whole library is just one function
+
+```
+let out: seq[OutEvent] = component.process(events: seq[InEvent])
+```
+
+Checkout code in the [mono/core](mono/core), especially the `mono/core/component_test` to see how it works.
 
 # Todo
 
 - document.title and document.location
 - Browser Adapter with multiple widgets in the page and interactive charts.
-- Twitter exapmle and Chat example.
 - Better Async/Actor/Networking code.
 
 # Deployment options
 
-Unline other UI frameworks it doesn't requires any dependency or environment. It's just a function that
-get JSON string as input and respond with JSON string as output `let out = ui.process(in)`. So it could
-be used in whatever ways and environments Browser, Desktop, Mobile, Server.
+Unline other UI frameworks it doesn't have any dependency or environment. The UI is just a function that
+get JSON string as input and respond with JSON string as output:
 
-UI has two parts, the **UI itself**, the actual UI running Nim code, and the **Proxy View** that has no
-code or logic and just renders the HTML it gets as string from the actual UI.
+```
+let out: seq[OutEvent] = component.process(events: seq[InEvent])
+````
+
+And so it could be used in whatever ways and environments Browser, Desktop, Mobile, Server.
+
+To deploy it you need the **Proxy Adapter** that would connects the `InEvent/OutEvent` messages to actual
+environment, like Browser.
 
 The Proxy and UI are communicate with JSON messages, and could be executed in the same runtime or in
 different runtimes on same or different machines.
 
-**Proxy View** part could be deployed to Browser as a) **Standalone App** b) **Widget in another App**,
+**Proxy** part could be deployed to Browser as a) **Standalone App** b) **Widget in another App**,
 like React.JS or Ruby on Rails.
 
 **UI** part could be deplyed to a) Nim **Server** on another machine b) Compiled to **JS or WebAsm** and run in
-the same **Browser** with Proxy View.
+the same **Browser** with Proxy.
 
 The only difference in deployment options is network latency if UI and Proxy run in different machiens, the
 network traffic going to be small as UI sends only diffs.
