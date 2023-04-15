@@ -137,7 +137,7 @@ proc on_timer*(self: TodoView): bool =
   true
 
 when is_main_module:
-  # Deploying to Nim Server, also could be compiled to JS and deployed to Browser or Desktop App with WebView
+  # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or WebView
   import mono/http, std/os
 
   let page: AppPage = proc(meta, html: string): string =
@@ -162,6 +162,7 @@ when is_main_module:
       </html>
     """.dedent.replace("{html}", html)
 
+  # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk")])
 
   proc build_app(url: Url): tuple[page: AppPage, app: App] =

@@ -13,12 +13,16 @@ Checkout the [Todo](examples/todo.nim) example.
 - SEO friendly.
 - Lots of deployment options, Browser, Desktop, Mobile, Server.
 
-# Possible problems
+# Install
+
+`nimble install https://github.com/al6x/nim?subdir=mono`
+
+If there's any issues with nimble install, it needs only two libraries, [base](base) and [mono](mono)
+download it and add to nim build paths.
+
+# Limitations
 
 Some edge cases may not be tested.
-
-Some surprises with JSON, I use non standard json library, because std/json has too many
-issues.
 
 # Development and contribuging
 
@@ -31,6 +35,7 @@ Checkout code in the `mono/core` folder, especially the `mono/core/component_tes
 
 # Todo
 
+- document.title and document.location
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Twitter exapmle and Chat example.
 - Better Async/Actor/Networking code.
