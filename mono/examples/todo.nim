@@ -38,7 +38,7 @@ proc render*(self: TodoItemView): HtmlElement =
     (if self.editing.is_some: ".editing" else: "")
 
   # Feature: compact HTML template syntax
-  h"li{class_modifier}":
+  h"li{class_modifier} flash":
     + h".view":
       + h"input.toggle type=checkbox"
         # Feature: two way binding with autocast
@@ -145,6 +145,7 @@ when is_main_module:
       <!DOCTYPE html>
       <html>
         <head>
+          <link rel="stylesheet" href="/assets/mono.css"/>
           <link rel="stylesheet" href="/assets/todo.css"/>
         </head>
         <body>

@@ -31,8 +31,6 @@ Checkout code in the `mono/core` folder, especially the `mono/core/component_tes
 
 # Todo
 
-- Synchronization
-- Yellow Flash
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Twitter exapmle and Chat example.
 - Better Async/Actor/Networking code.

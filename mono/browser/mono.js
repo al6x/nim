@@ -4,6 +4,7 @@
 
 console.log.bind(console), window;
 function run() {
+    append_mono_css();
     listen_to_dom_events();
     let mono_ids = get_mono_ids();
     if (mono_ids.length < 1) throw new Error("mono_id not found");
@@ -165,7 +166,7 @@ async function pull(mono_id) {
             case 'ignore':
                 break;
             case 'expired':
-                document.body.style.opacity = "0.3";
+                document.body.style.opacity = "0.4";
                 log.info("expired");
                 break main_loop;
             case 'error':
@@ -334,10 +335,12 @@ let boolean_attr_properties = [
 function apply_update(root, update) {
     let el = el_by_path(root, update.el);
     let set = update.set;
+    let self_updated = false;
     if (set) {
         el.replaceWith(to_element(set));
+        self_updated = true;
     }
-    let set_attrs = update.set_attrs;
+    let set_attrs = update.set_attrs, attrs_updated = false;
     if (set_attrs) {
         for(const k in set_attrs){
             let v = "" + set_attrs[k];
@@ -352,6 +355,7 @@ function apply_update(root, update) {
             } else {
                 el.setAttribute(k, v);
             }
+            attrs_updated = true;
         }
     }
     let del_attrs = update.del_attrs;
@@ -365,9 +369,10 @@ function apply_update(root, update) {
             } else {
                 el.removeAttribute(k);
             }
+            attrs_updated = true;
         }
     }
-    let set_children = update.set_children;
+    let set_children = update.set_children, children_updated = [];
     if (set_children) {
         let positions = [];
         for(const pos_s in set_children){
@@ -384,9 +389,10 @@ function apply_update(root, update) {
                 assert(pos == el.children.length, "set_children can't have gaps in children positions");
                 el.appendChild(child);
             }
+            children_updated.push(pos);
         }
     }
-    let del_children = update.del_children;
+    let del_children = update.del_children, children_deleted = false;
     if (del_children) {
         let positions = [
             ...del_children
@@ -396,6 +402,21 @@ function apply_update(root, update) {
         for (const pos of positions){
             assert(pos <= el.children.length, "del_children index out of bounds");
             el.children[pos].remove();
+            children_deleted = true;
+        }
+    }
+    for (let pos of children_updated){
+        let child = el.children[pos];
+        if (child.hasAttribute("flash")) flash(child);
+    }
+    if (self_updated || attrs_updated || children_updated.length > 0 || children_deleted) {
+        let flasheable = el;
+        while(flasheable){
+            if (flasheable.hasAttribute("flash")) {
+                flash(flasheable);
+                break;
+            }
+            flasheable = flasheable.parentElement;
         }
     }
 }
@@ -404,5 +425,114 @@ function assert(cond, message = "assertion failed") {
 }
 function arrays_equal(a, b) {
     return JSON.stringify(a) == JSON.stringify(b);
+}
+let update_timeouts = {};
+let flash_id_counter = 0;
+function flash(el, before_delete = false, timeout = 1500, before_delete_timeout = 400) {
+    let [klass, delay] = before_delete ? [
+        'flash_before_delete',
+        before_delete_timeout
+    ] : [
+        'flash',
+        timeout
+    ];
+    if (!el.dataset.flash_id) el.dataset.flash_id = "" + flash_id_counter++;
+    let id = el.dataset.flash_id;
+    if (id in update_timeouts) {
+        clearTimeout(update_timeouts[id]);
+        el.classList.remove(klass);
+        setTimeout(()=>{
+            void el.offsetWidth;
+            el.classList.add(klass);
+        });
+    } else {
+        el.classList.add(klass);
+    }
+    update_timeouts[id] = setTimeout(()=>{
+        el.classList.remove(klass);
+        delete update_timeouts[id];
+    }, delay);
+}
+function append_mono_css() {
+    let css = `
+    /* Flash ---------------------------------------------------------------------------------------- */
+    @keyframes yellowfade {
+      from { background: rgba(253, 216, 53, 0.2); } /* #fdd835 */
+      to { background: inherit; }
+    }
+
+    .flash {
+      animation-name: yellowfade;
+      animation-duration: 1.5s;
+    }
+
+    /* Flash before delete -------------------------------------------------------------------------- */
+
+    @keyframes opacityfade {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .flash_before_delete {
+      animation-name: opacityfade;
+      animation-duration: 0.4s;
+    }
+
+    /* Waiting -------------------------------------------------------------------------------------- */
+    @keyframes waiting {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .waiting:not(input) {
+      color: transparent !important;
+      min-height: .8rem;
+      pointer-events: none;
+      position: relative;
+    }
+
+    .waiting::after {
+      animation: loading 500ms infinite linear;
+      border: .1rem solid primary-color;
+      border-radius: 50%;
+      border-right-color: transparent;
+      border-top-color: transparent;
+      content: "";
+      display: block;
+      height: .8rem;
+      left: 50%;
+      margin-left: -.4rem;
+      margin-top: -.4rem;
+      position: absolute;
+      top: 50%;
+      width: .8rem;
+      z-index: 1;
+    }
+
+    .-waiting.-waiting-lg {
+      min-height: 2rem;
+    }
+
+    .-waiting.-waiting-lg::after {
+      height: 1.6rem;
+      margin-left: -.8rem;
+      margin-top: -.8rem;
+      width: 1.6rem;
+    }
+
+    /* Inverting color on black buttons */
+    .-primary.-waiting::after {
+      border-color: background-color;
+      border-right-color: primary-color;
+      border-top-color: primary-color;
+    }
+  `;
+    var styleSheet = document.createElement("style");
+    styleSheet.innerText = css;
+    document.head.appendChild(styleSheet);
 }
 export { run as run };

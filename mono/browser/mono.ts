@@ -324,11 +324,14 @@ let boolean_attr_properties = ["checked"]
 function apply_update(root: HTMLElement, update: UpdateElement) {
   let el = el_by_path(root, update.el)
   let set = update.set
+
+  let self_updated = false
   if (set) {
     el.replaceWith(to_element(set))
+    self_updated = true
   }
 
-  let set_attrs = update.set_attrs
+  let set_attrs = update.set_attrs, attrs_updated = false
   if (set_attrs) {
     for (const k in set_attrs) {
       let v = "" + set_attrs[k]
@@ -343,6 +346,7 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
       } else {
         el.setAttribute(k, v)
       }
+      attrs_updated = true
     }
   }
 
@@ -357,10 +361,11 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
       } else {
         el.removeAttribute(k)
       }
+      attrs_updated = true
     }
   }
 
-  let set_children = update.set_children
+  let set_children = update.set_children, children_updated = []
   if (set_children) {
     // Sorting by position, as map is not sorted
     let positions: [number, HTMLElement][] = []
@@ -376,10 +381,11 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
         assert(pos == el.children.length, "set_children can't have gaps in children positions")
         el.appendChild(child)
       }
+      children_updated.push(pos)
     }
   }
 
-  let del_children = update.del_children
+  let del_children = update.del_children, children_deleted = false
   if (del_children) {
     // Sorting by position descending
     let positions = [...del_children]
@@ -388,6 +394,23 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
     for (const pos of positions) {
       assert(pos <= el.children.length, "del_children index out of bounds")
       el.children[pos].remove()
+      children_deleted = true
+    }
+  }
+
+  // Flashing changed children
+  for (let pos of children_updated) {
+    let child = el.children[pos] as HTMLElement
+    if (child.hasAttribute("flash")) flash(child)
+  }
+  if (self_updated || attrs_updated || children_updated.length > 0 || children_deleted) {
+    let flasheable: HTMLElement | null = el // Flashing self or parent element
+    while (flasheable) {
+      if (flasheable.hasAttribute("flash")) {
+        flash(flasheable)
+        break
+      }
+      flasheable = flasheable.parentElement
     }
   }
 }
@@ -398,4 +421,41 @@ function assert(cond: boolean, message = "assertion failed") {
 
 function arrays_equal<T>(a: T[], b: T[]): boolean {
   return JSON.stringify(a) == JSON.stringify(b)
+}
+
+// Highlight element with yellow flash
+let update_timeouts: { [key: string]: number } = {}
+let flash_id_counter = 0
+function flash(
+  el: HTMLElement,
+  before_delete         = false,
+  timeout               = 1500, // should be same as in CSS animation
+  before_delete_timeout = 400   // should be same as in CSS animation
+): void {
+  // const id = $el.get_attr('id')
+  let [klass, delay] = before_delete ?
+    ['flash_before_delete', before_delete_timeout] :
+    ['flash', timeout]
+
+  // ID needed when flash repeatedly triggered on the same element, before the previous flash has
+  // been finished. Without ID such fast flashes won't work properly.
+  // Example - frequent updates from the server changing counter.
+  if (!el.dataset.flash_id) el.dataset.flash_id = "" + (flash_id_counter++)
+  let id = el.dataset.flash_id
+
+  if (id in update_timeouts) {
+    clearTimeout(update_timeouts[id])
+    el.classList.remove(klass)
+    setTimeout(() => {
+      void (el as any).offsetWidth
+      el.classList.add(klass)
+    }) // Triggering re-render
+  } else {
+    el.classList.add(klass)
+  }
+
+  update_timeouts[id] = setTimeout(() => {
+    el.classList.remove(klass)
+    delete update_timeouts[id]
+  }, delay)
 }
