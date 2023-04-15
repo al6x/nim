@@ -158,8 +158,9 @@ when is_main_module:
       </html>
     """.dedent.replace("{html}", html)
 
+  let todos = TodosView()
+
   proc build_app(url: Url): tuple[page: AppPage, app: App] =
-    let todos = TodosView()
     todos.set_attrs(items = @[TodoItem(text: "Buy Milk")])
 
     let app: App = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
