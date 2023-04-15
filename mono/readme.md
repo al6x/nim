@@ -17,9 +17,13 @@ Checkout the [Todo](examples/todo.nim) example.
 
 `nimble install https://github.com/al6x/nim?subdir=mono`
 
-If there's any issues with nimble install, install it manually, download two libraries
-[base](../base) and this library - mono, add to nim build paths and check if
-code `import base, mono/core` works.
+If there's any issues with nimble install, install it manually:
+
+- Download two libraries [base](../base) and this library - mono.
+- Add them to nim build paths.
+- Check if code `import base, mono/core` works.
+
+Then run [todo example](examples/todo.nim) and start experimenting.
 
 # Limitations
 
