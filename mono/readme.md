@@ -36,8 +36,6 @@ Some edge cases may not be tested, some HTML inputs haven't been tested.
 
 Currently `-mm:orc` doesn't work, it's going to work with the next nim release.
 
-I use it with `threads:off`, the multicore will be added when multicore in Nim will be be mature.
-
 # Development and contribuging
 
 Checkout the repo, then run
