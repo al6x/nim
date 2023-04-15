@@ -42,7 +42,7 @@ The whole library is just one function
 let out: seq[OutEvent] = component.process(events: seq[InEvent])
 ```
 
-Checkout code in the [mono/core](mono/core), especially the `mono/core/component_test` to see how it works.
+Checkout [core](core), especially the `mono/core/component_test` to see how it works.
 
 # Todo
 
