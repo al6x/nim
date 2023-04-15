@@ -22,9 +22,9 @@ Inspired by Svelte and Ruby.
 
 If there's any issues with nimble install, install it manually:
 
-- Download two libraries [base](../base) and this library - mono.
-- Add both to nim build paths.
-- Check if code `import base, mono/core` works.
+- Download two libraries [base](../base), [ext](../ext), and this library - mono.
+- Add all three to nim build paths.
+- Check if `import base, mono/core` works.
 
 Then run [todo example](examples/todo.nim) and start experimenting.
 
