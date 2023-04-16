@@ -98,3 +98,7 @@ recorded and replayed.
 Work as statefull or stateless, without need to occupy server memory between requests.
 
 Persist UI state between server reloads.
+
+# License
+
+MIT
