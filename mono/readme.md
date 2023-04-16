@@ -23,7 +23,7 @@ Inspired by Svelte and Ruby.
 If there's any issues with nimble install, install it manually:
 
 - Download dependencies [base](../base), [ext](../ext), and this library - mono.
-- Add all three to nim build paths.
+- Add all three to Nim build paths.
 - Check if `import base, mono/core` works.
 
 Then run [todo example](examples/todo.nim) and start experimenting.
@@ -32,13 +32,13 @@ Use `import base/log; log_emitters.len = 0` to silence the default console logge
 
 # Limitations
 
-I'm using it for some private app, and going to fix bugs as I'll encounter it.
+I'm using this for a private app, and going to fix bugs as I encounter them.
 
-Some edge cases may not be tested, some HTML inputs haven't been tested.
+Some edge cases might not be tested, some HTML inputs haven't been tested.
 
-Currently `-mm:orc` doesn't work, will work with the next nim release.
+Currently `-mm:orc` doesn't work, will work with the next Nim release.
 
-# Development and contribuging
+# Development and contributing
 
 Checkout the repo, then run
 
@@ -57,47 +57,47 @@ Other packages are adapters to connect that function to different environments l
 And provide transport for messages, like HTTP. You could replace it with your own adapter and transport,
 like WebSocket.
 
-I use simple HTTP server and not WebSocket, because I want to avoid dependencies, and
-have small code size, to have fast Nim compilation. You can change that and rewrite server to use WebSocket.
+I use a simple HTTP server and not WebSocket, because I want to avoid dependencies and
+keep the code size small, to have fast Nim compilation. You can change that and rewrite server to use WebSocket.
 
 # Todo
 
-- document.title and document.location
+- `document.title` and `document.location`.
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Better Async/Actor/Networking code.
 
 # Deployment options
 
-Unline other UI frameworks it doesn't have any dependency or environment. The UI is just a function that
-get JSON string as input and respond with JSON string as output:
+Unlike other UI frameworks, it doesn't have any dependency or environment. The UI is just a function that
+gets a JSON string as input and respond with a JSON string as output:
 
 ```Nim
 let out: seq[OutEvent] = component.process(events: seq[InEvent])
 ```
 
-And so it could be used in whatever ways and environments Browser, Desktop, Mobile, Server.
+And so, it could be used in whatever ways and environments: Browser, Desktop, Mobile, Server.
 
-To deploy it you need the **Proxy Adapter** that would connects the `InEvent/OutEvent` messages to actual
-environment, like Browser.
+To deploy it you need the **Proxy Adapter** that would connects the `InEvent/OutEvent` messages to an actual
+environment, like a Browser.
 
-The Proxy and UI are communicate with JSON messages, and could be executed in the same runtime or in
+The Proxy and UI communicate with JSON messages, and could be executed in the same runtime or in
 different runtimes on same or different machines.
 
 **Proxy** part could be deployed to Browser as a) **Standalone App** b) **Widget in another App**,
 like React.JS or Ruby on Rails.
 
-**UI** part could be deplyed to a) Nim **Server** on another machine b) Compiled to **JS or WebAsm** and run in
+**UI** part could be deployed to a) Nim **Server** on another machine b) Compiled to **JS or WebAsm** and run in
 the same **Browser** with Proxy.
 
-The only difference in deployment options is network latency if UI and Proxy run in different machiens, the
-network traffic going to be small as UI sends only diffs.
+The only difference in deployment options is the network latency if UI and Proxy run in different machines, the
+network traffic going to be small as the UI sends only the diffs.
 
-Because all communication happens as JSON messages, the UI state could be saved and reestored,
+Because all communication happens using JSON messages, the UI state could be saved and restored,
 recorded and replayed.
 
-Work as statefull or stateless, without need to occupy server memory between requests.
+Work stateful or stateless, without the need to occupy server memory between requests.
 
-Persist UI state between server reloads.
+Persists the UI state between server reloads.
 
 # License
 
