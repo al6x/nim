@@ -137,7 +137,7 @@ proc on_timer*(self: TodoView): bool =
   true
 
 when is_main_module:
-  # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or WebView
+  # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView
   import mono/http, std/os
 
   let page: AppPage = proc(meta, html: string): string =

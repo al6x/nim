@@ -47,7 +47,7 @@ Checkout the repo, then run
 
 The whole library is just one function
 
-```
+```Nim
 let out: seq[OutEvent] = component.process(events: seq[InEvent])
 ```
 
@@ -71,9 +71,9 @@ have small code size, to have fast Nim compilation. You can change that and rewr
 Unline other UI frameworks it doesn't have any dependency or environment. The UI is just a function that
 get JSON string as input and respond with JSON string as output:
 
-```
+```Nim
 let out: seq[OutEvent] = component.process(events: seq[InEvent])
-````
+```
 
 And so it could be used in whatever ways and environments Browser, Desktop, Mobile, Server.
 
