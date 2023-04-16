@@ -57,6 +57,9 @@ Other packages are adapters to connect that function to different environments l
 And provide transport for messages, like HTTP. You could replace it with your own adapter and transport,
 like WebSocket.
 
+I use simple HTTP server and not WebSocket, because I want to avoid dependencies, and
+have small code size, to have fast Nim compilation. You can change that and rewrite server to use WebSocket.
+
 # Todo
 
 - document.title and document.location
