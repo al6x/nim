@@ -134,6 +134,7 @@ proc render*(self: TodoView): HtmlElement =
               .on_click(proc = self.todo.items.delete((item) => item.completed))
 
 proc on_timer*(self: TodoView): bool =
+  # Could be optimised, by checking if version of shared data has been changed and responding with false if not
   true
 
 when is_main_module:

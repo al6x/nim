@@ -2,19 +2,15 @@ UI library for Nim.
 
 **High productivity, simple and clean code** are main priorities.
 
-Checkout the [Todo](examples/todo.nim) example.
-
-Inspired by Svelte and Ruby.
+Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4).
 
 # Features
 
 - Reactive, like Svelte, with compact and clean code.
-- Stateful Components.
-- Bidirectional data binding to inputs.
+- Works on Nim Server, or Compile to JS in Browser.
+- Stateful Components and bidirectional data binding.
 - Multiple UI instances with shared memory updated automatically.
-- Fast initial page load.
-- SEO friendly.
-- Flexible deployment: Server, Browser, Desktop, Mobile.
+- Fast initial page load and SEO friendly.
 
 # Install
 

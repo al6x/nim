@@ -59,9 +59,10 @@ proc build_http_handler(
     let url = Url.init(req)
     if req.req_method == HttpGet: # GET
       if url.path =~ re"^/assets/":
-        await req.serve_asset_files(asset_paths, url)
+        await req.serve_asset_file(asset_paths, url)
       elif url.path == "/favicon.ico":
-        await req.respond(Http404, "")
+        # await req.respond(Http404, "")
+        await req.serve_asset_file(asset_paths, url)
       else:
         await req.handle_app_load(sessions, url, build_app, asset_paths)
     elif req.req_method == HttpPost: # POST
@@ -81,7 +82,8 @@ proc build_http_handler(
           await req.respond_json SessionPullEvent(kind: error, message: "unknown app in event")
     else:
       http_log.error(fmt"Unknown request ${req.req_method}: ${url}")
-      await req.respond "Unknown request"
+      # await req.respond "Unknown request"
+      await req.respond_json((error: "Unknown request"))
 
 proc run_http_server*(
   build_app:           BuildApp,
@@ -110,7 +112,7 @@ proc run_http_server*(
 
   while true:
     poll 1
-    sessions.process # extracting it from the async to have clean stack trace
+    sessions.process # processing outside async, to have clean stack trace
 
 
 # Test ---------------------------------------------------------------------------------------------

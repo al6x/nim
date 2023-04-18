@@ -23,7 +23,7 @@ proc read_asset_file*(asset_paths: seq[string], path: string): string =
       return fs.read(try_path)
   throw fmt"no asset file '{path}'"
 
-proc serve_asset_files*(req: Request, asset_paths: seq[string], url: Url): Future[void] {.async.} =
+proc serve_asset_file*(req: Request, asset_paths: seq[string], url: Url): Future[void] {.async.} =
   let data = read_asset_file(asset_paths, url.path.replace("/assets/", "/"))
   let (dir, name, ext) = url.path.split_file
   case ext
