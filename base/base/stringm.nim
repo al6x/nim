@@ -1,4 +1,4 @@
-import std/[re, strformat]
+import std/[re, strformat, options]
 import std/strutils except `%`
 import ./test
 
@@ -67,3 +67,37 @@ proc format*(n: float | int, precision = 2): string =
   format_float(n, format = ff_decimal, precision = precision)
 
 proc align*(n: int, digits: int): string = ($n).align(digits, '0')
+
+# proc consume*(s: string, i: int, chars: set[char]): int =
+#   let initial_i = i
+#   var i = i
+#   while i < s.len and s[i] in chars:
+#     i += 1
+#   i - initial_i
+
+# proc consume*(s: string, i: int, c: char): int =
+#   let initial_i = i
+#   var i = i
+#   while i < s.len and s[i] == c:
+#     i += 1
+#   i - initial_i
+
+# proc continues_with*(s: string, chars: set[char], start: int): bool =
+#   if start > s.high: return false
+#   s[start] in chars
+
+# proc match*(s: string, char: char, i: int): bool =
+
+# proc match*(s: string, chars: set[char], i: int): bool =
+#   var i = i
+#   if i > s.high: return false
+#   while i < s.len:
+#     if s[i] notin chars: return false
+#     i += 1
+#   return true
+
+# test "match":
+#   check "abc".match({'c'}, 3)  == false
+#   check "abc".match({'c'}, 2)  == true
+#   check "abcd".match({'c'}, 2) == false
+

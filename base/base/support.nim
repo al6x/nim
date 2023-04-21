@@ -68,7 +68,8 @@ template to*[F,T](f: F, _: type[T]): T = T.init(f)
 proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 
 
-template p*(args) = echo args
+template p*(a) = echo a
+template p*(a, b) = echo a, ", ", b
 
 
 type TimerSec* = proc: int

@@ -1,8 +1,9 @@
 import std/[options, sugar]
-import ./support
+# import ./support,
 
 export options except option
 
+template throw(message: string) = raise Exception.new_exception(message)
 
 func ensure*[T](o: Option[T], message: string): T =
   if o.is_none: throw(message) else: o.get
@@ -32,5 +33,18 @@ proc get*[T](o: Option[T], otherwise: () -> T): T =
 proc clear*[T](o: var Option[T]): void =
   o = T.none
 
-# converter to_option*[T: string | int | float | bool](v: T): Option[T] =
-#   v.some
+proc `==`*[T](a: Option[T], b: T): bool =
+  a.is_some and a.get == b
+proc `==`*[T](a: T, b: Option[T]): bool =
+  b.is_some and b.get == a
+
+proc contains*[T](s: seq[T] | set[T], v: Option[T]): bool =
+  v.is_some and s.contains(v.get)
+
+when is_main_module:
+  assert "a".some == "a" and "a" == "a".some
+  assert 'a'.some in {'a'} and 'a' in @['a']
+  assert (case 'a'
+    of {'a'}: 1
+    else:     2
+  ) == 1

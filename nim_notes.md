@@ -42,3 +42,6 @@ And also for returning values
 let v = block:
   some code
   some code
+
+sizeof({'a'..'z'}) == 32
+sizeof(set['a'..'z']) == 4

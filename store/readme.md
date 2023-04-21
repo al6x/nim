@@ -1,8 +1,17 @@
-replace log module with tags
+# Features
 
-# Links
+- Store, manage playlists and play Music, on external drive
+- Store Books
+- Store and play Audibooks, on external drive
+- Store and display Photos and Photo Albums, on external drive
+- Manage notes
+- Blocks: text, gallery, list, image
+- Table block, with images and text, to display books
+- Tags
+- Public and priveate spaces
+- Search, tags and spaces filters, index book context
+- Publish selected notes as pdf book
 
-Parser https://github.com/metagn/marggers/blob/master/src/marggers/parser.nim
 
 # Forward 80 to 8080 on Mac OS
 
