@@ -12,8 +12,8 @@ func ensure*[T](o: Option[T], message: () -> string): T =
   if o.is_none: throw(message()) else: o.get
 
 
-func apply*[T](o: Option[T], op: (T) -> void): void =
-  if o.is_some: op(o.value)
+# proc apply*[T](o: Option[T], op: (T) -> void): void =
+#   if o.is_some: op(o.get)
 
 
 func is_empty*[T](o: Option[T]): bool {.inline.} = o.is_none
@@ -40,6 +40,9 @@ proc `==`*[T](a: T, b: Option[T]): bool =
 
 proc contains*[T](s: seq[T] | set[T], v: Option[T]): bool =
   v.is_some and s.contains(v.get)
+
+# proc add*[T](s: var seq[T], v: Option[T]): void =
+#   if v.is_some: s.add v.get
 
 when is_main_module:
   assert "a".some == "a" and "a" == "a".some
