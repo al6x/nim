@@ -12,6 +12,9 @@
 - Search, tags and spaces filters, index book context
 - Publish selected notes as pdf book
 
+# Low todo
+
+- FText parser for: Section, Table, Code, Images
 
 # Forward 80 to 8080 on Mac OS
 
