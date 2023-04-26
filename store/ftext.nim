@@ -1,6 +1,24 @@
 import base, ext/[parser, yaml]
 
 type
+  FBlock* = ref object of RootObj
+    kind*:     string
+    id*:       string
+    args*:     string
+    tags*:     seq[string]
+    links*:    seq[string]
+    glinks*:   seq[string]
+    text*:     string
+    warnings*: seq[string]
+    original_text*: string
+
+  FDoc* = object
+    location*: string
+    name*:     string
+    blocks*:   seq[FBlock]
+    tags*:     seq[string]
+    warnings*: seq[string]
+
   FTextItemKind* = enum text, link, glink, tag, embed
   FTextItem* = object
     text*: string
@@ -25,17 +43,6 @@ type
     of list:
       list*: seq[seq[FTextItem]]
 
-  FBlock* = ref object of RootObj
-    kind*:     string
-    id*:       string
-    args*:     string
-    tags*:     seq[string]
-    links*:    seq[string]
-    glinks*:   seq[string]
-    text*:     string
-    warnings*: seq[string]
-    original_text*: string
-
   FTextBlock* = ref object of FBlock
     formatted_text*: seq[FParagraph]
 
@@ -48,17 +55,10 @@ type
   FUnknownBlock* = ref object of FBlock
     raw*: string
 
-  FDoc* = object
-    location*: string
-    name*:     string
-    blocks*:   seq[FBlock]
-    tags*:     seq[string]
-    warnings*: seq[string]
-
   HalfParsedBlock = tuple[text: string, kind: string, id: string, args: string]
 
-type FBlockParser = (HalfParsedBlock) -> FBlock
-let ftext_parsers = (ref Table[string, FBlockParser])()
+type FBlockParser* = (HalfParsedBlock) -> FBlock
+let  fblock_parsers* = (ref Table[string, FBlockParser])()
 
 # helpers ------------------------------------------------------------------------------------------
 let special_chars        = """`~!@#$%^&*()-_=+[{]}\|;:'",<.>/?""".to_bitset
@@ -460,15 +460,14 @@ proc parse_text*(raw: HalfParsedBlock): FTextBlock =
   let pr = Parser.init raw.text
   let formatted_text = pr.parse_text_as_items
   result = FTextBlock(
-    kind: "text", id: raw.id, args: raw.args, warnings: pr.warnings, original_text: raw.text,
-    formatted_text: formatted_text
+    kind: "text", id: raw.id, args: raw.args, warnings: pr.warnings, formatted_text: formatted_text
   )
   for ph in formatted_text:
     for item in ph:
       result.add_text_item_data item
 
 
-ftext_parsers["text"] = (blk) => parse_text(blk)
+ fblock_parsers["text"] = (blk) => parse_text(blk)
 
 # list ---------------------------------------------------------------------------------------------
 proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
@@ -538,7 +537,7 @@ proc parse_list*(raw: HalfParsedBlock): FListBlock =
     for item in line:
       result.add_text_item_data item
 
-ftext_parsers["list"] = (blk) => parse_list(blk)
+ fblock_parsers["list"] = (blk) => parse_list(blk)
 
 # data ---------------------------------------------------------------------------------------------
 proc parse_data*(raw: HalfParsedBlock): FDataBlock =
@@ -546,7 +545,7 @@ proc parse_data*(raw: HalfParsedBlock): FDataBlock =
   let json = parse_yaml raw.text
   FDataBlock(kind: "data", data: json, id: raw.id, args: raw.args, text: raw.text)
 
-ftext_parsers["data"] = (blk) => parse_data(blk)
+ fblock_parsers["data"] = (blk) => parse_data(blk)
 
 # parse_ftext --------------------------------------------------------------------------------------
 proc parse_ftext*(text: string, location = "", name = ""): FDoc =
@@ -555,12 +554,14 @@ proc parse_ftext*(text: string, location = "", name = ""): FDoc =
   let tags = pr.consume_tags
   result = FDoc(location: location, name: name, tags: tags)
   for raw in raw_blocks:
-    if raw.kind in ftext_parsers:
-      let blk = ftext_parsers[raw.kind](raw)
+    if raw.kind in  fblock_parsers:
+      let blk =  fblock_parsers[raw.kind](raw)
+      blk.original_text = raw.text
       result.blocks.add blk
       result.warnings.add blk.warnings
     else:
       let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
+      blk.original_text = raw.text
       result.blocks.add blk
       result.warnings.add fmt"Unknown block '{blk.kind}'"
 
@@ -577,6 +578,5 @@ test "parse_ftext":
   """.dedent
 
   let doc = parse_ftext text
-  p doc
   check doc.blocks.len == 3
   check doc.tags == @["t", "t2"]
