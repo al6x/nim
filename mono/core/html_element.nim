@@ -221,7 +221,7 @@ proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[Up
     if not set_children.is_empty: update.set_children = set_children.some
     if not del_children.is_empty: update.del_children = del_children.some
 
-# escape_html --------------------------------------------------------------------------------------
+# escape_html, js ----------------------------------------------------------------------------------
 const ESCAPE_HTML_MAP = {
   "&": "&amp;",
   "<":  "&lt;",
@@ -235,6 +235,12 @@ proc escape_html*(html: string): string =
 
 test "escape_html":
   check escape_html("""<div attr="val">""") == "&lt;div attr=&quot;val&quot;&gt;"
+
+func escape_js*(js: string): string =
+  js.to_json.to_s.replace(re"""^"|"$""", "")
+
+test "escape_js":
+  assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
 
 # to_html ------------------------------------------------------------------------------------------
 proc escape_html_text(s: string): string = s.escape_html

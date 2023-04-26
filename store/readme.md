@@ -2,6 +2,10 @@
 
 - FText parser for: Section, Table, Code, Images
 
+# LTodo
+
+- FText, long link reference, [N. Taleb Random](nt_random), [nt_random](http://ntaleb.org/random)
+
 # Features
 
 - Store, manage playlists and play Music, on external drive
@@ -15,6 +19,7 @@
 - Public and priveate spaces
 - Search, tags and spaces filters, index book context
 - Publish selected notes as pdf book
+- SpreadSheet
 
 # Forward 80 to 8080 on Mac OS
 

@@ -15,9 +15,6 @@ proc scopy*(pr: Parser): Parser =
 proc text*(pr: Parser): string =
   pr.text_ref[]
 
-# proc is_finished*(pr: Parser): bool =
-#   pr.i > pr.text.high
-
 proc get*(pr: Parser, shift = 0): Option[char] =
   let i = pr.i + shift
   if i >= 0 and i < pr.text.len: pr.text[i].some else: char.none
@@ -34,7 +31,6 @@ proc has*(pr: Parser, shift = 0): bool =
 
 proc has_next*(pr: Parser): bool =
   pr.has(1)
-  # pr.i < pr.text.high
 
 proc inc*(pr: Parser) =
   if pr.i < pr.text.len: pr.i.inc
