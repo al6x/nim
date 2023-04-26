@@ -86,3 +86,6 @@ test "find, fget":
   let pr = Parser.init("abcd", 1)
   check pr.find({'c'}) == 1
   check pr.fget({'c'}) == 'c'
+
+proc remainder*(pr: Parser): string =
+  pr.text[pr.i..pr.text.high]

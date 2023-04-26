@@ -45,3 +45,9 @@ let v = block:
 
 sizeof({'a'..'z'}) == 32
 sizeof(set['a'..'z']) == 4
+
+ast_to_str
+
+current_source_path()
+
+@[1, 2][^1]

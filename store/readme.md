@@ -1,3 +1,5 @@
+text, tags, links, / json, raw, warnings
+
 # Features
 
 - Store, manage playlists and play Music, on external drive
@@ -14,7 +16,7 @@
 
 # Low todo
 
-- FText parser for: Section, Table, Code, Images
+- FText parser for: List, Section, Table, Code, Images
 
 # Forward 80 to 8080 on Mac OS
 
