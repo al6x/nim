@@ -10,12 +10,17 @@ type
     glinks*:   seq[string]
     text*:     string
     warnings*: seq[string]
-    original_text*: string
+
+  FSection* = object
+    title*:    string
+    blocks*:   seq[FBlock]
+    tags*:     seq[string]
+    warnings*: seq[string]
 
   FDoc* = object
     location*: string
-    name*:     string
-    blocks*:   seq[FBlock]
+    title*:    string
+    sections*: seq[FSection]
     tags*:     seq[string]
     warnings*: seq[string]
 
@@ -323,7 +328,6 @@ proc consume_inline_text*(pr: Parser, stop: (proc: bool)): seq[FTextItem] =
 
   finish_text()
 
-
 # text_paragraph -----------------------------------------------------------------------------------
 let not_st_chars = {' ', '\t'}.complement
 proc is_text_paragraph*(pr: Parser): bool =
@@ -332,7 +336,6 @@ proc is_text_paragraph*(pr: Parser): bool =
 proc skip_text_paragraph*(pr: Parser) =
   assert pr.get == '\n'
   pr.skip space_chars
-
 
 # text_list ----------------------------------------------------------------------------------------
 proc is_text_list*(pr: Parser): bool =
@@ -353,7 +356,6 @@ proc consume_text_list*(pr: Parser): seq[seq[FTextItem]] =
     let inline_text = pr.consume_list_item
     if not inline_text.is_empty:
       result.add inline_text
-
 
 # text ---------------------------------------------------------------------------------------------
 proc parse_text_as_items*(pr: Parser): seq[FParagraph] =
@@ -377,7 +379,6 @@ proc parse_text_as_items*(pr: Parser): seq[FParagraph] =
       let inline_text = pr.consume_inline_text(stop)
       if not inline_text.is_empty:
         result.add FParagraph(kind: FParagraphKind.text, text: inline_text)
-
 
 test "parse_text_as_items":
   let ftext = """
@@ -466,8 +467,7 @@ proc parse_text*(raw: HalfParsedBlock): FTextBlock =
     for item in ph:
       result.add_text_item_data item
 
-
- fblock_parsers["text"] = (blk) => parse_text(blk)
+fblock_parsers["text"] = (blk) => parse_text(blk)
 
 # list ---------------------------------------------------------------------------------------------
 proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
@@ -537,7 +537,7 @@ proc parse_list*(raw: HalfParsedBlock): FListBlock =
     for item in line:
       result.add_text_item_data item
 
- fblock_parsers["list"] = (blk) => parse_list(blk)
+fblock_parsers["list"] = (blk) => parse_list(blk)
 
 # data ---------------------------------------------------------------------------------------------
 proc parse_data*(raw: HalfParsedBlock): FDataBlock =
@@ -545,38 +545,96 @@ proc parse_data*(raw: HalfParsedBlock): FDataBlock =
   let json = parse_yaml raw.text
   FDataBlock(kind: "data", data: json, id: raw.id, args: raw.args, text: raw.text)
 
- fblock_parsers["data"] = (blk) => parse_data(blk)
+fblock_parsers["data"] = (blk) => parse_data(blk)
+
+# section ------------------------------------------------------------------------------------------
+proc parse_section*(raw: HalfParsedBlock): FSection =
+  assert raw.kind == "section"
+  let pr = Parser.init raw.text
+  let formatted_text = pr.consume_inline_text () => false
+  result = FSection()
+  if pr.has_next: result.warnings.add fmt"Invalid text in section : '{pr.remainder}'"
+  var texts: seq[string]
+  for item in formatted_text:
+    case item.kind
+    of text: texts.add item.text
+    of tag:  result.tags.add item.text
+    else:
+      result.warnings.add fmt"Invalid text in section : '{pr.remainder}'"
+  result.title = texts.join " "
+  if result.title.is_empty: result.warnings.add fmt"Empty section title"
+
+# fblock_parsers["section"] = (blk) => parse_section(blk)
+
+# title --------------------------------------------------------------------------------------------
+proc parse_title*(raw: HalfParsedBlock): string =
+  assert raw.kind == "title"
+  raw.text
+
+proc extract_title_from_location(location: string): string =
+  location.split("/").last.replace(re"\.[a-zA-Z0-9]+", "")
 
 # parse_ftext --------------------------------------------------------------------------------------
-proc parse_ftext*(text: string, location = "", name = ""): FDoc =
+proc parse_ftext*(text: string, location = ""): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
   let tags = pr.consume_tags
-  result = FDoc(location: location, name: name, tags: tags)
+  result = FDoc(location: location, tags: tags, title: extract_title_from_location(location))
   for raw in raw_blocks:
-    if raw.kind in  fblock_parsers:
-      let blk =  fblock_parsers[raw.kind](raw)
-      blk.original_text = raw.text
-      result.blocks.add blk
-      result.warnings.add blk.warnings
+    if   raw.kind == "title":
+      result.title = parse_title raw
+    elif raw.kind == "section":
+      let section = parse_section raw
+      result.sections.add section
+      result.warnings.add section.warnings
     else:
-      let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
-      blk.original_text = raw.text
-      result.blocks.add blk
-      result.warnings.add fmt"Unknown block '{blk.kind}'"
+      if result.sections.is_empty: result.sections.add FSection()
+      if raw.kind in fblock_parsers:
+        let blk = fblock_parsers[raw.kind](raw)
+        result.sections[^1].blocks.add blk
+        result.warnings.add blk.warnings
+      else:
+        let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
+        result.sections[^1].blocks.add blk
+        result.warnings.add fmt"Unknown block '{blk.kind}'"
 
 test "parse_ftext":
-  let text = """
-    Some #tag text ^text
+  block:
+    let text = """
+      Some #tag text ^text
 
-    - a
-    - b ^list
+      - a
+      - b ^list
 
-    k: 1 ^config.data
+      k: 1 ^config.data
 
-    #t #t2
-  """.dedent
+      #t #t2
+    """.dedent
 
-  let doc = parse_ftext text
-  check doc.blocks.len == 3
-  check doc.tags == @["t", "t2"]
+    let doc = parse_ftext text
+    check doc.sections.len == 1
+    check doc.sections[0].blocks.len == 3
+    check doc.tags == @["t", "t2"]
+
+  block:
+    let text = """
+      Some title ^title
+
+      Some section ^section
+
+      Some #tag text #t1 ^text
+
+      Another section
+      #t1 #t2 ^section
+
+      - a
+      - b ^list
+
+      k: 1 ^data
+
+      #t #t2
+    """.dedent
+
+    let doc = parse_ftext text
+    check doc.title == "Some title"
+    check doc.sections.len == 2

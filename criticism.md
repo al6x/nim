@@ -1,4 +1,7 @@
-Basically, it's like C, no much sense to use C for web or servers or data analysis. For some bottleneck code, system utils yes, but as a general language, no.
+The bottleneck for the most code is not performance, but productivity: the speed it can be written
+and the monetary cost of the developers. It's the biggest downside of Nim that it optimises what's
+cheap and abundant - the performance, by spending what's costly and rare - developer time needed
+to write the code.
 
 It still surprises me, after 1 year of working heavily with Nim.
 

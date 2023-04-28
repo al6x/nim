@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+STORE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
+MOCKUPS_DIR="$STORE_DIR/mockups"
+
+tailwindcss -i $MOCKUPS_DIR/style.css -o $MOCKUPS_DIR/build/style.css -c $MOCKUPS_DIR/tailwind.config.js --watch
