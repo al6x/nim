@@ -1,5 +1,6 @@
 # Todo
 
+- Mono support for Title
 - FText parser for: Section, Table, Code, Images
 
 # LTodo

@@ -1,3 +1,109 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .edges { border: 1px solid black; }
+
+  /* Left panel --------------------------------------------------------------------------------- */
+  .item-left-margin {
+    @apply pl-6;
+  }
+
+  .left-panel {
+    @apply w-9/12;
+  }
+
+  .right-panel {
+    @apply w-3/12; @apply border-l; @apply border-gray-300;
+
+  }
+  /* .right-panel-content { visibility: hidden; } */
+  /* .right-panel:hover .right-panel-content { visibility: visible; } */
+  /* .right-panel:hover .right-panel-controls-icon { display: none; } */
+
+  .right-panel .right-panel-controls-icon {
+    opacity: 1;
+    transition: opacity;
+    transition-delay: 3.1s;
+    transition-duration: 0.1s;
+  }
+  .right-panel:hover .right-panel-controls-icon {
+    opacity: 0;
+    transition: opacity;
+    transition-duration: 0.1s;
+  }
+
+  .right-panel-content {
+    opacity: 0;
+    transition: opacity;
+    transition-delay: 3s;
+    transition-duration: 0.1s;
+  }
+  .right-panel:hover .right-panel-content {
+    opacity: 1;
+    transition: opacity;
+    transition-duration: 0.1s;
+  }
+
+  .section-title {
+    @apply text-xl; @apply p-1; @apply item-left-margin;
+  }
+
+  .text-block {
+    @apply p-2; @apply item-left-margin;
+  }
+
+  .list-block {
+    @apply p-2; @apply item-left-margin;
+  }
+
+  .list-block-item {
+    @apply pb-2;
+  }
+
+  .note-tags {
+    @apply flex; @apply p-2; @apply item-left-margin;
+  }
+  .note-tag {
+    @apply mr-2; @apply text-blue-800;
+  }
+
+  .text-link {
+    @apply text-blue-800;
+  }
+
+  .text-tag {
+    @apply text-blue-800;
+  }
+
+  .anchor { @apply text-gray-300; visibility: hidden; }
+  div:hover > .anchor { visibility: visible; }
+
+  /* Right panel -------------------------------------------------------------------------------- */
+
+  .tag-cloud-tags {
+    @apply -mr-1;
+  }
+
+  .tag-cloud-tags a {
+    @apply text-blue-800; @apply mr-1; @apply align-middle; @apply leading-4;
+  }
+  .tag-cloud-tags a.small {
+    @apply text-sm; @apply text-center;
+  }
+  .tag-cloud-tags a.large {
+    @apply text-xl;
+  }
+
+  .backlinks a {
+    @apply block; @apply text-sm; @apply text-blue-800;
+  }
+
+  .favorites a {
+    @apply block; @apply text-blue-800;
+  }
+
+  /* Images ------------------------------------------------------------------------------------- */
+  .svg-icon { background-size: contain; background-position: center; }
+}
