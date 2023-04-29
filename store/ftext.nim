@@ -9,6 +9,7 @@ type
     links*:    seq[string]
     glinks*:   seq[string]
     text*:     string
+    line_n*:   int
     warnings*: seq[string]
 
   FSection* = object
@@ -16,13 +17,15 @@ type
     blocks*:   seq[FBlock]
     tags*:     seq[string]
     warnings*: seq[string]
+    line_n*:   int
 
   FDoc* = object
-    location*: string
-    title*:    string
-    sections*: seq[FSection]
-    tags*:     seq[string]
-    warnings*: seq[string]
+    location*:    string
+    title*:       string
+    sections*:    seq[FSection]
+    tags*:        seq[string]
+    tags_line_n*: int
+    warnings*:    seq[string]
 
   FTextItemKind* = enum text, link, glink, tag, embed
   FTextItem* = object
@@ -60,7 +63,7 @@ type
   FUnknownBlock* = ref object of FBlock
     raw*: string
 
-  HalfParsedBlock = tuple[text: string, kind: string, id: string, args: string]
+  HalfParsedBlock = tuple[text: string, kind: string, id: string, args: string, line_n: int]
 
 type FBlockParser* = (HalfParsedBlock) -> FBlock
 let  fblock_parsers* = (ref Table[string, FBlockParser])()
@@ -81,6 +84,12 @@ iterator items(ph: FParagraph): FTextItem =
   else:
     for line in ph.list:
       for item in line: yield item
+
+proc line_n(s: string, pos_n: int): int =
+  result.inc
+  for i in 0..pos_n:
+    if pos_n > s.high: break
+    if s[i] == '\n': result.inc
 
 # tags ---------------------------------------------------------------------------------------------
 let tag_delimiter_chars  = space_chars + {','}
@@ -103,19 +112,21 @@ proc consume_tag*(pr: Parser): Option[string] =
   else:
     pr.warnings.add "Empty tag"
 
-proc consume_tags*(pr: Parser): seq[string] =
-  var unknown = ""
+proc consume_tags*(pr: Parser): tuple[tags: seq[string], line_n: int] =
+  var unknown = ""; var tags: seq[string]; var tags_start_pos = -1
   while true:
     pr.skip((c) => c in tag_delimiter_chars)
+    tags_start_pos = pr.i
     if pr.is_tag:
       let tag = pr.consume_tag
-      if tag.is_some: result.add tag.get
+      if tag.is_some: tags.add tag.get
     else:
       if pr.get.is_some: unknown.add pr.get.get
       pr.inc
     if not pr.has_next: break
   if not unknown.is_empty:
     pr.warnings.add fmt"Unknown text in tags: '{unknown}'"
+  (tags, pr.text.line_n(tags_start_pos))
 
 test "consume_tags":
   template t(a, b) =
@@ -124,15 +135,15 @@ test "consume_tags":
 
   t """
     #"a a"  #b, #д
-  """, @["a a", "b", "д"]
+  """, (@["a a", "b", "д"], 1)
 
   t """
     some #a ^text
-  """, @["a"]
+  """, (@["a"], 1)
 
   t """
     #a ^text #b
-  """, @["a", "b"]
+  """, (@["a", "b"], 1)
 
 
 # blocks -------------------------------------------------------------------------------------------
@@ -142,6 +153,7 @@ let block_id_type_chars      = alphanum_chars + {'.'}
 
 proc consume_block*(pr: Parser, blocks: var seq[HalfParsedBlock]) =
   let start = pr.i
+  let non_empty_start = pr.i + pr.find(not_space_chars)
   let body = pr.consume(proc (c: auto): bool =
     if c == '^' and (pr.get(1) in alpha_chars):
       for v in pr.items(1): # Looking ahead for newline but not allowing some special characters
@@ -161,7 +173,7 @@ proc consume_block*(pr: Parser, blocks: var seq[HalfParsedBlock]) =
   let args = pr.consume (c) => c != '\n'
 
   if not kind.is_empty:
-    blocks.add (body.trim, kind.trim, id, args.trim) # body could be empty
+    blocks.add (body.trim, kind.trim, id, args.trim, pr.text.line_n(non_empty_start)) # body could be empty
   else:
     pr.i = start # rolling back
 
@@ -200,17 +212,17 @@ test "consume_blocks, consume_tags":
 
     #tag #another tag
   """, @[
-    ("S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", "text", "", ""),
-    ("- first m{2^a} line\n- second line", "list", "", ""),
-    ("", "text", "", ""),
-    ("first line\n\nsecond line", "list", "", ""),
-    ("k: 1", "data", "config", ""),
-    ("some text\n#tag #another", "text", "", "")
-  ], @["tag", "another"]
+    ("S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", "text", "", "", 1),
+    ("- first m{2^a} line\n- second line", "list", "", "", 6),
+    ("", "text", "", "", 9),
+    ("first line\n\nsecond line", "list", "", "", 11),
+    ("k: 1", "data", "config", "", 15),
+    ("some text\n#tag #another", "text", "", "", 17)
+  ], (@["tag", "another"], 20)
 
   t """
     some text ^text
-  """, @[("some text", "text", "", "")], seq[string].init
+  """, @[("some text", "text", "", "", 1)], (seq[string].init, 1)
 
 # text_embedding -----------------------------------------------------------------------------------
 proc is_text_embed*(pr: Parser): bool =
@@ -578,8 +590,9 @@ proc extract_title_from_location(location: string): string =
 proc parse_ftext*(text: string, location = ""): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
-  let tags = pr.consume_tags
-  result = FDoc(location: location, tags: tags, title: extract_title_from_location(location))
+  let (tags, tags_line_n) = pr.consume_tags
+  result = FDoc(location: location, tags: tags, title: extract_title_from_location(location),
+    tags_line_n: tags_line_n)
   for raw in raw_blocks:
     if   raw.kind == "title":
       result.title = parse_title raw
@@ -615,6 +628,7 @@ test "parse_ftext":
     check doc.sections.len == 1
     check doc.sections[0].blocks.len == 3
     check doc.tags == @["t", "t2"]
+    check doc.tags_line_n == 8
 
   block:
     let text = """

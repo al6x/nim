@@ -13,14 +13,15 @@ function run() {
 function listen_to_dom_events() {
     let changed_inputs = {};
     async function on_click(raw_event) {
-        let el = raw_event.target, href = el.href;
-        if (el.tagName.toLowerCase() == "a" && href != "") {
+        let el = raw_event.target, location1 = "" + el.href;
+        if (el.tagName.toLowerCase() == "a" && location1 != "") {
             let found = find_el_with_listener(el);
             if (!found) return;
             raw_event.preventDefault();
+            history.pushState({}, "", location1);
             await post_event(found.mono_id, {
                 kind: 'location',
-                location: href
+                location: location1
             });
         } else {
             let found = find_el_with_listener(el, "on_click");

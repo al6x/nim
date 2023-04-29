@@ -1,43 +1,12 @@
 import base, mono/core
 
-# Model --------------------------------------------------------------------------------------------
-type
-  TodoItemState* = enum active, completed
+# AppView ------------------------------------------------------------------------------------------
+type AppView* = ref object of Component
 
-  TodoItem* = ref object
-    text*:      string
-    completed*: bool
+# proc set_attrs*(self: TodoItemView, item: TodoItem, on_delete: (proc(id: string))) =
+#   self.item = item; self.on_delete = on_delete
 
-  Todo* = ref object
-    items*: seq[TodoItem]
-
-proc id*(self: TodoItem): string =
-  self.text
-
-
-# TodoView -----------------------------------------------------------------------------------------
-# Feature: stateful component, preserving its state between renders
-type TodoItemView* = ref object of Component
-  on_delete: proc(id: string)
-  editing:   Option[string] # value of `editing` field going to be maintained between requests
-  item:      TodoItem
-
-proc set_attrs*(self: TodoItemView, item: TodoItem, on_delete: (proc(id: string))) =
-  self.item = item; self.on_delete = on_delete
-
-proc render*(self: TodoItemView): HtmlElement =
-  proc handle_edit(e: KeydownEvent) =
-    if e.key == "Enter":
-      self.item.text = self.editing.get
-      self.editing.clear
-    elif e.key == "Escape":
-      self.editing.clear
-
-  let class_modifier =
-    (if self.item.completed: ".completed" else: "") &
-    (if self.editing.is_some: ".editing" else: "")
-
-  # Feature: compact HTML template syntax
+proc render*(self: AppView): HtmlElement =
   h"li{class_modifier} flash":
     + h".view":
       + h"input.toggle type=checkbox"

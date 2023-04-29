@@ -69,7 +69,7 @@ proc parse_tag*(expression: string): Table[string, string] =
     var token = ""
     while i < expression.len and expression[i] notin delimiters:
       token.add expression[i]
-      i += 1
+      i.inc
     token
 
   # tag
@@ -79,20 +79,23 @@ proc parse_tag*(expression: string): Table[string, string] =
 
   # id
   if i < expression.len and expression[i] == '#':
-    i += 1
+    i.inc
     result["id"] = consume_token i
 
   # class
   var classes: seq[string]
   while i < expression.len and expression[i] == '.':
-    i += 1
+    i.inc
     classes.add consume_token(i)
+    # Classes could use space as delimiter
+    while i < (expression.len - 1) and expression[i] == ' ' and expression[i + 1] in {' ', '.'}:
+      i.inc
   if not classes.is_empty: result["class"] = classes.join(" ")
 
   # other attrs
   var attr_tokens: seq[string]
   while i < expression.len and expression[i] == ' ':
-    i += 1
+    i.inc
     attr_tokens.add consume_token(i)
   if not attr_tokens.is_empty:
     for token in attr_tokens:
@@ -104,12 +107,12 @@ test "parse_tag":
   template check_attrs(tag: string, expected) =
     check parse_tag(tag) == expected.to_table
 
-  check_attrs "span#id.c1.c2 type=checkbox required", {
-    "tag": "span", "id": "id", "class": "c1 c2", "type": "checkbox", "required": "true"
+  check_attrs "span#id.c-1.c2 .c3  .c-4 type=checkbox required", {
+    "tag": "span", "id": "id", "class": "c-1 c2 c3 c-4", "type": "checkbox", "required": "true"
   }
   check_attrs "span", { "tag": "span" }
   check_attrs "#id", { "id": "id" }
-  check_attrs ".c1", { "class": "c1" }
+  check_attrs ".c-1", { "class": "c-1" }
 
 proc nattrs*(self: HtmlElement): JsonNode =
   # Normalised attributes. HtmlElement stores attributes in shortcut format,
@@ -236,7 +239,7 @@ proc escape_html*(html: string): string =
 test "escape_html":
   check escape_html("""<div attr="val">""") == "&lt;div attr=&quot;val&quot;&gt;"
 
-func escape_js*(js: string): string =
+proc escape_js*(js: string): string =
   js.to_json.to_s.replace(re"""^"|"$""", "")
 
 test "escape_js":

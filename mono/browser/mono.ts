@@ -57,13 +57,14 @@ function listen_to_dom_events() {
   let changed_inputs: { [k: string]: InEvent } = {} // Keeping track of changed inputs
 
   async function on_click(raw_event: MouseEvent) {
-    let el = raw_event.target as HTMLElement, href = (el as any).href
-    if (el.tagName.toLowerCase() == "a" && href != "") {
+    let el = raw_event.target as HTMLElement, location = "" + (el as any).href
+    if (el.tagName.toLowerCase() == "a" && location != "") {
       // Click with redirect
       let found = find_el_with_listener(el)
       if (!found) return
       raw_event.preventDefault()
-      await post_event(found.mono_id, { kind: 'location', location: href })
+      history.pushState({}, "", location)
+      await post_event(found.mono_id, { kind: 'location', location })
     } else {
       // Click without redirect
       let found = find_el_with_listener(el, "on_click")
