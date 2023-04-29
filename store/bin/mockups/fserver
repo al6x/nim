@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-STORE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )"
-MOCKUPS_DIR="$STORE_DIR/mockups"
-
-# npm install -g node-static
-static -p 3000 -H '{"Cache-Control": "no-cache, must-revalidate"}' $MOCKUPS_DIR

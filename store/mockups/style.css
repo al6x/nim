@@ -15,7 +15,7 @@
   }
 
   .right-panel {
-    @apply w-3/12; @apply border-l; @apply border-gray-300;
+    @apply w-3/12; @apply border-gray-300; @apply border-l;
 
   }
   /* .right-panel-content { visibility: hidden; } */
@@ -25,7 +25,7 @@
   .right-panel .right-panel-controls-icon {
     opacity: 1;
     transition: opacity;
-    transition-delay: 3.1s;
+    transition-delay: 1.1s;
     transition-duration: 0.1s;
   }
   .right-panel:hover .right-panel-controls-icon {
@@ -37,7 +37,7 @@
   .right-panel-content {
     opacity: 0;
     transition: opacity;
-    transition-delay: 3s;
+    transition-delay: 1s;
     transition-duration: 0.1s;
   }
   .right-panel:hover .right-panel-content {

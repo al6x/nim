@@ -45,9 +45,17 @@ proc parse*(_: type[Url], url: string): Url =
 
 proc hash*(url: Url): Hash = url.autohash
 
+proc `==`*(a, b: Url): bool =
+  # auto equality doesn't work for case objects
+  a.path == b.path and a.query == b.query and (
+    if not a.is_full: not b.is_full
+    else:             (b.is_full and a.scheme == b.scheme and a.host == b.host and a.port == b.port)
+  )
+
 proc `$`*(url: Url): string =
   var query: seq[(string, string)]
   for k, v in url.query: query.add (k, v)
+  query = query.sort (kv) => kv[0]
   var query_s = if query.len > 0: "?" & nurim.encode_query(query) else: ""
   if url.is_full:
     let port   = if url.port == 80: "" else: fmt":{url.port}"
@@ -80,11 +88,18 @@ proc subdomain*(host: string): Option[string] =
 proc to_json_hook*(url: Url): JsonNode =
   url.to_s.to_json
 
-# Test ---------------------------------------------------------------------------------------------
-# nim c -r base/base/url.nim
-if is_main_module:
-  let url = Url.parse("http://host.com/path?a=b&c=d")
-  echo url
-  echo url.query
+proc from_json_hook*(v: var Url, json: JsonNode) =
+  v = Url.parse json.get_str
 
-  echo url.path
+test "parse, path, query":
+  let url_s = "http://host.com/path?a=b&c=d"
+  let url = Url.parse url_s
+  check url.to_s == url_s
+  check url.path == "/path"
+  check url.query == {"c": "d", "a": "b"}.to_table
+
+test "json":
+  let url = Url.parse "http://host.com/path?a=b&c=d"
+  let jsons = url.to_json.to_s
+  let parsed = jsons.parse_json.json_to(Url)
+  check url == parsed

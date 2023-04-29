@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+tailwindcss -i $DIR/style.css -o $DIR/build/style.css -c $DIR/tailwind.config.js --watch

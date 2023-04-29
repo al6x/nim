@@ -4,19 +4,20 @@ let p = console.log.bind(console), global = window as any
 
 // In events
 type SpecialInputKeys = 'alt' | 'ctrl' | 'meta' | 'shift'
-interface ClickEvent { special_keys: SpecialInputKeys[] }
+interface ClickEvent   { special_keys: SpecialInputKeys[] }
 interface KeydownEvent { key: string, special_keys: SpecialInputKeys[] }
-interface ChangeEvent { stub: string }
-interface BlurEvent { stub: string }
-interface InputEvent { value: string }
+interface ChangeEvent  { stub: string }
+interface BlurEvent    { stub: string }
+interface InputEvent   { value: string }
 
 type InEvent =
-  { kind: 'click',    el: number[], click: ClickEvent } |
+  { kind: 'location',               location: string } |
+  { kind: 'click',    el: number[], click:    ClickEvent } |
   { kind: 'dblclick', el: number[], dblclick: ClickEvent } |
-  { kind: 'keydown',  el: number[], keydown: KeydownEvent } |
-  { kind: 'change',   el: number[], change: ChangeEvent } |
-  { kind: 'blur',     el: number[], blur: BlurEvent } |
-  { kind: 'input',    el: number[], input: InputEvent }
+  { kind: 'keydown',  el: number[], keydown:  KeydownEvent } |
+  { kind: 'change',   el: number[], change:   ChangeEvent } |
+  { kind: 'blur',     el: number[], blur:     BlurEvent } |
+  { kind: 'input',    el: number[], input:    InputEvent }
 
 // Out events
 interface UpdateElement {
@@ -56,11 +57,21 @@ function listen_to_dom_events() {
   let changed_inputs: { [k: string]: InEvent } = {} // Keeping track of changed inputs
 
   async function on_click(raw_event: MouseEvent) {
-    let found = find_el_with_listener(raw_event.target as HTMLElement, "on_click")
-    if (!found) return
-    post_event(found.mono_id, { kind: 'click', el: found.path,
-      click: { special_keys: get_keys(raw_event) }
-    })
+    let el = raw_event.target as HTMLElement, href = (el as any).href
+    if (el.tagName.toLowerCase() == "a" && href != "") {
+      // Click with redirect
+      let found = find_el_with_listener(el)
+      if (!found) return
+      raw_event.preventDefault()
+      await post_event(found.mono_id, { kind: 'location', location: href })
+    } else {
+      // Click without redirect
+      let found = find_el_with_listener(el, "on_click")
+      if (!found) return
+      await post_event(found.mono_id, { kind: 'click', el: found.path,
+        click: { special_keys: get_keys(raw_event) }
+      })
+    }
   }
   document.body.addEventListener("click", on_click)
 

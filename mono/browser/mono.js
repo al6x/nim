@@ -13,15 +13,26 @@ function run() {
 function listen_to_dom_events() {
     let changed_inputs = {};
     async function on_click(raw_event) {
-        let found = find_el_with_listener(raw_event.target, "on_click");
-        if (!found) return;
-        post_event(found.mono_id, {
-            kind: 'click',
-            el: found.path,
-            click: {
-                special_keys: get_keys(raw_event)
-            }
-        });
+        let el = raw_event.target, href = el.href;
+        if (el.tagName.toLowerCase() == "a" && href != "") {
+            let found = find_el_with_listener(el);
+            if (!found) return;
+            raw_event.preventDefault();
+            await post_event(found.mono_id, {
+                kind: 'location',
+                location: href
+            });
+        } else {
+            let found = find_el_with_listener(el, "on_click");
+            if (!found) return;
+            await post_event(found.mono_id, {
+                kind: 'click',
+                el: found.path,
+                click: {
+                    special_keys: get_keys(raw_event)
+                }
+            });
+        }
     }
     document.body.addEventListener("click", on_click);
     async function on_dblclick(raw_event) {
