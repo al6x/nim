@@ -1,5 +1,5 @@
 # component.h --------------------------------------------------------------------------------------
-import base, ext/url, ./html_element, ./component, ./h
+import base, ./html_element, ./component, ./h
 
 type Child1 = ref object of Component
   v1: int

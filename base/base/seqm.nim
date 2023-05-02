@@ -34,14 +34,14 @@ func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 func is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
 
-func fget*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
+proc fget*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
   if start <= (list.len - 1):
     for i in start..(list.len - 1):
       let v = list[i]
       if check(v): return v.some
   T.none
 
-func fget*[T](list: openarray[T], check: (T, int) -> bool, start = 0): Option[T] =
+proc fget*[T](list: openarray[T], check: (T, int) -> bool, start = 0): Option[T] =
   if start <= (list.len - 1):
     for i in start..(list.len - 1):
       let v = list[i]
@@ -53,8 +53,8 @@ func first*[T](list: openarray[T]): T =
   assert not list.is_empty, "can't get first from empty list"
   list[0]
 
-func first*[T](list: openarray[T], check: (T) -> bool, start = 0): T =
-  list.fget(check, start).get
+# func first*[T](list: openarray[T], check: (T) -> bool, start = 0): T =
+#   list.fget(check, start).get
 
 
 func first_optional*[T](list: openarray[T]): Option[T] =
@@ -99,23 +99,23 @@ proc findi*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[int] =
 test "findi":
   check @["a"].findi((v) => v == "a") == 0.some # From error
 
-template find_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
+template fget_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
   var result: Option[T]
   for v in `list`:
     if v.`field` == `value`: result = v.some
   result
 
-template find_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
+template fget_by*[T](list: seq[T], field: untyped, value: untyped): Option[T] =
   var result: Option[T]
   for v in `list`:
     if v.`field` == `value`: result = v.some
   result
 
-test "find_by":
+test "fget_by":
   let people = @[(name: "John"), (name: "Sarah")]
-  check people.find_by(name, "Sarah").get == (name: "Sarah")
+  check people.fget_by(name, "Sarah").get == (name: "Sarah")
   # expand_macros:
-  #   echo people.find_by(name, "John")
+  #   echo people.fget_by(name, "John")
 
 
 template pick*[T](list: openarray[T], field: untyped): untyped =
@@ -336,3 +336,6 @@ proc copy*[V](list: seq[V]): seq[V] =
 
 proc any*(list: openarray[bool]): bool =
   list.any((v) => v)
+
+# proc geto*[T](list: openarray[T], i: int): Option[T] =
+#   if i < list.len: list[i].some else: T.none

@@ -47,6 +47,7 @@ sizeof({'a'..'z'}) == 32
 sizeof(set['a'..'z']) == 4
 
 ast_to_str
+expand_macros
 
 current_source_path()
 

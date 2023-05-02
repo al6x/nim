@@ -285,6 +285,9 @@ proc to_html*(el: JsonNode, indent = ""): string =
 proc to_html*(el: HtmlElement): string =
   el.to_json.to_html
 
+proc to_html*(els: openarray[HtmlElement]): string =
+  els.map((el) => el.to_html).join("\n")
+
 test "to_html":
   let el = %{ class: "parent", children: [
     { class: "counter", children: [

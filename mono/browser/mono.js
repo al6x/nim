@@ -5,6 +5,7 @@
 console.log.bind(console), window;
 function run() {
     listen_to_dom_events();
+    set_initial_window_attrs();
     let mono_ids = get_mono_ids();
     if (mono_ids.length < 1) throw new Error("mono_id not found");
     if (mono_ids.length > 1) throw new Error("multiple mono_id not supported yet");
@@ -21,7 +22,8 @@ function listen_to_dom_events() {
             history.pushState({}, "", location1);
             await post_event(found.mono_id, {
                 kind: 'location',
-                location: location1
+                location: location1,
+                el: []
             });
         } else {
             let found = find_el_with_listener(el, "on_click");
@@ -352,35 +354,49 @@ function apply_update(root, update) {
         self_updated = true;
     }
     let set_attrs = update.set_attrs, attrs_updated = false;
+    let window_title, window_location;
     if (set_attrs) {
         for(const k in set_attrs){
-            let v = "" + set_attrs[k];
+            let v_str = "" + set_attrs[k];
             assert(k != "children", "set_attrs can't set children");
-            if (k == "text") {
-                if (el.children.length > 0) el.innerHTML = "";
-                el.innerText = v;
-            } else if (boolean_attr_properties.includes(k)) {
-                el[k] = !!v;
-            } else if (attr_properties.includes(k)) {
-                el[k] = v;
+            if (k == "window_title") {
+                window_title = v_str;
+            } else if (k == "window_location") {
+                window_location = v_str;
             } else {
-                el.setAttribute(k, v);
+                if (k == "text") {
+                    if (el.children.length > 0) el.innerHTML = "";
+                    el.innerText = v_str;
+                } else if (boolean_attr_properties.includes(k)) {
+                    el[k] = !!v_str;
+                } else if (attr_properties.includes(k)) {
+                    el[k] = v_str;
+                } else {
+                    el.setAttribute(k, v_str);
+                }
+                attrs_updated = true;
             }
-            attrs_updated = true;
         }
     }
+    if (window_title) set_window_title(window_title);
+    if (window_location) set_window_location(window_location);
     let del_attrs = update.del_attrs;
     if (del_attrs) {
         for (const k of del_attrs){
             assert(k != "children", "del_attrs can't del children");
-            if (k == "text") {
-                el.innerText = "";
-            } else if (boolean_attr_properties.includes(k)) {
-                el[k] = false;
-            } else {
-                el.removeAttribute(k);
+            if ([
+                "window_title",
+                "window_location"
+            ].includes(k)) {} else {
+                if (k == "text") {
+                    el.innerText = "";
+                } else if (boolean_attr_properties.includes(k)) {
+                    el[k] = false;
+                } else {
+                    el.removeAttribute(k);
+                }
+                attrs_updated = true;
             }
-            attrs_updated = true;
         }
     }
     let set_children = update.set_children, children_updated = [];
@@ -430,6 +446,27 @@ function apply_update(root, update) {
             flasheable = flasheable.parentElement;
         }
     }
+}
+function set_initial_window_attrs() {
+    let wtitles = find_all("[window_title]");
+    if (wtitles.length > 1) throw new Error("multiple window_title found");
+    if (wtitles.length > 0) {
+        let wtitle = "" + wtitles[0].getAttribute("window_title");
+        set_window_title(wtitle);
+    }
+    let wlocations = find_all("[window_location]");
+    if (wlocations.length > 1) throw new Error("multiple window_location found");
+    if (wlocations.length > 0) {
+        let wlocation = "" + wlocations[0].getAttribute("window_location");
+        set_window_location(wlocation);
+    }
+}
+function set_window_title(title) {
+    if (document.title != title) document.title = title;
+}
+function set_window_location(location1) {
+    let current = window.location.pathname + window.location.search + window.location.hash;
+    if (location1 != current) history.pushState({}, "", location1);
 }
 function assert(cond, message = "assertion failed") {
     if (!cond) throw new Error(message);

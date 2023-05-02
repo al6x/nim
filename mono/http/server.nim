@@ -56,11 +56,11 @@ proc build_http_handler(
   sessions: Sessions, build_app: BuildApp, asset_paths: seq[string], pull_timeout_ms: int
 ): auto =
   return proc (req: Request): Future[void] {.async, gcsafe.} =
-    let url = Url.init(req)
+    let url = Url.init(req); let path_s = url.path_as_s
     if req.req_method == HttpGet: # GET
-      if url.path =~ re"^/assets/":
+      if path_s =~ re"^/assets/":
         await req.serve_asset_file(asset_paths, url)
-      elif url.path == "/favicon.ico":
+      elif path_s == "/favicon.ico":
         # await req.respond(Http404, "")
         await req.serve_asset_file(asset_paths, url)
       else:

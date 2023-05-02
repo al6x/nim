@@ -1,5 +1,6 @@
 # Todo
 
+- Location binding on top level cmponent, add blog example
 - Line number for Blocks for FText
 - Redirect links and react to location
 - Move edit button to section right, `vscode -g fpath:line`

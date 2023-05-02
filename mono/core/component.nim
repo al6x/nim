@@ -1,4 +1,4 @@
-import base, ext/url, std/macros
+import base, std/macros, ext/url
 import ./html_element
 
 type
@@ -79,7 +79,7 @@ template process_in_event*[C](self: C, event: InEvent): bool =
 
   case event.kind
   of location:
-    when compiles(self.on_location event.location):
+    when compiles(self.on_location(event.location)):
       self.on_location event.location
       true
     else:
@@ -124,6 +124,8 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   let state_changed_maybe = events.map((event) => self.process_in_event event).any
   # Optimisation, skipping render if there's no changes
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
+
+  # when compiles(self.act): self.act # Do something before render
 
   var new_tree: HtmlElement = self.render
   new_tree.attrs["mono_id"] = id.to_json

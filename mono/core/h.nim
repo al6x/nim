@@ -1,5 +1,5 @@
-import std/macros
-import base, ext/url, ./component, ./html_element
+import std/macros, ext/url
+import base, ./component, ./html_element
 
 template `+`*(node: HtmlElement) =
   it.children.add node
@@ -28,6 +28,13 @@ template h*(html: string, code): HtmlElement =
     code
   node
 
+template content*(el: HtmlElement, code): HtmlElement =
+  let node = el
+  block:
+    let it {.inject.} = node
+    code
+  node
+
 proc attr*[T](self: HtmlElement, k: string, v: T): HtmlElement =
   self.attrs[k] = v.to_json
   self
@@ -40,6 +47,20 @@ proc text*[T](self: HtmlElement, text: T): HtmlElement =
 
 proc class*(self: HtmlElement, class: string): HtmlElement =
   self.attr("class", class)
+
+proc location*[T](self: HtmlElement, location: T): HtmlElement =
+  self.attr("href", location.to_s)
+
+proc window_title*(self: HtmlElement, title: string): HtmlElement =
+  self.attr("window_title", title)
+
+proc window_location*[T](self: HtmlElement, location: T): HtmlElement =
+  self.attr("window_location", location.to_s)
+
+proc window_location*[T](els: seq[HtmlElement], location: T): seq[HtmlElement] =
+  assert els.len > 0, "window_location requires at least one element"
+  discard els[0].window_location(location)
+  els
 
 proc extras_getset*(self: HtmlElement): HtmlElementExtras =
   if self.extras.is_none: self.extras = HtmlElementExtras().some
@@ -97,15 +118,29 @@ proc on_blur*(self: HtmlElement, fn: proc()): HtmlElement =
   self
 
 test "h":
-  let html = h"ul.c1":
-    for text in @["Buy milk"]:
-      + h"li.c2"
-        .attr("class", "c3")
-        .text("t1")
-        .on_click(proc (e: auto) = discard)
+  block:
+    let html = h"ul.c1":
+      for text in @["t1"]:
+        + h"li.c2"
+          .attr("class", "c3")
+          .text(text)
+          .on_click(proc (e: auto) = discard)
 
-  check html.to_json ==
-    """{"class":"c1","tag":"ul","children":[{"class":"c2 c3","text":"t1","tag":"li","on_click":true}]}""".parse_json
+    check html.to_html == """
+      <ul class="c1">
+        <li class="c2 c3" on_click="true">t1</li>
+      </ul>
+    """.dedent.trim
+
+  block:
+    let html = h".blog".window_title("Blog").content:
+      + h".posts"
+
+    check html.to_html == """
+      <div class="blog" window_title="Blog">
+        <div class="posts"/>
+      </div>
+    """.dedent.trim
 
 # stateful h ---------------------------------------------------------------------------------------
 template h*[T](
@@ -140,6 +175,9 @@ template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[
   # let html = child.render
   # when html is seq: html else: @[html]
 
+# template h*[T](self: Component, ChildT: type[T], id: string): seq[HtmlElement] =
+#   self.h(ChildT, id, proc(c: T) = (discard))
+
 
 
 # document_h ---------------------------------------------------------------------------------------
@@ -158,3 +196,7 @@ template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[
 # converter to_html_elements*(el: HtmlElement): seq[HtmlElement] =
 #   # Needed to return single or multiple html elements from render
 #   @[el]
+
+# url helper ---------------------------------------------------------------------------------------
+proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
+  Url.init(path.to_seq, params.to_table)
