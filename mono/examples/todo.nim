@@ -93,6 +93,7 @@ proc render*(self: TodoView): HtmlElement =
     proc = self.filter = filter
 
   bh"header.header":
+    it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
     h"h1":
       it.text("todos")
     h"input.new-todo autofocus":
@@ -119,7 +120,8 @@ proc render*(self: TodoView): HtmlElement =
             h"strong":
               it.text(active_count)
             h"span":
-              it.text((if active_count == 1: "item" else: "items") & " left")
+              # it.text((if active_count == 1: "item" else: "items") & " left")
+              it.text(active_count.pluralize("item") & " left")
 
           proc filter_class(filter: TodoViewFilter): string =
             if self.filter == filter: ".selected"  else: ""
@@ -151,11 +153,12 @@ when is_main_module:
   # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView
   import mono/http, std/os
 
-  let page: AppPage = proc(meta, html: string): string =
+  let page: AppPage = proc(root_el: JsonNode): string =
     """
       <!DOCTYPE html>
       <html>
         <head>
+          <title>{title}</title>
           <link rel="stylesheet" href="/assets/mono.css"/>
           <link rel="stylesheet" href="/assets/todo.css"/>
         </head>
@@ -172,7 +175,11 @@ when is_main_module:
           </section>
         </body>
       </html>
-    """.dedent.replace("{html}", html)
+    """.dedent
+      # Feature: Setting title in initial HTML to improve SEO. Could be omited, as
+      # it will be set automatically by JS.
+      .replace("{title}", root_el.window_title.escape_html)
+      .replace("{html}", root_el.to_html)
 
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk")])

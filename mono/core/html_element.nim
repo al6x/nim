@@ -53,7 +53,6 @@ type
     set_children*: Option[Table[string, JsonNode]]
     del_children*: Option[seq[int]]
 
-
 proc init*(_: type[HtmlElement], tag = "", attrs = new_JObject(), children = seq[HtmlElement].init): HtmlElement =
   HtmlElement(tag: tag, attrs: attrs, children: children)
 
@@ -252,7 +251,6 @@ proc escape_html_attr_value(v: JsonNode): string =
   # (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
   "\"" & (if v.kind == JString: v.get_str.escape_html else: v.to_s(false).escape_html) & "\""
 
-
 proc to_html*(el: JsonNode, indent = ""): string =
   assert el.kind == JObject, "to_html element data should be JObject"
   let tag = if "tag" in el: el["tag"].get_str else: "div"
@@ -309,37 +307,6 @@ test "to_html":
 
   check (%{ text: 0 }).to_html == "<div>0</div>" # from error
 
-proc to_html_and_document(el: JsonNode): tuple[html: string, document: JsonNode] =
-  # If the root element is "document", excluding it from the HTML
+proc window_title*(el: JsonNode): string =
   assert el.kind == JObject, "to_html element data should be JObject"
-  let tag = if "tag" in el: el["tag"].get_str else: "div"
-  if tag == "document":
-    let document = el.copy
-    document.delete "tag"
-    document.delete "children"
-    var html = ""
-    let children = el["children"]
-    assert children.kind == JArray, "to_html element children should be JArray"
-    (children.to_seq.map((el) => el.to_html).join("\n"), document)
-  else:
-    (el.to_html, new_JObject())
-
-proc document_to_meta(document: JsonNode): string =
-  assert document.kind == JObject, "document_to_meta document should be JObject"
-  var tags: seq[string]
-  for k, v in document.sort.fields:
-    tags.add "<meta name=\"" & k.escape_html_attr_name & "\" content=" & v.escape_html_attr_value & "/>"
-  tags.join("\n")
-
-proc to_meta_html*(el: JsonNode): tuple[meta, html: string] =
-  let (html, document) = el.to_html_and_document
-  (meta: document.document_to_meta, html: html)
-
-test "to_meta_html":
-  let el = %{ tag: "document", title: "some", children: [
-    { class: "counter" }
-  ] }
-  check el.to_meta_html == (
-    meta: """<meta name="title" content="some"/>""",
-    html: """<div class="counter"></div>"""
-  )
+  if "window_title" in el: el["window_title"].get_str else: ""

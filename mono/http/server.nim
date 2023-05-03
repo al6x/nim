@@ -5,7 +5,7 @@ import ./session, ./helpers, ../core
 let http_log = Log.init "http"
 
 # Apps ---------------------------------------------------------------------------------------------
-type AppPage*  = proc(meta, html: string): string
+type AppPage*  = proc(initial_root_el: JsonNode): string
 type BuildApp* = proc (url: Url): tuple[page: AppPage, app: App]
 
 proc handle_app_load(
@@ -24,11 +24,11 @@ proc handle_app_load(
   # Processing in another async process, it's inefficient but help to avoid messy async error stack traces.
   while session.outbox.is_empty: await sleep_async 1
 
-  let (meta, html) = session.outbox.initial_html_el.to_meta_html
+  let root_el = session.outbox.initial_root_el
   session.outbox.clear
   session.log.info ">> initial html"
 
-  await req.respond(page(meta, html), "text/html; charset=UTF-8")
+  await req.respond(page(root_el), "text/html; charset=UTF-8")
 
 proc handle_app_in_event(req: Request, session: Session, events: seq[InEvent]): Future[void] {.async.} =
   # Processing happen in another async process, it's inefficient but help to avoid messy async error stack traces.

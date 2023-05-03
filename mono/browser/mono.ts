@@ -47,12 +47,16 @@ type SessionPullEvent =
 export function run() {
   listen_to_dom_events()
 
-  set_initial_window_attrs()
+  let mono_els = find_all('[mono_id]')
+  if (mono_els.length < 1) throw new Error("mono_id not found")
+  if (mono_els.length > 1) throw new Error("multiple mono_id not supported yet")
+  let mono_el = mono_els[0]
 
-  let mono_ids = get_mono_ids()
-  if (mono_ids.length < 1) throw new Error("mono_id not found")
-  if (mono_ids.length > 1) throw new Error("multiple mono_id not supported yet")
-  pull(mono_ids[0])
+  let mono_id         = mono_el.getAttribute("mono_id") || ""
+  let window_location = mono_el.getAttribute("window_location")
+
+  if (window_location) set_window_location(window_location)
+  pull(mono_id)
 }
 
 function listen_to_dom_events() {
@@ -235,10 +239,6 @@ function send<In, Out>(method: string, url: string, data: In, timeout = 5000): P
     }
     xhr.send(JSON.stringify(data))
   })
-}
-
-function get_mono_ids(): string[] {
-  return find_all('[mono_id]').map((el) => "" + el.getAttribute("mono_id"))
 }
 
 function find_all(query: string): HTMLElement[] {
@@ -440,22 +440,6 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
       }
       flasheable = flasheable.parentElement
     }
-  }
-}
-
-function set_initial_window_attrs() {
-  let wtitles = find_all("[window_title]")
-  if (wtitles.length > 1) throw new Error("multiple window_title found")
-  if (wtitles.length > 0) {
-    let wtitle = "" + wtitles[0].getAttribute("window_title")
-    set_window_title(wtitle)
-  }
-
-  let wlocations = find_all("[window_location]")
-  if (wlocations.length > 1) throw new Error("multiple window_location found")
-  if (wlocations.length > 0) {
-    let wlocation = "" + wlocations[0].getAttribute("window_location")
-    set_window_location(wlocation)
   }
 }
 

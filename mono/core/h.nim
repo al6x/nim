@@ -101,6 +101,17 @@ test "h":
     </ul>
   """.dedent.trim
 
+# window title and location ------------------------------------------------------------------------
+proc window_title*(self: HtmlElement, title: string) =
+  self.attr("window_title", title)
+
+proc window_location*[T](self: HtmlElement, location: T) =
+  self.attr("window_location", location.to_s)
+
+proc window_location*[T](els: openarray[HtmlElement], location: T) =
+  assert els.len > 0, "window_location requires at least one element"
+  els[0].window_location(location)
+
 # stateful h ---------------------------------------------------------------------------------------
 template bh*[T](
   self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T))
@@ -132,7 +143,7 @@ macro call_fn*(f, self, t: typed): typed =
   result = newCall(f, args)
 
 template bh*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[HtmlElement] =
-  h(self, ChildT, id, proc(c: T) = set_attrs.call_fn(c, attrs))
+  bh(self, ChildT, id, proc(c: T) = set_attrs.call_fn(c, attrs))
 
 template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple) =
   it.children.add bh(self, ChildT, id, proc(c: T) = set_attrs.call_fn(c, attrs))
@@ -140,59 +151,3 @@ template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple) =
 # to_url -------------------------------------------------------------------------------------------
 proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
   Url.init(path.to_seq, params.to_table)
-
-
-
-
-
-# template h*[T](self: Component, ChildT: type[T], id: string): seq[HtmlElement] =
-#   self.h(ChildT, id, proc(c: T) = (discard))
-
-
-# proc window_title*(self: HtmlElement, title: string) =
-#   self.attr("window_title", title)
-
-# proc window_location*[T](self: HtmlElement, location: T) =
-#   self.attr("window_location", location.to_s)
-
-# proc window_location*[T](els: openarray[HtmlElement], location: T) =
-#   assert els.len > 0, "window_location requires at least one element"
-#   discard els[0].window_location(location)
-#   els
-
-# document_h ---------------------------------------------------------------------------------------
-# template document_h*(title: string, location: Url, code): HtmlElement =
-#   h"document":
-#     discard it.attr("title", title)
-#     discard it.attr("location", location)
-#     code
-
-# test "document_h":
-#   let html = document_h("t1", Url.init("/a")):
-#     + h"div"
-#   check html.to_json == """{"title":"t1","location":"/a","tag":"document","children":[{"tag":"div"}]}""".parse_json
-
-# h ------------------------------------------------------------------------------------------------
-# converter to_html_elements*(el: HtmlElement): seq[HtmlElement] =
-#   # Needed to return single or multiple html elements from render
-#   @[el]
-
-# template content*(el: HtmlElement): HtmlElement =
-#   el
-
-# template content*(el: HtmlElement, code): HtmlElement =
-#   let node = el
-#   block:
-#     let it {.inject.} = node
-#     code
-#   node
-
-# test "h":
-#   let html = h".blog".window_title("Blog").content:
-#     + h".posts"
-
-#   check html.to_html == """
-#     <div class="blog" window_title="Blog">
-#       <div class="posts"></div>
-#     </div>
-#   """.dedent.trim

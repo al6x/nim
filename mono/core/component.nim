@@ -126,8 +126,13 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   # when compiles(self.act): self.act # Do something before render
-
-  var new_tree: HtmlElement = self.render
+  let rendered = self.render
+  var new_tree: HtmlElement =
+    when typeof(rendered) is seq[HtmlElement]:
+      assert rendered.len == 1, "rendered must have exactly one element"
+      rendered[0]
+    else:
+      rendered
   new_tree.attrs["mono_id"] = id.to_json
   self.after_render
 
@@ -141,8 +146,8 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   else:                @[OutEvent(kind: update, updates: updates)]
 
 
-# HtmlElement --------------------------------------------------------------------------------------
-proc initial_html_el*(events: seq[OutEvent]): JsonNode =
+# initial_root_el ----------------------------------------------------------------------------------
+proc initial_root_el*(events: seq[OutEvent]): JsonNode =
   assert events.len == 1, "to_html can't convert more than single event"
   assert events[0].kind == update, "to_html can't convert event other than update"
   assert events[0].updates.len == 1, "to_html can't convert more than single update"

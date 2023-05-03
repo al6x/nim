@@ -35,6 +35,12 @@ proc parse*(_: type[Location], u: Url): Location =
   else:
     Location(kind: unknown, url: u)
 
+proc posts_url(): string =
+  Location(kind: posts).to_s
+
+proc post_url(id: string): string =
+  Location(kind: post, id: id).to_s
+
 # PostView -----------------------------------------------------------------------------------------
 type PostView* = ref object of Component
   post*: Post
@@ -43,9 +49,16 @@ proc set_attrs*(self: PostView, post: Post) =
   self.post = post
 
 proc render*(self: PostView): HtmlElement =
-  h".post".window_title(self.post.title).content:
-    + h".post_title".text self.post.title
-    + h".post_text".text self.post.text
+  bh".post":
+    it.window_title self.post.title
+    h"a.block":
+      it.location posts_url()
+      it.text "All Posts"
+    h".post":
+      h".post_title":
+        it.text self.post.title
+      h".post_text":
+        it.text self.post.text
 
 # PostsView -----------------------------------------------------------------------------------------
 type PostsView* = ref object of Component
@@ -55,10 +68,12 @@ proc set_attrs*(self: PostsView, blog: Blog) =
   self.blog = blog
 
 proc render*(self: PostsView): HtmlElement =
-  h".post_items".window_title("Posts").content:
+  bh".post_items":
+    it.window_title "Posts"
     for post in self.blog.posts:
-      let location = Location(kind: LocationKind.post, id: post.id)
-      + h"a.block".location(location).text(post.title)
+      h"a.block":
+        it.location post_url(post.id)
+        it.text post.title
 
 # BlogView -----------------------------------------------------------------------------------------
 type BlogView* = ref object of Component
@@ -74,30 +89,29 @@ proc set_attrs*(self: BlogView, blog: Blog, location = Location(kind: posts)) =
 proc on_location*(self: BlogView, url: Url) =
   self.location = Location.parse url
 
-proc render*(self: BlogView): HtmlElement =
-  let posts_location = Location(kind: posts)
-  h".blog":
-    + h"a.block".location(posts_location).text("All Posts")
-    case self.location.kind
-    of posts:
-      + self.h(PostsView, "posts", (blog: self.blog))
-    of post:
-      let id = self.location.id
-      let post = self.blog.posts.fget_by(id, id).get
-      + self.h(PostView, id, (post: post))
-    of unknown:
-      + self.h(PostsView, "posts", (blog: self.blog))
-        # Feature: seting location explicitly
-        .window_location posts_location
+proc render*(self: BlogView): seq[HtmlElement] =
+  case self.location.kind
+  of posts:
+    self.bh(PostsView, "posts", (blog: self.blog))
+  of post:
+    let id = self.location.id
+    let post = self.blog.posts.fget_by(id, id).get
+    self.bh(PostView, "post/" & id, (post: post))
+  of unknown:
+    let el = self.bh(PostsView, "posts", (blog: self.blog))
+    # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
+    el.window_location(posts_url())
+    el
 
 when is_main_module:
   import mono/http, std/os
 
-  let page: AppPage = proc(meta, html: string): string =
+  let page: AppPage = proc(root_el: JsonNode): string =
     """
       <!DOCTYPE html>
       <html>
         <head>
+          <title>{title}</title>
           <style>
             .block { display: block; }
           </style>
@@ -113,7 +127,11 @@ when is_main_module:
 
         </body>
       </html>
-    """.dedent.replace("{html}", html)
+    """.dedent
+      # Feature: Setting title in initial HTML to improve SEO. Could be omited, as
+      # it will be set automatically by JS.
+      .replace("{title}", root_el.window_title.escape_html)
+      .replace("{html}", root_el.to_html)
 
   let blog = Blog(posts: @[
     Post(id: "1", title: "Title 1", text: "Text 1"),
