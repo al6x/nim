@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+# --minify
+tailwindcss -i $DIR/assets/palette/palette.css -o $DIR/assets/palette/build/palette.css -c $DIR/assets/palette/tailwind.config.js --watch

@@ -87,8 +87,8 @@ test "counter":
     check res.initial_html_el.to_html == """
       <div class="parent" mono_id="">
         <div class="counter">
-          <input type="text" value="a1"/>
-          <input type="text" value="b1"/>
+          <input type="text" value="a1"></input>
+          <input type="text" value="b1"></input>
           <button on_click="true">+</button>
           <div>a1 b1 0</div>
         </div>

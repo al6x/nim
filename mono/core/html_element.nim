@@ -280,7 +280,8 @@ proc to_html*(el: JsonNode, indent = ""): string =
       result.add v.to_html(indent & "  ") & "\n"
     result.add indent & "</" & tag & ">"
   else:
-    result.add "/>"
+    # result.add "/>"
+    result.add "></" & tag & ">"
 
 proc to_html*(el: HtmlElement): string =
   el.to_json.to_html
@@ -298,13 +299,13 @@ test "to_html":
   let html = """
     <div class="parent">
       <div class="counter">
-        <input type="text" value="some"/>
+        <input type="text" value="some"></input>
         <button>+</button>
       </div>
     </div>""".dedent
   check el.to_html == html
 
-  check HtmlElement.init.to_html == "<div/>"
+  check HtmlElement.init.to_html == "<div></div>"
 
   check (%{ text: 0 }).to_html == "<div>0</div>" # from error
 

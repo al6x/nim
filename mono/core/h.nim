@@ -4,7 +4,7 @@ import base, ./component, ./html_element
 template `+`*(node: HtmlElement) =
   it.children.add node
 
-template `+`*(node: seq[HtmlElement]) =
+template `+`*(node: openarray[HtmlElement]) =
   it.children.add node
 
 template `+`*(node: HtmlElement, code) =
@@ -27,6 +27,9 @@ template h*(html: string, code): HtmlElement =
     let it {.inject.} = node
     code
   node
+
+template content*(el: HtmlElement): HtmlElement =
+  el
 
 template content*(el: HtmlElement, code): HtmlElement =
   let node = el
@@ -57,7 +60,7 @@ proc window_title*(self: HtmlElement, title: string): HtmlElement =
 proc window_location*[T](self: HtmlElement, location: T): HtmlElement =
   self.attr("window_location", location.to_s)
 
-proc window_location*[T](els: seq[HtmlElement], location: T): seq[HtmlElement] =
+proc window_location*[T](els: openarray[HtmlElement], location: T): seq[HtmlElement] =
   assert els.len > 0, "window_location requires at least one element"
   discard els[0].window_location(location)
   els
@@ -138,7 +141,7 @@ test "h":
 
     check html.to_html == """
       <div class="blog" window_title="Blog">
-        <div class="posts"/>
+        <div class="posts"></div>
       </div>
     """.dedent.trim
 
