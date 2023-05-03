@@ -38,20 +38,21 @@ proc render*(self: TodoItemView): HtmlElement =
     (if self.editing.is_some: ".editing" else: "")
 
   # Feature: compact HTML template syntax
-  h"li{class_modifier} flash":
-    + h".view":
-      + h"input.toggle type=checkbox"
+  bh"li{class_modifier} flash":
+    h".view":
+      h"input.toggle type=checkbox":
         # Feature: two way binding with autocast
-        .bind_to(self.item.completed)
-      + h"label".text(self.item.text)
-        .on_dblclick(proc = self.editing = self.item.text.some)
-      + h"button.destroy"
-        .on_click(proc = self.on_delete(self.item.id))
+        it.bind_to(self.item.completed)
+      h"label":
+        it.text(self.item.text)
+        it.on_dblclick(proc = self.editing = self.item.text.some)
+      h"button.destroy":
+        it.on_click(proc = self.on_delete(self.item.id))
     if self.editing.is_some:
-      + h"input#edit.edit autofocus"
-        .bind_to(self.editing)
-        .on_keydown(handle_edit)
-        .on_blur(proc = self.editing = string.none)
+      h"input#edit.edit autofocus":
+        it.bind_to(self.editing)
+        it.on_keydown(handle_edit)
+        it.on_blur(proc = self.editing = string.none)
 
 
 # TodosView -----------------------------------------------------------------------------------------
@@ -91,47 +92,56 @@ proc render*(self: TodoView): HtmlElement =
   proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
-  h"header.header":
-    + h"h1".text("todos")
-    + h"input.new-todo autofocus".attr("placeholder", "What needs to be done?")
-      .bind_to(self.new_todo, true)
-      .on_keydown(create_new)
+  bh"header.header":
+    h"h1":
+      it.text("todos")
+    h"input.new-todo autofocus":
+      it.attr("placeholder", "What needs to be done?")
+      it.bind_to(self.new_todo, true)
+      it.on_keydown(create_new)
 
     if not self.todo.items.is_empty:
-      + h"section.main":
-        + h"input#toggle-all.toggle-all type=checkbox"
-          .value(all_completed)
-          .on_change(toggle_all)
-        + h"label for=toggle-all".text("Mark all as complete")
+      h"section.main":
+        h"input#toggle-all.toggle-all type=checkbox":
+          it.value(all_completed)
+          it.on_change(toggle_all)
+        h"label for=toggle-all":
+          it.text("Mark all as complete")
 
-        + h"ul.todo-list":
+        h"ul.todo-list":
           for item in filtered:
             # Feature: statefull componenets, attr names and values are typesafe
             let item = item
-            + self.h(TodoItemView, item.id, (on_delete: on_delete, item: item))
+            self.h(TodoItemView, item.id, (on_delete: on_delete, item: item))
 
-        + h"footer.footer":
-          + h"span.todo-count":
-            + h"strong".text(active_count)
-            + h"span".text((if active_count == 1: "item" else: "items") & " left")
+        h"footer.footer":
+          h"span.todo-count":
+            h"strong":
+              it.text(active_count)
+            h"span":
+              it.text((if active_count == 1: "item" else: "items") & " left")
 
           proc filter_class(filter: TodoViewFilter): string =
             if self.filter == filter: ".selected"  else: ""
 
-          + h"ul.filters":
-            + h"li":
-              + h"a{all.filter_class}".text("All")
-                .on_click(set_filter(all))
-            + h"li":
-              + h"a{active.filter_class}".text("Active")
-                .on_click(set_filter(active))
-            + h"li":
-              + h"a{completed.filter_class}".text("Completed")
-                .on_click(set_filter(completed))
+          h"ul.filters":
+            h"li":
+              h"a{all.filter_class}":
+                it.text("All")
+                it.on_click(set_filter(all))
+            h"li":
+              h"a{active.filter_class}":
+                it.text("Active")
+                it.on_click(set_filter(active))
+            h"li":
+              h"a{completed.filter_class}":
+                it.text("Completed")
+                it.on_click(set_filter(completed))
 
           if all_completed:
-            + h"button.clear-completed".text("Delete completed")
-              .on_click(proc = self.todo.items.delete((item) => item.completed))
+            h"button.clear-completed":
+              it.text("Delete completed")
+              it.on_click(proc = self.todo.items.delete((item) => item.completed))
 
 proc on_timer*(self: TodoView): bool =
   # Could be optimised, by checking if version of shared data has been changed and responding with false if not

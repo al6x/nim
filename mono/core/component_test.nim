@@ -6,21 +6,21 @@ type Child1 = ref object of Component
 
 proc init(_: type[Child1]): Child1 = Child1()
 proc set_attrs(self: Child1, v1: int) = self.v1 = v1
-proc render(self: Child1): HtmlElement = h".child1"
+proc render(self: Child1): HtmlElement = bh".child1"
 
 type Child2 = ref object of Component
   v2: string
 
 proc init(_: type[Child2]): Child2 = Child2()
 proc set_attrs(self: Child2, v2: string) = self.v2 = v2
-proc render(self: Child2): seq[HtmlElement] = @[h".child21", h".child22"]
+proc render(self: Child2): seq[HtmlElement] = @[bh".child21", bh".child22"]
 
 type Parent1 = ref object of Component
 
 proc render(self: Parent1): HtmlElement =
-  h".parent":
-    + self.h(Child1, "c1", (c: Child1) => c.set_attrs(0))
-    + self.h(Child2, "c2", (v2: "some"))
+  bh".parent":
+    self.h(Child1, "c1", (c: Child1) => c.set_attrs(0))
+    self.h(Child2, "c2", (v2: "some"))
 
 test "component.h":
   let parent = Parent1()
@@ -32,18 +32,20 @@ test "diff":
   template tdiff(id, a, b, s) =
     check diff(id, a, b).to_json == s
 
-  tdiff [0], h"#i.a r".text("t1"), h".b c".text("t0"), %[
+  tdiff [0], bh("#i.a r", it.text("t1")), bh(".b c", it.text("t0")), %[
     { el:[0], set_attrs: { class: "a", id: "i", r: "true", text: "t1" }, del_attrs: ["c"] }
   ]
 
   block:
-    let a = h".a2":
-      + h".b2".text("bbb2")
-      + h".c2"
-    let b = h".a1 aa1":
-      + h".b1 bb1".text("bbb1")
-      + h"span.c1"
-      + h"d1"
+    let a = bh".a2":
+      h".b2":
+        it.text("bbb2")
+      h".c2"
+    let b = bh".a1 aa1":
+      h".b1 bb1":
+        it.text("bbb1")
+      h"span.c1"
+      h"d1"
     tdiff [0], a, b, %[
       { el: [0], set_attrs: { class: "a2" }, del_attrs: ["aa1"], del_children: [2], set_children: {
         "1": { class: "c2" }
@@ -62,22 +64,22 @@ proc init(_: type[Counter]): Counter =
   Counter(a: "a1", b: "b1")
 
 proc render(self: Counter): HtmlElement =
-  h".counter":
-    + h"input type=text"
-      .bind_to(self.a, true) # skipping render on input change
-    + h"input type=text"
-      .bind_to(self.b)
-    + h"button"
-      .text("+")
-      .on_click(proc = (self.count += 1))
-    + h""
-      .text(fmt"{self.a} {self.b} {self.count}")
+  bh".counter":
+    h"input type=text":
+      it.bind_to(self.a, true) # skipping render on input change
+    h"input type=text":
+      it.bind_to(self.b)
+    h"button":
+      it.text("+")
+      it.on_click(proc = (self.count += 1))
+    h"":
+      it.text(fmt"{self.a} {self.b} {self.count}")
 
 type CounterParent = ref object of Component
 
 proc render(self: CounterParent): HtmlElement =
-  h".parent":
-    + self.h(Counter, "counter")
+  bh".parent":
+    self.h(Counter, "counter")
 
 test "counter":
   let app = CounterParent()

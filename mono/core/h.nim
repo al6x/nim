@@ -1,69 +1,45 @@
 import std/macros, ext/url
 import base, ./component, ./html_element
 
-template `+`*(node: HtmlElement) =
-  it.children.add node
+# template build_html(blk): seq[HtmlElement] =
+#   block:
+#     let it {.inject.} = HtmlElement.init()
+#     blk
+#     it.children
 
-template `+`*(node: openarray[HtmlElement]) =
-  it.children.add node
-
-template `+`*(node: HtmlElement, code) =
-  let n = node
-  it.children.add n
-  block:
-    let it {.inject.} = n
-    code
-
-template `+`*(component: Component) =
-  let c = component
-  it.children.add c.render()
-
-template h*(html: string): HtmlElement =
+template bh*(html: string): HtmlElement =
   HtmlElement.init(tag = fmt(html, '{', '}'))
 
-template h*(html: string, code): HtmlElement =
-  let node = HtmlElement.init(tag = fmt(html, '{', '}'))
+template bh*(html: string, blk): HtmlElement =
   block:
-    let it {.inject.} = node
-    code
-  node
+    let it {.inject.} = HtmlElement.init(tag = fmt(html, '{', '}'))
+    blk
+    it
 
-template content*(el: HtmlElement): HtmlElement =
-  el
+template h*(html: string) =
+  it.children.add HtmlElement.init(tag = fmt(html, '{', '}'))
 
-template content*(el: HtmlElement, code): HtmlElement =
-  let node = el
+template h*(html: string, code) =
+  let parent = it
   block:
-    let it {.inject.} = node
+    let it {.inject.} = HtmlElement.init(tag = fmt(html, '{', '}'))
     code
-  node
+    parent.children.add it
 
-proc attr*[T](self: HtmlElement, k: string, v: T): HtmlElement =
+proc attr*[T](self: HtmlElement, k: string, v: T) =
   self.attrs[k] = v.to_json
-  self
 
-proc value*[T](self: HtmlElement, v: T): HtmlElement =
+proc value*[T](self: HtmlElement, v: T) =
   self.attr("value", v)
 
-proc text*[T](self: HtmlElement, text: T): HtmlElement =
+proc text*[T](self: HtmlElement, text: T) =
   self.attr("text", text)
 
-proc class*(self: HtmlElement, class: string): HtmlElement =
+proc class*(self: HtmlElement, class: string) =
   self.attr("class", class)
 
-proc location*[T](self: HtmlElement, location: T): HtmlElement =
+proc location*[T](self: HtmlElement, location: T) =
   self.attr("href", location.to_s)
-
-proc window_title*(self: HtmlElement, title: string): HtmlElement =
-  self.attr("window_title", title)
-
-proc window_location*[T](self: HtmlElement, location: T): HtmlElement =
-  self.attr("window_location", location.to_s)
-
-proc window_location*[T](els: openarray[HtmlElement], location: T): seq[HtmlElement] =
-  assert els.len > 0, "window_location requires at least one element"
-  discard els[0].window_location(location)
-  els
 
 proc extras_getset*(self: HtmlElement): HtmlElementExtras =
   if self.extras.is_none: self.extras = HtmlElementExtras().some
@@ -72,9 +48,9 @@ proc extras_getset*(self: HtmlElement): HtmlElementExtras =
 proc init*(_: type[SetValueHandler], handler: (proc(v: string)), delay: bool): SetValueHandler =
   SetValueHandler(handler: handler, delay: delay)
 
-template bind_to*(element: HtmlElement, variable, delay): HtmlElement =
+template bind_to*(element: HtmlElement, variable, delay) =
   let el = element
-  discard el.value variable
+  el.value variable
 
   el.extras_getset.set_value = SetValueHandler.init(
     (proc(v: string) {.closure.} =
@@ -83,78 +59,63 @@ template bind_to*(element: HtmlElement, variable, delay): HtmlElement =
     ),
     delay
   ).some
-  el
 
-template bind_to*(element: HtmlElement, variable): HtmlElement =
+template bind_to*(element: HtmlElement, variable) =
   bind_to(element, variable, false)
 
-proc on_click*(self: HtmlElement, fn: proc(e: ClickEvent)): HtmlElement =
+proc on_click*(self: HtmlElement, fn: proc(e: ClickEvent)) =
   self.extras_getset.on_click = fn.some
-  self
 
-proc on_click*(self: HtmlElement, fn: proc()): HtmlElement =
+proc on_click*(self: HtmlElement, fn: proc()) =
   self.extras_getset.on_click = (proc(e: ClickEvent) = fn()).some
-  self
 
-proc on_dblclick*(self: HtmlElement, fn: proc(e: ClickEvent)): HtmlElement =
+proc on_dblclick*(self: HtmlElement, fn: proc(e: ClickEvent)) =
   self.extras_getset.on_dblclick = fn.some
-  self
 
-proc on_dblclick*(self: HtmlElement, fn: proc()): HtmlElement =
+proc on_dblclick*(self: HtmlElement, fn: proc()) =
   self.extras_getset.on_dblclick = (proc(e: ClickEvent) = fn()).some
-  self
 
-proc on_keydown*(self: HtmlElement, fn: proc(e: KeydownEvent)): HtmlElement =
+proc on_keydown*(self: HtmlElement, fn: proc(e: KeydownEvent)) =
   self.extras_getset.on_keydown = fn.some
-  self
 
-proc on_change*(self: HtmlElement, fn: proc(e: ChangeEvent)): HtmlElement =
+proc on_change*(self: HtmlElement, fn: proc(e: ChangeEvent)) =
   self.extras_getset.on_change = fn.some
-  self
 
-proc on_blur*(self: HtmlElement, fn: proc(e: BlurEvent)): HtmlElement =
+proc on_blur*(self: HtmlElement, fn: proc(e: BlurEvent)) =
   self.extras_getset.on_blur = fn.some
-  self
 
-proc on_blur*(self: HtmlElement, fn: proc()): HtmlElement =
+proc on_blur*(self: HtmlElement, fn: proc()) =
   self.extras_getset.on_blur = (proc(e: BlurEvent) = fn()).some
-  self
 
 test "h":
-  block:
-    let html = h"ul.c1":
-      for text in @["t1"]:
-        + h"li.c2"
-          .attr("class", "c3")
-          .text(text)
-          .on_click(proc (e: auto) = discard)
+  let html = bh"ul.c1":
+    for text in @["t1"]:
+      h"li.c2":
+        it.attr("class", "c3")
+        it.text(text)
+        it.on_click(proc (e: auto) = discard)
 
-    check html.to_html == """
-      <ul class="c1">
-        <li class="c2 c3" on_click="true">t1</li>
-      </ul>
-    """.dedent.trim
-
-  block:
-    let html = h".blog".window_title("Blog").content:
-      + h".posts"
-
-    check html.to_html == """
-      <div class="blog" window_title="Blog">
-        <div class="posts"></div>
-      </div>
-    """.dedent.trim
+  check html.to_html == """
+    <ul class="c1">
+      <li class="c2 c3" on_click="true">t1</li>
+    </ul>
+  """.dedent.trim
 
 # stateful h ---------------------------------------------------------------------------------------
-template h*[T](
+template bh*[T](
   self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T))
 ): seq[HtmlElement] =
   let child = self.get_child_component(ChildT, id, set_attrs)
   let html = child.render
   when html is seq: html else: @[html]
 
-template h*[T](self: Component, ChildT: type[T], id: string): seq[HtmlElement] =
-  self.h(ChildT, id, proc(c: T) = (discard))
+template h*[T](
+  self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T))
+) =
+  it.children.add bh(self, ChildT, id, set_attrs)
+
+template h*[T](self: Component, ChildT: type[T], id: string) =
+  h(self, ChildT, id, proc(c: T) = (discard))
 
 macro call_fn*(f, self, t: typed): typed =
   var args = newSeq[NimNode]()
@@ -170,18 +131,34 @@ macro call_fn*(f, self, t: typed): typed =
     args.add(nparam)
   result = newCall(f, args)
 
-template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[HtmlElement] =
-  self.h(ChildT, id, proc(c: T) = set_attrs.call_fn(c, attrs))
-  # let child = self.get_child_component(ChildT, id, proc(c: T) =
-  #   set_attrs.call_fn(c, attrs)
-  # )
-  # let html = child.render
-  # when html is seq: html else: @[html]
+template bh*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[HtmlElement] =
+  h(self, ChildT, id, proc(c: T) = set_attrs.call_fn(c, attrs))
+
+template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple) =
+  it.children.add bh(self, ChildT, id, proc(c: T) = set_attrs.call_fn(c, attrs))
+
+# to_url -------------------------------------------------------------------------------------------
+proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
+  Url.init(path.to_seq, params.to_table)
+
+
+
+
 
 # template h*[T](self: Component, ChildT: type[T], id: string): seq[HtmlElement] =
 #   self.h(ChildT, id, proc(c: T) = (discard))
 
 
+# proc window_title*(self: HtmlElement, title: string) =
+#   self.attr("window_title", title)
+
+# proc window_location*[T](self: HtmlElement, location: T) =
+#   self.attr("window_location", location.to_s)
+
+# proc window_location*[T](els: openarray[HtmlElement], location: T) =
+#   assert els.len > 0, "window_location requires at least one element"
+#   discard els[0].window_location(location)
+#   els
 
 # document_h ---------------------------------------------------------------------------------------
 # template document_h*(title: string, location: Url, code): HtmlElement =
@@ -200,6 +177,22 @@ template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): seq[
 #   # Needed to return single or multiple html elements from render
 #   @[el]
 
-# url helper ---------------------------------------------------------------------------------------
-proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
-  Url.init(path.to_seq, params.to_table)
+# template content*(el: HtmlElement): HtmlElement =
+#   el
+
+# template content*(el: HtmlElement, code): HtmlElement =
+#   let node = el
+#   block:
+#     let it {.inject.} = node
+#     code
+#   node
+
+# test "h":
+#   let html = h".blog".window_title("Blog").content:
+#     + h".posts"
+
+#   check html.to_html == """
+#     <div class="blog" window_title="Blog">
+#       <div class="posts"></div>
+#     </div>
+#   """.dedent.trim

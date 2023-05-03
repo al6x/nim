@@ -341,5 +341,5 @@ test "to_meta_html":
   ] }
   check el.to_meta_html == (
     meta: """<meta name="title" content="some"/>""",
-    html: """<div class="counter"/>"""
+    html: """<div class="counter"></div>"""
   )
