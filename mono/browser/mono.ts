@@ -310,7 +310,7 @@ function to_element(data: Record<string, unknown>): HTMLElement {
   let el = document.createElement(tag)
 
   for (const k in data) {
-    if (["tag", "children", "text"].indexOf(k) >= 0) continue
+    if (["c", "tag", "children", "text"].indexOf(k) >= 0) continue
     el.setAttribute(k, "" + data[k])
   }
   if        ("text" in data) {

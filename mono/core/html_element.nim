@@ -62,7 +62,7 @@ proc shallow_equal(self, other: HtmlElement): bool =
 
 proc parse_tag*(expression: string): Table[string, string] =
   # Parses `"span#id.c1.c2 type=checkbox required"`
-  let delimiters = {'#', ' ', '.'}
+  let delimiters = {'#', ' ', '.', '$'}
 
   proc consume_token(i: var int): string =
     var token = ""
@@ -71,15 +71,28 @@ proc parse_tag*(expression: string): Table[string, string] =
       i.inc
     token
 
-  # tag
+  # skipping space
   var i = 0
+  proc skip_space =
+    while i < expression.len and expression[i] == ' ': i.inc
+  skip_space()
+
+  # tag
   if i < expression.len and expression[i] notin delimiters:
     result["tag"] = consume_token i
+  skip_space()
+
+  # component
+  if i < expression.len and expression[i] == '$':
+    i.inc
+    result["c"] = consume_token i
+  skip_space()
 
   # id
   if i < expression.len and expression[i] == '#':
     i.inc
     result["id"] = consume_token i
+  skip_space()
 
   # class
   var classes: seq[string]
@@ -90,11 +103,13 @@ proc parse_tag*(expression: string): Table[string, string] =
     while i < (expression.len - 1) and expression[i] == ' ' and expression[i + 1] in {' ', '.'}:
       i.inc
   if not classes.is_empty: result["class"] = classes.join(" ")
+  skip_space()
 
   # other attrs
   var attr_tokens: seq[string]
-  while i < expression.len and expression[i] == ' ':
-    i.inc
+  while true:
+    skip_space()
+    if i == expression.len: break
     attr_tokens.add consume_token(i)
   if not attr_tokens.is_empty:
     for token in attr_tokens:
@@ -109,9 +124,16 @@ test "parse_tag":
   check_attrs "span#id.c-1.c2 .c3  .c-4 type=checkbox required", {
     "tag": "span", "id": "id", "class": "c-1 c2 c3 c-4", "type": "checkbox", "required": "true"
   }
-  check_attrs "span", { "tag": "span" }
-  check_attrs "#id", { "id": "id" }
-  check_attrs ".c-1", { "class": "c-1" }
+  check_attrs "span",     { "tag": "span" }
+  check_attrs "#id",      { "id": "id" }
+  check_attrs ".c-1",     { "class": "c-1" }
+  check_attrs "div  a=b", { "tag": "div", "a": "b" }
+  check_attrs " .a  a=b", { "class": "a", "a": "b" }
+  check_attrs " .a",      { "class": "a" }
+
+  check_attrs "$controls .a",     { "c": "controls", "class": "a" }
+  check_attrs "$controls.a",      { "c": "controls", "class": "a" }
+  check_attrs "button$button.a",  { "tag": "button", "c": "button", "class": "a" }
 
 proc nattrs*(self: HtmlElement): JsonNode =
   # Normalised attributes. HtmlElement stores attributes in shortcut format,
@@ -253,33 +275,35 @@ proc escape_html_attr_value(v: JsonNode): string =
 
 proc to_html*(el: JsonNode, indent = ""): string =
   assert el.kind == JObject, "to_html element data should be JObject"
+  if "c" in el:
+    result.add indent & fmt"""<!-- {el["c"].get_str.escape_html_text} -->""" & "\n"
   let tag = if "tag" in el: el["tag"].get_str else: "div"
   var attr_tokens: seq[string]
   let el = el.sort
-  # el.normalise_value
   for k, v in el.fields:
-    if k in ["tag", "children", "text"]: continue
+    if k in ["c", "tag", "children", "text"]: continue
     attr_tokens.add k.escape_html_attr_name & "=" & v.escape_html_attr_value
   result.add indent & "<" & tag
   if not attr_tokens.is_empty:
     result.add " " & attr_tokens.join(" ")
+  result.add ">"
   if "text" in el:
     assert "children" notin el, "to_html doesn't support both text and children"
     let safe_text = if el["text"].kind == JString:
       el["text"].get_str.escape_html_text
     else:
       el["text"].to_s(false).escape_html_text
-    result.add ">" & safe_text & "</" & tag & ">"
+    result.add safe_text & "</" & tag & ">"
   elif "children" in el:
     let children = el["children"]
     assert children.kind == JArray, "to_html element children should be JArray"
-    result.add ">\n"
+    result.add "\n"
     for v in children:
       result.add v.to_html(indent & "  ") & "\n"
     result.add indent & "</" & tag & ">"
   else:
     # result.add "/>"
-    result.add "></" & tag & ">"
+    result.add "</" & tag & ">"
 
 proc to_html*(el: HtmlElement): string =
   el.to_json.to_html

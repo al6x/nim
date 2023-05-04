@@ -9,38 +9,44 @@ proc init*(_: type[Palette], mockup = false): Palette =
 template nomockup*(class: string): string =
   if pl.mockup: "" else: class
 
-proc icon_button*(pl: Palette, icon: string, size = "w-5 h-5", color = "bg-gray-500"): HtmlElement =
-  h"button.ICON_BUTTON_C.svg-icon".class(size & " " & color)
-    .attr("style", fmt"-webkit-mask-image: url(/palette/icons/{icon}.svg);")
+template icon_button*(icon: string, size = "w-5 h-5", color = "bg-gray-500") =
+  h"button$icon_button.svg-icon":
+    it.class size & " " & color
+    it.style "-webkit-mask-image: url(/palette/icons/" & icon & ".svg);"
 
-template lr_layout*(pl: Palette, left, right): HtmlElement =
-  h".LR_LAYOUT_C.w-full.flex".class(nomockup"min-h-screen").content:
-    + h".w-9/12": # .z-10
+template lr_layout*(left, right) =
+  h"""$lr_layout .w-full.flex {nomockup".min-h-screen"}""":
+    h"$lr_left .w-9/12": # .z-10
       left
-    + h".w-3/12.relative .border-gray-300.border-l.bg-slate-50": # z-0.
-      + h".absolute.top-0.right-0 .p-2".class(nomockup"right-panel-hidden-icon").content:
-        + pl.icon_button("controls")
-      + h"".class(nomockup"right-panel-content").content:
+    h""".w-3/12.relative {nomockup".right-panel-hidden-icon"} .border-gray-300.border-l.bg-slate-50""": # z-0.
+      h".absolute.top-0.right-0 .p-2":
+        icon_button "controls"
+      h"""$lr_right {nomockup".right-panel-content"}""":
         right
 
-template rcontrols*(pl: Palette, blk): HtmlElement =
-  h".RCONTROLS_C.p-2":
-    blk
+template rcontrols*(content) =
+  h"$rcontrols.p-2":
+    content
+
+template rsearch*(txt: string) =
+  h"input$rsearch .border.rounded.border-gray-300.px-1.w-full.focus:outline-none.placeholder-gray-500 type=text":
+    it.attr("placeholder", "Search...")
+    if not txt.is_empty:
+      it.text txt
 
 proc render_mockup: seq[HtmlElement] =
-  let pl = Palette.init(mockup = true)
+  let pl = Palette.init(mockup = false)
 
-  result.add h""
   result.add:
-    pl.rcontrols:
-      echo 1
-
-  # result.add:
-  #   pl.lr_layout:
-  #     + h"".text("a")
-  #   do:
-  #     + pl.rcontrols:
-  #       + pl.icon_button("edit")
+    bh".palette_section":
+      lr_layout:
+        h"":
+          it.text "a"
+      do:
+        rcontrols:
+          icon_button "edit"
+        rcontrols:
+          rsearch ""
 
 when is_main_module:
   let html = """

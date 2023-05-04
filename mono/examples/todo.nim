@@ -154,6 +154,7 @@ when is_main_module:
   import mono/http, std/os
 
   let page: AppPage = proc(root_el: JsonNode): string =
+    # Feature: content and title in initial HTML page to improve SEO.
     """
       <!DOCTYPE html>
       <html>
@@ -176,8 +177,6 @@ when is_main_module:
         </body>
       </html>
     """.dedent
-      # Feature: Setting title in initial HTML to improve SEO. Could be omited, as
-      # it will be set automatically by JS.
       .replace("{title}", root_el.window_title.escape_html)
       .replace("{html}", root_el.to_html)
 

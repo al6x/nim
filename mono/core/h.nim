@@ -35,6 +35,9 @@ proc value*[T](self: HtmlElement, v: T) =
 proc text*[T](self: HtmlElement, text: T) =
   self.attr("text", text)
 
+proc style*(self: HtmlElement, style: string) =
+  self.attr("style", style)
+
 proc class*(self: HtmlElement, class: string) =
   self.attr("class", class)
 
@@ -100,6 +103,12 @@ test "h":
       <li class="c2 c3" on_click="true">t1</li>
     </ul>
   """.dedent.trim
+
+# test "h":
+#   let html = bh"b":
+#     h""".w-full.flex{".min-h-screen"} c=lr_layout""":
+#       h".some"
+#   p html.to_html
 
 # window title and location ------------------------------------------------------------------------
 proc window_title*(self: HtmlElement, title: string) =
