@@ -1,5 +1,5 @@
 import base, std/macros, ext/url
-import ./html_element
+import ./el
 
 type
   InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer

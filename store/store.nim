@@ -6,7 +6,7 @@ type AppView* = ref object of Component
 # proc set_attrs*(self: TodoItemView, item: TodoItem, on_delete: (proc(id: string))) =
 #   self.item = item; self.on_delete = on_delete
 
-proc render*(self: AppView): HtmlElement =
+proc render*(self: AppView): El =
   h"li{class_modifier} flash":
     + h".view":
       + h"input.toggle type=checkbox"
@@ -35,7 +35,7 @@ type TodoView* = ref object of Component
 proc set_attrs*(self: TodoView, todo: Todo = Todo(), filter: TodoViewFilter = all) =
   self.todo = todo; self.filter = filter
 
-proc render*(self: TodoView): HtmlElement =
+proc render*(self: TodoView): El =
   let completed_count = self.todo.items.count((item) => item.completed)
   let active_count    = self.todo.items.len - completed_count
   let all_completed   = completed_count == self.todo.items.len

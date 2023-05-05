@@ -19,18 +19,18 @@ test "build_el":
 test "build_component":
   type Panel = ref object of Component
     color:   string
-    content: HtmlElement
-  proc render(self: Panel): HtmlElement =
+    content: El
+  proc render(self: Panel): El =
     bh"panel .{self.color}":
       it.children.add self.content
 
   type Button = ref object of Component
     color: string
-  proc render(self: Button): HtmlElement =
+  proc render(self: Button): El =
     bh"button .{self.color}"
 
   type App = ref object of Component
-  proc render(self: App): HtmlElement =
+  proc render(self: App): El =
     bh"app":
       h(Panel, (color: "blue")):
         it.content = bh(Button, (color: "blue"))
@@ -46,11 +46,11 @@ test "build_component":
 
 
 test "build_proc_component":
-  proc button(color: string): HtmlElement =
+  proc button(color: string): El =
     bh"button .{color}"
 
   type App = ref object of Component
-  proc render(self: App): HtmlElement =
+  proc render(self: App): El =
     bh"app":
       h(button, (color: "blue"))
 
@@ -65,18 +65,18 @@ test "build_proc_component":
 test "build_stateful_scomponent":
   type Panel = ref object of Component
     color:   string
-    content: HtmlElement
-  proc render(self: Panel): HtmlElement =
+    content: El
+  proc render(self: Panel): El =
     bh"panel .{self.color}":
       it.children.add self.content
 
   type Button = ref object of Component
     color: string
-  proc render(self: Button): HtmlElement =
+  proc render(self: Button): El =
     bh"button .{self.color}"
 
   type App = ref object of Component
-  proc render(self: App): HtmlElement =
+  proc render(self: App): El =
     bh"app":
       self.h(Panel, "panel", (color: "blue")):
         it.content = bh(Button, (color: "blue"))

@@ -1,2 +1,2 @@
-import ./core/component, ./core/h, ./core/html_element, ext/url
-export component, h, html_element, url
+import ./core/component, ./core/h, ./core/el, ext/url
+export component, h, el, url

@@ -1,4 +1,4 @@
-import base, ./html_element, ./component, ./h
+import base, ./el, ./component, ./h
 
 # diff ---------------------------------------------------------------------------------------------
 test "diff":
