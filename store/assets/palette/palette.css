@@ -6,6 +6,16 @@
 
 
 
+.tag-cloud-tags a {
+  @apply text-blue-800; @apply mr-1; @apply align-middle; @apply leading-4;
+}
+.tag-cloud-tags a.small {
+  @apply text-sm; @apply text-center;
+}
+.tag-cloud-tags a.large {
+  @apply text-xl;
+}
+
 
 
 @layer components {
@@ -76,27 +86,12 @@
 
   /* Right panel -------------------------------------------------------------------------------- */
 
-  .tag-cloud-tags {
-    @apply -mr-1;
-  }
 
-  .tag-cloud-tags a {
-    @apply text-blue-800; @apply mr-1; @apply align-middle; @apply leading-4;
-  }
-  .tag-cloud-tags a.small {
-    @apply text-sm; @apply text-center;
-  }
-  .tag-cloud-tags a.large {
-    @apply text-xl;
-  }
 
   .backlinks a {
     @apply block; @apply text-sm; @apply text-blue-800;
   }
 
-  .favorites a {
-    @apply block; @apply text-blue-800;
-  }
 
   /* Images ------------------------------------------------------------------------------------- */
   .svg-icon { background-size: contain; background-position: center; }

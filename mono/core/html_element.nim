@@ -60,56 +60,48 @@ proc shallow_equal(self, other: HtmlElement): bool =
   # Avoiding attribute normalisation as it's a heavy operation
   self.tag == other.tag and self.attrs == other.attrs and self.children.len == other.children.len
 
-proc parse_tag*(expression: string): Table[string, string] =
+const special    = {'#', '.', '$'}
+const delimiters = special + {' '}
+proc parse_tag*(s: string): Table[string, string] =
   # Parses `"span#id.c1.c2 type=checkbox required"`
-  let delimiters = {'#', ' ', '.', '$'}
 
   proc consume_token(i: var int): string =
     var token = ""
-    while i < expression.len and expression[i] notin delimiters:
-      token.add expression[i]
+    while i < s.len and s[i] notin delimiters:
+      token.add s[i]
       i.inc
     token
 
   # skipping space
   var i = 0
   proc skip_space =
-    while i < expression.len and expression[i] == ' ': i.inc
+    while i < s.len and s[i] == ' ': i.inc
   skip_space()
 
   # tag
-  if i < expression.len and expression[i] notin delimiters:
+  if i < s.len and s[i] notin delimiters:
     result["tag"] = consume_token i
   skip_space()
 
-  # component
-  if i < expression.len and expression[i] == '$':
-    i.inc
-    result["c"] = consume_token i
-  skip_space()
-
-  # id
-  if i < expression.len and expression[i] == '#':
-    i.inc
-    result["id"] = consume_token i
-  skip_space()
-
-  # class
+  # component, id, class
   var classes: seq[string]
-  while i < expression.len and expression[i] == '.':
+  while i < s.len and s[i] in special:
     i.inc
-    classes.add consume_token(i)
-    # Classes could use space as delimiter
-    while i < (expression.len - 1) and expression[i] == ' ' and expression[i + 1] in {' ', '.'}:
-      i.inc
-  if not classes.is_empty: result["class"] = classes.join(" ")
-  skip_space()
 
-  # other attrs
+    case s[i-1]
+    of '$': result["c"] = consume_token i  # component
+    of '#': result["id"] = consume_token i # id
+    of '.': classes.add consume_token(i)   # class
+    else:   throw "internal error"
+    skip_space()
+
+  if not classes.is_empty: result["class"] = classes.join(" ")
+
+  # attrs
   var attr_tokens: seq[string]
   while true:
     skip_space()
-    if i == expression.len: break
+    if i == s.len: break
     attr_tokens.add consume_token(i)
   if not attr_tokens.is_empty:
     for token in attr_tokens:
@@ -142,10 +134,10 @@ proc nattrs*(self: HtmlElement): JsonNode =
     let nattrs = self.attrs.copy
     for k, v in parse_tag(self.tag):
       if k in nattrs:
-        if k == "class":
-          nattrs["class"] = (v & " " & nattrs["class"].get_str).to_json
-        else:
-          throw fmt"can't redefine attribute '{k}'"
+        case k
+        of "class": nattrs["class"] = (v & " " & nattrs["class"].get_str).to_json
+        of "c":     discard
+        else:       throw fmt"can't redefine attribute '{k}'"
       else:
         nattrs[k] = v.to_json
     if "tag" notin nattrs: nattrs["tag"] = "div".to_json

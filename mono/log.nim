@@ -1,3 +1,62 @@
+# component.h --------------------------------------------------------------------------------------
+import base, ./html_element, ./component, ./h
+
+type Child1 = ref object of Component
+  v1: int
+
+proc init(_: type[Child1]): Child1 = Child1()
+proc set_attrs(self: Child1, v1: int) = self.v1 = v1
+proc render(self: Child1): HtmlElement = bh".child1"
+
+type Child2 = ref object of Component
+  v2: string
+
+proc init(_: type[Child2]): Child2 = Child2()
+proc set_attrs(self: Child2, v2: string) = self.v2 = v2
+proc render(self: Child2): seq[HtmlElement] = @[bh".child21", bh".child22"]
+
+type Parent1 = ref object of Component
+
+proc render(self: Parent1): HtmlElement =
+  bh".parent":
+    self.h(Child1, "c1", (c: Child1) => c.set_attrs(0))
+    self.h(Child2, "c2", (v2: "some"))
+
+test "component.h":
+  let parent = Parent1()
+  discard parent.render()
+
+
+# h for tuple --------------------------------------------------------------------------------------
+# template bh*(attrs: tuple): HtmlElement =
+#   let el = HtmlElement.init
+#   for k, v in attrs.field_pairs:
+#     if k == "tag": el.tag = fmt(v, '{', '}')
+#     else:          el.attr(k, v)
+#   el
+
+# template h*(attrs: tuple) =
+#   it.children.add bh(attrs)
+
+# template h*(attrs: tuple, code) =
+#   let parent = it
+#   block:
+#     let it {.inject.} = bh(attrs)
+#     code
+#     parent.children.add it
+
+# test "h tuple":
+#   let html = bh".a":
+#     h (tag: ".b", class: "c", text: "t1"):
+#       it.attr("k", "v")
+#       it.on_click(proc (e: auto) = discard)
+
+#   check html.to_html == """
+#     <div class="a">
+#       <div class="b c" k="v" on_click="true">t1</div>
+#     </div>
+#   """.dedent.trim
+
 proc to_meta_html*(el: JsonNode): tuple[meta, html: string] =
   # If the root element is "document", excluding it from the HTML
   assert el.kind == JObject, "to_html element data should be JObject"

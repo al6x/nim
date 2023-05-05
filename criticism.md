@@ -210,3 +210,20 @@ type Event* = object
 ```
 
 Tons of random inconsistiencies like these.
+
+String interpolation doesn't work for template arguments, code below would fail
+
+```
+import std/strformat
+
+template button*(size = "w-5 h-5") =
+  echo fmt"{size}"
+
+template layout*() =
+  button()
+
+layout()
+```
+
+String interpolation is very fragile and breaks in many cases especialy when mixing many templates,
+for examlpe for HTML building DSL.

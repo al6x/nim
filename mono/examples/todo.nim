@@ -19,11 +19,8 @@ proc id*(self: TodoItem): string =
 # Feature: stateful component, preserving its state between renders
 type TodoItemView* = ref object of Component
   on_delete: proc(id: string)
-  editing:   Option[string] # value of `editing` field going to be maintained between requests
   item:      TodoItem
-
-proc set_attrs*(self: TodoItemView, item: TodoItem, on_delete: (proc(id: string))) =
-  self.item = item; self.on_delete = on_delete
+  editing:   Option[string] # Feature: value of `editing` field going to be maintained between requests
 
 proc render*(self: TodoItemView): HtmlElement =
   proc handle_edit(e: KeydownEvent) =
@@ -38,7 +35,7 @@ proc render*(self: TodoItemView): HtmlElement =
     (if self.editing.is_some: ".editing" else: "")
 
   # Feature: compact HTML template syntax
-  bh"li{class_modifier} flash":
+  build_h"li{class_modifier} flash":
     h".view":
       h"input.toggle type=checkbox":
         # Feature: two way binding with autocast
@@ -64,6 +61,7 @@ type TodoView* = ref object of Component
   new_todo:   string
   toggle_all: bool
 
+# Feature: if `set_attrs` defined it's going to be used to set properties of component
 proc set_attrs*(self: TodoView, todo: Todo = Todo(), filter: TodoViewFilter = all) =
   self.todo = todo; self.filter = filter
 
@@ -92,7 +90,7 @@ proc render*(self: TodoView): HtmlElement =
   proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
-  bh"header.header":
+  build_h"header.header":
     it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
     h"h1":
       it.text("todos")

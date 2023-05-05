@@ -60,12 +60,12 @@ proc get_child_component*[T](self: Component, _: type[T], id: string): T =
     self.children[full_id] = child
   self.children[full_id].T
 
-proc get_child_component*[T](
-  self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T))
-): T =
-  let child = self.get_child_component(ChildT, id)
-  child.set_attrs # setting on new or overriding attributes on existing children
-  child
+# proc get_child_component*[T](
+#   self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T))
+# ): T =
+#   let child = self.get_child_component(ChildT, id)
+#   child.set_attrs # setting on new or overriding attributes on existing children
+#   child
 
 template process_in_event*[C](self: C, event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
@@ -126,13 +126,13 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   # when compiles(self.act): self.act # Do something before render
-  let rendered = self.render
-  var new_tree: HtmlElement =
-    when typeof(rendered) is seq[HtmlElement]:
-      assert rendered.len == 1, "rendered must have exactly one element"
-      rendered[0]
-    else:
-      rendered
+  let new_tree = self.render
+  # var new_tree: HtmlElement =
+  #   when typeof(rendered) is seq[HtmlElement]:
+  #     assert rendered.len == 1, "rendered must have exactly one element"
+  #     rendered[0]
+  #   else:
+  #     rendered
   new_tree.attrs["mono_id"] = id.to_json
   self.after_render
 
