@@ -43,7 +43,7 @@ proc post_url(id: string): string =
 
 # post_view ----------------------------------------------------------------------------------------
 # Feature: fuctional component, for simple components function could be used
-proc post_view*(post: Post): El =
+proc PostView*(post: Post): El =
   el".post":
     it.window_title post.title
     el"a.block":
@@ -56,7 +56,7 @@ proc post_view*(post: Post): El =
         it.text post.text
 
 # posts_view ---------------------------------------------------------------------------------------
-proc posts_view*(blog: Blog): El =
+proc PostsView*(blog: Blog): El =
   el".post_items":
     it.window_title "Posts"
     for post in blog.posts:
@@ -77,13 +77,13 @@ proc on_location*(self: BlogView, url: Url) =
 proc render*(self: BlogView): El =
   case self.location.kind
   of posts:
-    el(posts_view, (blog: self.blog))
+    el(PostsView, (blog: self.blog))
   of post:
     let id = self.location.id
     let post = self.blog.posts.fget_by(id, id).get
-    el(post_view, (post: post))
+    el(PostView, (post: post))
   of unknown:
-    el(posts_view, (blog: self.blog)):
+    el(PostsView, (blog: self.blog)):
       # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
       it.window_location(posts_url())
 
