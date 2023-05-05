@@ -1,3 +1,7 @@
+proc c*(self: El, c: string) =
+  self.attr("c", c)
+
+
 var new_tree: HtmlElement =
   when typeof(rendered) is seq[HtmlElement]:
     assert rendered.len == 1, "rendered must have exactly one element"

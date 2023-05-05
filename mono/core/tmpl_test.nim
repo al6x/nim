@@ -37,8 +37,11 @@ test "build_component":
 
   let root_el = el(App, (color: "blue"))
   check root_el.to_html == """
+    <!-- App -->
     <app>
+      <!-- Panel -->
       <panel class="blue">
+        <!-- Button -->
         <button class="blue"></button>
       </panel>
     </app>
@@ -46,18 +49,28 @@ test "build_component":
 
 
 test "build_proc_component":
-  proc button(color: string): El =
+  proc Button(color: string): El =
     el"button .{color}"
+
+  proc Panel(color: string, size = "small", content: seq[El]): El =
+    el"panel .{color} .{size}":
+      it.add content
 
   type App = ref object of Component
   proc render(self: App): El =
     el"app":
-      el(button, (color: "blue"))
+      el(Panel, (color: "blue")):
+        el(Button, (color: "blue"))
 
   let root_el = el(App, (color: "blue"))
   check root_el.to_html == """
+    <!-- App -->
     <app>
-      <button class="blue"></button>
+      <!-- Panel -->
+      <panel class="blue small">
+        <!-- Button -->
+        <button class="blue"></button>
+      </panel>
     </app>
   """.dedent.trim
 
@@ -83,8 +96,11 @@ test "build_stateful_scomponent":
 
   let root_el = el(App, (color: "blue"))
   check root_el.to_html == """
+    <!-- App -->
     <app>
+      <!-- Panel -->
       <panel class="blue">
+        <!-- Button -->
         <button class="blue"></button>
       </panel>
     </app>

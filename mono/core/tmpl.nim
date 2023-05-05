@@ -5,9 +5,6 @@ import base, ./component, ./el
 proc attr*[T](self: El, k: string, v: T) =
   self.attrs[k] = v.to_json
 
-proc c*(self: El, c: string) =
-  self.attr("c", c)
-
 proc value*[T](self: El, v: T) =
   self.attr("value", v)
 
@@ -123,7 +120,9 @@ template el*[T](ComponentT: type[T], attrs: tuple, blk): auto =
   block:
     let it {.inject.} = component
     blk
-  add_or_return component.render
+  let el = component.render
+  el.attr("c", ast_to_str(ComponentT).replace(re"_\d+", "")) # Nim sometimes adds tmp numbers to types
+  add_or_return el
 
 template el*[T](ComponentT: type[T], attrs: tuple): auto =
   el(ComponentT, attrs):
@@ -142,12 +141,38 @@ macro call_fn_r*(f, t, r: typed): typed =
   quote do:
     `r` = `call_expr`
 
+macro call_fn_r2*(f, t, t2, r: typed): typed =
+  var args = newSeq[NimNode]()
+  let ty = getTypeImpl(t)
+  for child in ty:
+    let nparam = newNimNode(nnkExprEqExpr)
+    nparam.add child[0]
+    nparam.add newDotExpr(t, child[0])
+    args.add(nparam)
+  # args.add(t2)
+
+  let nparam = newNimNode(nnkExprEqExpr)
+  nparam.add ident"content"
+  nparam.add t2
+  args.add(nparam)
+
+  let call_expr = newCall(f, args)
+  quote do:
+    `r` = `call_expr`
+
 template el*(fn: proc, attrs: tuple, blk): auto =
   var el: El
-  call_fn_r(fn, attrs, el)
-  block:
-    let it {.inject.} = el
-    blk
+  when compiles(call_fn_r(fn, attrs, el)):
+    call_fn_r(fn, attrs, el)
+    block:
+      var it {.inject.} = el
+      blk
+  else:
+    block:
+      var it {.inject.} = seq[El].init
+      blk
+      call_fn_r2(fn, attrs, it, el)
+  el.attr("c", ast_to_str(fn).replace(re"_\d+", "")) # Nim sometimes adds tmp numbers to types
   add_or_return el
 
 template el*(fn: proc, attrs: tuple): auto =
@@ -164,7 +189,9 @@ template el*[T](self: Component, ChildT: type[T], id: string, attrs: tuple, blk)
   block:
     let it {.inject.} = component
     blk
-  add_or_return component.render
+  let el = component.render
+  el.attr("c", ast_to_str(ChildT).replace(re"_\d+", "")) # Nim sometimes adds tmp numbers to types
+  add_or_return el
 
 template el*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): auto =
   el(self, ChildT, id, attrs):

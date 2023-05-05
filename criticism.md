@@ -227,3 +227,6 @@ layout()
 
 String interpolation is very fragile and breaks in many cases especialy when mixing many templates,
 for examlpe for HTML building DSL.
+
+Templates are very fragile, should be used only minimally, tried to use it for HTML templating DSL
+tons of edge cases.
