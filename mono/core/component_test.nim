@@ -5,20 +5,20 @@ test "diff":
   template tdiff(id, a, b, s) =
     check diff(id, a, b).to_json == s
 
-  tdiff [0], bh("#i.a r", it.text("t1")), bh(".b c", it.text("t0")), %[
+  tdiff [0], el("#i.a r", it.text("t1")), el(".b c", it.text("t0")), %[
     { el:[0], set_attrs: { class: "a", id: "i", r: "true", text: "t1" }, del_attrs: ["c"] }
   ]
 
   block:
-    let a = bh".a2":
-      h".b2":
+    let a = el".a2":
+      el".b2":
         it.text("bbb2")
-      h".c2"
-    let b = bh".a1 aa1":
-      h".b1 bb1":
+      el".c2"
+    let b = el".a1 aa1":
+      el".b1 bb1":
         it.text("bbb1")
-      h"span.c1"
-      h"d1"
+      el"span.c1"
+      el"d1"
     tdiff [0], a, b, %[
       { el: [0], set_attrs: { class: "a2" }, del_attrs: ["aa1"], del_children: [2], set_children: {
         "1": { class: "c2" }
@@ -37,22 +37,22 @@ proc init(_: type[Counter]): Counter =
   Counter(a: "a1", b: "b1")
 
 proc render(self: Counter): El =
-  bh".counter":
-    h"input type=text":
+  el".counter":
+    el"input type=text":
       it.bind_to(self.a, true) # skipping render on input change
-    h"input type=text":
+    el"input type=text":
       it.bind_to(self.b)
-    h"button":
+    el"button":
       it.text("+")
       it.on_click(proc = (self.count += 1))
-    h"":
+    el"":
       it.text(fmt"{self.a} {self.b} {self.count}")
 
 type CounterParent = ref object of Component
 
 proc render(self: CounterParent): El =
-  bh".parent":
-    self.h(Counter, "counter", ())
+  el".parent":
+    self.el(Counter, "counter", ())
 
 test "counter":
   let app = CounterParent()

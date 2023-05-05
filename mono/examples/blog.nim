@@ -44,23 +44,23 @@ proc post_url(id: string): string =
 # post_view ----------------------------------------------------------------------------------------
 # Feature: fuctional component, for simple components function could be used
 proc post_view*(post: Post): El =
-  bh".post":
+  el".post":
     it.window_title post.title
-    h"a.block":
+    el"a.block":
       it.location posts_url()
       it.text "All Posts"
-    h".post":
-      h".post_title":
+    el".post":
+      el".post_title":
         it.text post.title
-      h".post_text":
+      el".post_text":
         it.text post.text
 
 # posts_view ---------------------------------------------------------------------------------------
 proc posts_view*(blog: Blog): El =
-  bh".post_items":
+  el".post_items":
     it.window_title "Posts"
     for post in blog.posts:
-      h"a.block":
+      el"a.block":
         it.location post_url(post.id)
         it.text post.title
 
@@ -77,13 +77,13 @@ proc on_location*(self: BlogView, url: Url) =
 proc render*(self: BlogView): El =
   case self.location.kind
   of posts:
-    bh(posts_view, (blog: self.blog))
+    el(posts_view, (blog: self.blog))
   of post:
     let id = self.location.id
     let post = self.blog.posts.fget_by(id, id).get
-    bh(post_view, (post: post))
+    el(post_view, (post: post))
   of unknown:
-    bh(posts_view, (blog: self.blog)):
+    el(posts_view, (blog: self.blog)):
       # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
       it.window_location(posts_url())
 

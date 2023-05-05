@@ -20,19 +20,19 @@ type Child1 = ref object of Component
 
 proc init(_: type[Child1]): Child1 = Child1()
 proc set_attrs(self: Child1, v1: int) = self.v1 = v1
-proc render(self: Child1): HtmlElement = bh".child1"
+proc render(self: Child1): HtmlElement = el".child1"
 
 type Child2 = ref object of Component
   v2: string
 
 proc init(_: type[Child2]): Child2 = Child2()
 proc set_attrs(self: Child2, v2: string) = self.v2 = v2
-proc render(self: Child2): seq[HtmlElement] = @[bh".child21", bh".child22"]
+proc render(self: Child2): seq[HtmlElement] = @[el".child21", el".child22"]
 
 type Parent1 = ref object of Component
 
 proc render(self: Parent1): HtmlElement =
-  bh".parent":
+  el".parent":
     self.h(Child1, "c1", (c: Child1) => c.set_attrs(0))
     self.h(Child2, "c2", (v2: "some"))
 
@@ -60,7 +60,7 @@ test "component.h":
 #     parent.children.add it
 
 # test "h tuple":
-#   let html = bh".a":
+#   let html = el".a":
 #     h (tag: ".b", class: "c", text: "t1"):
 #       it.attr("k", "v")
 #       it.on_click(proc (e: auto) = discard)

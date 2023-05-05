@@ -80,32 +80,29 @@ proc on_blur*(self: El, fn: proc()) =
 proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
   Url.init(path.to_seq, params.to_table)
 
-proc add*(parent: El, child: El | seq[El]): void =
+proc add*(parent: El, child: El | seq[El]) =
   parent.children.add child
 
-# build_el -----------------------------------------------------------------------------------------
-template build_el*(html: string, blk): El =
-  block:
-    let it {.inject.} = El.init(tag = fmt(html, '{', '}'))
-    blk
-    it
+template els*(code): seq[El] =
+  el("", code).children
 
-template build_el*(html: string): El =
-  build_el(html):
+# html el ------------------------------------------------------------------------------------------
+template add_or_return*(e: El): auto =
+  when compiles(it.add(e)): it.add(e) else: e
+
+template el*(html: string, code): auto =
+  add_or_return:
+    block:
+      let it {.inject.} = El.init(tag = fmt(html, '{', '}'))
+      code
+      it
+
+template el*(html: string): auto =
+  el(html):
     discard
 
-template add_el*(html: string, code) =
-  let parent = it
-  block:
-    let it {.inject.} = build_el(html)
-    code
-    parent.children.add it
 
-template add_el*(html: string) =
-  add_el(html):
-    discard
-
-# build_component ----------------------------------------------------------------------------------
+# component el -------------------------------------------------------------------------------------
 macro call_fn*(f, self, t: typed): typed =
   var args = newSeq[NimNode]()
   let ty = getTypeImpl(t)
@@ -117,7 +114,7 @@ macro call_fn*(f, self, t: typed): typed =
     args.add(nparam)
   newCall(f, args)
 
-template build_component*[T](ComponentT: type[T], attrs: tuple, blk): El =
+template el*[T](ComponentT: type[T], attrs: tuple, blk): auto =
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
   when compiles(call_fn(set_attrs, component, attrs)):
     call_fn(set_attrs, component, attrs)
@@ -126,21 +123,13 @@ template build_component*[T](ComponentT: type[T], attrs: tuple, blk): El =
   block:
     let it {.inject.} = component
     blk
-  component.render
+  add_or_return component.render
 
-template build_component*[T](ComponentT: type[T], attrs: tuple): El =
-  build_component(ComponentT, attrs):
+template el*[T](ComponentT: type[T], attrs: tuple): auto =
+  el(ComponentT, attrs):
     discard
 
-template add_component*[T](ComponentT: type[T], attrs: tuple, blk) =
-  it.children.add build_component(ComponentT, attrs, blk)
-
-template add_component*[T](ComponentT: type[T], attrs: tuple) =
-  add_component(ComponentT, attrs):
-    discard
-
-
-# build_proc_component -----------------------------------------------------------------------------
+# proc component el --------------------------------------------------------------------------------
 macro call_fn_r*(f, t, r: typed): typed =
   var args = newSeq[NimNode]()
   let ty = getTypeImpl(t)
@@ -153,30 +142,20 @@ macro call_fn_r*(f, t, r: typed): typed =
   quote do:
     `r` = `call_expr`
 
-template build_proc_component*(fn: proc, attrs: tuple, blk): El =
+template el*(fn: proc, attrs: tuple, blk): auto =
   var el: El
   call_fn_r(fn, attrs, el)
   block:
     let it {.inject.} = el
     blk
-    it
+  add_or_return el
 
-template build_proc_component*(fn: proc, attrs: tuple): El =
-  build_proc_component(fn, attrs):
+template el*(fn: proc, attrs: tuple): auto =
+  el(fn, attrs):
     discard
 
-template add_proc_component*(fn: proc, attrs: tuple, blk) =
-  it.children.add build_proc_component(fn, attrs, blk)
-
-template add_proc_component*(fn: proc, attrs: tuple) =
-  add_proc_component(fn, attrs):
-    discard
-
-
-# build_stateful_component -------------------------------------------------------------------------
-template build_stateful_component*[T](
-  self: Component, ChildT: type[T], id: string, attrs: tuple, blk
-): El =
+# steteful component el ----------------------------------------------------------------------------
+template el*[T](self: Component, ChildT: type[T], id: string, attrs: tuple, blk): auto =
   let component = self.get_child_component(ChildT, id)
   when compiles(call_fn(set_attrs, component, attrs)):
     call_fn(set_attrs, component, attrs)
@@ -185,67 +164,8 @@ template build_stateful_component*[T](
   block:
     let it {.inject.} = component
     blk
-  component.render
+  add_or_return component.render
 
-template build_stateful_component*[T](
-  self: Component, ChildT: type[T], id: string, attrs: tuple
-): El =
-  build_stateful_component(self, ChildT, id, attrs):
+template el*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): auto =
+  el(self, ChildT, id, attrs):
     discard
-
-template add_stateful_component*[T](
-  self: Component, ChildT: type[T], id: string, attrs: tuple, blk
-) =
-  it.children.add build_stateful_component(self, ChildT, id, attrs, blk)
-
-template add_stateful_component*[T](
-  self: Component, ChildT: type[T], id: string, attrs: tuple
-) =
-  add_stateful_component(self, ChildT, id, attrs):
-    discard
-
-
-# bh ------------------------------------------------------------------------------------------
-template bh*(html: string, blk): El =
-  build_el(html, blk)
-template bh*(html: string): El =
-  build_el(html)
-
-template bh*[T: Component](ComponentT: type[T], attrs: tuple, blk): El =
-  build_component(ComponentT, attrs, blk)
-template bh*[T: Component](ComponentT: type[T], attrs: tuple): El =
-  build_component(ComponentT, attrs)
-
-template bh*(fn: proc, attrs: tuple, blk): El =
-  build_proc_component(fn, attrs, blk)
-template bh*(fn: proc, attrs: tuple): El =
-  build_proc_component(fn, attrs)
-
-template bh*[T](self: Component, ChildT: type[T], id: string, attrs: tuple, blk): El =
-  build_stateful_component(self, ChildT, id, attrs, blk)
-template bh*[T](self: Component, ChildT: type[T], id: string, attrs: tuple): El =
-  build_stateful_component(self, ChildT, id, attrs)
-
-template bhs*(blk): seq[El] =
-  build_el("", blk).children
-
-
-template h*(html: string, code) =
-  add_el(html, code)
-template h*(html: string) =
-  add_el(html)
-
-template h*[T: Component](ComponentT: type[T], attrs: tuple, blk) =
-  add_component(ComponentT, attrs, blk)
-template h*[T: Component](ComponentT: type[T], attrs: tuple) =
-  add_component(ComponentT, attrs)
-
-template h*(fn: proc, attrs: tuple, blk) =
-  add_proc_component(fn, attrs, blk)
-template h*(fn: proc, attrs: tuple) =
-  add_proc_component(fn, attrs)
-
-template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple, blk) =
-  add_stateful_component(self, ChildT, id, attrs, blk)
-template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple) =
-  add_stateful_component(self, ChildT, id, attrs)

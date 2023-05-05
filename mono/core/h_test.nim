@@ -2,9 +2,9 @@ import base, ./component, ./el, ./h
 
 
 test "build_el":
-  let html = bh"ul.c1":
+  let html = el"ul.c1":
     for text in @["t1"]:
-      h"li.c2":
+      el"li.c2":
         it.attr("class", "c3")
         it.text(text)
         it.on_click(proc (e: auto) = discard)
@@ -21,21 +21,21 @@ test "build_component":
     color:   string
     content: El
   proc render(self: Panel): El =
-    bh"panel .{self.color}":
+    el"panel .{self.color}":
       it.children.add self.content
 
   type Button = ref object of Component
     color: string
   proc render(self: Button): El =
-    bh"button .{self.color}"
+    el"button .{self.color}"
 
   type App = ref object of Component
   proc render(self: App): El =
-    bh"app":
-      h(Panel, (color: "blue")):
-        it.content = bh(Button, (color: "blue"))
+    el"app":
+      el(Panel, (color: "blue")):
+        it.content = el(Button, (color: "blue"))
 
-  let root_el = bh(App, (color: "blue"))
+  let root_el = el(App, (color: "blue"))
   check root_el.to_html == """
     <app>
       <panel class="blue">
@@ -47,14 +47,14 @@ test "build_component":
 
 test "build_proc_component":
   proc button(color: string): El =
-    bh"button .{color}"
+    el"button .{color}"
 
   type App = ref object of Component
   proc render(self: App): El =
-    bh"app":
-      h(button, (color: "blue"))
+    el"app":
+      el(button, (color: "blue"))
 
-  let root_el = bh(App, (color: "blue"))
+  let root_el = el(App, (color: "blue"))
   check root_el.to_html == """
     <app>
       <button class="blue"></button>
@@ -67,21 +67,21 @@ test "build_stateful_scomponent":
     color:   string
     content: El
   proc render(self: Panel): El =
-    bh"panel .{self.color}":
+    el"panel .{self.color}":
       it.children.add self.content
 
   type Button = ref object of Component
     color: string
   proc render(self: Button): El =
-    bh"button .{self.color}"
+    el"button .{self.color}"
 
   type App = ref object of Component
   proc render(self: App): El =
-    bh"app":
-      self.h(Panel, "panel", (color: "blue")):
-        it.content = bh(Button, (color: "blue"))
+    el"app":
+      self.el(Panel, "panel", (color: "blue")):
+        it.content = el(Button, (color: "blue"))
 
-  let root_el = bh(App, (color: "blue"))
+  let root_el = el(App, (color: "blue"))
   check root_el.to_html == """
     <app>
       <panel class="blue">
