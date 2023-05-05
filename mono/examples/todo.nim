@@ -22,7 +22,7 @@ type TodoItemView* = ref object of Component
   item:      TodoItem
   editing:   Option[string] # Feature: value of `editing` field going to be maintained between requests
 
-proc render*(self: TodoItemView): HtmlElement =
+proc render*(self: TodoItemView): El =
   proc handle_edit(e: KeydownEvent) =
     if e.key == "Enter":
       self.item.text = self.editing.get
@@ -35,7 +35,7 @@ proc render*(self: TodoItemView): HtmlElement =
     (if self.editing.is_some: ".editing" else: "")
 
   # Feature: compact HTML template syntax
-  build_h"li{class_modifier} flash":
+  bh"li{class_modifier} flash":
     h".view":
       h"input.toggle type=checkbox":
         # Feature: two way binding with autocast
@@ -65,7 +65,7 @@ type TodoView* = ref object of Component
 proc set_attrs*(self: TodoView, todo: Todo = Todo(), filter: TodoViewFilter = all) =
   self.todo = todo; self.filter = filter
 
-proc render*(self: TodoView): HtmlElement =
+proc render*(self: TodoView): El =
   let completed_count = self.todo.items.count((item) => item.completed)
   let active_count    = self.todo.items.len - completed_count
   let all_completed   = completed_count == self.todo.items.len
@@ -90,7 +90,7 @@ proc render*(self: TodoView): HtmlElement =
   proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
-  build_h"header.header":
+  bh"header.header":
     it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
     h"h1":
       it.text("todos")

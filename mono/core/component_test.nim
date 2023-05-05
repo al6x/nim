@@ -5,16 +5,16 @@ test "diff":
   template tdiff(id, a, b, s) =
     check diff(id, a, b).to_json == s
 
-  tdiff [0], build_h("#i.a r", it.text("t1")), build_h(".b c", it.text("t0")), %[
+  tdiff [0], bh("#i.a r", it.text("t1")), bh(".b c", it.text("t0")), %[
     { el:[0], set_attrs: { class: "a", id: "i", r: "true", text: "t1" }, del_attrs: ["c"] }
   ]
 
   block:
-    let a = build_h".a2":
+    let a = bh".a2":
       h".b2":
         it.text("bbb2")
       h".c2"
-    let b = build_h".a1 aa1":
+    let b = bh".a1 aa1":
       h".b1 bb1":
         it.text("bbb1")
       h"span.c1"
@@ -36,8 +36,8 @@ type Counter = ref object of Component
 proc init(_: type[Counter]): Counter =
   Counter(a: "a1", b: "b1")
 
-proc render(self: Counter): HtmlElement =
-  build_h".counter":
+proc render(self: Counter): El =
+  bh".counter":
     h"input type=text":
       it.bind_to(self.a, true) # skipping render on input change
     h"input type=text":
@@ -50,8 +50,8 @@ proc render(self: Counter): HtmlElement =
 
 type CounterParent = ref object of Component
 
-proc render(self: CounterParent): HtmlElement =
-  build_h".parent":
+proc render(self: CounterParent): El =
+  bh".parent":
     self.h(Counter, "counter", ())
 
 test "counter":

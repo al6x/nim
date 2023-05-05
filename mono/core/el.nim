@@ -28,7 +28,7 @@ type
     handler*: (proc(v: string))
     delay*:   bool # Performance optimisation, if set to true it won't cause re-render
 
-  HtmlElementExtras* = ref object
+  ElExtras* = ref object
     # on_focus, on_drag, on_drop, on_keypress, on_keyup
     on_click*:    Option[ClickHandler]
     on_dblclick*: Option[ClickHandler]
@@ -38,11 +38,11 @@ type
     on_input*:    Option[InputHandler]
     set_value*:   Option[SetValueHandler]
 
-  HtmlElement* = ref object
+  El* = ref object
     tag*:           string
     attrs*:         JsonNode
-    children*:      seq[HtmlElement]
-    extras*:        Option[HtmlElementExtras]
+    children*:      seq[El]
+    extras*:        Option[ElExtras]
     nattrs_cached*: Option[JsonNode]
 
   UpdateElement* = ref object
@@ -53,10 +53,10 @@ type
     set_children*: Option[Table[string, JsonNode]]
     del_children*: Option[seq[int]]
 
-proc init*(_: type[HtmlElement], tag = "", attrs = new_JObject(), children = seq[HtmlElement].init): HtmlElement =
-  HtmlElement(tag: tag, attrs: attrs, children: children)
+proc init*(_: type[El], tag = "", attrs = new_JObject(), children = seq[El].init): El =
+  El(tag: tag, attrs: attrs, children: children)
 
-proc shallow_equal(self, other: HtmlElement): bool =
+proc shallow_equal(self, other: El): bool =
   # Avoiding attribute normalisation as it's a heavy operation
   self.tag == other.tag and self.attrs == other.attrs and self.children.len == other.children.len
 
@@ -127,8 +127,8 @@ test "parse_tag":
   check_attrs "$controls.a",      { "c": "controls", "class": "a" }
   check_attrs "button$button.a",  { "tag": "button", "c": "button", "class": "a" }
 
-proc nattrs*(self: HtmlElement): JsonNode =
-  # Normalised attributes. HtmlElement stores attributes in shortcut format,
+proc nattrs*(self: El): JsonNode =
+  # Normalised attributes. El stores attributes in shortcut format,
   # like`"tag: ul.todos checked"`, normalisation delayed to improve performance.
   if self.nattrs_cached.is_none:
     let nattrs = self.attrs.copy
@@ -145,10 +145,10 @@ proc nattrs*(self: HtmlElement): JsonNode =
   return self.nattrs_cached.get
 
 test "nattrs":
-  check HtmlElement.init(tag = "ul.todos", attrs = (class: "editing").to_json).nattrs ==
+  check El.init(tag = "ul.todos", attrs = (class: "editing").to_json).nattrs ==
     """{"class":"todos editing","tag":"ul"}""".parse_json
 
-proc get*(self: HtmlElement, el_path: seq[int]): HtmlElement =
+proc get*(self: El, el_path: seq[int]): El =
   result = self
   for i in el_path:
     result = result.children[i]
@@ -163,10 +163,11 @@ proc normalise_value*(el: JsonNode) =
     if value.get_bool:
       el["checked"] = true.to_json
 
-proc to_json_hook*(self: HtmlElement): JsonNode =
+proc to_json_hook*(self: El): JsonNode =
   var json = if self.children.is_empty:
     self.nattrs.sort
   else:
+    # p self.tag
     self.nattrs.sort.alter((attrs: JsonNode) => (attrs["children"] = self.children.to_json))
 
   if "tag" in json and json["tag"].get_str == "div": json.delete "tag"
@@ -183,7 +184,7 @@ proc to_json_hook*(self: HtmlElement): JsonNode =
 
   json
 
-proc diff*(id: openarray[int], new_el: HtmlElement, old_el: HtmlElement): seq[UpdateElement] =
+proc diff*(id: openarray[int], new_el: El, old_el: El): seq[UpdateElement] =
   # Using shallow_equal to avoid attribute normalisation as it's a heavy operation
   if new_el.shallow_equal(old_el):
     for i, new_child in new_el.children:
@@ -297,10 +298,10 @@ proc to_html*(el: JsonNode, indent = ""): string =
     # result.add "/>"
     result.add "</" & tag & ">"
 
-proc to_html*(el: HtmlElement): string =
+proc to_html*(el: El): string =
   el.to_json.to_html
 
-proc to_html*(els: openarray[HtmlElement]): string =
+proc to_html*(els: openarray[El]): string =
   els.map((el) => el.to_html).join("\n")
 
 test "to_html":
@@ -319,7 +320,7 @@ test "to_html":
     </div>""".dedent
   check el.to_html == html
 
-  check HtmlElement.init.to_html == "<div></div>"
+  check El.init.to_html == "<div></div>"
 
   check (%{ text: 0 }).to_html == "<div>0</div>" # from error
 

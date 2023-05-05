@@ -1,6 +1,7 @@
 # Todo
 
-
+- Remove it.c and set cname automatically
+- Rename html_element.nim to el.nim
 - Redirect links and react to location
 - Move edit button to section right, `vscode -g fpath:line`
 - Mono support for Title

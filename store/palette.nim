@@ -1,66 +1,70 @@
 import base, mono/core
 
-type Palette* = object
-  mockup*: bool
-
-proc init*(_: type[Palette], mockup = false): Palette =
-  Palette(mockup: mockup)
+const mockup_mode = is_main_module
 
 template nomockup*(class: string): string =
-  if pl.mockup: "" else: class
+  if mockup_mode: "" else: class
 
-template icon_button*(icon: string, size = "w-5 h-5", color = "bg-gray-500") =
-  h"button $icon_button .svg-icon":
+proc IconButton*(icon: string, size = "w-5 h-5", color = "bg-gray-500"): El =
+  bh"button $icon_button .svg-icon":
     it.class size & " " & color
     it.style "-webkit-mask-image: url(/palette/icons/" & icon & ".svg);"
 
-template lr_layout*(left, right) =
-  h"""$lr_layout .w-full .flex {nomockup".min-h-screen"}""":
+type LRLayout* = ref object of Component
+  left*, right*: seq[El]
+
+proc render*(self: LRLayout): El =
+  bh"""$lr_layout .w-full .flex {nomockup".min-h-screen"}""":
     h"$lr_left .w-9/12": # .z-10
-      left
+      it.add self.left
     h""".w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
       h".absolute .top-0 .right-0 .m-2":
-        icon_button "controls"
+        h(IconButton, (icon: "controls"))
       h"""$lr_right {nomockup".right-panel-content"}""":
-        right
+        it.add self.right
 
-template rsection*(title: string, closed: bool, content) =
-  h"$rsection .relative .m-2 .mb-3":
-    if closed:
-      assert not title.is_empty, "can't have empty title on closed rsection"
+type RSection* = ref object of Component
+  content*: El
+  title*:   string
+  closed*:  bool
+
+proc init*(_: type[RSection], title = "", closed = false): RSection =
+  RSection(title: title, closed: closed, content: El.init)
+
+proc render*(self: RSection): El =
+  bh"$rsection .relative .m-2 .mb-3":
+    if self.closed:
+      assert not self.title.is_empty, "can't have empty title on closed rsection"
       h".text-gray-300":
-        it.text title
+        it.text self.title
       h".absolute .top-0 .right-0 .pt-1":
-        icon_button("left", "w-4 h-4", "bg-gray-300")
+        h(IconButton, (icon: "left", size: "w-4 h-4", color: "bg-gray-300"))
     else:
-      if not title.is_empty:
+      if not self.title.is_empty:
         h".text-gray-300":
-          it.text title
-      content
+          it.text self.title
+      it.add self.content
 
-template rfavorites*(links: openarray[(string, string)], closed: bool) =
-  rsection "Favorites", closed:
-    it.c "rfavorites"
-    h"":
+proc RFavorites*(links: openarray[(string, string)], closed = false): El =
+  bh(RSection, (title: "Favorites", closed: closed)):
+    it.content = bh"":
       for (text, link) in links:
         h"a.block.text-blue-800":
           it.text text
           it.location link
 
-template rbacklinks*(links: openarray[(string, string)], closed: bool) =
-  rsection "Backlinks", closed:
-    it.c "rbacklinks"
-    h"":
+proc RBacklinks*(links: openarray[(string, string)], closed = false): El =
+  bh(RSection, (title: "Backlinks", closed: closed)):
+    it.content = bh"":
       for (text, link) in links:
         h"a .block .text-sm .text-blue-800":
           it.text text
           it.location link
 
 type CloudTag* = tuple[text, link: string, size: int]
-template rtags*(tags: openarray[CloudTag], closed: bool) =
-  rsection "Tags", closed:
-    it.c "rtags"
-    h".-mr-1":
+proc RTags*(tags: openarray[CloudTag], closed = false): El =
+  bh(RSection, (title: "Tags", closed: closed)):
+    it.content = bh".-mr-1":
       for (text, link, size) in tags:
         let size_class = case size
           of 0: "text-sm"
@@ -73,23 +77,19 @@ template rtags*(tags: openarray[CloudTag], closed: bool) =
           it.text text
           it.location "#"
 
-template search*(txt: string) =
-  h("input $rsearch .border .rounded .border-gray-300 .px-1 .w-full " &
+proc Search*(text = ""): El =
+  bh("input $rsearch .border .rounded .border-gray-300 .px-1 .w-full " &
     ".focus:outline-none .placeholder-gray-500 type=text"):
     it.attr("placeholder", "Search...")
-    if not txt.is_empty:
-      it.text txt
+    if not text.is_empty: it.text text
 
-template rspace_info*(closed: bool) =
-  rsection "Space", closed:
-    it.c "rspace"
-    h"a .text-blue-800":
+proc RSpaceInfo*(closed = false): El =
+  bh(RSection, (title: "Space", closed: closed)):
+    it.content = bh"a .text-blue-800":
       it.text "Finance"
       it.location "#"
 
-proc render_mockup: seq[HtmlElement] =
-  let pl = Palette.init(mockup = false)
-
+proc render_mockup: seq[El] =
   let links = [
     "How to trade safely", "Stock Option Insurance", "Simulating Risk", "Math Modelling"
   ].map((text) => (text, "#"))
@@ -102,20 +102,22 @@ proc render_mockup: seq[HtmlElement] =
 
   result.add:
     bh".palette_section":
-      lr_layout:
-        h"":
-          it.text "a"
-      do:
-        rsection "", false:
-          icon_button "edit"
-        rsection "", false:
-          search ""
-        rfavorites links, false
-        rtags tags, false
-        rspace_info false
-        rbacklinks links, false
-        rsection "Other", true:
-          discard
+      h(LRLayout, ()):
+        it.left = bhs:
+          h"":
+            it.text "a"
+
+        it.right = bhs:
+          h(RSection, ()):
+            it.content = bh(IconButton, (icon: "edit"))
+          h(RSection, ()):
+            it.content = bh(Search, ())
+          h(RFavorites, (links: links))
+          h(RTags, (tags: tags))
+          h(RSpaceInfo, ())
+          h(RBacklinks, (links: links))
+          h(RSection, (title: "Other", closed: true))
+
 
 when is_main_module:
   let html = """

@@ -34,7 +34,7 @@ type
       updates*: seq[UpdateElement]
 
   Component* = ref object of RootObj
-    current_tree:   Option[HtmlElement]
+    current_tree:   Option[El]
     children:       Table[string, Component]
     children_built: HashSet[string] # Needed to track and destroy old children
 
