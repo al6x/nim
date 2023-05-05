@@ -1,4 +1,4 @@
-import base, ./component, ./el, ./h
+import base, ./component, ./el, ./tmpl
 
 
 test "build_el":

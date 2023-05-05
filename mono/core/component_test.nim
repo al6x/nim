@@ -1,4 +1,4 @@
-import base, ./el, ./component, ./h
+import base, ./el, ./component, ./tmpl
 
 # diff ---------------------------------------------------------------------------------------------
 test "diff":

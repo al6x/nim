@@ -1,5 +1,6 @@
 # Todo
 
+- Rename to kolo
 - Remove it.c and set cname automatically
 - Rename html_element.nim to el.nim
 - Redirect links and react to location

@@ -8,7 +8,7 @@ export strutils.align_left # avoiding exporting all as it contains `%` which ove
 template print_test_info(slow: bool, filename, testname: string, failed: bool): void =
   const id_len = 7
   let fname = filename.split(".")[0]
-  let ffname = fname.align_left(id_len)[0..(id_len-1)]
+  let ffname = fname.replace("_test", "").align_left(id_len)[0..(id_len-1)]
   let module = if slow: "stest" else: " test"
   if failed:
     echo terminal.red(" " & module & " | " & ffname & " " & testname & " failed")
