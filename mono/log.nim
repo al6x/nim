@@ -1,3 +1,17 @@
+var new_tree: HtmlElement =
+  when typeof(rendered) is seq[HtmlElement]:
+    assert rendered.len == 1, "rendered must have exactly one element"
+    rendered[0]
+  else:
+    rendered
+
+proc get_child_component*[T](
+  self: Component, ChildT: type[T], id: string, set_attrs: (proc(component: T))
+): T =
+  let child = self.get_child_component(ChildT, id)
+  child.set_attrs # setting on new or overriding attributes on existing children
+  child
+
 # component.h --------------------------------------------------------------------------------------
 import base, ./html_element, ./component, ./h
 

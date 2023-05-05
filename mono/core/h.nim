@@ -29,10 +29,6 @@ proc window_title*(self: HtmlElement, title: string) =
 proc window_location*[T](self: HtmlElement, location: T) =
   self.attr("window_location", location.to_s)
 
-# proc window_location*[T](els: openarray[HtmlElement], location: T) =
-#   assert els.len > 0, "window_location requires at least one element"
-#   els[0].window_location(location)
-
 # url ----------------------------------------------------------------------------------------------
 proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
   Url.init(path.to_seq, params.to_table)

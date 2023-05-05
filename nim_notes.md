@@ -52,3 +52,10 @@ expand_macros
 current_source_path()
 
 @[1, 2][^1]
+
+var new_tree: HtmlElement =
+  when typeof(rendered) is seq[HtmlElement]:
+    assert rendered.len == 1, "rendered must have exactly one element"
+    rendered[0]
+  else:
+    rendered
