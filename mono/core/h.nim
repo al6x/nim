@@ -211,9 +211,9 @@ template bh*(html: string, blk): El =
 template bh*(html: string): El =
   build_el(html)
 
-template bh*[T](ComponentT: type[T], attrs: tuple, blk): El =
+template bh*[T: Component](ComponentT: type[T], attrs: tuple, blk): El =
   build_component(ComponentT, attrs, blk)
-template bh*[T](ComponentT: type[T], attrs: tuple): El =
+template bh*[T: Component](ComponentT: type[T], attrs: tuple): El =
   build_component(ComponentT, attrs)
 
 template bh*(fn: proc, attrs: tuple, blk): El =
@@ -235,9 +235,9 @@ template h*(html: string, code) =
 template h*(html: string) =
   add_el(html)
 
-template h*[T](ComponentT: type[T], attrs: tuple, blk) =
+template h*[T: Component](ComponentT: type[T], attrs: tuple, blk) =
   add_component(ComponentT, attrs, blk)
-template h*[T](ComponentT: type[T], attrs: tuple) =
+template h*[T: Component](ComponentT: type[T], attrs: tuple) =
   add_component(ComponentT, attrs)
 
 template h*(fn: proc, attrs: tuple, blk) =
@@ -245,11 +245,7 @@ template h*(fn: proc, attrs: tuple, blk) =
 template h*(fn: proc, attrs: tuple) =
   add_proc_component(fn, attrs)
 
-template h*[T](
-  self: Component, ChildT: type[T], id: string, attrs: tuple, blk
-) =
+template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple, blk) =
   add_stateful_component(self, ChildT, id, attrs, blk)
-template h*[T](
-  self: Component, ChildT: type[T], id: string, attrs: tuple
-) =
+template h*[T](self: Component, ChildT: type[T], id: string, attrs: tuple) =
   add_stateful_component(self, ChildT, id, attrs)
