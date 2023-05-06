@@ -90,6 +90,9 @@ proc render*(self: TodoView): El =
   proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
+  proc filter_class(filter: TodoViewFilter): string =
+    if self.filter == filter: ".selected"  else: ""
+
   el"header $TodoView .header":
     it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
     el"h1":
