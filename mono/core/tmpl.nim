@@ -96,11 +96,11 @@ template add_or_return*(e: El): auto =
   else:                             e
 
 template el*(html: string, code): auto =
-  add_or_return:
-    block:
-      let it {.inject.} = El.init(tag = fmt(html, '{', '}'))
-      code
-      it
+  let el = block:
+    let it {.inject.} = El.init(tag = fmt(html, '{', '}'))
+    code
+    it
+  add_or_return el
 
 template el*(html: string): auto =
   el(html):
