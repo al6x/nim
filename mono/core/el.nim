@@ -266,9 +266,9 @@ proc escape_html_attr_value(v: JsonNode): string =
   # (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
   "\"" & (if v.kind == JString: v.get_str.escape_html else: v.to_s(false).escape_html) & "\""
 
-proc to_html*(el: JsonNode, indent = ""): string =
+proc to_html*(el: JsonNode, indent = "", comments = false): string =
   assert el.kind == JObject, "to_html element data should be JObject"
-  if "c" in el:
+  if comments and "c" in el:
     result.add "\n" & indent & fmt"""<!-- {el["c"].get_str.escape_html_text} -->""" & "\n"
   let tag = if "tag" in el: el["tag"].get_str else: "div"
   var attr_tokens: seq[string]
@@ -297,9 +297,9 @@ proc to_html*(el: JsonNode, indent = ""): string =
   else:
     # result.add "/>"
     result.add "</" & tag & ">"
-  if "c" in el:
+  if comments and "c" in el:
     result.add "\n"
-  result = result.replace(re"\n\n\n", "\n\n")
+    result = result.replace(re"\n\n\n", "\n\n")
 
 proc to_html*(el: El): string =
   el.to_json.to_html

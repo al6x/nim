@@ -1,15 +1,23 @@
 import base, mono/core
 
-const mockup_mode = is_main_module
+# Support ------------------------------------------------------------------------------------------
+type Palette* = object
+  mockup_mode*: bool
 
-template nomockup*(class: string): string =
-  # if declared(mockup_mode): "" else: class
-  if mockup_mode: "" else: class
+proc init*(_: type[Palette], mockup_mode = false): Palette =
+  Palette(mockup_mode: mockup_mode)
 
+var palette* {.threadvar.}: Palette
+
+proc nomockup*(class: string): string =
+  if palette.mockup_mode: "" else: class
+
+# Common -------------------------------------------------------------------------------------------
 proc IconButton*(icon: string, size = "w-5 h-5", color = "bg-gray-500"): El =
+  let asset_root = if palette.mockup_mode: "" else: "/palette/"
   el"button .svg-icon":
     it.class size & " " & color
-    it.style "-webkit-mask-image: url(/palette/icons/" & icon & ".svg);"
+    it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
 
 type LRLayout* = ref object of Component
   left*, right*: seq[El]
@@ -24,6 +32,7 @@ proc render*(self: LRLayout): El =
       el"""$LRRight {nomockup".right-panel-content"}""":
         it.add self.right
 
+# Right --------------------------------------------------------------------------------------------
 proc RSection*(title = "", closed = false, content: seq[El]): El =
   el".relative .m-2 .mb-3":
     if closed:
@@ -80,6 +89,23 @@ proc RSpaceInfo*(closed = false): El =
       it.text "Finance"
       it.location "#"
 
+# Left ---------------------------------------------------------------------------------------------
+type Note* = ref object of Component
+  left*, right*: seq[El]
+
+proc render*(self: Note, content: seq[El]): El =
+  el""".w-full .flex {nomockup".min-h-screen"}""":
+    el"$LRLeft .w-9/12": # .z-10
+      it.add self.left
+    el""".w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
+      el".absolute .top-0 .right-0 .m-2":
+        el(IconButton, (icon: "controls"))
+      el"""$LRRight {nomockup".right-panel-content"}""":
+        it.add self.right
+
+
+
+# Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
   el"":
     el".text-2xl .ml-5":
@@ -98,6 +124,7 @@ proc render_mockup: seq[El] =
     "Strategy": 0, "Backtesting": 0
   }.map((t) => (t[0], "#", t[1]))
 
+  palette = Palette.init(mockup_mode = true)
   result.add:
     el(MockupSection, (title: "Note")):
       el(LRLayout, ()):
@@ -122,7 +149,7 @@ when is_main_module:
     <!DOCTYPE html>
     <html>
       <head>
-        <link rel="stylesheet" href="/palette/build/palette.css"/>
+        <link rel="stylesheet" href="build/palette.css"/>
         <title>Palette</title>
       </head>
       <body>

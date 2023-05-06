@@ -12,6 +12,14 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 - Multiple UI instances with shared memory updated automatically.
 - Fast initial page load and SEO friendly.
 
+# Templates
+
+- Components similar to JSX.
+- Supported Components: Functional Stateless, Stateless and Stateful.
+- Block passed as additional `content: seq[El]` argument.
+- Also, custom slots could be used in block scope, like `layout.left/right`.
+- Context with `threadvar`.
+
 # Install
 
 `nimble install https://github.com/al6x/nim?subdir=mono`

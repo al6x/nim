@@ -115,7 +115,7 @@ when is_main_module:
       # Feature: Setting title in initial HTML to improve SEO. Could be omited, as
       # it will be set automatically by JS.
       .replace("{title}", root_el.window_title.escape_html)
-      .replace("{html}", root_el.to_html)
+      .replace("{html}", root_el.to_html(comments = true))
 
   let blog = Blog(posts: @[
     Post(id: "1", title: "Title 1", text: "Text 1"),

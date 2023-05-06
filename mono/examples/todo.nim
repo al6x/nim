@@ -90,7 +90,7 @@ proc render*(self: TodoView): El =
   proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
-  el"header.header":
+  el"header $TodoView .header":
     it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
     el"h1":
       it.text("todos")
@@ -176,7 +176,7 @@ when is_main_module:
       </html>
     """.dedent
       .replace("{title}", root_el.window_title.escape_html)
-      .replace("{html}", root_el.to_html)
+      .replace("{html}", root_el.to_html(comments = true))
 
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk")])

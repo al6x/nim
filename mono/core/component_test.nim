@@ -61,7 +61,6 @@ test "counter":
     let res = app.process @[]
     check res.initial_root_el.to_html == """
       <div class="parent" mono_id="">
-        <!-- Counter -->
         <div class="counter">
           <input type="text" value="a1"></input>
           <input type="text" value="b1"></input>
