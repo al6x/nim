@@ -118,7 +118,6 @@ proc render*(self: TodoView): El =
             el"strong":
               it.text(active_count)
             el"span":
-              # it.text((if active_count == 1: "item" else: "items") & " left")
               it.text(active_count.pluralize("item") & " left")
 
           proc filter_class(filter: TodoViewFilter): string =
