@@ -19,8 +19,16 @@ proc IconButton*(icon: string, size = "w-5 h-5", color = "bg-gray-500"): El =
     it.class size & " " & color
     it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
 
+proc SymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
+  el"button":
+    it.class size & " " & color
+    it.text sym.to_s
+
 type LRLayout* = ref object of Component
   left*, right*: seq[El]
+
+proc set_attrs*(self: LRLayout) =
+  discard
 
 proc render*(self: LRLayout): El =
   el""".w-full .flex {nomockup".min-h-screen"}""":
@@ -91,19 +99,43 @@ proc RSpaceInfo*(closed = false): El =
 
 # Left ---------------------------------------------------------------------------------------------
 type Note* = ref object of Component
-  left*, right*: seq[El]
+  title*: string
+  tags*:  seq[string]
+
+proc set_attrs*(self: Note, title: string, tags: seq[string]) =
+  self.title = title; self.tags = tags
 
 proc render*(self: Note, content: seq[El]): El =
-  el""".w-full .flex {nomockup".min-h-screen"}""":
-    el"$LRLeft .w-9/12": # .z-10
-      it.add self.left
-    el""".w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
-      el".absolute .top-0 .right-0 .m-2":
-        el(IconButton, (icon: "controls"))
-      el"""$LRRight {nomockup".right-panel-content"}""":
-        it.add self.right
+  el"":
+    el".text-xl .p-1":
+      # <div class="anchor absolute left-1">#</div>
+      it.text self.title
 
+    it.add content
 
+    el".flex .-mr-2":
+      for tag in self.tags:
+        el"a .mr-2 .text-blue-800":
+          it.text tag
+          it.location "#"
+
+proc NoteSection*(title = "", content: seq[El]): El =
+  el"":
+    el".pl-6 .text-xl .p-1": # Title
+      it.text title
+    it.add content
+
+# <div class="anchor absolute left-1">#</div>
+
+proc NoteTextBlock*(html: string): El =
+  el" .p-2":
+    el"":
+      it.attr("html", html)
+
+proc NoteListBlock*(html: string): El =
+  el" .p-2":
+    el"":
+      it.attr("html", html)
 
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
@@ -124,13 +156,80 @@ proc render_mockup: seq[El] =
     "Strategy": 0, "Backtesting": 0
   }.map((t) => (t[0], "#", t[1]))
 
+  let note_tags = @["Forex", "Margin", "Fake"]
+
+  let text_block1_html =
+    """
+      There are multiple reasons to avoid Forex. Every single of those reasons is big enough
+      to stay away from such investment. Forex has all of them.
+    """.dedent.trim
+
+  let text_block2_html =
+    """
+      <ul>
+        <li>
+          <b>Negative trend</b>. Odds are against you. Stock market on average goes up, but
+            the currencies on average going down.
+        </li>
+        <li>
+          <b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to
+          100k$. If you don't have such <a class="text-link" href="#">money</a> - you will be using
+          leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
+          wipe you out.
+        </li>
+        <li>
+          <b>No intrinsic value</b>. Unlike <a class="text-tag" href="#">#stocks</a> that has
+          intrinsic value, currencies doesn't have it. Currencies are based on belief in those
+          who controls it. And believes and actions of those who controls it can change suddently
+          and because it doesn't has any bottom value, it can fell all the way down to zero.
+        </li>
+      <ul>
+    """.dedent.trim
+
+  let list_block1_html =
+    """
+      <div class="text-list-item">
+        1.1 No right for a mistake. If you made a mistake on the stock market, if you can
+        wait, there's a chance that over time stock will grow back. Not true for Forex.
+      </div>
+
+      <div class="text-list-item">
+        1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
+      </div>
+
+      <div class="text-list-item">
+        1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
+        With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
+        there will be probably lots of transactions and lots of fees.
+      </div>
+
+      <div class="text-list-item">
+        1.4 No discount on CGT - Capital Gain Tax. If you hold asset more than 1 year many countries
+        give CGT discount. Because currencies depreciate over time and it doesn't make sense to hold
+        it for long - such discount probably won't be utilised.
+      </div>
+
+      <div class="text-list-item">
+        2.2 Impossible to make diversification. Because lots are so big - you need millions to create
+        diversified portfolio on Forex. Although, it doesn't make sense to keep Forex portfolio anyway,
+        because currencies loose value over time.
+      </div>
+    """.dedent.trim
+
+
   palette = Palette.init(mockup_mode = true)
   result.add:
     el(MockupSection, (title: "Note")):
       el(LRLayout, ()):
+
         it.left = els:
-          el"":
-            it.text "a"
+          el(Note, (title: "Avoid Forex", tags: note_tags)):
+            el(NoteSection, ()):
+              el(NoteTextBlock, (html: text_block1_html))
+            el(NoteSection, ()):
+              el(NoteTextBlock, (html: text_block2_html))
+            el(NoteSection, (title: "Additional consequences of those 3 main issues")):
+              el(NoteListBlock, (html: list_block1_html))
 
         it.right = els:
           el(RSection, ()):
@@ -158,7 +257,7 @@ when is_main_module:
 
       </body>
     </html>
-  """.dedent.trim.replace("{html}", render_mockup().to_html)
+  """.dedent.trim.replace("{html}", render_mockup().to_html(comments = true))
   let fname = "kolo/assets/palette/palette.html"
   fs.write fname, html
   p fmt"{fname} generated"

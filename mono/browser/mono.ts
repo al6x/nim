@@ -310,12 +310,16 @@ function to_element(data: Record<string, unknown>): HTMLElement {
   let el = document.createElement(tag)
 
   for (const k in data) {
-    if (["c", "tag", "children", "text"].indexOf(k) >= 0) continue
+    if (["c", "tag", "children", "text", "html"].indexOf(k) >= 0) continue
     el.setAttribute(k, "" + data[k])
   }
   if        ("text" in data) {
     assert(!("children" in data), "to_element doesn't support both text and children")
+    assert(!("html" in data),     "to_element doesn't support both text and html")
     el.textContent = "" + data["text"]
+  } else if ("html" in data) {
+    assert(!("children" in data), "to_element doesn't support both html and children")
+    el.innerHTML = "" + data["html"]
   } else if ("children" in data) {
     assert(Array.isArray(data["children"]), "to_element element children should be JArray")
     let children = data["children"] as Record<string, unknown>[]
@@ -359,6 +363,9 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
         if (k == "text") {
           if (el.children.length > 0) el.innerHTML = ""
           el.innerText = v_str
+        } else if (k == "html") {
+          if (el.children.length > 0) el.innerText = ""
+          el.innerHTML = v_str
         } else if (boolean_attr_properties.includes(k)) {
           (el as any)[k] = !!v_str
         } else if (attr_properties.includes(k)) {
@@ -383,6 +390,8 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
       } else {
         if (k == "text") {
           el.innerText = ""
+        } else if (k == "html") {
+          el.innerHTML = ""
         } else if (boolean_attr_properties.includes(k)) {
           (el as any)[k] = false
         } else {

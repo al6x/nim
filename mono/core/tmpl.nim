@@ -107,25 +107,37 @@ template el*(html: string): auto =
     discard
 
 # component el -------------------------------------------------------------------------------------
-macro call_fn*(f, self, t: typed): typed =
+# macro call_fn*(f, self, t: typed): typed =
+#   var args = newSeq[NimNode]()
+#   let ty = getTypeImpl(t)
+#   args.add(self)
+#   for child in ty:
+#     let nparam = newNimNode(nnkExprEqExpr)
+#     nparam.add child[0]
+#     nparam.add newDotExpr(t, child[0])
+#     args.add(nparam)
+#   newCall(f, args)
+
+macro call_set_attrs*(self: typed, targs: tuple) =
   var args = newSeq[NimNode]()
-  let ty = getTypeImpl(t)
+  let ty = getTypeImpl(targs)
   args.add(self)
   for child in ty:
     let nparam = newNimNode(nnkExprEqExpr)
     nparam.add child[0]
-    nparam.add newDotExpr(t, child[0])
+    nparam.add newDotExpr(targs, child[0])
     args.add(nparam)
-  newCall(f, args)
+  newCall(ident"set_attrs", args)
 
 template el*[T](ComponentT: type[T], attrs: tuple, blk): auto =
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
   let cname = ast_to_str(ComponentT).replace(re"_\d+", "") # Nim sometimes adds tmp numbers to types
 
-  when compiles(call_fn(set_attrs, component, attrs)):
-    call_fn(set_attrs, component, attrs)
-  else:
-    set_from_tuple(component[], attrs)
+  call_set_attrs(component, attrs)
+  # when compiles(call_fn(set_attrs, component, attrs)):
+  #   call_fn(set_attrs, component, attrs)
+  # else:
+  #   set_from_tuple(component[], attrs)
 
   let content = block:
     let it {.inject.} = component
@@ -152,10 +164,11 @@ template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, bl
   let component = parent.get_child_component(ChildT, id)
   let cname = ast_to_str(ChildT).replace(re"_\d+", "") # Nim sometimes adds tmp numbers to types
 
-  when compiles(call_fn(set_attrs, component, attrs)):
-    call_fn(set_attrs, component, attrs)
-  else:
-    set_from_tuple(component[], attrs)
+  call_set_attrs(component, attrs)
+  # when compiles(call_fn(set_attrs, component, attrs)):
+  #   call_fn(set_attrs, component, attrs)
+  # else:
+  #   set_from_tuple(component[], attrs)
 
   let content = block:
     let it {.inject.} = component

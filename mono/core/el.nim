@@ -136,11 +136,14 @@ proc nattrs*(self: El): JsonNode =
       if k in nattrs:
         case k
         of "class": nattrs["class"] = (v & " " & nattrs["class"].get_str).to_json
-        of "c":     discard
-        else:       throw fmt"can't redefine attribute '{k}'"
+        else:       throw fmt"can't redefine attribute '{k}' for '{self.attrs}'"
       else:
         nattrs[k] = v.to_json
     if "tag" notin nattrs: nattrs["tag"] = "div".to_json
+    if "c" in nattrs:
+      let class = if "class" in nattrs: nattrs["class"].get_str else: ""
+      let delimiter = if class.is_empty: "" else: " "
+      nattrs["class"] = (nattrs["c"].get_str & " Component" & delimiter & class).to_json
     self.nattrs_cached = nattrs.sort.some
   return self.nattrs_cached.get
 
@@ -274,7 +277,7 @@ proc to_html*(el: JsonNode, indent = "", comments = false): string =
   var attr_tokens: seq[string]
   let el = el.sort
   for k, v in el.fields:
-    if k in ["c", "tag", "children", "text"]: continue
+    if k in ["c", "tag", "children", "text", "html"]: continue
     attr_tokens.add k.escape_html_attr_name & "=" & v.escape_html_attr_value
   result.add indent & "<" & tag
   if not attr_tokens.is_empty:
@@ -282,17 +285,22 @@ proc to_html*(el: JsonNode, indent = "", comments = false): string =
   result.add ">"
   if "text" in el:
     assert "children" notin el, "to_html doesn't support both text and children"
+    assert "html"     notin el, "to_html doesn't support both text and html"
     let safe_text = if el["text"].kind == JString:
       el["text"].get_str.escape_html_text
     else:
       el["text"].to_s(false).escape_html_text
     result.add safe_text & "</" & tag & ">"
+  elif "html" in el:
+    assert "children" notin el, "to_html doesn't support both html and children"
+    assert el["html"].kind == JString, "html should be string"
+    result.add "" & el["html"].get_str & "</" & tag & ">"
   elif "children" in el:
     let children = el["children"]
     assert children.kind == JArray, "to_html element children should be JArray"
     result.add "\n"
     for v in children:
-      result.add v.to_html(indent & "  ") & "\n"
+      result.add v.to_html(indent = indent & "  ", comments = comments) & "\n"
     result.add indent & "</" & tag & ">"
   else:
     # result.add "/>"
@@ -301,11 +309,11 @@ proc to_html*(el: JsonNode, indent = "", comments = false): string =
     result.add "\n"
     result = result.replace(re"\n\n\n", "\n\n")
 
-proc to_html*(el: El): string =
-  el.to_json.to_html
+proc to_html*(el: El, indent = "", comments = false): string =
+  el.to_json.to_html(indent = indent, comments = comments)
 
-proc to_html*(els: openarray[El]): string =
-  els.map((el) => el.to_html).join("\n")
+proc to_html*(els: openarray[El], indent = "", comments = false): string =
+  els.map((el) => el.to_html(indent = indent, comments = comments)).join("\n")
 
 test "to_html":
   let el = %{ class: "parent", children: [

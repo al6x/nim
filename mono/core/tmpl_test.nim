@@ -18,27 +18,33 @@ test "el html":
 
 test "el component":
   type Panel = ref object of Component
-    color:   string
+    color: string
+  proc set_attrs(self: Panel, color: string) =
+    self.color = color
   proc render(self: Panel, content: seq[El]): El = # Feature: render can have optional arg `content`
     el"panel .{self.color}":
       it.add content
 
   type Button = ref object of Component
     color: string
+  proc set_attrs(self: Button, color: string) =
+    self.color = color
   proc render(self: Button): El =
     el"button .{self.color}"
 
   type App = ref object of Component
+  proc set_attrs(self: App) =
+    discard
   proc render(self: App): El =
     el"app":
       el(Panel, (color: "blue")):
         el(Button, (color: "blue"))
 
-  let root_el = el(App, (color: "blue"))
+  let root_el = el(App, ())
   check root_el.to_html == """
-    <app>
-      <panel class="blue">
-        <button class="blue"></button>
+    <app class="App Component">
+      <panel class="Panel Component blue">
+        <button class="Button Component blue"></button>
       </panel>
     </app>
   """.dedent.trim
@@ -55,6 +61,8 @@ test "el proc component":
 
   type LRLayout = ref object of Component
     left*, right*: seq[El]
+  proc set_attrs(self: LRLayout) =
+    discard
   proc render(self: LRLayout): El =
     el"layout":
       if not self.left.is_empty:
@@ -64,8 +72,7 @@ test "el proc component":
         el"right":
           it.add self.right
 
-  type App = ref object of Component
-  proc render(self: App): El =
+  proc App: El =
     el"app":
       el(LRLayout, ()):
         # Feature: if there are many slots, like `panel.left/right`, it could be set explicitly using `it`
@@ -73,13 +80,13 @@ test "el proc component":
           el(Panel, (color: "blue")):
             el(Button, (color: "blue"))
 
-  let root_el = el(App, (color: "blue"))
+  let root_el = el(App, ())
   check root_el.to_html == """
-    <app>
-      <layout>
+    <app class="App Component">
+      <layout class="LRLayout Component">
         <left>
-          <panel class="blue small">
-            <button class="blue"></button>
+          <panel class="Panel Component blue small">
+            <button class="Button Component blue"></button>
           </panel>
         </left>
       </layout>
@@ -89,28 +96,33 @@ test "el proc component":
 
 test "el stateful component":
   type Panel = ref object of Component
-    color:   string
-
+    color: string
+  proc set_attrs(self: Panel, color: string) =
+    self.color = color
   proc render(self: Panel, content: seq[El]): El =
     el"panel .{self.color}":
       it.add content
 
   type Button = ref object of Component
     color: string
+  proc set_attrs(self: Button, color: string) =
+    self.color = color
   proc render(self: Button): El =
     el"button .{self.color}"
 
   type App = ref object of Component
+  proc set_attrs(self: App) =
+    discard
   proc render(self: App): El =
     el"app":
       self.el(Panel, "panel", (color: "blue")):
         el(Button, (color: "blue"))
 
-  let root_el = el(App, (color: "blue"))
+  let root_el = el(App, ())
   check root_el.to_html == """
-    <app>
-      <panel class="blue">
-        <button class="blue"></button>
+    <app class="App Component">
+      <panel class="Panel Component blue">
+        <button class="Button Component blue"></button>
       </panel>
     </app>
   """.dedent.trim

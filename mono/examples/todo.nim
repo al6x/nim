@@ -22,6 +22,9 @@ type TodoItemView* = ref object of Component
   item:      TodoItem
   editing:   Option[string] # Feature: value of `editing` field going to be maintained between requests
 
+proc set_attrs*(self: TodoItemView, item: TodoItem, on_delete: proc(id: string)) =
+  self.item = item; self.on_delete = on_delete
+
 proc render*(self: TodoItemView): El =
   proc handle_edit(e: KeydownEvent) =
     if e.key == "Enter":
@@ -61,7 +64,7 @@ type TodoView* = ref object of Component
   new_todo:   string
   toggle_all: bool
 
-# Feature: if `set_attrs` defined it's going to be used to set properties of component
+# Feature: `set_attrs` used to set properties of component
 proc set_attrs*(self: TodoView, todo: Todo = Todo(), filter: TodoViewFilter = all) =
   self.todo = todo; self.filter = filter
 

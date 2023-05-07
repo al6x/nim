@@ -56,9 +56,6 @@
     @apply pb-2;
   }
 
-  .note-tags {
-    @apply flex; @apply p-2; @apply item-left-margin;
-  }
   .note-tag {
     @apply mr-2; @apply text-blue-800;
   }

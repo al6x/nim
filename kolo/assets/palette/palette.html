@@ -6,45 +6,146 @@
   </head>
   <body>
 
-<div>
+
+<!-- MockupSection -->
+<div class="MockupSection Component">
   <div class="text-2xl ml-5">Note</div>
   <div class="border border-gray-300 m-5 mt-1">
-    <div class="w-full flex">
-      <div class="w-9/12">
-        <div>a</div>
+
+    <!-- LRLayout -->
+    <div class="LRLayout Component w-full flex">
+
+      <!-- LRLeft -->
+      <div class="LRLeft Component w-9/12">
+
+        <!-- Note -->
+        <div class="Note Component">
+          <div class="text-xl p-1">Avoid Forex</div>
+
+          <!-- NoteSection -->
+          <div class="NoteSection Component">
+            <div class="pl-6 text-xl p-1"></div>
+
+            <!-- NoteTextBlock -->
+            <div class="NoteTextBlock Component p-2">
+              <div>There are multiple reasons to avoid Forex. Every single of those reasons is big enough
+to stay away from such investment. Forex has all of them.</div>
+            </div>
+
+          </div>
+
+          <!-- NoteSection -->
+          <div class="NoteSection Component">
+            <div class="pl-6 text-xl p-1"></div>
+
+            <!-- NoteTextBlock -->
+            <div class="NoteTextBlock Component p-2">
+              <div><ul>
+  <li>
+    <b>Negative trend</b>. Odds are against you. Stock market on average goes up, but
+      the currencies on average going down.
+  </li>
+  <li>
+    <b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to
+    100k$. If you don't have such <a class="text-link" href="#">money</a> - you will be using
+    leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
+    wipe you out.
+  </li>
+  <li>
+    <b>No intrinsic value</b>. Unlike <a class="text-tag" href="#">#stocks</a> that has
+    intrinsic value, currencies doesn't have it. Currencies are based on belief in those
+    who controls it. And believes and actions of those who controls it can change suddently
+    and because it doesn't has any bottom value, it can fell all the way down to zero.
+  </li>
+<ul></div>
+            </div>
+
+          </div>
+
+          <!-- NoteSection -->
+          <div class="NoteSection Component">
+            <div class="pl-6 text-xl p-1">Additional consequences of those 3 main issues</div>
+
+            <!-- NoteListBlock -->
+            <div class="NoteListBlock Component p-2">
+              <div><div class="text-list-item">
+  1.1 No right for a mistake. If you made a mistake on the stock market, if you can
+  wait, there's a chance that over time stock will grow back. Not true for Forex.
+</div>
+
+<div class="text-list-item">
+  1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
+</div>
+
+<div class="text-list-item">
+  1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
+  With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
+  there will be probably lots of transactions and lots of fees.
+</div>
+
+<div class="text-list-item">
+  1.4 No discount on CGT - Capital Gain Tax. If you hold asset more than 1 year many countries
+  give CGT discount. Because currencies depreciate over time and it doesn't make sense to hold
+  it for long - such discount probably won't be utilised.
+</div>
+
+<div class="text-list-item">
+  2.2 Impossible to make diversification. Because lots are so big - you need millions to create
+  diversified portfolio on Forex. Although, it doesn't make sense to keep Forex portfolio anyway,
+  because currencies loose value over time.
+</div></div>
+            </div>
+
+          </div>
+
+          <div class="flex -mr-2">
+            <a class="mr-2 text-blue-800" href="#">Forex</a>
+            <a class="mr-2 text-blue-800" href="#">Margin</a>
+            <a class="mr-2 text-blue-800" href="#">Fake</a>
+          </div>
+        </div>
+
       </div>
+
       <div class="w-3/12 relative border-gray-300 border-l bg-slate-50">
         <div class="absolute top-0 right-0 m-2">
-          <button class="svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+
+          <!-- IconButton -->
+          <button class="IconButton Component svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+
         </div>
-        <div>
-          <div class="relative m-2 mb-3">
-            <button class="svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
+
+        <!-- LRRight -->
+        <div class="LRRight Component">
+
+          <!-- RSection -->
+          <div class="RSection Component relative m-2 mb-3">
+
+            <!-- IconButton -->
+            <button class="IconButton Component svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
+
           </div>
-          <div class="relative m-2 mb-3">
-            <input class="border rounded border-gray-300 px-1 w-full focus:outline-none placeholder-gray-500" placeholder="Search..." type="text"></input>
+
+          <!-- RSection -->
+          <div class="RSection Component relative m-2 mb-3">
+
+            <!-- Search -->
+            <input class="Search Component border rounded border-gray-300 px-1 w-full focus:outline-none placeholder-gray-500" placeholder="Search..." type="text"></input>
+
           </div>
-          <div class="relative m-2 mb-3">
+
+          <!-- RFavorites -->
+          <div class="RFavorites Component relative m-2 mb-3">
             <div class="text-gray-300">Favorites</div>
             <a class="block text-blue-800" href="#">How to trade safely</a>
             <a class="block text-blue-800" href="#">Stock Option Insurance</a>
             <a class="block text-blue-800" href="#">Simulating Risk</a>
             <a class="block text-blue-800" href="#">Math Modelling</a>
           </div>
-          <div class="relative m-2 mb-3">
+
+          <!-- RTags -->
+          <div class="RTags Component relative m-2 mb-3">
             <div class="text-gray-300">Tags</div>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Stock</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Trading</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-xl" href="#">Market</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Dollar</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Euro</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Taxes</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Currency</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Profit</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-xl" href="#">Loss</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Option</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Strategy</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Backtesting</a>
             <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Stock</a>
             <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Trading</a>
             <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-xl" href="#">Market</a>
@@ -59,28 +160,41 @@
             <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Backtesting</a>
             <div class="-mr-1"></div>
           </div>
-          <div class="relative m-2 mb-3">
+
+          <!-- RSpaceInfo -->
+          <div class="RSpaceInfo Component relative m-2 mb-3">
             <div class="text-gray-300">Space</div>
             <a class="text-blue-800" href="#">Finance</a>
           </div>
-          <div class="relative m-2 mb-3">
+
+          <!-- RBacklinks -->
+          <div class="RBacklinks Component relative m-2 mb-3">
             <div class="text-gray-300">Backlinks</div>
             <a class="block text-sm text-blue-800" href="#">How to trade safely</a>
             <a class="block text-sm text-blue-800" href="#">Stock Option Insurance</a>
             <a class="block text-sm text-blue-800" href="#">Simulating Risk</a>
             <a class="block text-sm text-blue-800" href="#">Math Modelling</a>
           </div>
-          <div class="relative m-2 mb-3">
+
+          <!-- RSection -->
+          <div class="RSection Component relative m-2 mb-3">
             <div class="text-gray-300">Other</div>
             <div class="absolute top-0 right-0 pt-1">
-              <button class="svg-icon w-4 h-4 bg-gray-300" style="-webkit-mask-image: url(icons/left.svg);"></button>
+
+              <!-- IconButton -->
+              <button class="IconButton Component svg-icon w-4 h-4 bg-gray-300" style="-webkit-mask-image: url(icons/left.svg);"></button>
+
             </div>
           </div>
+
         </div>
+
       </div>
     </div>
+
   </div>
 </div>
+
 
   </body>
 </html>

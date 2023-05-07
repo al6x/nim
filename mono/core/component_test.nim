@@ -33,6 +33,9 @@ type Counter = ref object of Component
   a: string
   b: string
 
+proc set_attrs(self: Counter) =
+  discard
+
 proc init(_: type[Counter]): Counter =
   Counter(a: "a1", b: "b1")
 
@@ -50,6 +53,9 @@ proc render(self: Counter): El =
 
 type CounterParent = ref object of Component
 
+proc set_attrs(self: CounterParent) =
+  discard
+
 proc render(self: CounterParent): El =
   el".parent":
     self.el(Counter, "counter", ())
@@ -61,7 +67,7 @@ test "counter":
     let res = app.process @[]
     check res.initial_root_el.to_html == """
       <div class="parent" mono_id="">
-        <div class="counter">
+        <div class="Counter Component counter">
           <input type="text" value="a1"></input>
           <input type="text" value="b1"></input>
           <button on_click="true">+</button>
