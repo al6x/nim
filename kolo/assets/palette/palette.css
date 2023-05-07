@@ -4,8 +4,38 @@
 
 .svg-icon { background-size: contain; background-position: center; }
 
+.note-list-block > div {
+  @apply pb-2;
+}
+
+.note-text-block > ul > li {
+  @apply pb-2;
+}
 
 
+/* .right-panel .right-panel-controls-icon {
+  opacity: 1;
+  transition: opacity;
+  transition-delay: 1.1s;
+  transition-duration: 0.1s;
+}
+.right-panel:hover .right-panel-controls-icon {
+  opacity: 0;
+  transition: opacity;
+  transition-duration: 0.1s;
+} */
+
+/* .right-panel-content {
+  opacity: 0;
+  transition: opacity;
+  transition-delay: 1s;
+  transition-duration: 0.1s;
+}
+.right-panel:hover .right-panel-content {
+  opacity: 1;
+  transition: opacity;
+  transition-duration: 0.1s;
+} */
 
 
 @layer components {
@@ -16,29 +46,7 @@
     @apply pl-6;
   }
 
-  /* .right-panel .right-panel-controls-icon {
-    opacity: 1;
-    transition: opacity;
-    transition-delay: 1.1s;
-    transition-duration: 0.1s;
-  }
-  .right-panel:hover .right-panel-controls-icon {
-    opacity: 0;
-    transition: opacity;
-    transition-duration: 0.1s;
-  } */
 
-  /* .right-panel-content {
-    opacity: 0;
-    transition: opacity;
-    transition-delay: 1s;
-    transition-duration: 0.1s;
-  }
-  .right-panel:hover .right-panel-content {
-    opacity: 1;
-    transition: opacity;
-    transition-duration: 0.1s;
-  } */
 
   .section-title {
     @apply text-xl; @apply p-1; @apply item-left-margin;

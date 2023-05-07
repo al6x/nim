@@ -106,14 +106,14 @@ proc set_attrs*(self: Note, title: string, tags: seq[string]) =
   self.title = title; self.tags = tags
 
 proc render*(self: Note, content: seq[El]): El =
-  el"":
-    el".text-xl .p-1":
+  el".pt-3 .pb-3":
+    el".pl-6 .text-xl": # Title
       # <div class="anchor absolute left-1">#</div>
       it.text self.title
 
     it.add content
 
-    el".flex .-mr-2":
+    el".pl-6 .flex .-mr-2":
       for tag in self.tags:
         el"a .mr-2 .text-blue-800":
           it.text tag
@@ -121,20 +121,21 @@ proc render*(self: Note, content: seq[El]): El =
 
 proc NoteSection*(title = "", content: seq[El]): El =
   el"":
-    el".pl-6 .text-xl .p-1": # Title
-      it.text title
+    if not title.is_empty:
+      el".pl-6 .text-xl": # Title
+        it.text title
     it.add content
 
 # <div class="anchor absolute left-1">#</div>
 
 proc NoteTextBlock*(html: string): El =
-  el" .p-2":
-    el"":
+  el".pl-6 .p-2":
+    el".note-text-block":
       it.attr("html", html)
 
 proc NoteListBlock*(html: string): El =
-  el" .p-2":
-    el"":
+  el".pl-6 .p-2":
+    el".note-list-block":
       it.attr("html", html)
 
 # Other --------------------------------------------------------------------------------------------
