@@ -97,7 +97,7 @@ proc RSpaceInfo*(closed = false): El =
       it.text "Finance"
       it.location "#"
 
-# Left ---------------------------------------------------------------------------------------------
+# Note ---------------------------------------------------------------------------------------------
 type Note* = ref object of Component
   title*: string
   tags*:  seq[string]
@@ -116,7 +116,7 @@ proc render*(self: Note, content: seq[El]): El =
     el".pl-6 .flex .-mr-2":
       for tag in self.tags:
         el"a .mr-2 .text-blue-800":
-          it.text tag
+          it.text "#" & tag
           it.location "#"
 
 proc NoteSection*(title = "", content: seq[El]): El =
