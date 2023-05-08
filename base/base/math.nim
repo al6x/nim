@@ -288,6 +288,12 @@ test "idw2n":
   let points = @[(1.0, 1.0), (2.0, 2.0), (5.0, 5.0)]
   check @[1.0, 1.5, 5.0].map(x => points.idw2n(x)) =~ @[1.0, 1.5, 5.0]
 
+proc is_odd*(v: int): bool =
+  v.rem(2) == 0
+
+proc is_even*(v: int): bool =
+  not v.is_odd
+
 
 # doc({
 #   tags:  ('Math', 'Approximation'],

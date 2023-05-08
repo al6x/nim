@@ -81,7 +81,7 @@ type FsEntryKind* = enum file, file_link, dir, dir_link
 
 type FsEntry* = tuple[kind: FsEntryKind, name: string]
 
-proc read_dir*(fs: FS, path: string): seq[FsEntry] =
+proc read_dir*(fs: FS, path: string, hidden = false): seq[FsEntry] =
   for entry in walk_dir(path, relative = true):
     let kind =
       case entry.kind
@@ -89,7 +89,8 @@ proc read_dir*(fs: FS, path: string): seq[FsEntry] =
       of pcLinkToFile: FsEntryKind.file_link
       of pcDir:        FsEntryKind.dir
       of pcLinkToDir:  FsEntryKind.dir_link
-    result.add (kind, entry.path)
+    if hidden or not entry.path.starts_with("."):
+      result.add (kind, entry.path)
 
 
 proc is_empty_dir*(fs: FS, path: string): bool =

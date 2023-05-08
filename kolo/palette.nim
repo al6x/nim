@@ -15,12 +15,12 @@ proc nomockup*(class: string): string =
 # Common -------------------------------------------------------------------------------------------
 proc IconButton*(icon: string, size = "w-5 h-5", color = "bg-gray-500"): El =
   let asset_root = if palette.mockup_mode: "" else: "/palette/"
-  el"button .svg-icon":
+  el"button .block.svg-icon":
     it.class size & " " & color
     it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
 
 proc SymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
-  el"button":
+  el"button.block":
     it.class size & " " & color
     it.text sym.to_s
 
@@ -106,142 +106,159 @@ proc set_attrs*(self: Note, title: string, tags: seq[string]) =
   self.title = title; self.tags = tags
 
 proc render*(self: Note, content: seq[El]): El =
-  el".pt-3 .pb-3":
-    el".pl-6 .text-xl": # Title
+  el".relative.pt-3.pb-3":
+    el"a.block.absolute.left-2 .text-gray-300": # Anchor
+      it.class "top-3.5"
+      it.text "#"
+      it.location "#"
+    el".pl-8.text-xl.mb-2": # Title
       # <div class="anchor absolute left-1">#</div>
       it.text self.title
 
     it.add content
 
-    el".pl-6 .flex .-mr-2":
+    el".pl-8 .flex .-mr-2":
       for tag in self.tags:
         el"a .mr-2 .text-blue-800":
           it.text "#" & tag
           it.location "#"
 
 proc NoteSection*(title = "", content: seq[El]): El =
-  el"":
+  el".relative":
     if not title.is_empty:
-      el".pl-6 .text-xl": # Title
+      el"a.block.absolute.left-2 .text-gray-300": # Anchor
+        it.class "top-0.5"
+        it.text "#"
+        it.location "#"
+      el".pl-8.text-xl.mb-2": # Title
         it.text title
     it.add content
 
-# <div class="anchor absolute left-1">#</div>
+template note_block_header(code): El =
+  el".relative.pl-8.pr-8 .mb-2":
+    if show_controls:
+      el".absolute.right-1.top-1.flex.flex-col  .rounded.p-1.space-y-1": # Controls
+        el(IconButton, (icon: "edit"))
+        el(IconButton, (icon: "controls"))
+    code
 
-proc NoteTextBlock*(html: string): El =
-  el".pl-6 .p-2":
-    el".note-text-block":
+proc NoteTextBlock*(html: string, show_controls = false): El =
+  note_block_header:
+    el".ftext": # Body
       it.attr("html", html)
 
-proc NoteListBlock*(html: string): El =
-  el".pl-6 .p-2":
-    el".note-list-block":
+proc NoteListBlock*(html: string, show_controls = false): El =
+  note_block_header:
+    el".ftext": # Body
       it.attr("html", html)
+
+proc NoteCodeBlock*(code: string, show_controls = false): El =
+  note_block_header:
+    el".ftext": # Body
+      it.attr("html", "<pre>" & code & "</pre>")
+
+proc NoteImagesBlock*(images: seq[string], show_controls = false): El =
+  template render_td =
+    el"td":
+      if col.is_even:
+        it.style "width: 1.33%;"
+      else:
+        it.style "width: 24%; text-align: center; vertical-align: middle;"
+        if i < images.len:
+          # flex needed to align vertically
+          el".flex .rounded.overflow-hidden.border.border-gray-300.bg-slate-50":
+            it.style "width: 100%; aspect-ratio: 1;" # making height same as width so cell will be square
+            el"img.block.ml-auto.mr-auto": # centering horizontally
+              # Limiting image max height and width
+              it.style "object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"
+              it.attr("src", images[i])
+              i.inc
+
+  note_block_header:
+    if images.len <= 4:
+      el"table cellspacing=0 cellpadding=0": # removing cell borders
+        el"tdata":
+          el"tr":
+            var i = 0
+            for col in 0..(images.high * 2 - 2):
+              render_td()
+    else:
+      el"table cellspacing=0 cellpadding=0":
+        it.style "border-spacing: 0 0.5rem; border-collapse: separate;" # setting margin after each row
+        el"tdata":
+          var i = 0
+          for row in 0..(images.len / 4).floor.int:
+            el"tr":
+              for col in 0..6:
+                render_td()
 
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
   el"":
-    el".text-2xl .ml-5":
+    el".relative.ml-5 .text-2xl":
       it.text title
-    el".border .border-gray-300 .m-5 .mt-1":
+    # el".absolute.right-5.top-3":
+    #   el(IconButton, (icon: "code"))
+    el".border .border-gray-300 .rounded .m-5 .mt-1":
       it.add content
 
+template mockup_section(t: string, code) =
+  result.add:
+    el(MockupSection, (title: t)):
+      code
+
+type StubData = object
+  links:     seq[(string, string)]
+  tags:      seq[CloudTag]
+  note_tags: seq[string]
+
+  text_block1_html, text_block2_html, list_block1_html, text_block_with_image_html, code_block1: string
+  knots: seq[string]
+
+var data: StubData
+proc stub_data: StubData
+
 proc render_mockup: seq[El] =
-  let links = [
-    "How to trade safely", "Stock Option Insurance", "Simulating Risk", "Math Modelling"
-  ].map((text) => (text, "#"))
-
-  let tags: seq[CloudTag] = {
-    "Stock": 1, "Trading": 0, "Market": 2, "Dollar": 0, "Euro": 1,
-    "Taxes": 1, "Currency": 0, "Profit": 0, "Loss": 2, "Option": 1,
-    "Strategy": 0, "Backtesting": 0
-  }.map((t) => (t[0], "#", t[1]))
-
-  let note_tags = @["Forex", "Margin", "Fake"]
-
-  let text_block1_html =
-    """
-      There are multiple reasons to avoid Forex. Every single of those reasons is big enough
-      to stay away from such investment. Forex has all of them.
-    """.dedent.trim
-
-  let text_block2_html =
-    """
-      <ul>
-        <li>
-          <b>Negative trend</b>. Odds are against you. Stock market on average goes up, but
-            the currencies on average going down.
-        </li>
-        <li>
-          <b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to
-          100k$. If you don't have such <a class="text-link" href="#">money</a> - you will be using
-          leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
-          wipe you out.
-        </li>
-        <li>
-          <b>No intrinsic value</b>. Unlike <a class="text-tag" href="#">#stocks</a> that has
-          intrinsic value, currencies doesn't have it. Currencies are based on belief in those
-          who controls it. And believes and actions of those who controls it can change suddently
-          and because it doesn't has any bottom value, it can fell all the way down to zero.
-        </li>
-      <ul>
-    """.dedent.trim
-
-  let list_block1_html =
-    """
-      <div class="text-list-item">
-        1.1 No right for a mistake. If you made a mistake on the stock market, if you can
-        wait, there's a chance that over time stock will grow back. Not true for Forex.
-      </div>
-
-      <div class="text-list-item">
-        1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
-      </div>
-
-      <div class="text-list-item">
-        1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
-        With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
-        there will be probably lots of transactions and lots of fees.
-      </div>
-
-      <div class="text-list-item">
-        1.4 No discount on CGT - Capital Gain Tax. If you hold asset more than 1 year many countries
-        give CGT discount. Because currencies depreciate over time and it doesn't make sense to hold
-        it for long - such discount probably won't be utilised.
-      </div>
-
-      <div class="text-list-item">
-        2.2 Impossible to make diversification. Because lots are so big - you need millions to create
-        diversified portfolio on Forex. Although, it doesn't make sense to keep Forex portfolio anyway,
-        because currencies loose value over time.
-      </div>
-    """.dedent.trim
-
+  data = stub_data()
 
   palette = Palette.init(mockup_mode = true)
-  result.add:
-    el(MockupSection, (title: "Note")):
-      el(LRLayout, ()):
+  mockup_section("Text"):
+    el(LRLayout, ()):
+      it.left = els:
+        el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+          el(NoteSection, ()):
+            el(NoteTextBlock, (html: data.text_block_with_image_html))
+          el(NoteSection, (title: "Additional consequences of those 3 main issues")):
+            el(NoteListBlock, (html: data.list_block1_html))
+            el(NoteCodeBlock, (code: data.code_block1))
+            el(NoteTextBlock, (html: data.text_block1_html))
+            el(NoteImagesBlock, (images: data.knots[0..3]))
+            el(NoteListBlock, (html: data.list_block1_html))
+            el(NoteImagesBlock, (images: data.knots))
+            el(NoteListBlock, (html: data.list_block1_html))
 
-        it.left = els:
-          el(Note, (title: "Avoid Forex", tags: note_tags)):
-            el(NoteSection, ()):
-              el(NoteTextBlock, (html: text_block1_html))
-            el(NoteSection, ()):
-              el(NoteTextBlock, (html: text_block2_html))
-            el(NoteSection, (title: "Additional consequences of those 3 main issues")):
-              el(NoteListBlock, (html: list_block1_html))
+  mockup_section("Note"):
+    el(LRLayout, ()):
 
-        it.right = els:
-          el(RSection, ()):
-            el(IconButton, (icon: "edit"))
-          el(RSection, ()):
-            el(Search, ())
-          el(RFavorites, (links: links))
-          el(RTags, (tags: tags))
-          el(RSpaceInfo, ())
-          el(RBacklinks, (links: links))
-          el(RSection, (title: "Other", closed: true))
+      it.left = els:
+        el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+          el(NoteSection, ()):
+            el(NoteTextBlock, (html: data.text_block1_html))
+          el(NoteSection, ()):
+            el(NoteTextBlock, (html: data.text_block2_html, show_controls: true))
+          el(NoteSection, (title: "Additional consequences of those 3 main issues")):
+            el(NoteListBlock, (html: data.list_block1_html))
+
+      it.right = els:
+        el(RSection, ()):
+          el(IconButton, (icon: "edit"))
+        el(RSection, ()):
+          el(Search, ())
+        el(RFavorites, (links: data.links))
+        el(RTags, (tags: data.tags))
+        el(RSpaceInfo, ())
+        el(RBacklinks, (links: data.links))
+        el(RSection, (title: "Other", closed: true))
 
 
 when is_main_module:
@@ -263,3 +280,103 @@ when is_main_module:
   fs.write fname, html
   p fmt"{fname} generated"
   say "done"
+
+
+proc stub_data: StubData =
+  result.links = [
+    "How to trade safely", "Stock Option Insurance", "Simulating Risk", "Math Modelling"
+  ].map((text) => (text, "#"))
+
+  result.tags = {
+    "Stock": 1, "Trading": 0, "Market": 2, "Dollar": 0, "Euro": 1,
+    "Taxes": 1, "Currency": 0, "Profit": 0, "Loss": 2, "Option": 1,
+    "Strategy": 0, "Backtesting": 0
+  }.map((t) => (t[0], "#", t[1]))
+
+  result.note_tags = @["Forex", "Margin", "Fake"]
+
+  result.text_block1_html =
+    """
+      <p>
+        There are multiple reasons to avoid Forex. Every single of those reasons is big enough
+        to stay away from such investment. Forex has all of them.
+      </p>
+    """.dedent.trim
+
+  result.text_block2_html =
+    """
+      <ul>
+        <li>
+          <b>Negative trend</b>. Odds are against you. Stock market on average goes up, but
+            the currencies on average going down.
+        </li>
+        <li>
+          <b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to
+          100k$. If you don't have such <a class="text-link" href="#">money</a> - you will be using
+          leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
+          wipe you out.
+        </li>
+        <li>
+          <b>No intrinsic value</b>. Unlike <a class="text-tag" href="#">#stocks</a> that has
+          intrinsic value, currencies doesn't have it. Currencies are based on belief in those
+          who controls it. And <code>believes</code> and actions of those who controls it can change suddently
+          and because it doesn't has any bottom value, it can fell all the way down to zero.
+        </li>
+      <ul>
+    """.dedent.trim
+
+  result.text_block_with_image_html =
+    """
+      <p>
+        Odds are against you. Stock market on average goes up, but
+        the currencies on average going down. Small market fluctuation - and the margin call would
+        wipe you out.
+      </p>
+
+      <p>
+        Stock market on average goes up, but the currencies on average going
+        down. And <code>believes</code> and actions of those who controls it can change suddently
+        and because it doesn't has any bottom value, it can fell all the way down to zero.
+        Odds are against you.
+      </p>
+
+      <img src="images/msft_chart.png"/>
+
+      <p>
+        <b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to
+        100k$. If you don't have such <a class="text-link" href="#">money</a> - you will be using
+        leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
+        wipe you out.
+      </p>
+    """.dedent.trim
+
+  result.list_block1_html =
+    """
+      <p>
+        1.1 No right for a mistake. If you made a mistake on the stock market, if you can
+        wait, there's a chance that over time stock will grow back. Not true for Forex.
+      </p>
+
+      <p>
+        1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
+      </p>
+
+      <p>
+        1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
+        With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
+        there will be probably lots of transactions and lots of fees.
+      </p>
+    """.dedent.trim
+
+  result.code_block1 = """
+    palette = Palette.init(mockup_mode = true)
+    mockup_section("Text"):
+      el(LRLayout, ()):
+        it.left = els:
+          el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+            el(NoteSection, ()):
+              el(NoteTextBlock, (html: data.text_block_with_image_html))
+  """.dedent.trim
+
+  result.knots = fs.read_dir("kolo/assets/palette/images/knots")
+    .pick(name).mapit("images/knots/" & it)

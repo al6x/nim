@@ -2,16 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-.svg-icon { background-size: contain; background-position: center; }
-
-.note-list-block > div {
-  @apply pb-2;
+.svg-icon {
+  position: relative; top: 1px; left: 1px; background-size: contain; background-position: center;
 }
 
-.note-text-block > ul > li {
-  @apply pb-2;
+.ftext > pre { @apply text-sm; @apply border; @apply rounded; @apply border-gray-300; @apply px-2; @apply py-1; }
+
+.ftext > ul > li > code,
+.ftext > p > code {
+  padding: 1px 4px; @apply border; @apply rounded; @apply border-gray-300;
+  @apply text-sm;
 }
 
+.ftext > img { @apply mb-2; }
+
+.ftext > p { @apply mb-2; }
+
+.ftext > ul { @apply mb-2; }
+.ftext > ul > li { @apply mb-2;}
+
+td > div { @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; }
+
+/* .note-text-block >  */
 
 /* .right-panel .right-panel-controls-icon {
   opacity: 1;
