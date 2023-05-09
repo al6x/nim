@@ -1,11 +1,7 @@
 # Todo
 
-
-- Remove it.c and set cname automatically
-- Rename html_element.nim to el.nim
-- Redirect links and react to location
+- search list
 - Move edit button to section right, `vscode -g fpath:line`
-- Mono support for Title
 - FText parser for: Section, Table, Code, Images
 
 # LTodo

@@ -20,6 +20,17 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 - Also, custom slots could be used in block scope, like `layout.left/right`.
 - Context with `threadvar`.
 
+- Clean semantic UI elements, typesafe.
+- Component Template, not HTML template, clean code, IconButton example.
+- Components are interactive atomic blocks.
+- no compile wait, IDE autocomplete, no need for typesafe HTML el.
+- 2 types of components, object and proc.
+- incremental progress, start with static, add event listeners.
+- Template is plain Nim code.
+- Plays well with Tailwind.
+- Tag shortcut helps keep code small.
+- Very small impl size, ~500 lines.
+
 # Install
 
 `nimble install https://github.com/al6x/nim?subdir=mono`

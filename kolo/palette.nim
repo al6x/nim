@@ -184,13 +184,16 @@ proc NoteImagesBlock*(images: seq[string], show_controls = false): El =
               render_td()
     else:
       el"table cellspacing=0 cellpadding=0":
-        it.style "border-spacing: 0 0.5rem; border-collapse: separate;" # setting margin after each row
+        it.style "border-spacing: 0 0.6rem; border-collapse: separate;" # setting margin after each row
         el"tdata":
           var i = 0
           for row in 0..(images.len / 4).floor.int:
             el"tr":
               for col in 0..6:
                 render_td()
+
+# Search -------------------------------------------------------------------------------------------
+
 
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
@@ -220,8 +223,20 @@ proc stub_data: StubData
 
 proc render_mockup: seq[El] =
   data = stub_data()
-
   palette = Palette.init(mockup_mode = true)
+
+  # mockup_section("Search"):
+  #   el(LRLayout, ()):
+  #     it.left = els:
+  #       el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+  #         el(NoteSection, ()):
+  #           el(NoteTextBlock, (html: data.text_block1_html))
+  #         el(NoteSection, ()):
+  #           el(NoteTextBlock, (html: data.text_block2_html, show_controls: true))
+  #         el(NoteSection, (title: "Additional consequences of those 3 main issues")):
+  #           el(NoteListBlock, (html: data.list_block1_html))
+
+
   mockup_section("Text"):
     el(LRLayout, ()):
       it.left = els:
