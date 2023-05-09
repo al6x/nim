@@ -24,6 +24,11 @@ proc SymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
     it.class size & " " & color
     it.text sym.to_s
 
+proc TextButton*(text: string, color = "text-blue-800"): El =
+  el"button":
+    it.class color
+    it.text text
+
 type LRLayout* = ref object of Component
   left*, right*: seq[El]
 
@@ -34,7 +39,7 @@ proc render*(self: LRLayout): El =
   el""".w-full .flex {nomockup".min-h-screen"}""":
     el"$LRLeft .w-9/12": # .z-10
       it.add self.left
-    el""".w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
+    el"""$LRRight.w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
       el".absolute .top-0 .right-0 .m-2":
         el(IconButton, (icon: "controls"))
       el"""$LRRight {nomockup".right-panel-content"}""":
@@ -85,7 +90,7 @@ proc RTags*(tags: openarray[CloudTag], closed = false): El =
           it.text text
           it.location "#"
 
-proc Search*(text = ""): El =
+proc RSearchField*(text = ""): El =
   el("input .border .rounded .border-gray-300 .px-1 .w-full " &
     ".focus:outline-none .placeholder-gray-500 type=text"):
     it.attr("placeholder", "Search...")
@@ -193,6 +198,40 @@ proc NoteImagesBlock*(images: seq[string], show_controls = false): El =
                 render_td()
 
 # Search -------------------------------------------------------------------------------------------
+proc SearchItem*(title, subtitle, before, match, after: string): El =
+  el".pl-8.pr-8 .mb-2":
+    el"span .text-gray-500":
+      el"span":
+        it.text before
+      el"span .font-bold.text-black":
+        it.text match
+      el"span":
+        it.text after
+      el"span .mr-4"
+      el"a .text-blue-800":
+        it.text title
+        it.location "#"
+      if not subtitle.is_empty:
+        el"span":
+          it.text "/"
+        el"a .text-blue-800":
+          it.text title
+          it.location "#"
+
+proc Search*(title = "Found", more: int, content: seq[El]): El =
+  el".pt-3.pb-3":
+    el".float-right.mr-8.mt-1":
+      el(IconButton, (icon: "cross"))
+    el".pl-8.mb-2 .text-xl":
+      it.text title
+    el"":
+      it.add content
+
+    if more > 0:
+      el".pl-8.pr-8.mb-2.float-right":
+        el(TextButton, (text: fmt"{more} more"))
+        # el"span":
+        #   it.text fmt"{more} more"
 
 
 # Other --------------------------------------------------------------------------------------------
@@ -225,33 +264,6 @@ proc render_mockup: seq[El] =
   data = stub_data()
   palette = Palette.init(mockup_mode = true)
 
-  # mockup_section("Search"):
-  #   el(LRLayout, ()):
-  #     it.left = els:
-  #       el(Note, (title: "Avoid Forex", tags: data.note_tags)):
-  #         el(NoteSection, ()):
-  #           el(NoteTextBlock, (html: data.text_block1_html))
-  #         el(NoteSection, ()):
-  #           el(NoteTextBlock, (html: data.text_block2_html, show_controls: true))
-  #         el(NoteSection, (title: "Additional consequences of those 3 main issues")):
-  #           el(NoteListBlock, (html: data.list_block1_html))
-
-
-  mockup_section("Text"):
-    el(LRLayout, ()):
-      it.left = els:
-        el(Note, (title: "Avoid Forex", tags: data.note_tags)):
-          el(NoteSection, ()):
-            el(NoteTextBlock, (html: data.text_block_with_image_html))
-          el(NoteSection, (title: "Additional consequences of those 3 main issues")):
-            el(NoteListBlock, (html: data.list_block1_html))
-            el(NoteCodeBlock, (code: data.code_block1))
-            el(NoteTextBlock, (html: data.text_block1_html))
-            el(NoteImagesBlock, (images: data.knots[0..3]))
-            el(NoteListBlock, (html: data.list_block1_html))
-            el(NoteImagesBlock, (images: data.knots))
-            el(NoteListBlock, (html: data.list_block1_html))
-
   mockup_section("Note"):
     el(LRLayout, ()):
 
@@ -268,12 +280,43 @@ proc render_mockup: seq[El] =
         el(RSection, ()):
           el(IconButton, (icon: "edit"))
         el(RSection, ()):
-          el(Search, ())
+          el(RSearchField, ())
         el(RFavorites, (links: data.links))
         el(RTags, (tags: data.tags))
         el(RSpaceInfo, ())
         el(RBacklinks, (links: data.links))
         el(RSection, (title: "Other", closed: true))
+
+  mockup_section("Text"):
+    el(LRLayout, ()):
+      it.left = els:
+        el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+          el(NoteSection, ()):
+            el(NoteTextBlock, (html: data.text_block_with_image_html))
+          el(NoteSection, (title: "Additional consequences of those 3 main issues")):
+            el(NoteListBlock, (html: data.list_block1_html))
+            el(NoteCodeBlock, (code: data.code_block1))
+            el(NoteTextBlock, (html: data.text_block1_html))
+            el(NoteImagesBlock, (images: data.knots[0..3]))
+            el(NoteListBlock, (html: data.list_block1_html))
+            el(NoteImagesBlock, (images: data.knots))
+            el(NoteListBlock, (html: data.list_block1_html))
+
+
+  mockup_section("Search"):
+    el(LRLayout, ()):
+      it.left = els:
+        el(Search, (title: "Found", more: 23)):
+          for i in 1..6:
+            el(SearchItem, (
+              title: "Risk Simulation",
+              subtitle: "",
+              before: "there are multiple reasons to",
+              match: "avoid forex",
+              after: "Every single of those reasons is big enough to stay away from " &
+                "such investment. Forex has all of them"
+            ))
+
 
 
 when is_main_module:

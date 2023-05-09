@@ -102,7 +102,10 @@ proc parse_tag*(s: string): Table[string, string] =
   while true:
     skip_space()
     if i == s.len: break
-    attr_tokens.add consume_token(i)
+    let token = consume_token(i)
+    if token.is_empty: break
+    attr_tokens.add token
+
   if not attr_tokens.is_empty:
     for token in attr_tokens:
       let tokens = token.split "="
@@ -307,13 +310,13 @@ proc to_html*(el: JsonNode, indent = "", comments = false): string =
     result.add "</" & tag & ">"
   if comments and "c" in el:
     result.add "\n"
-    result = result.replace(re"\n\n\n", "\n\n")
+  result = result.replace(re"\n\n\n", "\n\n")
 
 proc to_html*(el: El, indent = "", comments = false): string =
   el.to_json.to_html(indent = indent, comments = comments)
 
 proc to_html*(els: openarray[El], indent = "", comments = false): string =
-  els.map((el) => el.to_html(indent = indent, comments = comments)).join("\n")
+  els.map((el) => el.to_html(indent = indent, comments = comments)).join("\n").replace(re"\n\n\n", "\n\n")
 
 test "to_html":
   let el = %{ class: "parent", children: [
