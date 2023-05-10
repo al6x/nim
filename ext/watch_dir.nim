@@ -25,6 +25,8 @@ type
     kind*: ChangeKind
 
 proc watch_dir*(path: string, hidden = false): proc: seq[Change] =
+  # Checks for changed files, slow.
+  # Could be used with async, but it's going to be slow as IO will be sync.
   var old_stats = Stats()
   read_tree_stats(old_stats, path, hidden = hidden)
 
