@@ -12,24 +12,22 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 - Multiple UI instances with shared memory updated automatically.
 - Fast initial page load and SEO friendly.
 
-# Templates
+# Component Templates
 
-- Components similar to JSX.
-- Supported Components: Functional Stateless, Stateless and Stateful.
-- Block passed as additional `content: seq[El]` argument.
-- Also, custom slots could be used in block scope, like `layout.left/right`.
-- Context with `threadvar`.
-
-- Clean semantic UI elements, typesafe.
-- Component Template, not HTML template, clean code, IconButton example.
+- Clean UI with Components similar to Svelte or JSX.
 - Components are interactive atomic blocks.
-- no compile wait, IDE autocomplete, no need for typesafe HTML el.
-- 2 types of components, object and proc.
-- incremental progress, start with static, add event listeners.
+- Stateless Functional and Stateful Object Components.
 - Template is plain Nim code.
-- Plays well with Tailwind.
+- Slots, block passed as additional `content: seq[El]` argument.
+- Also, custom slots could be used in block scope, like `layout.left/right`.
 - Tag shortcut helps keep code small.
+- No wait for Nim compilation, plays well with Tailwind, autocomplete etc.
+- Context with `threadvar`.
 - Very small impl size, ~500 lines.
+
+- Component Template, not HTML template, clean code, IconButton example.
+
+
 
 # Install
 

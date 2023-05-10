@@ -207,7 +207,7 @@ proc SearchItem*(title, subtitle, before, match, after: string): El =
         it.text match
       el"span":
         it.text after
-      el"span .mr-4"
+      # el"span .mr-2"
       el"a .text-blue-800":
         it.text title
         it.location "#"
@@ -230,8 +230,6 @@ proc Search*(title = "Found", more: int, content: seq[El]): El =
     if more > 0:
       el".pl-8.pr-8.mb-2.float-right":
         el(TextButton, (text: fmt"{more} more"))
-        # el"span":
-        #   it.text fmt"{more} more"
 
 
 # Other --------------------------------------------------------------------------------------------
@@ -268,7 +266,7 @@ proc render_mockup: seq[El] =
     el(LRLayout, ()):
 
       it.left = els:
-        el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+        el(Note, (title: "About Forex", tags: data.note_tags)):
           el(NoteSection, ()):
             el(NoteTextBlock, (html: data.text_block1_html))
           el(NoteSection, ()):
@@ -290,7 +288,7 @@ proc render_mockup: seq[El] =
   mockup_section("Text"):
     el(LRLayout, ()):
       it.left = els:
-        el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+        el(Note, (title: "About Forex", tags: data.note_tags)):
           el(NoteSection, ()):
             el(NoteTextBlock, (html: data.text_block_with_image_html))
           el(NoteSection, (title: "Additional consequences of those 3 main issues")):
@@ -312,7 +310,7 @@ proc render_mockup: seq[El] =
               title: "Risk Simulation",
               subtitle: "",
               before: "there are multiple reasons to",
-              match: "avoid forex",
+              match: "About Forex",
               after: "Every single of those reasons is big enough to stay away from " &
                 "such investment. Forex has all of them"
             ))
@@ -356,7 +354,7 @@ proc stub_data: StubData =
   result.text_block1_html =
     """
       <p>
-        There are multiple reasons to avoid Forex. Every single of those reasons is big enough
+        There are multiple reasons to About Forex. Every single of those reasons is big enough
         to stay away from such investment. Forex has all of them.
       </p>
     """.dedent.trim
@@ -431,7 +429,7 @@ proc stub_data: StubData =
     mockup_section("Text"):
       el(LRLayout, ()):
         it.left = els:
-          el(Note, (title: "Avoid Forex", tags: data.note_tags)):
+          el(Note, (title: "About Forex", tags: data.note_tags)):
             el(NoteSection, ()):
               el(NoteTextBlock, (html: data.text_block_with_image_html))
   """.dedent.trim
