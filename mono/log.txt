@@ -1,3 +1,21 @@
+# Templates
+
+- Difference with HTML Templates
+- Clean UI with Components similar to Svelte or JSX.
+- Components are interactive atomic blocks.
+
+- Stateless Functional and Stateful Object Components.
+- Slots, block passed as additional `content: seq[El]` argument.
+- Also, custom slots could be used in block scope, like `layout.left/right`.
+
+- Template is plain Nim code.
+- Tag shortcut helps keep code small.
+
+- No wait for Nim compilation, plays well with Tailwind, autocomplete etc.
+
+- mono/examples/todo.nim kolo/palette.nim
+- Very small impl size, ~500 lines, mono/core/tmpl_test.nim
+
 proc c*(self: El, c: string) =
   self.attr("c", c)
 

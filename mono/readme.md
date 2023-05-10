@@ -23,11 +23,6 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 - Tag shortcut helps keep code small.
 - No wait for Nim compilation, plays well with Tailwind, autocomplete etc.
 - Context with `threadvar`.
-- Very small impl size, ~500 lines.
-
-- Component Template, not HTML template, clean code, IconButton example.
-
-
 
 # Install
 

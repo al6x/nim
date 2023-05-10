@@ -1,5 +1,5 @@
 import std/[os, sugar, strutils, strformat]
-import ./support, ./option, ./enumm
+import ./support, ./option, ./enumm, ./table
 
 type FS* = object
 const fs* = FS()
@@ -122,6 +122,7 @@ if is_main_module:
   fs.append_line("./tmp/fs/some.txt", "line 1")
   fs.append_line("./tmp/fs/some.txt", "line 2")
   echo fs.read("./tmp/fs/some.txt")
+  echo fs.read_dir("./tmp")
   fs.move("./tmp/fs/some.txt", "./tmp/fs/some_dir/some.text")
   fs.delete("./tmp/some_dir/some.text", delete_empty_parents = true)
 
