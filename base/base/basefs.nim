@@ -4,6 +4,11 @@ import ./support, ./option, ./enumm
 type FS* = object
 const fs* = FS()
 
+export parent_dir
+
+proc file_name*(path: string): string =
+  path.last_path_part
+
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
   var file: File
   var opened = file.open(path, mode)
@@ -76,21 +81,38 @@ proc exist*(fs: FS, path: string): bool =
     false
 
 
-type FsEntryKind* = enum file, file_link, dir, dir_link
-# autoconvert FsEntryKind
-
-type FsEntry* = tuple[kind: FsEntryKind, name: string]
+type FsEntryKind* = enum file, dir
+type FsEntry* = tuple[kind: FsEntryKind, path: string]
 
 proc read_dir*(fs: FS, path: string, hidden = false): seq[FsEntry] =
   for entry in walk_dir(path, relative = true):
     let kind =
       case entry.kind
       of pcFile:       FsEntryKind.file
-      of pcLinkToFile: FsEntryKind.file_link
+      of pcLinkToFile: FsEntryKind.file
       of pcDir:        FsEntryKind.dir
-      of pcLinkToDir:  FsEntryKind.dir_link
+      of pcLinkToDir:  FsEntryKind.dir
     if hidden or not entry.path.starts_with("."):
-      result.add (kind, entry.path)
+      result.add (kind, path & "/" & entry.path)
+
+
+
+
+# type FsEntryKind* = enum file, file_link, dir, dir_link
+# # autoconvert FsEntryKind
+
+# type FsEntry* = tuple[kind: FsEntryKind, path: string]
+
+# proc read_dir*(fs: FS, path: string, hidden = false): seq[FsEntry] =
+#   for entry in walk_dir(path, relative = true):
+#     let kind =
+#       case entry.kind
+#       of pcFile:       FsEntryKind.file
+#       of pcLinkToFile: FsEntryKind.file_link
+#       of pcDir:        FsEntryKind.dir
+#       of pcLinkToDir:  FsEntryKind.dir_link
+#     if hidden or not entry.path.starts_with("."):
+#       result.add (kind, path & "/" & entry.path)
 
 
 proc is_empty_dir*(fs: FS, path: string): bool =

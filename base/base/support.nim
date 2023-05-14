@@ -82,7 +82,6 @@ proc timer_ms*(): TimerMs =
   let started_at = nt.utc(nt.now())
   () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
 
-
 template with*[T](TT: type[T], code) =
   using self: T; using tself: type[T]
   code

@@ -1,4 +1,4 @@
-import std/posix, base
+import std/posix, base, ./async
 
 proc file_mtime_as_unix_epoch*(path: string): int =
   let fd = open(path, CS_PATH)
@@ -8,21 +8,22 @@ proc file_mtime_as_unix_epoch*(path: string): int =
   result = int s.st_mtime
   if close(fd) != 0:
     throw fmt"can't get file stats, can't close file descriptor for '{path}', errno {errno}"
+  # rewrite with getFileInfo
 
-type Stats = Table[string, int]
+type Stats = Table[string, tuple[kind: FSEntryKind, mtime: int]]
 proc read_tree_stats(stats: var Stats, path: string, hidden = false) =
   for entry in fs.read_dir(path, hidden = hidden):
-    let epath = path & "/" & entry.name
-    if entry.kind == file or entry.kind == file_link:
-      stats[epath] = file_mtime_as_unix_epoch epath
+    if entry.kind == file:
+      stats[entry.path] = (entry.kind, file_mtime_as_unix_epoch(entry.path))
     else:
-      read_tree_stats(stats, epath, hidden = hidden)
+      read_tree_stats(stats, entry.path, hidden = hidden)
 
 type
   ChangeKind* = enum created, updated, deleted
   Change* = object
-    path*: string
-    kind*: ChangeKind
+    path*:   string
+    kind*:   FsEntryKind
+    change*: ChangeKind
 
 proc watch_dir*(path: string, hidden = false): proc: seq[Change] =
   # Checks for changed files, slow.
@@ -33,15 +34,19 @@ proc watch_dir*(path: string, hidden = false): proc: seq[Change] =
   proc: seq[Change] =
     var stats = Stats()
     read_tree_stats(stats, path, hidden = hidden)
-    for path, mtime in stats:
+    for path, (entry_kind, mtime) in stats:
       if path notin old_stats:
-        result.add Change(path: path, kind: created)
-      elif mtime != old_stats[path]:
-        result.add Change(path: path, kind: updated)
-    for path, mtime in old_stats:
+        result.add Change(path: path, kind: entry_kind, change: created)
+      elif mtime != old_stats[path].mtime:
+        result.add Change(path: path, kind: entry_kind, change: updated)
+    for path, (entry_kind, mtime) in old_stats:
       if path notin stats:
-        result.add Change(path: path, kind: deleted)
+        result.add Change(path: path, kind: entry_kind, change: deleted)
     old_stats = stats
+
+proc watch_dir*(path: string, on_change: (proc (c: seq[Change])), hidden = false, interval_ms = 200) =
+  let get_changed = watch_dir(path, hidden = hidden)
+  add_timer(interval_ms, () => on_change(get_changed()), once = false)
 
 when is_main_module:
   let diff = watch_dir("./base")

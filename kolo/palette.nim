@@ -434,5 +434,4 @@ proc stub_data: StubData =
               el(NoteTextBlock, (html: data.text_block_with_image_html))
   """.dedent.trim
 
-  result.knots = fs.read_dir("kolo/assets/palette/images/knots")
-    .pick(name).mapit("images/knots/" & it)
+  result.knots = fs.read_dir("kolo/assets/palette/images/knots").pick(path) #.mapit("images/knots/" & it)

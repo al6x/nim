@@ -1,45 +1,27 @@
 import base
-import ./ftext except FBlock
 
 type
-  Block* = ref object of RootObj
-    kind*:     string
-    space*:    string
-    version*:  int
+  Block* = ref object
     id*:       string
+    version*:  int
     tags*:     seq[string]
     links*:    seq[string]
     glinks*:   seq[string]
     text*:     string
+    warnings*: seq[string]
 
-  Store* = ref object
-    version*: int
-    blocks*:  seq[Block]
+  Doc* = ref object of RootObj
+    id*:       string
+    version*:  int
+    title*:    string
+    blocks*:   seq[Block]
+    warnings*: seq[string]
 
-# FText --------------------------------------------------------------------------------------------
-type FBlock* = ref object of Block
-  fblock: ftext.Fblock
+  Space* = ref object
+    name*:     string
+    version*:  int
+    docs*:     Table[string, Doc]
+    warnings*: seq[string]
 
-proc add_
-
-
-
-
-
-  #   line_n*:   int
-  #   warnings*: seq[string]
-
-  # FSection* = object
-  #   title*:    string
-  #   blocks*:   seq[FBlock]
-  #   tags*:     seq[string]
-  #   warnings*: seq[string]
-  #   line_n*:   int
-
-  # FDoc* = object
-  #   location*:    string
-  #   title*:       string
-  #   sections*:    seq[FSection]
-  #   tags*:        seq[string]
-  #   tags_line_n*: int
-  #   warnings*:    seq[string]
+proc init*(_: type[Space], name: string, version = 0): Space =
+  Space(name: name, version: version)

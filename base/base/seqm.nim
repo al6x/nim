@@ -214,7 +214,7 @@ func filter_map*[V, R](list: openarray[V], convert: (V, int) -> Option[R]): seq[
     if o.is_some: result.add o.get
 
 
-proc each*[T](list: openarray[T]; cb: (T) -> void): void {.inline.} =
+proc each*[T](list: openarray[T], cb: (proc (v: T))) =
   for v in list: cb(v)
 
 

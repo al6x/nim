@@ -3,7 +3,7 @@ import base, ext/[parser, yaml]
 type
   FBlock* = ref object of RootObj
     kind*:     string
-    id*:       string
+    id*:       string # If not set explicitly, will be hash of block's text
     args*:     string
     tags*:     seq[string]
     links*:    seq[string]
@@ -12,14 +12,15 @@ type
     line_n*:   int
     warnings*: seq[string]
 
-  FSection* = object
+  FSection* = ref object
     title*:    string
     blocks*:   seq[FBlock]
     tags*:     seq[string]
     warnings*: seq[string]
     line_n*:   int
 
-  FDoc* = object
+  FDoc* = ref object
+    hash*:        int
     location*:    string
     title*:       string
     sections*:    seq[FSection]
@@ -185,9 +186,10 @@ proc consume_blocks*(pr: Parser): seq[HalfParsedBlock] =
     prev_i = pr.i
 
 test "consume_blocks, consume_tags":
-  template t(a, blocks, tags) =
+  template t(a, expected, tags) =
     let pr = Parser.init(a.dedent)
-    check pr.consume_blocks == blocks
+    var parsed = pr.consume_blocks
+    check parsed == expected
     check pr.consume_tags == tags
 
   t """
@@ -591,7 +593,7 @@ proc parse_ftext*(text: string, location = ""): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
   let (tags, tags_line_n) = pr.consume_tags
-  result = FDoc(location: location, tags: tags, title: extract_title_from_location(location),
+  result = FDoc(hash: text.hash.int, location: location, tags: tags, title: extract_title_from_location(location),
     tags_line_n: tags_line_n)
   for raw in raw_blocks:
     if   raw.kind == "title":
@@ -599,13 +601,13 @@ proc parse_ftext*(text: string, location = ""): FDoc =
     elif raw.kind == "section":
       let section = parse_section raw
       result.sections.add section
-      result.warnings.add section.warnings
+      # result.warnings.add section.warnings
     else:
       if result.sections.is_empty: result.sections.add FSection()
       if raw.kind in fblock_parsers:
         let blk = fblock_parsers[raw.kind](raw)
         result.sections[^1].blocks.add blk
-        result.warnings.add blk.warnings
+        # result.warnings.add blk.warnings
       else:
         let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
         result.sections[^1].blocks.add blk
