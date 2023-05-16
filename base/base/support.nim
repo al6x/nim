@@ -90,6 +90,10 @@ template with*[T](TT: type[T], code) =
 template with*(_: string, code) =
   code
 
+template unless*(cond, code): auto =
+  if not cond:
+    code
+
 
 # proc to_shared_ptr*[T](v: T): ptr T =
 #   result = create_shared(T)

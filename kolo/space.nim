@@ -1,4 +1,4 @@
-import base
+import base, ext/vcache
 
 type
   Block* = ref object
@@ -25,11 +25,12 @@ type
     processors*:   seq[proc()]
     bgjobs*:       seq[proc()]
     allowed_tags*: HashSet[string]
+    cache*:        Table[string, JsonNode]
 
   Db* = ref object
     version*:  int
-    pversion*: int
     spaces*:   Table[string, Space]
+    cache*:    Table[string, JsonNode]
 
 proc init*(_: type[Space], id: string, version = 0): Space =
   Space(id: id, version: version)
@@ -64,12 +65,11 @@ proc validate_links*(space: Space, db: Db) =
             blk.warns.add fmt"Invalid link: {link.link_to_s}"
 
 proc process*(db: Db) =
-  if db.version != db.pversion:
+  db.cache.cached("process(db)", db.version):
     for sid, space in db.spaces:
       space.validate_tags
       space.validate_links db
       for fn in space.processors: fn()
-  db.pversion = db.version
 
 proc bg*(db: Db) =
   for sid, space in db.spaces:
