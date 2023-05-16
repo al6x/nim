@@ -28,7 +28,6 @@ type
     cache*:        Table[string, JsonNode]
 
   Db* = ref object
-    version*:  int
     spaces*:   Table[string, Space]
     cache*:    Table[string, JsonNode]
 
@@ -42,6 +41,11 @@ iterator blocks*(space: Space): Block =
   for id, doc in space.docs:
     for blk in doc.blocks:
       yield blk
+
+proc version*(db: Db): int =
+  var h: Hash
+  for k in db.spaces.keys: h = h !& k.hash
+  !$h
 
 proc validate_tags*(space: Space) =
   if not space.allowed_tags.is_empty:

@@ -40,8 +40,7 @@ proc add_ftext_dir*(space: Space, path: string) =
         space.warnings.add fmt"name conflict: '{fdoc.id}'"
       else:
         space.docs[fdoc.id] = fdoc
-  space.version = 0
-  # space.check
+  space.version.inc
 
   # Watching files for chages
   let get_changed = watch_dir path
@@ -52,7 +51,6 @@ proc add_ftext_dir*(space: Space, path: string) =
         of created, updated:
           let fdoc = load entry.path
           space.docs[fdoc.id] = fdoc
-          # space.check fdoc.id
         of deleted:
           space.docs.del entry.path.file_name
         space.version.inc
