@@ -1,4 +1,4 @@
-import sets
+import std/sets
 
 export sets
 

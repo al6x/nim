@@ -6,17 +6,17 @@ type
     id*:       string # If not set explicitly, will be hash of block's text
     args*:     string
     tags*:     seq[string]
-    links*:    seq[string]
+    links*:    seq[(string, string)]
     glinks*:   seq[string]
     text*:     string
     line_n*:   int
-    warnings*: seq[string]
+    warns*:    seq[string]
 
   FSection* = ref object
     title*:    string
     blocks*:   seq[FBlock]
     tags*:     seq[string]
-    warnings*: seq[string]
+    warns*:    seq[string]
     line_n*:   int
 
   FDoc* = ref object
@@ -26,7 +26,7 @@ type
     sections*:    seq[FSection]
     tags*:        seq[string]
     tags_line_n*: int
-    warnings*:    seq[string]
+    warns*:       seq[string]
 
   FTextItemKind* = enum text, link, glink, tag, embed
   FTextItem* = object
@@ -36,7 +36,7 @@ type
     of text:
       discard
     of link:
-      link*: string
+      link*: (string, string)
     of glink:
       glink*: string
     of tag:
@@ -92,6 +92,9 @@ proc line_n(s: string, pos_n: int): int =
     if pos_n > s.high: break
     if s[i] == '\n': result.inc
 
+proc link_to_s(link: (string, string)): string =
+  if link[0] == ".": link[1] else: link[0] & "/" & link[1]
+
 # tags ---------------------------------------------------------------------------------------------
 let tag_delimiter_chars  = space_chars + {','}
 let quoted_tag_end_chars = {'\n', '"'}
@@ -111,7 +114,7 @@ proc consume_tag*(pr: Parser): Option[string] =
   if not tag.is_empty:
     result = tag.some
   else:
-    pr.warnings.add "Empty tag"
+    pr.warns.add "Empty tag"
 
 proc consume_tags*(pr: Parser): tuple[tags: seq[string], line_n: int] =
   var unknown = ""; var tags: seq[string]; var tags_start_pos = -1
@@ -126,7 +129,7 @@ proc consume_tags*(pr: Parser): tuple[tags: seq[string], line_n: int] =
       pr.inc
     if not pr.has_next: break
   if not unknown.is_empty:
-    pr.warnings.add fmt"Unknown text in tags: '{unknown}'"
+    pr.warns.add fmt"Unknown text in tags: '{unknown}'"
   (tags, pr.text.line_n(tags_start_pos))
 
 test "consume_tags":
@@ -167,7 +170,7 @@ proc consume_block*(pr: Parser, blocks: var seq[HalfParsedBlock]) =
   let id_and_kind = pr.consume block_id_type_chars
   let (id, kind) = if '.' in id_and_kind:
     let parts = id_and_kind.split '.'
-    if parts.len > 2: pr.warnings.add fmt"Wrong block id or kind: '{id_and_kind}'"
+    if parts.len > 2: pr.warns.add fmt"Wrong block id or kind: '{id_and_kind}'"
     (parts[0], parts[1])
   else:
     ("", id_and_kind)
@@ -272,6 +275,17 @@ proc is_local_link(link: string): bool =
   assert not link.is_empty
   "://" notin link
 
+proc parse_local_link(link: string, pr: Parser): (string, string) =
+  let parts = link.split("/")
+  case parts.len
+  of 1:
+    (".", parts[0])
+  of 2:
+    (parts[0], parts[1])
+  else:
+    pr.warns.add fmt"Invalid link: '{link}'"
+    (parts[0], parts[1])
+
 let link_chars = {']', ')', '\n'}.complement
 proc consume_text_link*(pr: Parser, items: var seq[FTextItem]) =
   assert pr.get == '['
@@ -287,11 +301,12 @@ proc consume_text_link*(pr: Parser, items: var seq[FTextItem]) =
 
   if not link.is_empty:
     if link.is_local_link:
-      items.add FTextItem(kind: FTextItemKind.link, text: name, link: link)
+      let flink = parse_local_link(link, pr)
+      items.add FTextItem(kind: FTextItemKind.link, text: name, link: flink)
     else:
       items.add FTextItem(kind: FTextItemKind.glink, text: name, glink: link)
   else:
-    pr.warnings.add "Empty link"
+    pr.warns.add "Empty link"
 
 # em -----------------------------------------------------------------------------------------------
 proc is_em(pr: Parser): bool =
@@ -420,7 +435,7 @@ test "parse_text_as_items":
     check it, 1, (kind: "glink", text: "some link", glink: "http://site.com")
     check it, 2, (kind: "text", text: "another")
     check it, 3, (kind: "text", text: "text, and", em: true)
-    check it, 4, (kind: "link", text: "link 2", link: "link 2", em: true)
+    check it, 4, (kind: "link", text: "link 2", link: (".", "link 2"), em: true)
     check it, 5, (kind: "text", text: "more", )
     check it, 6, (kind: "tag", text: "tag1")
     check it, 7, (kind: "embed", embed_kind: "img", text: "some.png")
@@ -459,9 +474,9 @@ proc add_text_item_data(blk: FBlock, item: FTextItem): void =
   of link:
     blk.links.add item.link
     add_text item.text
-    add_text item.link
+    add_text item.link.link_to_s
   of glink:
-    blk.glinks.add item.link
+    blk.glinks.add item.glink
     add_text item.text
     add_text item.glink
   of tag:
@@ -475,7 +490,7 @@ proc parse_text*(raw: HalfParsedBlock): FTextBlock =
   let pr = Parser.init raw.text
   let formatted_text = pr.parse_text_as_items
   result = FTextBlock(
-    kind: "text", id: raw.id, args: raw.args, warnings: pr.warnings, formatted_text: formatted_text
+    kind: "text", id: raw.id, args: raw.args, warns: pr.warns, formatted_text: formatted_text
   )
   for ph in formatted_text:
     for item in ph:
@@ -489,7 +504,7 @@ proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
     result = pr.consume_text_list
     pr.skip space_chars
     if pr.has:
-      pr.warnings.add "Unknown content in list: '" & pr.remainder & "'"
+      pr.warns.add "Unknown content in list: '" & pr.remainder & "'"
   else:
     while pr.has:
       let inline_text = pr.consume_inline_text(() => pr.is_text_paragraph)
@@ -498,7 +513,7 @@ proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
       elif pr.is_text_paragraph:
         pr.skip_text_paragraph
       else:
-        pr.warnings.add "Unknown content in list: '" & pr.remainder & "'"
+        pr.warns.add "Unknown content in list: '" & pr.remainder & "'"
         break
 
 test "parse_list_as_items":
@@ -546,7 +561,7 @@ proc parse_list*(raw: HalfParsedBlock): FListBlock =
   assert raw.kind == "list"
   let pr = Parser.init raw.text
   let list = pr.parse_list_as_items
-  result = FListBlock(kind: "list", id: raw.id, args: raw.args, warnings: pr.warnings, list: list)
+  result = FListBlock(kind: "list", id: raw.id, args: raw.args, warns: pr.warns, list: list)
   for line in list:
     for item in line:
       result.add_text_item_data item
@@ -567,16 +582,16 @@ proc parse_section*(raw: HalfParsedBlock): FSection =
   let pr = Parser.init raw.text
   let formatted_text = pr.consume_inline_text () => false
   result = FSection()
-  if pr.has_next: result.warnings.add fmt"Invalid text in section : '{pr.remainder}'"
+  if pr.has_next: result.warns.add fmt"Invalid text in section : '{pr.remainder}'"
   var texts: seq[string]
   for item in formatted_text:
     case item.kind
     of text: texts.add item.text
     of tag:  result.tags.add item.text
     else:
-      result.warnings.add fmt"Invalid text in section : '{pr.remainder}'"
+      result.warns.add fmt"Invalid text in section : '{pr.remainder}'"
   result.title = texts.join " "
-  if result.title.is_empty: result.warnings.add fmt"Empty section title"
+  if result.title.is_empty: result.warns.add fmt"Empty section title"
 
 # fblock_parsers["section"] = (blk) => parse_section(blk)
 
@@ -601,17 +616,17 @@ proc parse_ftext*(text: string, location = ""): FDoc =
     elif raw.kind == "section":
       let section = parse_section raw
       result.sections.add section
-      # result.warnings.add section.warnings
+      # result.warns.add section.warns
     else:
       if result.sections.is_empty: result.sections.add FSection()
       if raw.kind in fblock_parsers:
         let blk = fblock_parsers[raw.kind](raw)
         result.sections[^1].blocks.add blk
-        # result.warnings.add blk.warnings
+        # result.warns.add blk.warns
       else:
         let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
         result.sections[^1].blocks.add blk
-        result.warnings.add fmt"Unknown block '{blk.kind}'"
+        result.warns.add fmt"Unknown block '{blk.kind}'"
 
 test "parse_ftext":
   block:

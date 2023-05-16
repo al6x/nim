@@ -1,29 +1,29 @@
 import base, ext/[async, watch_dir], std/os
-import ./[space, ftext]
+import ./space, ./ftext
 
 type FDocHead* = ref object of Doc
   doc*: FDoc
 
 proc init*(_: type[FDocHead], doc: FDoc): FDocHead =
   let version = doc.hash.int
-  result = FDocHead(id: doc.location, title: doc.title, version: version, doc: doc, warnings: doc.warnings)
+  result = FDocHead(id: doc.location, title: doc.title, version: version, doc: doc, warns: doc.warns)
   for section_i, ssection in doc.sections:
     result.blocks.add Block(
-      id:       fmt"{section_i}",
-      version:  version,
-      tags:     ssection.tags & doc.tags,
-      text:     ssection.title,
-      warnings: ssection.warnings
+      id:      fmt"{section_i}",
+      version: version,
+      tags:    ssection.tags & doc.tags,
+      text:    ssection.title,
+      warns:   ssection.warns
     )
     for block_i, sblock in ssection.blocks:
       result.blocks.add Block(
-        id:       fmt"{section_i}/{block_i}",
-        version:  version,
-        tags:     sblock.tags & ssection.tags & doc.tags,
-        links:    sblock.links,
-        glinks:   sblock.glinks,
-        text:     sblock.text,
-        warnings: sblock.warnings
+        id:      fmt"{section_i}/{block_i}",
+        version: version,
+        tags:    sblock.tags & ssection.tags & doc.tags,
+        links:   sblock.links,
+        glinks:  sblock.glinks,
+        text:    sblock.text,
+        warns:   sblock.warns
       )
 
 proc add_ftext_dir*(space: Space, path: string) =
@@ -56,11 +56,11 @@ proc add_ftext_dir*(space: Space, path: string) =
         of deleted:
           space.docs.del entry.path.file_name
         space.version.inc
-  space.bgprocesses.add ("check_for_changed_files", check_for_changed_files)
+  space.bg.add check_for_changed_files
 
 # test ---------------------------------------------------------------------------------------------
 if is_main_module:
   let project_dir = current_source_path().parent_dir.absolute_path
-  let space = Space.init(name = "test_space")
+  let space = Space.init(id = "test_space")
   space.add_ftext_dir fmt"{project_dir}/test/ftext_store"
   p space

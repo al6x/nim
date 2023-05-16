@@ -4,13 +4,13 @@ type
   Parser* = ref object
     text_ref*: ref string
     i*:        int
-    warnings*: seq[string]
+    warns*:    seq[string]
 
 proc init*(_: type[Parser], text: string, i = 0): Parser =
   Parser(text_ref: text.to_ref, i: i)
 
 proc scopy*(pr: Parser): Parser =
-  Parser(text_ref: pr.text_ref, i: pr.i, warnings: pr.warnings)
+  Parser(text_ref: pr.text_ref, i: pr.i, warns: pr.warns)
 
 proc text*(pr: Parser): string =
   pr.text_ref[]
