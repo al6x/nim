@@ -1,6 +1,5 @@
 import base, ./component, ./el, ./tmpl
 
-
 test "el html":
   let html = el"ul.c1":
     for text in @["t1"]:
@@ -125,4 +124,23 @@ test "el stateful component":
         <button class="Button Component blue"></button>
       </panel>
     </app>
+  """.dedent.trim
+
+test "nesting, from error":
+  proc Panel1(content: seq[El]): El =
+    el".panel1":
+      it.add content
+
+  proc App1(): El =
+    el(Panel1, ()):
+      el".list":
+        el".list-item"
+
+  let root_el = el(App1, ())
+  check root_el.to_html == """
+    <div class="App1 Component panel1">
+      <div class="list">
+        <div class="list-item"></div>
+      </div>
+    </div>
   """.dedent.trim

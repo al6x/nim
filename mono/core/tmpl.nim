@@ -82,18 +82,17 @@ proc add*(parent: El, child: El | seq[El]) =
   parent.children.add child
 
 template els*(code): seq[El] =
-  # el("", code).children
   block:
     var it_content {.inject.}: seq[El]
-    # el("", code).children
     code
     it_content
 
 # html el ------------------------------------------------------------------------------------------
 template add_or_return*(e: El): auto =
   assert not e.is_nil
-  when compiles(it_content.add(e)): it_content.add(e)
-  elif compiles(it.add(e)):         it.add(e)
+  # Order is important, first `it` should be checked, see "nesting, from error" test case
+  when compiles(it.add(e)):         it.add(e)
+  elif compiles(it_content.add(e)): it_content.add(e)
   else:                             e
 
 template el*(html: string, code): auto =
