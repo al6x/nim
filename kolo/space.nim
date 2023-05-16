@@ -18,10 +18,11 @@ type
     warnings*: seq[string]
 
   Space* = ref object
-    name*:     string
-    version*:  int
-    docs*:     Table[string, Doc]
-    warnings*: seq[string]
+    name*:        string
+    version*:     int
+    docs*:        Table[string, Doc]
+    warnings*:    seq[string]
+    bgprocesses*: seq[tuple[id: string, fn: proc()]]
 
 proc init*(_: type[Space], name: string, version = 0): Space =
   Space(name: name, version: version)

@@ -15,7 +15,8 @@ proc style*(self: El, style: string) =
   self.attr("style", style)
 
 proc class*(self: El, class: string) =
-  self.attr("class", class)
+  let class = if "class" in self.attrs: self.attrs["class"].get_str & " " & class else: class
+  self.attr "class", class
 
 proc location*[T](self: El, location: T) =
   self.attr("href", location.to_s)

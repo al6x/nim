@@ -58,7 +58,13 @@ proc RSection*(title = "", closed = false, content: seq[El]): El =
       if not title.is_empty:
         el".text-gray-300":
           it.text title
-      it.add content
+      if content.is_empty:
+        # Adding invisible button to keep height of control panel the same as with buttons
+        el(IconButton, (icon: "edit")):
+          it.class("opacity-0")
+      else:
+        it.add content
+
 
 proc RFavorites*(links: openarray[(string, string)], closed = false): El =
   el(RSection, (title: "Favorites", closed: closed)):
@@ -94,13 +100,20 @@ proc RSearchField*(text = ""): El =
   el("input .border .rounded .border-gray-300 .px-1 .w-full " &
     ".focus:outline-none .placeholder-gray-500 type=text"):
     it.attr("placeholder", "Search...")
-    if not text.is_empty: it.text text
+    if not text.is_empty: it.value text
 
-proc RSpaceInfo*(closed = false): El =
+proc RSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
   el(RSection, (title: "Space", closed: closed)):
     el"a .text-blue-800":
       it.text "Finance"
       it.location "#"
+
+    # if not warns.is_empty:
+    el".warn":
+      # for (text, link) in warns:
+      el"a .block .text-sm .text-orange-800":
+        it.text "text"
+        it.location "link"
 
 # Note ---------------------------------------------------------------------------------------------
 type Note* = ref object of Component
@@ -139,30 +152,36 @@ proc NoteSection*(title = "", content: seq[El]): El =
         it.text title
     it.add content
 
-template note_block_header(code): El =
+template note_block_header(warns: seq[string], code): El =
   el".relative.pl-8.pr-8 .mb-2":
     if show_controls:
       el".absolute.right-1.top-1.flex.flex-col  .rounded.p-1.space-y-1": # Controls
         el(IconButton, (icon: "edit"))
         el(IconButton, (icon: "controls"))
+    if not warns.is_empty:
+      el".mb-2":
+        for w in warns:
+          el".inline-block .rounded.bg-orange-200.px-2":
+            it.text w
+
     code
 
-proc NoteTextBlock*(html: string, show_controls = false): El =
-  note_block_header:
+proc NoteTextBlock*(html: string, show_controls = false, warns: seq[string] = @[]): El =
+  note_block_header(warns):
     el".ftext": # Body
       it.attr("html", html)
 
-proc NoteListBlock*(html: string, show_controls = false): El =
-  note_block_header:
+proc NoteListBlock*(html: string, show_controls = false, warns: seq[string] = @[]): El =
+  note_block_header(warns):
     el".ftext": # Body
       it.attr("html", html)
 
-proc NoteCodeBlock*(code: string, show_controls = false): El =
-  note_block_header:
+proc NoteCodeBlock*(code: string, show_controls = false, warns: seq[string] = @[]): El =
+  note_block_header(warns):
     el".ftext": # Body
       it.attr("html", "<pre>" & code & "</pre>")
 
-proc NoteImagesBlock*(images: seq[string], show_controls = false): El =
+proc NoteImagesBlock*(images: seq[string], show_controls = false, warns: seq[string] = @[]): El =
   template render_td =
     el"td":
       if col.is_even:
@@ -179,7 +198,7 @@ proc NoteImagesBlock*(images: seq[string], show_controls = false): El =
               it.attr("src", images[i])
               i.inc
 
-  note_block_header:
+  note_block_header(warns):
     if images.len <= 4:
       el"table cellspacing=0 cellpadding=0": # removing cell borders
         el"tdata":
@@ -272,7 +291,7 @@ proc render_mockup: seq[El] =
           el(NoteSection, ()):
             el(NoteTextBlock, (html: data.text_block2_html, show_controls: true))
           el(NoteSection, (title: "Additional consequences of those 3 main issues")):
-            el(NoteListBlock, (html: data.list_block1_html))
+            el(NoteListBlock, (html: data.list_block1_html, warns: @["Invalid tag #some", "Invalid link /some"]))
 
       it.right = els:
         el(RSection, ()):
@@ -281,7 +300,7 @@ proc render_mockup: seq[El] =
           el(RSearchField, ())
         el(RFavorites, (links: data.links))
         el(RTags, (tags: data.tags))
-        el(RSpaceInfo, ())
+        el(RSpaceInfo, (warns: @[("12 warnings", "/warnings")]))
         el(RBacklinks, (links: data.links))
         el(RSection, (title: "Other", closed: true))
 
@@ -303,6 +322,11 @@ proc render_mockup: seq[El] =
 
   mockup_section("Search"):
     el(LRLayout, ()):
+      it.right = els:
+        el(RSection, ()) # Adding empty controls, to keep search field same distance from the top
+        el(RSection, ()):
+          el(RSearchField, (text: "[finance] About Forex"))
+
       it.left = els:
         el(Search, (title: "Found", more: 23)):
           for i in 1..6:
@@ -434,4 +458,4 @@ proc stub_data: StubData =
               el(NoteTextBlock, (html: data.text_block_with_image_html))
   """.dedent.trim
 
-  result.knots = fs.read_dir("kolo/assets/palette/images/knots").pick(path) #.mapit("images/knots/" & it)
+  result.knots = fs.read_dir("kolo/assets/palette/images/knots").pick(path).mapit("images/knots/" & it.file_name)
