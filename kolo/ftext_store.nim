@@ -56,7 +56,7 @@ proc add_ftext_dir*(space: Space, path: string) =
         of deleted:
           space.docs.del entry.path.file_name
         space.version.inc
-  space.bg.add check_for_changed_files
+  space.bgjobs.add check_for_changed_files
 
 # test ---------------------------------------------------------------------------------------------
 if is_main_module:

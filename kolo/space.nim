@@ -22,10 +22,14 @@ type
     version*:      int
     docs*:         Table[string, Doc]
     warnings*:     seq[string]
-    bg*:           seq[proc()]
+    processors*:   seq[proc()]
+    bgjobs*:       seq[proc()]
     allowed_tags*: HashSet[string]
 
-var spaces* {.threadvar.}: Table[string, Space]
+  Db* = ref object
+    version*:  int
+    pversion*: int
+    spaces*:   Table[string, Space]
 
 proc init*(_: type[Space], id: string, version = 0): Space =
   Space(id: id, version: version)
@@ -45,7 +49,7 @@ proc validate_tags*(space: Space) =
         if tag notin space.allowed_tags:
           blk.warns.add fmt"Invalid tag: {tag}"
 
-proc validate_links*(space: Space) =
+proc validate_links*(space: Space, db: Db) =
   for blk in space.blocks:
     for link in blk.links:
       let (sid, did) = link
@@ -53,15 +57,20 @@ proc validate_links*(space: Space) =
         if did notin space.docs:
           blk.warns.add fmt"Invalid link: {link.link_to_s}"
       else:
-        if sid notin spaces:
+        if sid notin db.spaces:
           blk.warns.add fmt"Invalid link: {link.link_to_s}"
         else:
           if did notin space.docs:
             blk.warns.add fmt"Invalid link: {link.link_to_s}"
 
-proc process*(space: Space) =
-  space.validate_tags
-  space.validate_links
-  for fn in space.bg: fn()
+proc process*(db: Db) =
+  if db.version != db.pversion:
+    for sid, space in db.spaces:
+      space.validate_tags
+      space.validate_links db
+      for fn in space.processors: fn()
+  db.pversion = db.version
 
-
+proc bg*(db: Db) =
+  for sid, space in db.spaces:
+    for fn in space.bgjobs: fn()
