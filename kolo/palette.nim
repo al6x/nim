@@ -108,12 +108,12 @@ proc RSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
       it.text "Finance"
       it.location "#"
 
-    # if not warns.is_empty:
-    el".warn":
-      # for (text, link) in warns:
-      el"a .block .text-sm .text-orange-800":
-        it.text "text"
-        it.location "link"
+    if not warns.is_empty:
+      el".warn":
+        for (text, link) in warns:
+          el"a .block .text-sm .text-orange-800":
+            it.text text
+            it.location link
 
 # Note ---------------------------------------------------------------------------------------------
 type Note* = ref object of Component
@@ -159,9 +159,9 @@ template note_block_header(warns: seq[string], code): El =
         el(IconButton, (icon: "edit"))
         el(IconButton, (icon: "controls"))
     if not warns.is_empty:
-      el".mb-2":
+      el".mb-2 .border-l-4.border-orange-800":
         for w in warns:
-          el".inline-block .rounded.bg-orange-200.px-2":
+          el".inline-block .text-orange-800 .ml-2":
             it.text w
 
     code
@@ -300,7 +300,7 @@ proc render_mockup: seq[El] =
           el(RSearchField, ())
         el(RFavorites, (links: data.links))
         el(RTags, (tags: data.tags))
-        el(RSpaceInfo, (warns: @[("12 warnings", "/warnings")]))
+        el(RSpaceInfo, (warns: @[("12 warns", "/warns")]))
         el(RBacklinks, (links: data.links))
         el(RSection, (title: "Other", closed: true))
 
@@ -325,7 +325,7 @@ proc render_mockup: seq[El] =
       it.right = els:
         el(RSection, ()) # Adding empty controls, to keep search field same distance from the top
         el(RSection, ()):
-          el(RSearchField, (text: "[finance] About Forex"))
+          el(RSearchField, (text: "finance/ About Forex"))
 
       it.left = els:
         el(Search, (title: "Found", more: 23)):

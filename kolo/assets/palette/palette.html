@@ -79,9 +79,9 @@
 
             <!-- NoteListBlock -->
             <div class="NoteListBlock Component relative pl-8 pr-8 mb-2">
-              <div class="mb-2">
-                <div class="inline-block rounded bg-orange-200 px-2">Invalid tag #some</div>
-                <div class="inline-block rounded bg-orange-200 px-2">Invalid link /some</div>
+              <div class="mb-2 border-l-4 border-orange-800">
+                <div class="inline-block text-orange-800 ml-2">Invalid tag #some</div>
+                <div class="inline-block text-orange-800 ml-2">Invalid link /some</div>
               </div>
               <div class="ftext"><p>
   1.1 No right for a mistake. If you made a mistake on the stock market, if you can
@@ -150,27 +150,29 @@
           <!-- RTags -->
           <div class="RTags Component relative m-2 mb-3">
             <div class="text-gray-300">Tags</div>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Stock</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Trading</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-xl" href="#">Market</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Dollar</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Euro</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Taxes</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Currency</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Profit</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-xl" href="#">Loss</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Option</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Strategy</a>
-            <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Backtesting</a>
-            <div class="-mr-1"></div>
+            <div class="-mr-1">
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Stock</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Trading</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-xl" href="#">Market</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Dollar</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Euro</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Taxes</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Currency</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Profit</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-xl" href="#">Loss</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 " href="#">Option</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Strategy</a>
+              <a class="mr-1 align-middle text-center leading-4 text-blue-800 text-sm" href="#">Backtesting</a>
+            </div>
           </div>
 
           <!-- RSpaceInfo -->
           <div class="RSpaceInfo Component relative m-2 mb-3">
             <div class="text-gray-300">Space</div>
             <a class="text-blue-800" href="#">Finance</a>
-            <a class="block text-sm text-orange-800" href="link">text</a>
-            <div></div>
+            <div class="warn">
+              <a class="block text-sm text-orange-800" href="/warns">12 warns</a>
+            </div>
           </div>
 
           <!-- RBacklinks -->
@@ -671,7 +673,7 @@ mockup_section("Text"):
           <div class="RSection Component relative m-2 mb-3">
 
             <!-- RSearchField -->
-            <input class="RSearchField Component border rounded border-gray-300 px-1 w-full focus:outline-none placeholder-gray-500" placeholder="Search..." type="text" value="[finance] About Forex"></input>
+            <input class="RSearchField Component border rounded border-gray-300 px-1 w-full focus:outline-none placeholder-gray-500" placeholder="Search..." type="text" value="finance/ About Forex"></input>
 
           </div>
 
