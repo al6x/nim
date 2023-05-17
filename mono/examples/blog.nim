@@ -126,10 +126,10 @@ when is_main_module:
     Post(id: "3", title: "Title 3", text: "Text 3"),
   ])
 
-  proc build_app(url: Url): tuple[page: AppPage, app: App] =
+  proc build_app(url: Url): tuple[page: AppPage, app: AppFn] =
     let blog_view = BlogView(blog: blog)
 
-    let app: App = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
+    let app: AppFn = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
       blog_view.process(events, mono_id)
 
     (page, app)

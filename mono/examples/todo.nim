@@ -183,11 +183,11 @@ when is_main_module:
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk")])
 
-  proc build_app(url: Url): tuple[page: AppPage, app: App] =
+  proc build_app(url: Url): tuple[page: AppPage, app: AppFn] =
     let todo_view = TodoView()
     todo_view.set_attrs(todo = todo)
 
-    let app: App = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
+    let app: AppFn = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
       todo_view.process(events, mono_id)
 
     (page, app)

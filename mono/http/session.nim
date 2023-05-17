@@ -26,16 +26,16 @@ type SessionPullEvent* = object
 # Browser events are collected in indbox via async http handler, and then processed separatelly via
 # sync process. Result of processing stored in outbox, which periodically checked by async HTTP handler
 # and sent to Browser if needed.
-type App* = proc(events: seq[InEvent], mono_id: string): seq[OutEvent]
+type AppFn* = proc(events: seq[InEvent], mono_id: string): seq[OutEvent]
 
 type Session* = ref object
   id*:               string
-  app*:              App
+  app*:              AppFn
   inbox*:            seq[InEvent]
   outbox*:           seq[OutEvent]
   last_accessed_ms*: TimerMs
 
-proc init*(_: type[Session], mono_id: string, app: App): Session =
+proc init*(_: type[Session], mono_id: string, app: AppFn): Session =
   Session(id: mono_id, app: app, last_accessed_ms: timer_ms())
 
 proc log*(self: Session): Log =

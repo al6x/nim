@@ -31,6 +31,9 @@ type
     spaces*:   Table[string, Space]
     cache*:    Table[string, JsonNode]
 
+proc init*(_: type[Db]): Db =
+  Db()
+
 proc init*(_: type[Space], id: string, version = 0): Space =
   Space(id: id, version: version)
 

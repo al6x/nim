@@ -346,8 +346,8 @@ when is_main_module:
     <!DOCTYPE html>
     <html>
       <head>
-        <link rel="stylesheet" href="build/palette.css"/>
         <title>Palette</title>
+        <link rel="stylesheet" href="build/palette.css"/>
       </head>
       <body>
 

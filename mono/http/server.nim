@@ -6,7 +6,7 @@ let http_log = Log.init "http"
 
 # Apps ---------------------------------------------------------------------------------------------
 type AppPage*  = proc(initial_root_el: JsonNode): string
-type BuildApp* = proc (url: Url): tuple[page: AppPage, app: App]
+type BuildApp* = proc (url: Url): tuple[page: AppPage, app: AppFn]
 
 proc handle_app_load(
   req: Request, sessions: Sessions, url: Url, build_app: BuildApp, asset_paths: seq[string],
