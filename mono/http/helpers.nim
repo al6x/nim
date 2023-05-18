@@ -8,6 +8,7 @@ mime["svg"]  = "image/svg+xml"
 mime["jpg"]  = "image/jpeg"
 mime["jpeg"] = "image/jpeg"
 mime["png"]  = "image/png"
+mime["ico"]  = "image/png"
 
 proc init*(_: type[Url], request: Request): Url =
   let url = Url.init(request.url) # doesn't have host

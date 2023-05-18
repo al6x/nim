@@ -91,7 +91,7 @@ proc RBacklinks*(links: openarray[(string, string)], closed = false): El =
 type CloudTag* = tuple[text, link: string, size: int]
 proc RTags*(tags: openarray[CloudTag], closed = false): El =
   el(RSection, (title: "Tags", closed: closed)):
-    el".-mr-1":
+    el".-mr-1 flash":
       for (text, link, size) in tags:
         let size_class = case size
           of 0: "text-sm"
@@ -143,7 +143,7 @@ proc render*(self: Note, content: seq[El]): El =
 
     it.add content
 
-    el".pl-8 .flex .-mr-2":
+    el".pl-8 .flex .-mr-2 flash":
       for tag in self.tags:
         el"a .mr-2 .text-blue-800":
           it.text "#" & tag

@@ -2,7 +2,11 @@ import base, mono/[core, http], std/os
 import ../core/[spacem, dbm], ./location, ./palette
 
 type AppView* = ref object of Component
-  location*: Location
+  location*:   Location
+  db_version*: int
+
+proc init*(_: type[AppView]): AppView =
+  AppView(db_version: db.version)
 
 proc set_attrs*(self: AppView) =
   discard
@@ -44,12 +48,16 @@ proc render*(self: AppView): El =
   of search:            self.render_search
   of unknown:           self.render_unknown
 
+proc on_timer*(self: AppView): bool =
+  self.db_version != db.version
+
 let page: AppPage = proc(root_el: JsonNode): string =
   """
     <!DOCTYPE html>
     <html>
       <head>
         <title>{title}</title>
+        <link rel="stylesheet" href="/assets/mono.css"/>
         <link rel="stylesheet" href="/assets/palette/build/palette.css"/>
       </head>
       <body>
