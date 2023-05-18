@@ -1,4 +1,4 @@
-import base, mono/core
+import base, mono/core, std/os
 
 # Support ------------------------------------------------------------------------------------------
 type Palette* = object
@@ -366,7 +366,8 @@ when is_main_module:
       </body>
     </html>
   """.dedent.trim.replace("{html}", render_mockup().to_html(comments = true))
-  let fname = "kolo/assets/palette/palette.html"
+  let dir = current_source_path().parent_dir.absolute_path
+  let fname = fmt"{dir}/assets/palette/palette.html"
   fs.write fname, html
   p fmt"{fname} generated"
   say "done"
@@ -468,4 +469,6 @@ proc stub_data: StubData =
               el(NoteTextBlock, (html: data.text_block_with_image_html))
   """.dedent.trim
 
-  result.knots = fs.read_dir("kolo/assets/palette/images/knots").pick(path).mapit("images/knots/" & it.file_name)
+  let dir = current_source_path().parent_dir.absolute_path
+  result.knots = fs.read_dir(fmt"{dir}/assets/palette/images/knots")
+    .pick(path).mapit("images/knots/" & it.file_name)
