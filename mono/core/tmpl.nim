@@ -75,9 +75,6 @@ proc on_blur*(self: El, fn: proc()) =
   self.extras_getset.on_blur = (proc(e: BlurEvent) = fn()).some
 
 # helpers ------------------------------------------------------------------------------------------
-proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
-  Url.init(path.to_seq, params.to_table)
-
 proc add*(parent: El, child: El | seq[El]) =
   parent.children.add child
 

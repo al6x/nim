@@ -1,4 +1,4 @@
-import base, ext/vcache
+import base, mono/core, ext/vcache
 
 type
   Block* = ref object
@@ -16,6 +16,8 @@ type
     title*:    string
     blocks*:   seq[Block]
     warns*:    seq[string]
+    tags*:     seq[string]
+    # space*:    Space
 
   Space* = ref object
     id*:           string
@@ -28,27 +30,22 @@ type
     cache*:        Table[string, JsonNode]
 
   Db* = ref object
-    spaces*:   Table[string, Space]
-    cache*:    Table[string, JsonNode]
+    spaces*: Table[string, Space]
+    cache*:  Table[string, JsonNode]
 
-proc init*(_: type[Db]): Db =
-  Db()
+method render_doc*(doc: Doc, space: Space, parent: Component): El {.base.} =
+  throw "not implemented"
 
 proc init*(_: type[Space], id: string, version = 0): Space =
   Space(id: id, version: version)
 
-proc link_to_s*(link: (string, string)): string =
+proc local_link_to_s*(link: (string, string)): string =
   if link[0] == ".": link[1] else: link[0] & "/" & link[1]
 
 iterator blocks*(space: Space): Block =
   for id, doc in space.docs:
     for blk in doc.blocks:
       yield blk
-
-proc version*(db: Db): int =
-  var h: Hash
-  for k in db.spaces.keys: h = h !& k.hash
-  !$h
 
 proc validate_tags*(space: Space) =
   if not space.allowed_tags.is_empty:
@@ -57,27 +54,16 @@ proc validate_tags*(space: Space) =
         if tag notin space.allowed_tags:
           blk.warns.add fmt"Invalid tag: {tag}"
 
-proc validate_links*(space: Space, db: Db) =
+proc validate_links*[Db](space: Space, db: Db) =
   for blk in space.blocks:
     for link in blk.links:
       let (sid, did) = link
       if sid == ".":
         if did notin space.docs:
-          blk.warns.add fmt"Invalid link: {link.link_to_s}"
+          blk.warns.add fmt"Invalid link: {link.local_link_to_s}"
       else:
         if sid notin db.spaces:
-          blk.warns.add fmt"Invalid link: {link.link_to_s}"
+          blk.warns.add fmt"Invalid link: {link.local_link_to_s}"
         else:
           if did notin space.docs:
-            blk.warns.add fmt"Invalid link: {link.link_to_s}"
-
-proc process*(db: Db) =
-  db.cache.cached("process(db)", db.version):
-    for sid, space in db.spaces:
-      space.validate_tags
-      space.validate_links db
-      for fn in space.processors: fn()
-
-proc bg*(db: Db) =
-  for sid, space in db.spaces:
-    for fn in space.bgjobs: fn()
+            blk.warns.add fmt"Invalid link: {link.local_link_to_s}"

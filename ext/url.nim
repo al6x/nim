@@ -35,6 +35,9 @@ proc init*(_: type[Url], nuri: nurim.Uri): Url =
   else:
     Url.init(path = path, params = query)
 
+proc to_url*(path: openarray[string], params: openarray[(string, string)] = @[]): Url =
+  Url.init(path.to_seq, params.to_table)
+
 proc parse*(_: type[Url], url: string): Url =
   var parsed = nurim.init_uri()
   nurim.parse_uri(url, parsed)

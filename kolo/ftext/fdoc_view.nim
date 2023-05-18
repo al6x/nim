@@ -1,39 +1,33 @@
 import base, mono/core
-import ./palette, ./space, ./location
+import ../core/spacem, ./fdoc
 
-type App* = ref object of Component
-  db*:       Db
-  location*: Location
+type FDocView* = ref object of Component
+  space*: Space
+  doc*:   FDocHead
 
-proc set_attrs*(self: App, db: Db) =
-  self.db = db
+proc set_attrs*(self: FDocView, space: Space, doc: FDocHead) =
+  self.space = space; self.doc = doc
 
-proc on_location*(self: App, url: Url) =
-  self.location = Location.parse url
+proc render*(self: FDocView): El =
+  el"":
+    it.text self.doc.id
+  # case self.location.kind
+  # of posts:
+  #   el(PostsView, (blog: self.blog))
+  # of post:
+  #   let id = self.location.id
+  #   let post = self.blog.posts.fget_by(id, id).get
+  #   el(PostView, (post: post))
+  # of unknown:
+  #   el(PostsView, (blog: self.blog)):
+  #     # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
+  #     it.window_location(posts_url())
 
-proc render*(self: App): El =
-  case self.location.kind
-  of doc:
-    el(""):
-      it.text "doc"
-    # let id = self.location.id
-    # let post = self.blog.posts.fget_by(id, id).get
-    # el(PostView, (post: post))
-    # el(PostsView, (blog: self.blog))
-  of search:
-    el(""):
-      it.text "search"
-    # let id = self.location.id
-    # let post = self.blog.posts.fget_by(id, id).get
-    # el(PostView, (post: post))
-  of unknown:
-    el(""):
-      it.text "unknown"
-    # el(PostsView, (blog: self.blog)):
-    #   # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
-    #   it.window_location(posts_url())
+method render_doc*(doc: FDocHead, space: Space, parent: Component): El =
+  parent.el(FDocView, fmt"{space.id}/{doc.id}", (space: space, doc: doc))
 
-  # el(LRLayout, ()):
+
+# el(LRLayout, ()):
   #   # it.window_title post.title
   #   el(".some"):
   #     it.text "some"
@@ -77,3 +71,4 @@ proc render*(self: App): El =
 #       el"a.block":
 #         it.location post_url(post.id)
 #         it.text post.title
+

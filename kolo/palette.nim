@@ -45,6 +45,14 @@ proc render*(self: LRLayout): El =
       el"""$LRRight {nomockup".right-panel-content"}""":
         it.add self.right
 
+type MessageKind = enum info, warn
+proc Message*(text: string, kind: MessageKind = info): El =
+  el".m-2 .p-2.rounded.bg-slate-50":
+    case kind
+    of info: discard
+    of warn: it.class "text-orange-800"
+    it.text text
+
 # Right --------------------------------------------------------------------------------------------
 proc RSection*(title = "", closed = false, content: seq[El]): El =
   el".relative .m-2 .mb-3":
@@ -319,7 +327,6 @@ proc render_mockup: seq[El] =
             el(NoteImagesBlock, (images: data.knots))
             el(NoteListBlock, (html: data.list_block1_html))
 
-
   mockup_section("Search"):
     el(LRLayout, ()):
       it.right = els:
@@ -338,6 +345,9 @@ proc render_mockup: seq[El] =
               after: "Every single of those reasons is big enough to stay away from " &
                 "such investment. Forex has all of them"
             ))
+
+  mockup_section("Misc"):
+    el(Message, (text: "Some top level message"))
 
 
 

@@ -1,12 +1,13 @@
-import base, ext/[async, watch_dir], std/os
-import ./space, ./ftext
+import base, ext/[async, watch_dir]
+import ../core/spacem, ./ftext
 
 type FDocHead* = ref object of Doc
   doc*: FDoc
 
 proc init*(_: type[FDocHead], doc: FDoc): FDocHead =
   let version = doc.hash.int
-  result = FDocHead(id: doc.location, title: doc.title, version: version, doc: doc, warns: doc.warns)
+  result = FDocHead(id: doc.location, title: doc.title, version: version, doc: doc, warns: doc.warns,
+    tags: doc.tags)
   for section_i, ssection in doc.sections:
     result.blocks.add Block(
       id:      fmt"{section_i}",
@@ -30,6 +31,7 @@ proc add_ftext_dir*(space: Space, path: string) =
   proc load(fpath: string): FDocHead =
     let parsed = parse_ftext(fs.read(fpath), fpath.file_name)
     result = FDocHead.init parsed
+    p result.id
     assert result.id == fpath.file_name
 
   # Loading
@@ -57,8 +59,9 @@ proc add_ftext_dir*(space: Space, path: string) =
   space.bgjobs.add check_for_changed_files
 
 # test ---------------------------------------------------------------------------------------------
-if is_main_module:
-  let project_dir = current_source_path().parent_dir.absolute_path
+when is_main_module:
+  import std/os
+  let ftext_dir = current_source_path().parent_dir.absolute_path
   let space = Space.init(id = "test_space")
-  space.add_ftext_dir fmt"{project_dir}/test/ftext_store"
+  space.add_ftext_dir fmt"{ftext_dir}/test"
   p space

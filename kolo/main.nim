@@ -1,37 +1,15 @@
 import base, mono/[core, http], std/os
-import ./app, ./space
+import ./app_view, ./core/[spacem, dbm], ./ftext/[fdoc, fdoc_view]
 
-let page: AppPage = proc(root_el: JsonNode): string =
-  """
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>{title}</title>
-        <link rel="stylesheet" href="build/palette.css"/>
-      </head>
-      <body>
+db = Db.init
 
-    {html}
+block:
+  let kolo_dir = current_source_path().parent_dir.absolute_path
+  let space = Space.init(id = "some")
+  db.spaces[space.id] = space
+  space.add_ftext_dir fmt"{kolo_dir}/ftext/test"
 
-    <script type="module">
-      import { run } from "/assets/mono.js"
-      run()
-    </script>
+proc sync_process =
+  discard
 
-      </body>
-    </html>
-  """.dedent
-    .replace("{title}", root_el.window_title.escape_html)
-    .replace("{html}", root_el.to_html(comments = true))
-
-let db = Db.init
-
-proc build_app(url: Url): tuple[page: AppPage, app: AppFn] =
-  let kolo = App(db: db)
-
-  let app: AppFn = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
-    kolo.process(events, mono_id)
-
-  (page, app)
-
-run_http_server(build_app, port = 2000)
+run_http_server(build_app_view, port = 2000, sync_process = sync_process)

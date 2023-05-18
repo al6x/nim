@@ -85,13 +85,16 @@ proc build_http_handler(
       # await req.respond "Unknown request"
       await req.respond_json((error: "Unknown request"))
 
+proc stub = discard
+
 proc run_http_server*(
   build_app:           BuildApp,
   port:                int,
   asset_paths        = seq[string].init,
   timer_event_ms     = 500,
   pull_timeout_ms    = 2000,
-  session_timeout_ms = 6000
+  session_timeout_ms = 6000,
+  sync_process       = stub # Add any additional periodic processing here
 ) =
   # Files with same names will be taken from first path when found, this way system assets like `page.html`
   # could be overriden.
@@ -112,6 +115,7 @@ proc run_http_server*(
 
   while true:
     poll 1
+    sync_process()   # any additional periodic processing
     sessions.process # processing outside async, to have clean stack trace
 
 
