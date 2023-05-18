@@ -9,6 +9,10 @@ export parent_dir
 proc file_name*(path: string): string =
   path.last_path_part
 
+proc file_name_ext*(path: string): tuple[name, ext: string] =
+  let parts = path.last_path_part.rsplit('.', maxsplit = 1)
+  (parts[0], parts[1])
+
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
   var file: File
   var opened = file.open(path, mode)
@@ -147,6 +151,8 @@ if is_main_module:
   echo fs.read_dir("./tmp")
   fs.move("./tmp/fs/some.txt", "./tmp/fs/some_dir/some.text")
   fs.delete("./tmp/some_dir/some.text", delete_empty_parents = true)
+  echo "./tmp/fs/some.txt".file_name_ext
+  echo "some.txt.zip".file_name_ext
 
   # var list = ""
   # for path in walk_dir("./tmp/fs", relative = true):

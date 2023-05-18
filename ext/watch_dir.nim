@@ -46,7 +46,7 @@ proc watch_dir*(path: string, hidden = false): proc: seq[Change] =
 
 proc watch_dir*(path: string, on_change: (proc (c: seq[Change])), hidden = false, interval_ms = 200) =
   let get_changed = watch_dir(path, hidden = hidden)
-  add_timer(interval_ms, () => on_change(get_changed()), once = false)
+  add_timer(interval_ms, () => on_change(get_changed()))
 
 when is_main_module:
   let diff = watch_dir("./base")

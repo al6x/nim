@@ -51,9 +51,31 @@ proc clean_async_error*(error: string): string =
 
 
 # add_timer ----------------------------------------------------------------------------------------
-proc add_timer*(timeout_ms: int, cb: proc: void, once = true, immediatelly = false) =
+proc add_timer*(timeout_ms: int, cb: proc: void, once = false, immediatelly = false) =
   proc timer_wrapper(_: AsyncFD): bool {.gcsafe.} =
     cb()
     once
   if immediatelly: cb()
   asyncdispatch.add_timer(timeout_ms, once, timer_wrapper)
+
+
+# build_sync_timer ---------------------------------------------------------------------------------
+proc build_sync_timer*(timeout_ms: int, cb: proc: void, once = false, immediatelly = false): proc() =
+  if immediatelly:
+    cb()
+    if once:
+      return proc = discard
+
+  var tic_ms = timer_ms(); var active = true
+  proc =
+    if active and tic_ms() > timeout_ms:
+      tic_ms = timer_ms()
+      cb()
+      if once: active = false
+
+# test ---------------------------------------------------------------------------------------------
+when is_main_module:
+  let st = build_sync_timer(100, () => p 1)
+  let tic = timer_ms()
+  while tic() < 1000:
+    st()

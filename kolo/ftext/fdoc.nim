@@ -6,8 +6,8 @@ type FDocHead* = ref object of Doc
 
 proc init*(_: type[FDocHead], doc: FDoc): FDocHead =
   let version = doc.hash.int
-  result = FDocHead(id: doc.location, title: doc.title, version: version, doc: doc, warns: doc.warns,
-    tags: doc.tags)
+  let did = doc.location.file_name_ext.name
+  result = FDocHead(id: did, title: doc.title, version: version, doc: doc, warns: doc.warns, tags: doc.tags)
   for section_i, ssection in doc.sections:
     result.blocks.add Block(
       id:      fmt"{section_i}",
@@ -31,8 +31,7 @@ proc add_ftext_dir*(space: Space, path: string) =
   proc load(fpath: string): FDocHead =
     let parsed = parse_ftext(fs.read(fpath), fpath.file_name)
     result = FDocHead.init parsed
-    p result.id
-    assert result.id == fpath.file_name
+    assert result.id == fpath.file_name_ext.name
 
   # Loading
   for entry in fs.read_dir(path):

@@ -85,8 +85,6 @@ proc build_http_handler(
       # await req.respond "Unknown request"
       await req.respond_json((error: "Unknown request"))
 
-proc stub = discard
-
 proc run_http_server*(
   build_app:           BuildApp,
   port:                int,
@@ -94,7 +92,7 @@ proc run_http_server*(
   timer_event_ms     = 500,
   pull_timeout_ms    = 2000,
   session_timeout_ms = 6000,
-  sync_process       = stub # Add any additional periodic processing here
+  sync_process: proc() = (proc = (discard)) # Add any additional periodic processing here
 ) =
   # Files with same names will be taken from first path when found, this way system assets like `page.html`
   # could be overriden.
@@ -105,10 +103,10 @@ proc run_http_server*(
   let handler = build_http_handler(sessions, build_app, asset_paths, pull_timeout_ms)
   spawn_async server.serve(Port(port), handler, "localhost")
 
-  add_timer((session_timeout_ms/2).int, () => sessions.collect_garbage(session_timeout_ms), once = false)
+  add_timer((session_timeout_ms/2).int, () => sessions.collect_garbage(session_timeout_ms))
 
   # Triggering timer event periodically, to check for any background state changes
-  add_timer(timer_event_ms, () => sessions.add_timer_event, once = false)
+  add_timer(timer_event_ms, () => sessions.add_timer_event)
 
   http_log.with((port: port)).info "started"
   spawn_async(() => say "started", false)
