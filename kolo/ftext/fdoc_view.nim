@@ -1,5 +1,5 @@
 import base, mono/core
-import ../core/spacem, ./fdoc
+import ../core/spacem, ./fdoc, ../ui/palette as _
 
 type FDocView* = ref object of Component
   space*: Space
@@ -9,19 +9,31 @@ proc set_attrs*(self: FDocView, space: Space, doc: FDocHead) =
   self.space = space; self.doc = doc
 
 proc render*(self: FDocView): El =
-  el"":
-    it.text self.doc.id
-  # case self.location.kind
-  # of posts:
-  #   el(PostsView, (blog: self.blog))
-  # of post:
-  #   let id = self.location.id
-  #   let post = self.blog.posts.fget_by(id, id).get
-  #   el(PostView, (post: post))
-  # of unknown:
-  #   el(PostsView, (blog: self.blog)):
-  #     # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
-  #     it.window_location(posts_url())
+  let doc = self.doc
+  result = el(LRLayout, ()):
+    it.left = els:
+      el(Note, (title: self.doc.title, tags: doc.tags)):
+        discard
+        # el(NoteSection, ()):
+        #   el(NoteTextBlock, (html: data.text_block1_html))
+        # el(NoteSection, ()):
+        #   el(NoteTextBlock, (html: data.text_block2_html, show_controls: true))
+        # el(NoteSection, (title: "Additional consequences of those 3 main issues")):
+        #   el(NoteListBlock, (html: data.list_block1_html, warns: @["Invalid tag #some", "Invalid link /some"]))
+
+  result.window_title doc.title
+
+      # it.right = els:
+      #   el(RSection, ()):
+      #     el(IconButton, (icon: "edit"))
+      #   el(RSection, ()):
+      #     el(RSearchField, ())
+      #   el(RFavorites, (links: data.links))
+      #   el(RTags, (tags: data.tags))
+      #   el(RSpaceInfo, (warns: @[("12 warns", "/warns")]))
+      #   el(RBacklinks, (links: data.links))
+      #   el(RSection, (title: "Other", closed: true))
+
 
 method render_doc*(doc: FDocHead, space: Space, parent: Component): El =
   parent.el(FDocView, fmt"{space.id}/{doc.id}", (space: space, doc: doc))

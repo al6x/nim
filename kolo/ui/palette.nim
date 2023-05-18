@@ -1,7 +1,7 @@
 import base, mono/core, std/os
 
 # Support ------------------------------------------------------------------------------------------
-type Palette* = object
+type Palette* = ref object
   mockup_mode*: bool
 
 proc init*(_: type[Palette], mockup_mode = false): Palette =
@@ -14,7 +14,7 @@ proc nomockup*(class: string): string =
 
 # Common -------------------------------------------------------------------------------------------
 proc IconButton*(icon: string, size = "w-5 h-5", color = "bg-gray-500"): El =
-  let asset_root = if palette.mockup_mode: "" else: "/palette/"
+  let asset_root = if palette.mockup_mode: "" else: "/assets/palette/"
   el"button .block.svg-icon":
     it.class size & " " & color
     it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
@@ -348,8 +348,6 @@ proc render_mockup: seq[El] =
 
   mockup_section("Misc"):
     el(Message, (text: "Some top level message"))
-
-
 
 when is_main_module:
   let html = """

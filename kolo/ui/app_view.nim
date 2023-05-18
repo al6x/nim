@@ -1,5 +1,5 @@
-import base, mono/[core, http]
-import ./core/[spacem, dbm], ./location, ./palette
+import base, mono/[core, http], std/os
+import ../core/[spacem, dbm], ./location, ./palette
 
 type AppView* = ref object of Component
   location*: Location
@@ -50,7 +50,7 @@ let page: AppPage = proc(root_el: JsonNode): string =
     <html>
       <head>
         <title>{title}</title>
-        <link rel="stylesheet" href="build/palette.css"/>
+        <link rel="stylesheet" href="/assets/palette/build/palette.css"/>
       </head>
       <body>
 
@@ -75,3 +75,7 @@ proc build_app_view*(url: Url): tuple[page: AppPage, app: AppFn] =
     app_view.process(events, mono_id)
 
   (page, app_fn)
+
+proc build_app_view_asset_paths*(): seq[string] =
+  let dir = current_source_path().parent_dir.absolute_path
+  @[fmt"{dir}/assets"]

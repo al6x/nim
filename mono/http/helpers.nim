@@ -1,6 +1,14 @@
 import base, ext/[url, async]
 import std/[deques, httpcore, asynchttpserver, asyncnet, os]
 
+let mime* = (ref Table[string, string])()
+mime["js"]   = "text/javascript; charset=UTF-8"
+mime["css"]  = "text/css; charset=UTF-8"
+mime["svg"]  = "image/svg+xml"
+mime["jpg"]  = "image/jpeg"
+mime["jpeg"] = "image/jpeg"
+mime["png"]  = "image/png"
+
 proc init*(_: type[Url], request: Request): Url =
   let url = Url.init(request.url) # doesn't have host
   let host_port = request.headers["host"].split(":")
@@ -21,16 +29,13 @@ proc read_asset_file*(asset_paths: seq[string], path: string): Option[string] =
     let try_path = asset_path & path
     if fs.exist(try_path):
       return fs.read(try_path).some
-  # throw fmt"no asset file '{path}'"
 
 proc serve_asset_file*(req: Request, asset_paths: seq[string], url: Url): Future[void] {.async.} =
   let data = read_asset_file(asset_paths, url.path_as_s.replace("/assets/", "/"))
   if data.is_some:
-    let (dir, name, ext) = url.path_as_s.split_file
-    case ext
-    of ".js":  await req.respond(data.get, "text/javascript; charset=UTF-8")
-    of ".css": await req.respond(data.get, "text/css; charset=UTF-8")
-    else:      await req.respond(data.get)
+    var (dir, name, ext) = url.path_as_s.split_file
+    ext = ext.replace(re"^\.", "")
+    await req.respond(data.get, mime[].get(ext, "text/html"))
   else:
     await req.respond(Http404, "Not found")
 

@@ -28,3 +28,10 @@ proc home*(db: Db): Option[tuple[space: Space, doc: Doc]] =
     for did, doc in space.docs:
       if "home" in doc.tags:
         return (space, doc).some
+
+template build_db_process_cb*(db): auto =
+  let db_process = build_sync_timer(100, () => db.process)
+  let db_bgjobs  = build_sync_timer(500, () => db.bgjobs)
+  proc =
+    db_process()
+    db_bgjobs()
