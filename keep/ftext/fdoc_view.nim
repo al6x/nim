@@ -1,5 +1,10 @@
 import base, mono/core, std/osproc
-import ../core/spacem, ./fdoc, ./ftext, ../ui/palette as _
+import ../core/spacem, ./fdoc, ./ftext, ./helpers, ../ui/palette as pl
+
+proc FSectionView(doc: FDoc, section: FSection): El =
+  let edit = el(IconButton, (icon: "edit", title: "Edit")):
+    it.on_click proc = open_editor(doc.location, section.line_n)
+  el(NoteSection, (title: section.title, tags: section.tags, controls: @[edit]))
 
 type FDocView* = ref object of Component
   space*: Space
@@ -8,19 +13,28 @@ type FDocView* = ref object of Component
 proc set_attrs*(self: FDocView, space: Space, doc: FDocHead) =
   self.space = space; self.doc = doc
 
-proc on_edit(self: FDoc) =
-  session.log.with((location: self.location)).info "edit"
-  let output = exec_cmd_ex(command = fmt"code -g {self.location}:0")
-  if output.exit_code != 0: throw fmt"Can't exec fdoc edit command"
-
 proc render*(self: FDocView): El =
   let head = self.doc; let doc = self.doc.doc
+
+  let edit_title = el(IconButton, (icon: "edit", title: "Edit")):
+    it.on_click proc = open_editor(doc.location)
+  let edit_tags = el(IconButton, (icon: "edit", title: "Edit")):
+    it.on_click proc = open_editor(doc.location, doc.tags_line_n)
+
   result = el(LRLayout, ()):
     it.left = els:
-      el(Note, (title: self.doc.title, tags: doc.tags)):
-        discard
-        # el(NoteSection, ()):
-        #   el(NoteTextBlock, (html: data.text_block1_html))
+      el(Note, (
+        title: doc.title, location: doc.location, title_controls: @[edit_title],
+        tags: doc.tags, tags_controls: @[edit_tags]
+      )):
+        for warn in doc.warns:
+          el(Message, (text: warn, kind: MessageKind.warn))
+        for section in doc.sections:
+          unless section.title.is_empty:
+            el(FSectionView, (doc: doc, section: section))
+
+          # for
+          # el(NoteTextBlock, (html: data.text_block1_html))
         # el(NoteSection, ()):
         #   el(NoteTextBlock, (html: data.text_block2_html, show_controls: true))
         # el(NoteSection, (title: "Additional consequences of those 3 main issues")):
@@ -28,8 +42,8 @@ proc render*(self: FDocView): El =
 
     it.right = els:
       el(RSection, ()):
-        el(IconButton, (icon: "edit")):
-          it.on_click proc = doc.on_edit
+        el(IconButton, (icon: "edit", title: "Edit")):
+          it.on_click proc = open_editor(doc.location)
       #   el(RSection, ()):
       #     el(RSearchField, ())
       #   el(RFavorites, (links: data.links))

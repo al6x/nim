@@ -2,11 +2,11 @@ import base, mono/[core, http], std/os
 import ../core/[spacem, dbm], ./location, ./palette
 
 type AppView* = ref object of Component
-  location*:   Location
-  db_version*: int
+  location*: Location
+  on_timer_db_version: Option[int]
 
 proc init*(_: type[AppView]): AppView =
-  AppView(db_version: db.version)
+  AppView()
 
 proc set_attrs*(self: AppView) =
   discard
@@ -49,7 +49,14 @@ proc render*(self: AppView): El =
   of unknown:           self.render_unknown
 
 proc on_timer*(self: AppView): bool =
-  self.db_version != db.version
+  if   self.on_timer_db_version.is_none:
+    self.on_timer_db_version = db.version.some
+    false
+  elif self.on_timer_db_version == db.version:
+    false
+  else:
+    self.on_timer_db_version = db.version.some
+    true
 
 let page: AppPage = proc(root_el: JsonNode): string =
   """

@@ -13,10 +13,11 @@ proc nomockup*(class: string): string =
   if palette.mockup_mode: "" else: class
 
 # Common -------------------------------------------------------------------------------------------
-proc IconButton*(icon: string, size = "w-5 h-5", color = "bg-gray-500"): El =
+proc IconButton*(icon: string, title = "", size = "w-5 h-5", color = "bg-gray-500"): El =
   let asset_root = if palette.mockup_mode: "" else: "/assets/palette/"
   el"button .block.svg-icon":
     it.class size & " " & color
+    unless title.is_empty: it.attr("title", title)
     it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
 
 proc SymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
@@ -45,7 +46,7 @@ proc render*(self: LRLayout): El =
       el"""$LRRight {nomockup".right-panel-content"} .pt-2""":
         it.add self.right
 
-type MessageKind = enum info, warn
+type MessageKind* = enum info, warn
 proc Message*(text: string, kind: MessageKind = info): El =
   el".m-2 .p-2.rounded.bg-slate-50":
     case kind
@@ -117,79 +118,95 @@ proc RSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
       it.location "#"
 
     if not warns.is_empty:
-      el".warn":
+      el".border-l-2.border-orange-800":
         for (text, link) in warns:
           el"a .block .text-sm .text-orange-800":
             it.text text
             it.location link
 
 # Note ---------------------------------------------------------------------------------------------
-type Note* = ref object of Component
-  title*: string
-  tags*:  seq[string]
+template inline_controls(controls: seq[El]): auto =
+  unless controls.is_empty:
+    el".absolute.-right-7.top-0.flex.flex-col  .rounded.p-1.space-y-1":
+      it.style "margin-top: 0;"
+      for c in controls: it.add(c)
 
-proc set_attrs*(self: Note, title: string, tags: seq[string]) =
-  self.title = title; self.tags = tags
+template inline_warns(warns: seq[string]): auto =
+  unless warns.is_empty:
+    el".border-l-4.border-orange-800 flash":
+      for w in warns:
+        el".inline-block .text-orange-800 .ml-2":
+          it.text w
 
-proc render*(self: Note, content: seq[El]): El =
-  el".relative.pt-3.pb-3":
-    el"a.block.absolute.left-2 .text-gray-300": # Anchor
-      it.class "top-3.5"
-      it.text "#"
-      it.location "#"
-    el".pl-8.text-xl.mb-2 flash": # Title
-      # <div class="anchor absolute left-1">#</div>
-      it.text self.title
-
-    it.add content
-
-    el".pl-8 .flex .-mr-2 flash":
-      for tag in self.tags:
+template inline_tags(tags: seq[string]): auto =
+  let tagsv: seq[string] = tags
+  unless tagsv.is_empty:
+    el".flex.-mr-2 flash":
+      for tag in tagsv:
         el"a .mr-2 .text-blue-800":
           it.text "#" & tag
           it.location "#"
 
-proc NoteSection*(title = "", content: seq[El]): El =
-  el".relative flash":
-    if not title.is_empty:
-      el"a.block.absolute.left-2 .text-gray-300": # Anchor
-        it.class "top-0.5"
-        it.text "#"
-        it.location "#"
-      el".pl-8.text-xl.mb-2": # Title
+template note_block(controls: seq[El], warns: seq[string], tags: seq[string], code): auto =
+  el".relative.flex.flex-col.space-y-2":
+    inline_warns(warns)
+    code
+    inline_tags(tags)
+    # Should be the last one, otherwise the first element will have extra margin
+    inline_controls(controls)
+
+proc Note*(
+  title: string, location = "", title_controls = seq[El].init,
+  warns = seq[string].init,
+  tags: seq[string], tags_controls = seq[El].init, tags_warnings = seq[string].init,
+  content: seq[El]
+): El =
+  el".flex.flex-col .space-y-2.mt-2.mb-2 .pl-8.pr-8":
+    # el"a.block.absolute.left-2 .text-gray-300": # Anchor
+    #   it.class "top-3.5"
+    #   it.text "#"
+    #   it.location "#"
+    note_block(title_controls, warns, @[]): # Title
+      el".text-xl flash":
         it.text title
+        it.attr("title", location)
+
     it.add content
 
-template note_block_header(warns: seq[string], code): El =
-  el".relative.pl-8.pr-8 .mb-2":
-    if show_controls:
-      el".absolute.right-1.top-1.flex.flex-col  .rounded.p-1.space-y-1": # Controls
-        el(IconButton, (icon: "edit"))
-        el(IconButton, (icon: "controls"))
-    if not warns.is_empty:
-      el".mb-2 .border-l-4.border-orange-800":
-        for w in warns:
-          el".inline-block .text-orange-800 .ml-2":
-            it.text w
+    note_block(tags_controls, tags_warnings, tags): # Tags
+      discard
 
-    code
+proc NoteSection*(
+  title: string, tags: seq[string] = @[], controls: seq[El] = @[], warns: seq[string] = @[]
+): El =
+  el".relative":
+    el".text-xl flash": # Title
+      it.text title
+    inline_warns(warns)
+    inline_tags(tags)
+    # Should be the last one, otherwise the first element will have extra margin
+    inline_controls(controls)
 
-proc NoteTextBlock*(html: string, show_controls = false, warns: seq[string] = @[]): El =
-  note_block_header(warns):
-    el".ftext": # Body
+proc NoteTextBlock*(html: string, controls = seq[El].init, warns: seq[string] = @[]): El =
+  note_block(controls, warns, @[]):
+    el".ftext flash": # Body
       it.attr("html", html)
 
-proc NoteListBlock*(html: string, show_controls = false, warns: seq[string] = @[]): El =
-  note_block_header(warns):
-    el".ftext": # Body
+proc NoteListBlock*(html: string, controls = seq[El].init, warns: seq[string] = @[]): El =
+  note_block(controls, warns, @[]):
+    el".ftext flash": # Body
       it.attr("html", html)
 
-proc NoteCodeBlock*(code: string, show_controls = false, warns: seq[string] = @[]): El =
-  note_block_header(warns):
-    el".ftext": # Body
+proc NoteCodeBlock*(
+  code: string, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
+): El =
+  note_block(controls, warns, tags):
+    el".ftext flash": # Body
       it.attr("html", "<pre>" & code & "</pre>")
 
-proc NoteImagesBlock*(images: seq[string], show_controls = false, warns: seq[string] = @[]): El =
+proc NoteImagesBlock*(
+  images: seq[string], controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
+): El =
   template render_td =
     el"td":
       if col.is_even:
@@ -206,16 +223,16 @@ proc NoteImagesBlock*(images: seq[string], show_controls = false, warns: seq[str
               it.attr("src", images[i])
               i.inc
 
-  note_block_header(warns):
+  note_block(controls, warns, tags):
     if images.len <= 4:
-      el"table cellspacing=0 cellpadding=0": # removing cell borders
+      el"table cellspacing=0 cellpadding=0 flash": # removing cell borders
         el"tdata":
           el"tr":
             var i = 0
             for col in 0..(images.high * 2 - 2):
               render_td()
     else:
-      el"table cellspacing=0 cellpadding=0":
+      el"table cellspacing=0 cellpadding=0 flash":
         it.style "border-spacing: 0 0.6rem; border-collapse: separate;" # setting margin after each row
         el"tdata":
           var i = 0
@@ -289,17 +306,23 @@ proc render_mockup: seq[El] =
   data = stub_data()
   palette = Palette.init(mockup_mode = true)
 
+  let controls_stub = @[
+    el(IconButton, (icon: "edit")),
+    el(IconButton, (icon: "controls"))
+  ]
+
   mockup_section("Note"):
     el(LRLayout, ()):
 
       it.left = els:
-        el(Note, (title: "About Forex", tags: data.note_tags)):
-          el(NoteSection, ()):
-            el(NoteTextBlock, (html: data.text_block1_html))
-          el(NoteSection, ()):
-            el(NoteTextBlock, (html: data.text_block2_html, show_controls: true))
-          el(NoteSection, (title: "Additional consequences of those 3 main issues")):
-            el(NoteListBlock, (html: data.list_block1_html, warns: @["Invalid tag #some", "Invalid link /some"]))
+        el(Note, (title: "About Forex", title_controls: controls_stub, tags: data.note_tags,
+          tags_controls: controls_stub)):
+          # el(NoteSection, ())
+          el(NoteTextBlock, (html: data.text_block1_html))
+          el(NoteSection, (title: "Trends are down", tags: @["Finance", "Trading"]))
+          el(NoteTextBlock, (html: data.text_block2_html, controls: controls_stub))
+          el(NoteSection, (title: "Additional consequences of those 3 main issues", controls: controls_stub))
+          el(NoteListBlock, (html: data.list_block1_html, warns: @["Invalid tag #some", "Invalid link /some"]))
 
       it.right = els:
         el(RSection, ()):
@@ -316,16 +339,16 @@ proc render_mockup: seq[El] =
     el(LRLayout, ()):
       it.left = els:
         el(Note, (title: "About Forex", tags: data.note_tags)):
-          el(NoteSection, ()):
-            el(NoteTextBlock, (html: data.text_block_with_image_html))
-          el(NoteSection, (title: "Additional consequences of those 3 main issues")):
-            el(NoteListBlock, (html: data.list_block1_html))
-            el(NoteCodeBlock, (code: data.code_block1))
-            el(NoteTextBlock, (html: data.text_block1_html))
-            el(NoteImagesBlock, (images: data.knots[0..3]))
-            el(NoteListBlock, (html: data.list_block1_html))
-            el(NoteImagesBlock, (images: data.knots))
-            el(NoteListBlock, (html: data.list_block1_html))
+          # el(NoteSection, ())
+          el(NoteTextBlock, (html: data.text_block_with_image_html))
+          el(NoteSection, (title: "Additional consequences of those 3 main issues"))
+          el(NoteListBlock, (html: data.list_block1_html))
+          el(NoteCodeBlock, (code: data.code_block1))
+          el(NoteTextBlock, (html: data.text_block1_html))
+          el(NoteImagesBlock, (images: data.knots[0..3], tags: @["Knots", "Bushcraft"]))
+          el(NoteListBlock, (html: data.list_block1_html))
+          el(NoteImagesBlock, (images: data.knots))
+          el(NoteListBlock, (html: data.list_block1_html))
 
   mockup_section("Search"):
     el(LRLayout, ()):

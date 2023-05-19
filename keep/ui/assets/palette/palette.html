@@ -19,38 +19,40 @@
       <div class="LRLeft Component w-9/12">
 
         <!-- Note -->
-        <div class="Note Component relative pt-3 pb-3">
-          <a class="block absolute left-2 text-gray-300 top-3.5" href="#">#</a>
-          <div class="pl-8 text-xl mb-2" flash="true">About Forex</div>
+        <div class="Note Component flex flex-col space-y-2 mt-2 mb-2 pl-8 pr-8">
+          <div class="relative flex flex-col space-y-2">
+            <div class="text-xl" flash="true" title="">About Forex</div>
+            <div class="absolute -right-7 top-0 flex flex-col rounded p-1 space-y-1" style="margin-top: 0;">
 
-          <!-- NoteSection -->
-          <div class="NoteSection Component relative" flash="true">
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
 
-            <!-- NoteTextBlock -->
-            <div class="NoteTextBlock Component relative pl-8 pr-8 mb-2">
-              <div class="ftext"><p>
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+
+            </div>
+          </div>
+
+          <!-- NoteTextBlock -->
+          <div class="NoteTextBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><p>
   There are multiple reasons to About Forex. Every single of those reasons is big enough
   to stay away from such investment. Forex has all of them.
 </p></div>
-            </div>
-
           </div>
 
           <!-- NoteSection -->
-          <div class="NoteSection Component relative" flash="true">
+          <div class="NoteSection Component relative">
+            <div class="text-xl" flash="true">Trends are down</div>
+            <div class="flex -mr-2" flash="true">
+              <a class="mr-2 text-blue-800" href="#">#Finance</a>
+              <a class="mr-2 text-blue-800" href="#">#Trading</a>
+            </div>
+          </div>
 
-            <!-- NoteTextBlock -->
-            <div class="NoteTextBlock Component relative pl-8 pr-8 mb-2">
-              <div class="absolute right-1 top-1 flex flex-col rounded p-1 space-y-1">
-
-                <!-- IconButton -->
-                <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
-
-                <!-- IconButton -->
-                <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
-
-              </div>
-              <div class="ftext"><ul>
+          <!-- NoteTextBlock -->
+          <div class="NoteTextBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><ul>
   <li>
     <b>Negative trend</b>. Odds are against you. Stock market on average goes up, but
       the currencies on average going down.
@@ -68,22 +70,38 @@
     and because it doesn't has any bottom value, it can fell all the way down to zero.
   </li>
 <ul></div>
-            </div>
+            <div class="absolute -right-7 top-0 flex flex-col rounded p-1 space-y-1" style="margin-top: 0;">
 
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
+
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+
+            </div>
           </div>
 
           <!-- NoteSection -->
-          <div class="NoteSection Component relative" flash="true">
-            <a class="block absolute left-2 text-gray-300 top-0.5" href="#">#</a>
-            <div class="pl-8 text-xl mb-2">Additional consequences of those 3 main issues</div>
+          <div class="NoteSection Component relative">
+            <div class="text-xl" flash="true">Additional consequences of those 3 main issues</div>
+            <div class="absolute -right-7 top-0 flex flex-col rounded p-1 space-y-1" style="margin-top: 0;">
 
-            <!-- NoteListBlock -->
-            <div class="NoteListBlock Component relative pl-8 pr-8 mb-2">
-              <div class="mb-2 border-l-4 border-orange-800">
-                <div class="inline-block text-orange-800 ml-2">Invalid tag #some</div>
-                <div class="inline-block text-orange-800 ml-2">Invalid link /some</div>
-              </div>
-              <div class="ftext"><p>
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
+
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+
+            </div>
+          </div>
+
+          <!-- NoteListBlock -->
+          <div class="NoteListBlock Component relative flex flex-col space-y-2">
+            <div class="border-l-4 border-orange-800" flash="true">
+              <div class="inline-block text-orange-800 ml-2">Invalid tag #some</div>
+              <div class="inline-block text-orange-800 ml-2">Invalid link /some</div>
+            </div>
+            <div class="ftext" flash="true"><p>
   1.1 No right for a mistake. If you made a mistake on the stock market, if you can
   wait, there's a chance that over time stock will grow back. Not true for Forex.
 </p>
@@ -97,14 +115,23 @@
   With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
   there will be probably lots of transactions and lots of fees.
 </p></div>
-            </div>
-
           </div>
 
-          <div class="pl-8 flex -mr-2" flash="true">
-            <a class="mr-2 text-blue-800" href="#">#Forex</a>
-            <a class="mr-2 text-blue-800" href="#">#Margin</a>
-            <a class="mr-2 text-blue-800" href="#">#Fake</a>
+          <div class="relative flex flex-col space-y-2">
+            <div class="flex -mr-2" flash="true">
+              <a class="mr-2 text-blue-800" href="#">#Forex</a>
+              <a class="mr-2 text-blue-800" href="#">#Margin</a>
+              <a class="mr-2 text-blue-800" href="#">#Fake</a>
+            </div>
+            <div class="absolute -right-7 top-0 flex flex-col rounded p-1 space-y-1" style="margin-top: 0;">
+
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
+
+              <!-- IconButton -->
+              <button class="IconButton Component block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+
+            </div>
           </div>
         </div>
 
@@ -170,7 +197,7 @@
           <div class="RSpaceInfo Component relative m-2 mb-3" flash="true">
             <div class="text-gray-300">Space</div>
             <a class="text-blue-800" href="#">Finance</a>
-            <div class="warn">
+            <div class="border-l-2 border-orange-800">
               <a class="block text-sm text-orange-800" href="/warns">12 warns</a>
             </div>
           </div>
@@ -216,16 +243,14 @@
       <div class="LRLeft Component w-9/12">
 
         <!-- Note -->
-        <div class="Note Component relative pt-3 pb-3">
-          <a class="block absolute left-2 text-gray-300 top-3.5" href="#">#</a>
-          <div class="pl-8 text-xl mb-2" flash="true">About Forex</div>
+        <div class="Note Component flex flex-col space-y-2 mt-2 mb-2 pl-8 pr-8">
+          <div class="relative flex flex-col space-y-2">
+            <div class="text-xl" flash="true" title="">About Forex</div>
+          </div>
 
-          <!-- NoteSection -->
-          <div class="NoteSection Component relative" flash="true">
-
-            <!-- NoteTextBlock -->
-            <div class="NoteTextBlock Component relative pl-8 pr-8 mb-2">
-              <div class="ftext"><p>
+          <!-- NoteTextBlock -->
+          <div class="NoteTextBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><p>
   Odds are against you. Stock market on average goes up, but
   the currencies on average going down. Small market fluctuation - and the margin call would
   wipe you out.
@@ -246,18 +271,16 @@
   leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
   wipe you out.
 </p></div>
-            </div>
-
           </div>
 
           <!-- NoteSection -->
-          <div class="NoteSection Component relative" flash="true">
-            <a class="block absolute left-2 text-gray-300 top-0.5" href="#">#</a>
-            <div class="pl-8 text-xl mb-2">Additional consequences of those 3 main issues</div>
+          <div class="NoteSection Component relative">
+            <div class="text-xl" flash="true">Additional consequences of those 3 main issues</div>
+          </div>
 
-            <!-- NoteListBlock -->
-            <div class="NoteListBlock Component relative pl-8 pr-8 mb-2">
-              <div class="ftext"><p>
+          <!-- NoteListBlock -->
+          <div class="NoteListBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><p>
   1.1 No right for a mistake. If you made a mistake on the stock market, if you can
   wait, there's a chance that over time stock will grow back. Not true for Forex.
 </p>
@@ -271,267 +294,271 @@
   With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
   there will be probably lots of transactions and lots of fees.
 </p></div>
-            </div>
+          </div>
 
-            <!-- NoteCodeBlock -->
-            <div class="NoteCodeBlock Component relative pl-8 pr-8 mb-2">
-              <div class="ftext"><pre>palette = Palette.init(mockup_mode = true)
+          <!-- NoteCodeBlock -->
+          <div class="NoteCodeBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><pre>palette = Palette.init(mockup_mode = true)
 mockup_section("Text"):
   el(LRLayout, ()):
     it.left = els:
       el(Note, (title: "About Forex", tags: data.note_tags)):
         el(NoteSection, ()):
           el(NoteTextBlock, (html: data.text_block_with_image_html))</pre></div>
-            </div>
+          </div>
 
-            <!-- NoteTextBlock -->
-            <div class="NoteTextBlock Component relative pl-8 pr-8 mb-2">
-              <div class="ftext"><p>
+          <!-- NoteTextBlock -->
+          <div class="NoteTextBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><p>
   There are multiple reasons to About Forex. Every single of those reasons is big enough
   to stay away from such investment. Forex has all of them.
 </p></div>
-            </div>
-
-            <!-- NoteImagesBlock -->
-            <div class="NoteImagesBlock Component relative pl-8 pr-8 mb-2">
-              <table cellpadding="0" cellspacing="0">
-                <tdata>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/eight-slow.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/shtykovoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                  </tr>
-                </tdata>
-              </table>
-            </div>
-
-            <!-- NoteListBlock -->
-            <div class="NoteListBlock Component relative pl-8 pr-8 mb-2">
-              <div class="ftext"><p>
-  1.1 No right for a mistake. If you made a mistake on the stock market, if you can
-  wait, there's a chance that over time stock will grow back. Not true for Forex.
-</p>
-
-<p>
-  1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
-</p>
-
-<p>
-  1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
-  With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
-  there will be probably lots of transactions and lots of fees.
-</p></div>
-            </div>
-
-            <!-- NoteImagesBlock -->
-            <div class="NoteImagesBlock Component relative pl-8 pr-8 mb-2">
-              <table cellpadding="0" cellspacing="0" style="border-spacing: 0 0.6rem; border-collapse: separate;">
-                <tdata>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/eight-slow.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/shtykovoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/begushii.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/losa.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/dvoynoy-bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/shvativayushii.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/shkotovyy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/natyajenie.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/blakes-hitch.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/regulirovka-dlinni.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/palomar.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/travyanoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/shtykovoy-so-shlagom.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/butterfly.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/constrictor-carabine.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/uiaa.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/eight.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/stremya.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/prusik.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/vosmerka.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/kreplenie-palatki.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/prqmoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/vstrechny.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;">
-                      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-                        <img class="block ml-auto mr-auto" src="images/knots/shwabish.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-                      </div>
-                    </td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
-                    <td style="width: 1.33%;"></td>
-                    <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
-                  </tr>
-                </tdata>
-              </table>
-            </div>
-
-            <!-- NoteListBlock -->
-            <div class="NoteListBlock Component relative pl-8 pr-8 mb-2">
-              <div class="ftext"><p>
-  1.1 No right for a mistake. If you made a mistake on the stock market, if you can
-  wait, there's a chance that over time stock will grow back. Not true for Forex.
-</p>
-
-<p>
-  1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
-</p>
-
-<p>
-  1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
-  With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
-  there will be probably lots of transactions and lots of fees.
-</p></div>
-            </div>
-
           </div>
 
-          <div class="pl-8 flex -mr-2" flash="true">
-            <a class="mr-2 text-blue-800" href="#">#Forex</a>
-            <a class="mr-2 text-blue-800" href="#">#Margin</a>
-            <a class="mr-2 text-blue-800" href="#">#Fake</a>
+          <!-- NoteImagesBlock -->
+          <div class="NoteImagesBlock Component relative flex flex-col space-y-2">
+            <table cellpadding="0" cellspacing="0" flash="true">
+              <tdata>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/eight-slow.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/shtykovoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                </tr>
+              </tdata>
+            </table>
+            <div class="flex -mr-2" flash="true">
+              <a class="mr-2 text-blue-800" href="#">#Knots</a>
+              <a class="mr-2 text-blue-800" href="#">#Bushcraft</a>
+            </div>
+          </div>
+
+          <!-- NoteListBlock -->
+          <div class="NoteListBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><p>
+  1.1 No right for a mistake. If you made a mistake on the stock market, if you can
+  wait, there's a chance that over time stock will grow back. Not true for Forex.
+</p>
+
+<p>
+  1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
+</p>
+
+<p>
+  1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
+  With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
+  there will be probably lots of transactions and lots of fees.
+</p></div>
+          </div>
+
+          <!-- NoteImagesBlock -->
+          <div class="NoteImagesBlock Component relative flex flex-col space-y-2">
+            <table cellpadding="0" cellspacing="0" flash="true" style="border-spacing: 0 0.6rem; border-collapse: separate;">
+              <tdata>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/eight-slow.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/shtykovoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/begushii.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/losa.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/dvoynoy-bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/shvativayushii.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/shkotovyy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/natyajenie.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/blakes-hitch.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/regulirovka-dlinni.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/palomar.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/travyanoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/shtykovoy-so-shlagom.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/butterfly.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/constrictor-carabine.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/uiaa.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/eight.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/stremya.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/prusik.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/vosmerka.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/kreplenie-palatki.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/prqmoy.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/vstrechny.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;">
+                    <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
+                      <img class="block ml-auto mr-auto" src="images/knots/shwabish.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+                    </div>
+                  </td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
+                  <td style="width: 1.33%;"></td>
+                  <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
+                </tr>
+              </tdata>
+            </table>
+          </div>
+
+          <!-- NoteListBlock -->
+          <div class="NoteListBlock Component relative flex flex-col space-y-2">
+            <div class="ftext" flash="true"><p>
+  1.1 No right for a mistake. If you made a mistake on the stock market, if you can
+  wait, there's a chance that over time stock will grow back. Not true for Forex.
+</p>
+
+<p>
+  1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
+</p>
+
+<p>
+  1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
+  With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
+  there will be probably lots of transactions and lots of fees.
+</p></div>
+          </div>
+
+          <div class="relative flex flex-col space-y-2">
+            <div class="flex -mr-2" flash="true">
+              <a class="mr-2 text-blue-800" href="#">#Forex</a>
+              <a class="mr-2 text-blue-800" href="#">#Margin</a>
+              <a class="mr-2 text-blue-800" href="#">#Fake</a>
+            </div>
           </div>
         </div>
 

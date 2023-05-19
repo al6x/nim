@@ -8,7 +8,8 @@ proc init*(_: type[Db]): Db =
 
 proc version*(db: Db): int =
   var h: Hash
-  for k in db.spaces.keys: h = h !& k.hash
+  for sid, space in db.spaces:
+    h = h !& sid.hash !& space.version.hash
   !$h
 
 proc process*(db: Db) =

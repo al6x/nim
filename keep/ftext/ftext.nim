@@ -588,7 +588,7 @@ proc parse_section*(raw: HalfParsedBlock): FSection =
   assert raw.kind == "section"
   let pr = Parser.init raw.text
   let formatted_text = pr.consume_inline_text () => false
-  result = FSection()
+  result = FSection(line_n: raw.line_n)
   if pr.has_next: result.warns.add fmt"Invalid text in section : '{pr.remainder}'"
   var texts: seq[string]
   for item in formatted_text:
@@ -625,7 +625,7 @@ proc parse_ftext*(text: string, location = ""): FDoc =
       doc.sections.add section
       # result.warns.add section.warns
     else:
-      if doc.sections.is_empty: doc.sections.add FSection()
+      if doc.sections.is_empty: doc.sections.add FSection(line_n: 1)
       if raw.kind in fblock_parsers:
         let blk = fblock_parsers[raw.kind](raw, doc)
         doc.sections[^1].blocks.add blk
@@ -651,7 +651,9 @@ test "parse_ftext":
 
     let doc = parse_ftext text
     check doc.sections.len == 1
-    check doc.sections[0].blocks.len == 3
+    let section = doc.sections[0]
+    check section.blocks.len == 3
+    check section.line_n == 1
     check doc.tags == @["t", "t2"]
     check doc.tags_line_n == 8
 
@@ -677,6 +679,8 @@ test "parse_ftext":
     let doc = parse_ftext text
     check doc.title == "Some title"
     check doc.sections.len == 2
+    check doc.sections[0].line_n == 3
+    check doc.sections[1].line_n == 7
 
 # image, images ------------------------------------------------------------------------------------
 proc fdoc_asset_path*(fdoc_path: string, asset_path: string): string =

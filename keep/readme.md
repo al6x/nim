@@ -1,5 +1,6 @@
 # Todo
 
+- Rename warns to warnings
 - Serve file space/doc.method-serve_file(rel_doc_path): tuple[path, mime]
 - search list
 - Move edit button to section right, `vscode -g fpath:line`
