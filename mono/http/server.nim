@@ -1,6 +1,6 @@
 import std/[httpcore, asynchttpserver, asyncnet, deques, os]
 import base, ext/[url, async]
-import ./session, ./helpers, ../core
+import ./helpers, ../core
 
 let http_log = Log.init "http"
 

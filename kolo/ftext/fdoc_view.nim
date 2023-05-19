@@ -1,5 +1,5 @@
-import base, mono/core
-import ../core/spacem, ./fdoc, ../ui/palette as _
+import base, mono/core, std/osproc
+import ../core/spacem, ./fdoc, ./ftext, ../ui/palette as _
 
 type FDocView* = ref object of Component
   space*: Space
@@ -8,8 +8,13 @@ type FDocView* = ref object of Component
 proc set_attrs*(self: FDocView, space: Space, doc: FDocHead) =
   self.space = space; self.doc = doc
 
+proc on_edit(self: FDoc) =
+  session.log.with((location: self.location)).info "edit"
+  let output = exec_cmd_ex(command = fmt"code -g {self.location}:0")
+  if output.exit_code != 0: throw fmt"Can't exec fdoc edit command"
+
 proc render*(self: FDocView): El =
-  let doc = self.doc
+  let head = self.doc; let doc = self.doc.doc
   result = el(LRLayout, ()):
     it.left = els:
       el(Note, (title: self.doc.title, tags: doc.tags)):
@@ -21,11 +26,10 @@ proc render*(self: FDocView): El =
         # el(NoteSection, (title: "Additional consequences of those 3 main issues")):
         #   el(NoteListBlock, (html: data.list_block1_html, warns: @["Invalid tag #some", "Invalid link /some"]))
 
-  result.window_title doc.title
-
-      # it.right = els:
-      #   el(RSection, ()):
-      #     el(IconButton, (icon: "edit"))
+    it.right = els:
+      el(RSection, ()):
+        el(IconButton, (icon: "edit")):
+          it.on_click proc = doc.on_edit
       #   el(RSection, ()):
       #     el(RSearchField, ())
       #   el(RFavorites, (links: data.links))
@@ -33,6 +37,8 @@ proc render*(self: FDocView): El =
       #   el(RSpaceInfo, (warns: @[("12 warns", "/warns")]))
       #   el(RBacklinks, (links: data.links))
       #   el(RSection, (title: "Other", closed: true))
+
+  result.window_title doc.title
 
 
 method render_doc*(doc: FDocHead, space: Space, parent: Component): El =

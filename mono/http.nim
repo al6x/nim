@@ -1,3 +1,3 @@
-import ext/url, ./http/[server, session]
+import ext/url, ./http/server
 
-export url, server, session
+export url, server

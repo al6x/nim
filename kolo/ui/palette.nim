@@ -55,7 +55,7 @@ proc Message*(text: string, kind: MessageKind = info): El =
 
 # Right --------------------------------------------------------------------------------------------
 proc RSection*(title = "", closed = false, content: seq[El]): El =
-  el".relative .m-2 .mb-3":
+  el".relative .m-2 .mb-3 flash":
     if closed:
       assert not title.is_empty, "can't have empty title on closed rsection"
       el".text-gray-300":
@@ -137,7 +137,7 @@ proc render*(self: Note, content: seq[El]): El =
       it.class "top-3.5"
       it.text "#"
       it.location "#"
-    el".pl-8.text-xl.mb-2": # Title
+    el".pl-8.text-xl.mb-2 flash": # Title
       # <div class="anchor absolute left-1">#</div>
       it.text self.title
 
@@ -150,7 +150,7 @@ proc render*(self: Note, content: seq[El]): El =
           it.location "#"
 
 proc NoteSection*(title = "", content: seq[El]): El =
-  el".relative":
+  el".relative flash":
     if not title.is_empty:
       el"a.block.absolute.left-2 .text-gray-300": # Anchor
         it.class "top-0.5"

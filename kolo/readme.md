@@ -1,5 +1,6 @@
 # Todo
 
+- Serve file space/doc.method-serve_file(rel_doc_path): tuple[path, mime]
 - search list
 - Move edit button to section right, `vscode -g fpath:line`
 - FText parser for: Section, Table, Code, Images
@@ -22,6 +23,9 @@
 - Search, tags and spaces filters, index book context
 - Publish selected notes as pdf book
 - SpreadSheet
+- Git for history and sharing
+- Github or any other Git hosting for publishing, collaboration
+- Any file hosting for sharing
 
 # Forward 80 to 8080 on Mac OS
 

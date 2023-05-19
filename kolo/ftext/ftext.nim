@@ -1,4 +1,4 @@
-import base, ext/[parser, yaml]
+import base, ext/[parser, yaml], std/os
 
 type
   FBlock* = ref object of RootObj
@@ -61,12 +61,19 @@ type
   FDataBlock* = ref object of FBlock
     data*: JsonNode
 
+  FImageBlock* = ref object of FBlock
+    image*: string
+
+  FImagesBlock* = ref object of FBlock
+    images_dir*: string
+    images*:     seq[string]
+
   FUnknownBlock* = ref object of FBlock
     raw*: string
 
   HalfParsedBlock = tuple[text: string, kind: string, id: string, args: string, line_n: int]
 
-type FBlockParser* = (HalfParsedBlock) -> FBlock
+type FBlockParser* = (HalfParsedBlock, FDoc) -> FBlock
 let  fblock_parsers* = (ref Table[string, FBlockParser])()
 
 # helpers ------------------------------------------------------------------------------------------
@@ -496,7 +503,7 @@ proc parse_text*(raw: HalfParsedBlock): FTextBlock =
     for item in ph:
       result.add_text_item_data item
 
-fblock_parsers["text"] = (blk) => parse_text(blk)
+fblock_parsers["text"] = (blk, doc) => parse_text(blk)
 
 # list ---------------------------------------------------------------------------------------------
 proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
@@ -566,7 +573,7 @@ proc parse_list*(raw: HalfParsedBlock): FListBlock =
     for item in line:
       result.add_text_item_data item
 
-fblock_parsers["list"] = (blk) => parse_list(blk)
+fblock_parsers["list"] = (blk, doc) => parse_list(blk)
 
 # data ---------------------------------------------------------------------------------------------
 proc parse_data*(raw: HalfParsedBlock): FDataBlock =
@@ -574,7 +581,7 @@ proc parse_data*(raw: HalfParsedBlock): FDataBlock =
   let json = parse_yaml raw.text
   FDataBlock(kind: "data", data: json, id: raw.id, args: raw.args, text: raw.text)
 
-fblock_parsers["data"] = (blk) => parse_data(blk)
+fblock_parsers["data"] = (blk, doc) => parse_data(blk)
 
 # section ------------------------------------------------------------------------------------------
 proc parse_section*(raw: HalfParsedBlock): FSection =
@@ -608,25 +615,26 @@ proc parse_ftext*(text: string, location = ""): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
   let (tags, tags_line_n) = pr.consume_tags
-  result = FDoc(hash: text.hash.int, location: location, tags: tags, title: extract_title_from_location(location),
-    tags_line_n: tags_line_n)
+  let doc = FDoc(hash: text.hash.int, location: location, tags: tags,
+    title: extract_title_from_location(location), tags_line_n: tags_line_n)
   for raw in raw_blocks:
     if   raw.kind == "title":
-      result.title = parse_title raw
+      doc.title = parse_title raw
     elif raw.kind == "section":
       let section = parse_section raw
-      result.sections.add section
+      doc.sections.add section
       # result.warns.add section.warns
     else:
-      if result.sections.is_empty: result.sections.add FSection()
+      if doc.sections.is_empty: doc.sections.add FSection()
       if raw.kind in fblock_parsers:
-        let blk = fblock_parsers[raw.kind](raw)
-        result.sections[^1].blocks.add blk
+        let blk = fblock_parsers[raw.kind](raw, doc)
+        doc.sections[^1].blocks.add blk
         # result.warns.add blk.warns
       else:
         let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
-        result.sections[^1].blocks.add blk
-        result.warns.add fmt"Unknown block '{blk.kind}'"
+        doc.sections[^1].blocks.add blk
+        doc.warns.add fmt"Unknown block '{blk.kind}'"
+  doc
 
 test "parse_ftext":
   block:
@@ -669,3 +677,63 @@ test "parse_ftext":
     let doc = parse_ftext text
     check doc.title == "Some title"
     check doc.sections.len == 2
+
+# image, images ------------------------------------------------------------------------------------
+proc fdoc_asset_path*(fdoc_path: string, asset_path: string): string =
+  assert not asset_path.starts_with '/', "fdoc asset path can't be absolute"
+  let fdoc_dir = fdoc_path.parent_dir
+  let fdoc_name = fdoc_path.file_name_ext.name
+  fmt"{fdoc_dir}/{fdoc_name}/{asset_path}"
+
+proc parse_path_and_tags(text: string): tuple[path: string, tags, warns: seq[string]] =
+  let parts = text.split("#", maxsplit = 1)
+  var path = parts[0].trim; var warns, tags: seq[string]
+  if path.starts_with '/':
+    warns.add "Path can't be absolute"
+    path = ""
+  if parts.len > 1:
+    let pr = Parser.init("#" & parts[1])
+    tags = pr.consume_tags.tags
+    if pr.has:
+      warns.add "Unknown content in image: '" & pr.remainder & "'"
+  (path, tags, warns)
+
+proc parse_image*(raw: HalfParsedBlock, doc: FDoc): FImageBlock =
+  assert raw.kind == "image"
+  let (path, tags, warns) = parse_path_and_tags(raw.text)
+  FImageBlock(kind: "image", image: path, tags: tags, warns: warns, id: raw.id, args: raw.args, text: raw.text)
+
+
+proc parse_images*(raw: HalfParsedBlock, doc: FDoc): FImagesBlock =
+  assert raw.kind == "images"
+  let (path, tags, warns) = parse_path_and_tags(raw.text)
+  result = FImagesBlock(kind: "images", tags: tags, warns: warns, id: raw.id, args: raw.args, text: raw.text)
+  unless path.is_empty or path.starts_with('/'):
+    result.images_dir = path
+    result.images = fs.read_dir(fdoc_asset_path(doc.location, path))
+      .filter((entry) => entry.kind == file).pick(path).map((path) => path.file_name)
+
+fblock_parsers["image"] = (blk, doc) => parse_image(blk, doc)
+fblock_parsers["images"] = (blk, doc) => parse_images(blk, doc)
+
+test "image, images":
+  let ftext_dir = current_source_path().parent_dir.absolute_path
+  let fdoc_location = fmt"{ftext_dir}/test/some.ft"
+
+  let text = """
+    some.png #t1 #t2 ^image
+
+    . #t1 #t2 ^images
+
+    a/b
+    #t1 #t2 ^images
+  """.dedent
+
+  let doc = parse_ftext(text, fdoc_location)
+  check doc.sections[0].blocks.len == 3
+  let img1 = doc.sections[0].blocks[0].FImageBlock
+  check (img1.image, img1.tags) == ("some.png", @["t1", "t2"])
+  let img2 = doc.sections[0].blocks[1].FImagesBlock
+  check (img2.images_dir, img2.images, img1.tags) == (".", @["img.png"], @["t1", "t2"])
+  let img3 = doc.sections[0].blocks[2].FImagesBlock
+  check (img3.images_dir, img3.images, img1.tags) == ("a/b", @[], @["t1", "t2"])

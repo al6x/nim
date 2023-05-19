@@ -29,7 +29,7 @@ proc init*(_: type[FDocHead], doc: FDoc): FDocHead =
 
 proc add_ftext_dir*(space: Space, path: string) =
   proc load(fpath: string): FDocHead =
-    let parsed = parse_ftext(fs.read(fpath), fpath.file_name)
+    let parsed = parse_ftext(fs.read(fpath), fpath)
     result = FDocHead.init parsed
     assert result.id == fpath.file_name_ext.name
 

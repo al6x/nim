@@ -1,5 +1,5 @@
 import std/[deques]
-import base, ../core
+import base, ./component
 
 type SessionPostEventKind* = enum events, pull
 type SessionPostEvent* = object
@@ -35,6 +35,14 @@ type Session* = ref object
   outbox*:           seq[OutEvent]
   last_accessed_ms*: TimerMs
 
+var session* {.threadvar.}: Session
+template with_session*(s: Session, code) =
+  try:
+    session = s
+    code
+  finally:
+    session = nil
+
 proc init*(_: type[Session], mono_id: string, app: AppFn): Session =
   Session(id: mono_id, app: app, last_accessed_ms: timer_ms())
 
@@ -51,8 +59,9 @@ type Sessions* = ref Table[string, Session]
 # type ProcessSession[S] = proc(session: S, event: JsonNode): Option[JsonNode]
 
 proc process*(sessions: Sessions) =
-  # p sessions
-  for _, s in sessions: s.process
+  for _, s in sessions:
+    with_session s:
+      s.process
 
 proc collect_garbage*(self: Sessions, session_timeout_ms: int) =
   let deleted = self[].delete (_, s) => s.last_accessed_ms() > session_timeout_ms
