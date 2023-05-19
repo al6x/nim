@@ -80,6 +80,7 @@ proc add*(parent: El, child: El | seq[El]) =
 
 template els*(code): seq[El] =
   block:
+    let it {.inject.} = "`it` is not available in the 'els' block"
     var it_content {.inject.}: seq[El]
     code
     it_content
@@ -95,6 +96,7 @@ template add_or_return*(e: El): auto =
 template el*(html: string, code): auto =
   let el = block:
     let it {.inject.} = El.init(tag = fmt(html, '{', '}'))
+    let it_content {.inject.} = "`it_content` is not available in the 'el' html block"
     code
     it
   add_or_return el
@@ -226,6 +228,7 @@ template el*(fn: proc, attrs: tuple, blk): auto =
     call_fn_r(fn, attrs, el)
     block:
       var it {.inject.} = el
+      let it_content {.inject.} = "`it_content` is not available in the 'el' proc block"
       blk
   else:
     block:
