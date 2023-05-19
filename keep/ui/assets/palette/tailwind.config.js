@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["kolo/**/*.{html,js,nim}"],
+  content: ["keep/**/*.{html,js,nim}"],
   theme: {
     extend: {},
   },

@@ -13,7 +13,7 @@
 
 - No wait for Nim compilation, plays well with Tailwind, autocomplete etc.
 
-- mono/examples/todo.nim kolo/palette.nim
+- mono/examples/todo.nim keep/palette.nim
 - Very small impl size, ~500 lines, mono/core/tmpl_test.nim
 
 proc c*(self: El, c: string) =
