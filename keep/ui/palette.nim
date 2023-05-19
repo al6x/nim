@@ -127,7 +127,7 @@ proc RSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
 # Note ---------------------------------------------------------------------------------------------
 template inline_controls(controls: seq[El]): auto =
   unless controls.is_empty:
-    el".absolute.-right-7.top-0.flex.flex-col  .rounded.p-1.space-y-1":
+    el"""{nomockup".hidden_controls"}.absolute.right-0.top-0.flex.flex-col.bg-white .rounded.p-1.space-y-1""":
       it.style "margin-top: 0;"
       for c in controls: it.add(c)
 
@@ -148,7 +148,7 @@ template inline_tags(tags: seq[string]): auto =
           it.location "#"
 
 template note_block(controls: seq[El], warns: seq[string], tags: seq[string], code): auto =
-  el".relative.flex.flex-col.space-y-2":
+  el".note_block.flex.flex-col.space-y-2":
     inline_warns(warns)
     code
     inline_tags(tags)
@@ -161,7 +161,7 @@ proc Note*(
   tags: seq[string], tags_controls = seq[El].init, tags_warnings = seq[string].init,
   content: seq[El]
 ): El =
-  el".flex.flex-col .space-y-2.mt-2.mb-2 .pl-8.pr-8":
+  el".flex.flex-col .space-y-2.mt-2.mb-2":
     # el"a.block.absolute.left-2 .text-gray-300": # Anchor
     #   it.class "top-3.5"
     #   it.text "#"
@@ -179,7 +179,7 @@ proc Note*(
 proc NoteSection*(
   title: string, tags: seq[string] = @[], controls: seq[El] = @[], warns: seq[string] = @[]
 ): El =
-  el".relative":
+  el".note_block":
     el".text-xl flash": # Title
       it.text title
     inline_warns(warns)

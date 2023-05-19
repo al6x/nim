@@ -146,7 +146,7 @@ proc nattrs*(self: El): JsonNode =
     if "c" in nattrs:
       let class = if "class" in nattrs: nattrs["class"].get_str else: ""
       let delimiter = if class.is_empty: "" else: " "
-      nattrs["class"] = (nattrs["c"].get_str & " Component" & delimiter & class).to_json
+      nattrs["class"] = (nattrs["c"].get_str & " C" & delimiter & class).to_json
     self.nattrs_cached = nattrs.sort.some
   return self.nattrs_cached.get
 

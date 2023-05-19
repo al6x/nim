@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+.hidden_controls { display: none; }
+
+.note_block {
+  @apply pl-8; @apply pr-8;
+  position: relative; border-top: 1px solid white; border-bottom: 1px solid white;
+}
+.note_block:hover { @apply border-gray-200; }
+.note_block:hover .hidden_controls { display: block; }
+.note_block:after {
+  @apply bg-gray-200;
+  position: absolute; margin: 0 !important; display: none; content: '';
+  top: 0; bottom: 0; left: 0; width: 5px;
+}
+.note_block:hover:after { display: block; }
+
+
 .svg-icon {
   position: relative; top: 1px; left: 1px; background-size: contain; background-position: center;
 }
@@ -22,6 +38,22 @@
 .ftext > ul > li { @apply mb-2;}
 
 td > div { @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* .note-text-block >  */
 
