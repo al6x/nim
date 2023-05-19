@@ -1,4 +1,4 @@
-UI library for Nim.
+Nim UI/Web/Desktop/Mobile Framework
 
 **High productivity, simple and clean code** are main priorities.
 
