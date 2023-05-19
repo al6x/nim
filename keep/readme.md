@@ -26,6 +26,7 @@
 - Git for history and sharing
 - Github or any other Git hosting for publishing, collaboration
 - Any file hosting for sharing
+- Ftext format is almost the same as Nim ftext DSL
 
 # Forward 80 to 8080 on Mac OS
 
