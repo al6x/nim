@@ -28,6 +28,7 @@ proc init*(_: type[FDocHead], doc: FDoc): FDocHead =
       )
 
 proc add_ftext_dir*(space: Space, path: string) =
+  space.log.with((path: path)).info "load"
   proc load(fpath: string): FDocHead =
     let parsed = parse_ftext(fs.read(fpath), fpath)
     result = FDocHead.init parsed
@@ -54,6 +55,7 @@ proc add_ftext_dir*(space: Space, path: string) =
           space.docs[fdoc.id] = fdoc
         of deleted:
           space.docs.del entry.path.file_name
+        space.log.with((doc: entry.path.file_name)).info "change"
         space.version.inc
   space.bgjobs.add check_for_changed_files
 

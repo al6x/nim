@@ -33,6 +33,9 @@ type
     spaces*: Table[string, Space]
     cache*:  Table[string, JsonNode]
 
+proc log*(self: Space): Log =
+  Log.init("Space", self.id)
+
 method render_doc*(doc: Doc, space: Space, parent: Component): El {.base.} =
   throw "not implemented"
 

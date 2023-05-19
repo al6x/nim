@@ -40,9 +40,9 @@ proc render*(self: LRLayout): El =
     el"$LRLeft .w-9/12": # .z-10
       it.add self.left
     el"""$LRRight.w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
-      el".absolute .top-0 .right-0 .m-2":
+      el".absolute .top-0 .right-0 .m-2 .mt-4":
         el(IconButton, (icon: "controls"))
-      el"""$LRRight {nomockup".right-panel-content"}""":
+      el"""$LRRight {nomockup".right-panel-content"} .pt-2""":
         it.add self.right
 
 type MessageKind = enum info, warn
