@@ -118,16 +118,16 @@ proc RSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
       it.location "#"
 
     if not warns.is_empty:
-      el".border-l-2.border-orange-800":
+      el".border-l-2.border-orange-800 flex":
         for (text, link) in warns:
-          el"a .block .text-sm .text-orange-800":
+          el"a.block.ml-2 .text-sm .text-orange-800":
             it.text text
             it.location link
 
 # Note ---------------------------------------------------------------------------------------------
 template inline_controls(controls: seq[El]): auto =
   unless controls.is_empty:
-    el"""{nomockup".hidden_controls"}.absolute.right-0.top-0.flex.flex-col.bg-white .rounded.p-1.space-y-1""":
+    el"""{nomockup".hidden_controls"}.absolute.right-0.top-1.flex.bg-white .rounded.p-1""":
       it.style "margin-top: 0;"
       for c in controls: it.add(c)
 
@@ -148,7 +148,7 @@ template inline_tags(tags: seq[string]): auto =
           it.location "#"
 
 template note_block(controls: seq[El], warns: seq[string], tags: seq[string], code): auto =
-  el".note_block.flex.flex-col.space-y-2":
+  el".note_block.flex.flex-col.space-y-1":
     inline_warns(warns)
     code
     inline_tags(tags)
@@ -161,7 +161,7 @@ proc Note*(
   tags: seq[string], tags_controls = seq[El].init, tags_warnings = seq[string].init,
   content: seq[El]
 ): El =
-  el".flex.flex-col .space-y-2.mt-2.mb-2":
+  el".flex.flex-col .space-y-1.mt-2.mb-2":
     # el"a.block.absolute.left-2 .text-gray-300": # Anchor
     #   it.class "top-3.5"
     #   it.text "#"
@@ -434,7 +434,7 @@ proc stub_data: StubData =
           who controls it. And <code>believes</code> and actions of those who controls it can change suddently
           and because it doesn't has any bottom value, it can fell all the way down to zero.
         </li>
-      <ul>
+      </ul>
     """.dedent.trim
 
   result.text_block_with_image_html =

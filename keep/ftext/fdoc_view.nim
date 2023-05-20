@@ -1,12 +1,7 @@
 import base, mono/core, std/osproc
-import ../core/spacem, ./fdoc, ./ftext, ./helpers, ../ui/palette as pl
+import ../core/spacem, ./fdoc, ./ftext, ./helpers, ../ui/palette as pl, ./fblocks_views
 
 proc FSectionView(doc: FDoc, section: FSection): El =
-  let edit = el(IconButton, (icon: "edit", title: "Edit")):
-    it.on_click proc = open_editor(doc.location, section.line_n)
-  el(NoteSection, (title: section.title, tags: section.tags, controls: @[edit]))
-
-proc FBlockView(doc: FDoc, section: FSection, blk: FBlock): El =
   let edit = el(IconButton, (icon: "edit", title: "Edit")):
     it.on_click proc = open_editor(doc.location, section.line_n)
   el(NoteSection, (title: section.title, tags: section.tags, controls: @[edit]))
@@ -50,7 +45,7 @@ proc render*(self: FDocView): El =
             el(FSectionView, (doc: doc, section: section))
 
           for blk in section.blocks: # Blocks
-            el(FBlockView, (doc: doc, section: section, blk: blk))
+            add_or_return blk.render_fblock(doc, section, parent = self)
 
   result.window_title doc.title
 
