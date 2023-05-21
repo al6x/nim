@@ -1,4 +1,4 @@
-import base, ext/[parser, yaml, html], std/os
+import base, ext/[parser, yaml], std/os
 
 type
   FLink* = tuple[space, doc: string]
@@ -86,17 +86,12 @@ type # Config
 
   FBlockParser* = proc (hblock: HalfParsedBlock, doc: FDoc, config: FTextConfig): FBlock
 
-  # Embed are things like `some text image{some.png} another text`
+  # Embed are things like `text image{some.png} text`
   FEmbedParser* = proc (raw: string, blk: FBlock, doc: FDoc, config: FTextConfig): Option[JsonNode]
-  EmbedToHtml*  = proc(text: string, parsed: JsonNode, doc: FDoc, config: FTextConfig): safe_html
 
   FTextConfig* = ref object
     block_parsers*: Table[string, FBlockParser]
     embed_parsers*: Table[string, FEmbedParser]
-    embed_to_html*: Table[string, EmbedToHtml]
-    to_link*:       proc (text: string, link: FLink, fdoc: FDoc): safe_html
-    to_glink*:      proc (text, link: string, fdoc: FDoc): safe_html
-    to_tag*:        proc (tag: string, fdoc: FDoc): safe_html
 
 proc init*(_: type[FDoc], location: string): FDoc =
   assert location.ends_with ".ft"
@@ -828,6 +823,8 @@ proc init*(_: type[FTextConfig]): FTextConfig =
 
   FTextConfig(block_parsers: block_parsers, embed_parsers: embed_parsers)
 
+let default_config = FTextConfig.init
+
 # parse_ftext --------------------------------------------------------------------------------------
 proc post_process_block(blk: FBlock, doc: FDoc, config: FTextConfig) =
   for rpath in blk.assets:
@@ -835,7 +832,7 @@ proc post_process_block(blk: FBlock, doc: FDoc, config: FTextConfig) =
     unless fs.exist(asset_path(doc, rpath)):
       blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
 
-proc parse_ftext*(text, location: string, config = FTextConfig.init): FDoc =
+proc parse_ftext*(text, location: string, config = default_config): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
   let (tags, tags_line_n) = pr.consume_tags
@@ -922,56 +919,3 @@ test "parse_ftext, missing assets":
   check blocks[0].warns == @["Asset don't exist some/missing1.png"]
   check blocks[1].warns == @["Asset don't exist some/missing2.png"]
   check blocks[2].warns == @["Asset don't exist some/missing_dir"]
-
-
-# # to_html ------------------------------------------------------------------------------------------
-
-
-# proc to_safe_html*(
-#   text: seq[FTextItem], to_link = to_link, to_glink = to_glink, to_tag = to_tag, fembed_parsers = fembed_parsers
-# ): string =
-#   var em = false
-#   for i, ti in text:
-#     if   not em and ti.em == true:
-#       em = true
-#       result.add "<b>"
-#     elif em and ti.em != true:
-#       result.add "</b>"
-#       em = false
-
-#     case ti.kind
-#     of FTextItemKind.text:
-#       result.add ti.text.escape_html
-#     of link:
-#       result.add to_link(ti.text, ti.link)
-#     of glink:
-#       result.add to_glink(ti.text, ti.glink)
-#     of tag:
-#       result.add to_tag(ti.text)
-#     of embed:
-#       result.add:
-#         if ti.embed_kind in fembed_parsers:
-#           fembed_parsers[ti.embed_kind](ti.text)
-#         else:
-#           "<code>" & ti.embed_kind.escape_html & "{" & ti.text.escape_html & "}" & "</code>"
-
-#   if em:
-#     result.add "</b>"
-
-# proc to_safe_html*(
-#   blk: FTextBlock, to_link = to_link, to_glink = to_glink, to_tag = to_tag, fembed_parsers = fembed_parsers
-# ): string =
-#   template call_to_safe_html(text): string =
-#     to_safe_html(text, to_link = to_link, to_glink = to_glink, to_tag = to_tag, fembed_parsers = fembed_parsers)
-
-#   for i, pr in blk.formatted_text:
-#     case pr.kind
-#     of text:
-#       result.add "<p>" & call_to_safe_html(pr.text) & "</p>"
-#     of list:
-#       result.add "<ul>\n"
-#       for j, list_item in pr.list:
-#         result.add "  <li>" & call_to_safe_html(list_item) & "</li>"
-#         if j < pr.list.high: result.add "\n"
-#       result.add "</ul>"
-#     if i < blk.formatted_text.high: result.add "\n"
