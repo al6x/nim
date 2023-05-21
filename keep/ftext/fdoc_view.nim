@@ -6,16 +6,6 @@ proc FSectionView(doc: FDoc, section: FSection): El =
     it.on_click proc = open_editor(doc.location, section.line_n)
   el(NoteSection, (title: section.title, tags: section.tags, controls: @[edit]))
 
-  # kind*:     string
-  #   id*:       string # If not set explicitly, will be hash of block's text
-  #   args*:     string
-  #   tags*:     seq[string]
-  #   links*:    seq[(string, string)]
-  #   glinks*:   seq[string]
-  #   text*:     string
-  #   line_n*:   int
-  #   warns*:    seq[string]
-
 type FDocView* = ref object of Component
   space*: Space
   doc*:   FDocHead

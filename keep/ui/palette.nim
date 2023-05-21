@@ -187,13 +187,17 @@ proc NoteSection*(
     # Should be the last one, otherwise the first element will have extra margin
     inline_controls(controls)
 
-proc NoteTextBlock*(html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[]): El =
-  note_block(controls, warns, @[]):
+proc NoteTextBlock*(
+  html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
+): El =
+  note_block(controls, warns, tags):
     el".ftext flash": # Body
-      it.attr("html", html)
+      it.attr("html", html.to_s)
 
-proc NoteListBlock*(html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[]): El =
-  note_block(controls, warns, @[]):
+proc NoteListBlock*(
+  html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
+): El =
+  note_block(controls, warns, tags):
     el".ftext flash": # Body
       it.attr("html", html.to_s)
 

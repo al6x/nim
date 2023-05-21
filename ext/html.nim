@@ -3,7 +3,12 @@ import base
 # type SafeHtml* = distinct string # not working, Nim crashes https://github.com/nim-lang/Nim/issues/21800
 type SafeHtml* = object
   html: string
-converter safe_html_to_s*(s: SafeHtml): string = s.html
+
+proc `$`*(s: SafeHtml): string =
+  s.html
+
+converter safe_html_to_s*(s: SafeHtml): string =
+  s.html
 
 proc to*(html: string, _: type[SafeHtml]): SafeHtml =
   SafeHtml(html: html)

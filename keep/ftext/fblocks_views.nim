@@ -12,7 +12,13 @@ method render_fblock*(self: FBlock, doc: FDoc, section: FSection, parent: Compon
 method render_fblock*(self: FTextBlock, doc: FDoc, section: FSection, parent: Component): El =
   let edit = el(IconButton, (icon: "edit", title: "Edit")):
     it.on_click proc = open_editor(doc.location, self.line_n)
-  el(NoteTextBlock, (html: self.to_html(doc), controls: @[edit], warns: self.warns))
+  el(NoteTextBlock, (html: self.to_html(doc), controls: @[edit], warns: self.warns, tags: self.tags))
+
+# List
+method render_fblock*(self: FListBlock, doc: FDoc, section: FSection, parent: Component): El =
+  let edit = el(IconButton, (icon: "edit", title: "Edit")):
+    it.on_click proc = open_editor(doc.location, self.line_n)
+  el(NoteListBlock, (html: self.to_html(doc), controls: @[edit], warns: self.warns, tags: self.tags))
 
 # Code
 method render_fblock*(self: FCodeBlock, doc: FDoc, section: FSection, parent: Component): El =
