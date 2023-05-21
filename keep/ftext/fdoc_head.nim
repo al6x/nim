@@ -1,5 +1,5 @@
 import base, ext/[async, watch_dir]
-import ../core/spacem, ./ftext
+import ../core/spacem, ftext/parse
 
 type FDocHead* = ref object of Doc
   doc*: FDoc
@@ -30,7 +30,7 @@ proc init*(_: type[FDocHead], doc: FDoc): FDocHead =
 proc add_ftext_dir*(space: Space, path: string) =
   space.log.with((path: path)).info "load"
   proc load(fpath: string): FDocHead =
-    let parsed = parse_ftext(fs.read(fpath), fpath)
+    let parsed = FDoc.read fpath
     result = FDocHead.init parsed
     assert result.id == fpath.file_name_ext.name
 

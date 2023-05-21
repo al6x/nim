@@ -99,7 +99,7 @@ test "to_html":
     - b ^list
   """.dedent
 
-  let doc = parse_ftext(text, "doc.ft")
+  let doc = FDoc.parse(text, "doc.ft")
   let tb = doc.sections[0].blocks[0].FTextBlock
   let lb = doc.sections[0].blocks[1].FListBlock
 

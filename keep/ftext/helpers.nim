@@ -1,5 +1,5 @@
 import base, mono/core, std/osproc
-import ../core/spacem, ./fdoc, ./ftext
+import ../core/spacem
 
 proc open_editor*(location: string, line = 1) =
   # LODO make editor configurable

@@ -825,14 +825,14 @@ proc init*(_: type[FTextConfig]): FTextConfig =
 
 let default_config = FTextConfig.init
 
-# parse_ftext --------------------------------------------------------------------------------------
+# parse --------------------------------------------------------------------------------------------
 proc post_process_block(blk: FBlock, doc: FDoc, config: FTextConfig) =
   for rpath in blk.assets:
     assert not rpath.is_empty, "asset can't be empty"
     unless fs.exist(asset_path(doc, rpath)):
       blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
 
-proc parse_ftext*(text, location: string, config = default_config): FDoc =
+proc parse*(_: type[FDoc], text, location: string, config = default_config): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
   let (tags, tags_line_n) = pr.consume_tags
@@ -858,7 +858,10 @@ proc parse_ftext*(text, location: string, config = default_config): FDoc =
           blk
   doc
 
-test "parse_ftext":
+proc read*(_: type[FDoc], location: string, config = default_config): FDoc =
+  FDoc.parse(text = fs.read(location), location = location, config = config)
+
+test "parse":
   block:
     let text = """
       Some #tag text ^text
@@ -871,7 +874,7 @@ test "parse_ftext":
       #t #t2
     """.dedent
 
-    let doc = parse_ftext(text, "some.ft")
+    let doc = FDoc.parse(text, "some.ft")
     check doc.sections.len == 1
     let section = doc.sections[0]
     check section.blocks.len == 3
@@ -898,7 +901,7 @@ test "parse_ftext":
       #t #t2
     """.dedent
 
-    let doc = parse_ftext(text, "some.ft")
+    let doc = FDoc.parse(text, "some.ft")
     check doc.title == "Some title"
     check doc.sections.len == 2
     check doc.sections[0].line_n == 3
@@ -913,7 +916,7 @@ test "parse_ftext, missing assets":
     missing_dir ^images
   """.dedent
 
-  let doc = parse_ftext(text, test_fdoc_location())
+  let doc = FDoc.parse(text, test_fdoc_location())
   let blocks = doc.sections[0].blocks
   check blocks.len == 3
   check blocks[0].warns == @["Asset don't exist some/missing1.png"]
