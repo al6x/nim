@@ -190,7 +190,7 @@ proc NoteSection*(
 proc NoteTextBlock*(html: safe_html, controls = seq[El].init, warns: seq[string] = @[]): El =
   note_block(controls, warns, @[]):
     el".ftext flash": # Body
-      it.attr("html", html.to_s)
+      it.attr("html", html)
 
 proc NoteListBlock*(html: safe_html, controls = seq[El].init, warns: seq[string] = @[]): El =
   note_block(controls, warns, @[]):
