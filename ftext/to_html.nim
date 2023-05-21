@@ -2,30 +2,30 @@ import base, ./parse, ext/html
 
 type
   # Embed are things like `text image{some.png} text`
-  EmbedToHtml*  = proc(text: string, parsed: Option[JsonNode], doc: FDoc): safe_html
+  EmbedToHtml*  = proc(text: string, parsed: Option[JsonNode], doc: FDoc): SafeHtml
 
   FTextHtmlConfig* = ref object
     embeds*: Table[string, EmbedToHtml]
-    link*:   proc (text: string, link: FLink, doc: FDoc): safe_html
-    glink*:  proc (text, link: string, doc: FDoc): safe_html
-    tag*:    proc (tag: string, doc: FDoc): safe_html
+    link*:   proc (text: string, link: FLink, doc: FDoc): SafeHtml
+    glink*:  proc (text, link: string, doc: FDoc): SafeHtml
+    tag*:    proc (tag: string, doc: FDoc): SafeHtml
 
-proc link(text: string, link: FLink, doc: FDoc): safe_html =
+proc link(text: string, link: FLink, doc: FDoc): SafeHtml =
   let target = (if link.space == ".": doc.id else: link.space) & "/" & link.doc
-  fmt"""<a class="link" href="{target.escape_html}">{text.escape_html}</a>""".safe_html
+  fmt"""<a class="link" href="{target.escape_html}">{text.escape_html}</a>""".to(SafeHtml)
 
-proc tag(tag: string, doc: FDoc): safe_html =
-  fmt"""<a class="tag" href="/tags/{tag.escape_html}">#{tag.escape_html}</a>""".safe_html
+proc tag(tag: string, doc: FDoc): SafeHtml =
+  fmt"""<a class="tag" href="/tags/{tag.escape_html}">#{tag.escape_html}</a>""".to(SafeHtml)
 
-proc glink(text, link: string, doc: FDoc): safe_html =
-  fmt"""<a class="glink" href="{link.escape_html}">{text.escape_html}</a>""".safe_html
+proc glink(text, link: string, doc: FDoc): SafeHtml =
+  fmt"""<a class="glink" href="{link.escape_html}">{text.escape_html}</a>""".to(SafeHtml)
 
-proc embed_image(text: string, parsed: Option[JsonNode], doc: FDoc): safe_html =
+proc embed_image(text: string, parsed: Option[JsonNode], doc: FDoc): SafeHtml =
   let target = doc.id & "/" & text
-  fmt"""<img src="{target.escape_html}"/>""".safe_html
+  fmt"""<img src="{target.escape_html}"/>""".to(SafeHtml)
 
-proc embed_code(text: string, parsed: Option[JsonNode], doc: FDoc): safe_html =
-  fmt"""<code>{text.escape_html}</code>""".safe_html
+proc embed_code(text: string, parsed: Option[JsonNode], doc: FDoc): SafeHtml =
+  fmt"""<code>{text.escape_html}</code>""".to(SafeHtml)
 
 proc init*(_: type[FTextHtmlConfig]): FTextHtmlConfig =
   var embeds: Table[string, EmbedToHtml]
@@ -36,7 +36,7 @@ proc init*(_: type[FTextHtmlConfig]): FTextHtmlConfig =
 let default_config = FTextHtmlConfig.init
 
 # to_html ------------------------------------------------------------------------------------------
-proc to_html*(text: seq[FTextItem], doc: FDoc, config = default_config): safe_html =
+proc to_html*(text: seq[FTextItem], doc: FDoc, config = default_config): SafeHtml =
   var html = ""
 
   var em = false
@@ -67,9 +67,9 @@ proc to_html*(text: seq[FTextItem], doc: FDoc, config = default_config): safe_ht
 
   if em:
     html.add "</b>"
-  html.safe_html
+  html.to(SafeHtml)
 
-proc to_html*(blk: FTextBlock, doc: FDoc, config = default_config): safe_html =
+proc to_html*(blk: FTextBlock, doc: FDoc, config = default_config): SafeHtml =
   var html = ""
   for i, pr in blk.formatted_text:
     case pr.kind
@@ -82,14 +82,14 @@ proc to_html*(blk: FTextBlock, doc: FDoc, config = default_config): safe_html =
         if j < pr.list.high: html.add "\n"
       html.add "</ul>"
     if i < blk.formatted_text.high: html.add "\n"
-  html.safe_html
+  html.to(SafeHtml)
 
-proc to_html*(blk: FListBlock, doc: FDoc, config = default_config): safe_html =
+proc to_html*(blk: FListBlock, doc: FDoc, config = default_config): SafeHtml =
   var html = ""
   for i, list_item in blk.list:
     html.add "<p>" & list_item.to_html(doc, config) & "</p>"
     if i < blk.list.high: html.add "\n"
-  html.safe_html
+  html.to(SafeHtml)
 
 test "to_html":
   let text = """

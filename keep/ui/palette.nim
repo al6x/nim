@@ -187,12 +187,12 @@ proc NoteSection*(
     # Should be the last one, otherwise the first element will have extra margin
     inline_controls(controls)
 
-proc NoteTextBlock*(html: safe_html, controls = seq[El].init, warns: seq[string] = @[]): El =
+proc NoteTextBlock*(html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[]): El =
   note_block(controls, warns, @[]):
     el".ftext flash": # Body
       it.attr("html", html)
 
-proc NoteListBlock*(html: safe_html, controls = seq[El].init, warns: seq[string] = @[]): El =
+proc NoteListBlock*(html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[]): El =
   note_block(controls, warns, @[]):
     el".ftext flash": # Body
       it.attr("html", html.to_s)
@@ -296,7 +296,7 @@ type StubData = object
   tags:      seq[CloudTag]
   note_tags: seq[string]
 
-  text_block1_html, text_block2_html, list_block1_html, text_block_with_image_html: safe_html
+  text_block1_html, text_block2_html, list_block1_html, text_block_with_image_html: SafeHtml
   code_block1: string
   knots: seq[string]
 
@@ -414,7 +414,7 @@ proc stub_data: StubData =
         There are multiple reasons to About Forex. Every single of those reasons is big enough
         to stay away from such investment. Forex has all of them.
       </p>
-    """.dedent.trim.safe_html
+    """.dedent.trim.to(SafeHtml)
 
   result.text_block2_html =
     """
@@ -436,7 +436,7 @@ proc stub_data: StubData =
           and because it doesn't has any bottom value, it can fell all the way down to zero.
         </li>
       </ul>
-    """.dedent.trim.safe_html
+    """.dedent.trim.to(SafeHtml)
 
   result.text_block_with_image_html =
     """
@@ -461,7 +461,7 @@ proc stub_data: StubData =
         leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
         wipe you out.
       </p>
-    """.dedent.trim.safe_html
+    """.dedent.trim.to(SafeHtml)
 
   result.list_block1_html =
     """
@@ -479,7 +479,7 @@ proc stub_data: StubData =
         With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
         there will be probably lots of transactions and lots of fees.
       </p>
-    """.dedent.trim.safe_html
+    """.dedent.trim.to(SafeHtml)
 
   result.code_block1 = """
     palette = Palette.init(mockup_mode = true)
