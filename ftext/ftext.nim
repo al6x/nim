@@ -1,12 +1,15 @@
-import base, ext/[parser, yaml], std/os
+import base, ext/[parser, yaml, html], std/os
 
 type
+  FLink* = tuple[space, doc: string]
+
   FBlock* = ref object of RootObj
     kind*:     string
     id*:       string # If not set explicitly, will be hash of block's text
     args*:     string
     tags*:     seq[string]
-    links*:    seq[(string, string)]
+    links*:    seq[FLink]
+    assets*:   seq[string]
     glinks*:   seq[string]
     text*:     string
     line_n*:   int
@@ -20,8 +23,11 @@ type
     line_n*:   int
 
   FDoc* = ref object
+    id*:          string
     hash*:        int
     location*:    string
+    asset_path*:  string # same as location but without .ft extension
+    space_path*:  string # location dirname
     title*:       string
     sections*:    seq[FSection]
     tags*:        seq[string]
@@ -36,13 +42,14 @@ type
     of text:
       discard
     of link:
-      link*: (string, string)
+      link*: FLink
     of glink:
       glink*: string
     of tag:
       discard
     of embed:
       embed_kind*: string
+      parsed*:     Option[JsonNode]
 
   FParagraphKind* = enum text, list
   FParagraph* = object
@@ -58,6 +65,9 @@ type
   FListBlock* = ref object of FBlock
     list*: seq[seq[FTextItem]]
 
+  FCodeBlock* = ref object of FBlock
+    code*: string
+
   FDataBlock* = ref object of FBlock
     data*: JsonNode
 
@@ -71,10 +81,34 @@ type
   FUnknownBlock* = ref object of FBlock
     raw*: string
 
+type # Config
   HalfParsedBlock = tuple[text: string, kind: string, id: string, args: string, line_n: int]
 
-type FBlockParser* = (HalfParsedBlock, FDoc) -> FBlock
-let  fblock_parsers* = (ref Table[string, FBlockParser])()
+  FBlockParser* = proc (hblock: HalfParsedBlock, doc: FDoc, config: FTextConfig): FBlock
+
+  # Embed are things like `some text image{some.png} another text`
+  FEmbedParser* = proc (raw: string, blk: FBlock, doc: FDoc, config: FTextConfig): Option[JsonNode]
+  EmbedToHtml*  = proc(text: string, parsed: JsonNode, doc: FDoc, config: FTextConfig): safe_html
+
+  FTextConfig* = ref object
+    block_parsers*: Table[string, FBlockParser]
+    embed_parsers*: Table[string, FEmbedParser]
+    embed_to_html*: Table[string, EmbedToHtml]
+    to_link*:       proc (text: string, link: FLink, fdoc: FDoc): safe_html
+    to_glink*:      proc (text, link: string, fdoc: FDoc): safe_html
+    to_tag*:        proc (tag: string, fdoc: FDoc): safe_html
+
+proc init*(_: type[FDoc], location: string): FDoc =
+  assert location.ends_with ".ft"
+  let id = location.file_name.file_name_ext.name
+  FDoc(id: id, title: id, location: location, asset_path: location[0..^4], space_path: location.parent_dir)
+
+proc fdoc_asset_path*(fdoc_asset_path, relative_path: string): string =
+  assert not relative_path.starts_with '/'
+  fdoc_asset_path & "/" & relative_path
+
+proc asset_path*(doc: FDoc, relative_path: string): string =
+  fdoc_asset_path(doc.asset_path, relative_path)
 
 # helpers ------------------------------------------------------------------------------------------
 let special_chars        = """`~!@#$%^&*()-_=+[{]}\|;:'",<.>/?""".to_bitset
@@ -101,6 +135,59 @@ proc line_n(s: string, pos_n: int): int =
 
 proc link_to_s(link: (string, string)): string =
   if link[0] == ".": link[1] else: link[0] & "/" & link[1]
+
+proc hblock(kind, text: string): HalfParsedBlock =
+  (text, kind, "", "", 0)
+
+proc map*(list: seq[seq[FTextItem]], map_fn: (FTextItem) -> FTextItem): seq[seq[FTextItem]] =
+  for line in list:
+    var mline: seq[FTextItem]
+    for item in line:
+      mline.add map_fn(item)
+    result.add mline
+
+proc map*(paragraphs: seq[FParagraph], map_fn: (FTextItem) -> FTextItem): seq[FParagraph] =
+  for ph in paragraphs:
+    result.add:
+      case ph.kind
+      of text:
+        var mph = FParagraph(kind: text)
+        for item in ph.text:
+          mph.text.add map_fn(item)
+        mph
+      of list:
+        FParagraph(kind: list, list: ph.list.map(map_fn))
+
+proc each*(list: seq[seq[FTextItem]], fn: (proc (item: FTextItem))) =
+  for line in list:
+    for item in line:
+      fn(item)
+
+proc each*(paragraphs: seq[FParagraph], fn: (proc (item: FTextItem))) =
+  for ph in paragraphs:
+      case ph.kind
+      of text:
+        for item in ph.text:
+          fn(item)
+      of list:
+        ph.list.each(fn)
+
+proc normalize_asset_path(path: string, warns: var seq[string]): string =
+  if path.is_empty:
+    warns.add fmt"Empty path"
+    ""
+  elif path.starts_with '/':
+    warns.add "Path can't be absolute"
+    ""
+  elif ".." in path:
+    warns.add "Path can't have '..'"
+    ""
+  else:
+    path
+
+proc add_text(sentence: var string, text: string) =
+  if not sentence.is_empty: sentence.add " "
+  sentence.add text
 
 # tags ---------------------------------------------------------------------------------------------
 let tag_delimiter_chars  = space_chars + {','}
@@ -416,19 +503,79 @@ proc parse_text_as_items*(pr: Parser): seq[FParagraph] =
       if not inline_text.is_empty:
         result.add FParagraph(kind: FParagraphKind.text, text: inline_text)
 
-test "parse_text_as_items":
+proc add_text_item_data(blk: FBlock, item: FTextItem): void =
+  case item.kind
+  of text:
+    blk.text.add_text item.text
+  of link:
+    blk.links.add item.link
+    blk.text.add_text item.text
+    blk.text.add_text item.link.link_to_s
+  of glink:
+    blk.glinks.add item.glink
+    blk.text.add_text item.text
+    blk.text.add_text item.glink
+  of tag:
+    blk.tags.add item.text
+    blk.text.add_text item.text
+  of embed:
+    discard
+
+proc parse_text*(raw: HalfParsedBlock, doc: FDoc, config: FTextConfig): FTextBlock =
+  assert raw.kind == "text"
+  let pr = Parser.init raw.text
+  let formatted_text = pr.parse_text_as_items
+  let blk = FTextBlock(kind: "text", warns: pr.warns)
+
+  proc post_process(item: FTextItem): FTextItem =
+    var item = item
+    blk.add_text_item_data item # Extracting text
+    if item.kind == embed: # Post processing embed items
+      if item.embed_kind in config.embed_parsers:
+        let eparser: FEmbedParser = config.embed_parsers[item.embed_kind]
+        item.parsed = eparser(item.text, blk, doc, config)
+      else:
+        blk.warns.add fmt"Unknown embed: " & item.embed_kind
+    item
+
+  blk.formatted_text = map(formatted_text, post_process)
+  blk
+
+proc embed_parser_image(path: string, blk: FBlock, doc: FDoc, config: FTextConfig): Option[JsonNode] =
+  let path = normalize_asset_path(path, blk.warns)
+  blk.assets.add path
+  blk.text.add_text path
+  path.to_json.some
+
+proc embed_parser_code(code: string, blk: FBlock, doc: FDoc, config: FTextConfig): Option[JsonNode] =
+  blk.text.add_text code
+
+proc test_fdoc_location(): string =
+  current_source_path().parent_dir.absolute_path & "/test/some.ft"
+
+proc test_fdoc(): FDoc =
+  FDoc.init(location = test_fdoc_location())
+
+test "parse_text":
+  let config = FTextConfig()
+  config.embed_parsers["image"] = embed_parser_image
+  config.embed_parsers["code"] = embed_parser_code
+
   let ftext = """
     Some text [some link](http://site.com) another **text,
-    and [link 2]** more #tag1 img{some.png} some `code 2`
+    and [link 2]** more #tag1 image{img.png} some `code 2` some{some}
 
 
     - Line #lt1
-    - Line 2 img{some-img}
+    - Line 2 image{non_existing.png}
 
     And #tag2 another
   """.dedent
-  let parsed = Parser.init(ftext).parse_text_as_items
 
+  let blk = parse_text(hblock("text", ftext), test_fdoc(), config)
+  check blk.warns == @["Unknown embed: some"]
+
+  let parsed = blk.formatted_text
   check parsed.len == 3
 
   template check(list, i, expected) =
@@ -436,18 +583,20 @@ test "parse_text_as_items":
 
   block: # Paragraph 1
     check parsed[0].kind == text
-    check parsed[0].text.len == 10
+    check parsed[0].text.len == 11
     var it = parsed[0].text
-    check it, 0, (kind: "text", text: "Some text")
-    check it, 1, (kind: "glink", text: "some link", glink: "http://site.com")
-    check it, 2, (kind: "text", text: "another")
-    check it, 3, (kind: "text", text: "text, and", em: true)
-    check it, 4, (kind: "link", text: "link 2", link: (".", "link 2"), em: true)
-    check it, 5, (kind: "text", text: "more", )
-    check it, 6, (kind: "tag", text: "tag1")
-    check it, 7, (kind: "embed", embed_kind: "img", text: "some.png")
-    check it, 8, (kind: "text", text: "some")
-    check it, 9, (kind: "embed", embed_kind: "code", text: "code 2")
+
+    check it, 0,  (kind: "text", text: "Some text")
+    check it, 1,  (kind: "glink", text: "some link", glink: "http://site.com")
+    check it, 2,  (kind: "text", text: "another")
+    check it, 3,  (kind: "text", text: "text, and", em: true)
+    check it, 4,  (kind: "link", text: "link 2", link: (space: ".", doc: "link 2"), em: true)
+    check it, 5,  (kind: "text", text: "more", )
+    check it, 6,  (kind: "tag", text: "tag1")
+    check it, 7,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
+    check it, 8,  (kind: "text", text: "some")
+    check it, 9,  (kind: "embed", embed_kind: "code", text: "code 2")
+    check it, 10, (kind: "embed", embed_kind: "some", text: "some")
 
   block: # Paragraph 2
     check parsed[1].kind == list
@@ -459,7 +608,7 @@ test "parse_text_as_items":
     ]
     check it, 1, [
       (kind: "text", text: "Line 2").to_json,
-      (kind: "embed", embed_kind: "img", text: "some-img").to_json
+      (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some).to_json
     ]
 
   block: # Paragraph 3
@@ -469,41 +618,6 @@ test "parse_text_as_items":
     check it, 0, (kind: "text", text: "And")
     check it, 1, (kind: "tag", text: "tag2")
     check it, 2, (kind: "text", text: "another")
-
-proc add_text_item_data(blk: FBlock, item: FTextItem): void =
-  template add_text(txt) =
-    if not blk.text.is_empty: blk.text.add " "
-    blk.text.add txt
-
-  case item.kind
-  of text:
-    add_text item.text
-  of link:
-    blk.links.add item.link
-    add_text item.text
-    add_text item.link.link_to_s
-  of glink:
-    blk.glinks.add item.glink
-    add_text item.text
-    add_text item.glink
-  of tag:
-    blk.tags.add item.text
-    add_text item.text
-  of embed:
-    discard
-
-proc parse_text*(raw: HalfParsedBlock): FTextBlock =
-  assert raw.kind == "text"
-  let pr = Parser.init raw.text
-  let formatted_text = pr.parse_text_as_items
-  result = FTextBlock(
-    kind: "text", id: raw.id, args: raw.args, warns: pr.warns, formatted_text: formatted_text
-  )
-  for ph in formatted_text:
-    for item in ph:
-      result.add_text_item_data item
-
-fblock_parsers["text"] = (blk, doc) => parse_text(blk)
 
 # list ---------------------------------------------------------------------------------------------
 proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
@@ -530,7 +644,7 @@ test "parse_list_as_items":
   block: # as list
     let ftext = """
       - Line #tag
-      - Line 2 img{some-img}
+      - Line 2 image{some-img}
     """.dedent
     let parsed = Parser.init(ftext).parse_list_as_items
 
@@ -541,7 +655,7 @@ test "parse_list_as_items":
     ]
     check parsed, 1, [
       (kind: "text", text: "Line 2").to_json,
-      (kind: "embed", embed_kind: "img", text: "some-img").to_json
+      (kind: "embed", embed_kind: "image", text: "some-img").to_json
     ]
 
   block: # as paragraphs
@@ -549,7 +663,7 @@ test "parse_list_as_items":
       Line #tag some
       text
 
-      Line 2 img{some-img}
+      Line 2 image{some-img}
     """.dedent
     let parsed = Parser.init(ftext).parse_list_as_items
 
@@ -561,27 +675,64 @@ test "parse_list_as_items":
     ]
     check parsed, 1, [
       (kind: "text", text: "Line 2").to_json,
-      (kind: "embed", embed_kind: "img", text: "some-img").to_json
+      (kind: "embed", embed_kind: "image", text: "some-img").to_json
     ]
 
-proc parse_list*(raw: HalfParsedBlock): FListBlock =
+proc parse_list*(raw: HalfParsedBlock, doc: FDoc, config: FTextConfig): FListBlock =
   assert raw.kind == "list"
   let pr = Parser.init raw.text
   let list = pr.parse_list_as_items
-  result = FListBlock(kind: "list", id: raw.id, args: raw.args, warns: pr.warns, list: list)
-  for line in list:
-    for item in line:
-      result.add_text_item_data item
+  let blk = FListBlock(kind: "list", warns: pr.warns)
 
-fblock_parsers["list"] = (blk, doc) => parse_list(blk)
+  proc post_process(item: FTextItem): FTextItem =
+    var item = item
+    blk.add_text_item_data item # Extracting text
+    if item.kind == embed: # Post processing embed items
+      if item.embed_kind in config.embed_parsers:
+        let eparser: FEmbedParser = config.embed_parsers[item.embed_kind]
+        item.parsed = eparser(item.text, blk, doc, config)
+      else:
+        blk.warns.add fmt"Unknown embed: '" & item.embed_kind & "'"
+    item
+
+  blk.list = map(list, post_process)
+  blk
+
+test "parse_list":
+  let config = FTextConfig()
+  config.embed_parsers["image"] = embed_parser_image
+  config.embed_parsers["code"] = embed_parser_code
+
+  let ftext = """
+    - Some image{img.png} some{some}
+    - Another image{non_existing.png}
+  """.dedent
+
+  let blk = parse_list(hblock("list", ftext), test_fdoc(), config)
+  check blk.warns == @["Unknown embed: 'some'"]
+
+  let parsed = blk.list
+  check parsed.len == 2
+
+  template check(list, i, expected) =
+    check list[i].to_json == expected.to_json
+
+  block: # Line 1
+    var it = parsed[0]
+    check it, 0,  (kind: "text", text: "Some")
+    check it, 1,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
+    check it, 2,  (kind: "embed", embed_kind: "some", text: "some")
+
+  block: # Line 2
+    var it = parsed[1]
+    check it, 0,  (kind: "text", text: "Another")
+    check it, 1,  (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some)
 
 # data ---------------------------------------------------------------------------------------------
 proc parse_data*(raw: HalfParsedBlock): FDataBlock =
   assert raw.kind == "data"
   let json = parse_yaml raw.text
-  FDataBlock(kind: "data", data: json, id: raw.id, args: raw.args, text: raw.text)
-
-fblock_parsers["data"] = (blk, doc) => parse_data(blk)
+  FDataBlock(kind: "data", data: json, text: raw.text)
 
 # section ------------------------------------------------------------------------------------------
 proc parse_section*(raw: HalfParsedBlock): FSection =
@@ -600,40 +751,114 @@ proc parse_section*(raw: HalfParsedBlock): FSection =
   result.title = texts.join " "
   if result.title.is_empty: result.warns.add fmt"Empty section title"
 
-# fblock_parsers["section"] = (blk) => parse_section(blk)
-
 # title --------------------------------------------------------------------------------------------
 proc parse_title*(raw: HalfParsedBlock): string =
   assert raw.kind == "title"
   raw.text
 
-proc extract_title_from_location(location: string): string =
-  location.split("/").last.replace(re"\.[a-zA-Z0-9]+", "")
+# proc extract_title_from_location(location: string): string =
+#   location.split("/").last.replace(re"\.[a-zA-Z0-9]+", "")
+
+# code ---------------------------------------------------------------------------------------------
+proc parse_code*(raw: HalfParsedBlock): FCodeBlock =
+  assert raw.kind == "code"
+  FCodeBlock(kind: "code", code: raw.text.trim, text: raw.text.trim)
+
+# image, images ------------------------------------------------------------------------------------
+proc parse_path_and_tags(text: string, warns: var seq[string]): tuple[path: string, tags: seq[string]] =
+  let parts = text.split("#", maxsplit = 1)
+  var path = parts[0].trim; var warns, tags: seq[string]
+  path = normalize_asset_path(path, warns)
+  if parts.len > 1:
+    let pr = Parser.init("#" & parts[1])
+    tags = pr.consume_tags.tags
+    if pr.has:
+      warns.add "Unknown content in image: '" & pr.remainder & "'"
+  (path, tags)
+
+proc parse_image*(raw: HalfParsedBlock, doc: FDoc): FImageBlock =
+  assert raw.kind == "image"
+  var warns: seq[string]
+  let (path, tags) = parse_path_and_tags(raw.text, warns)
+  var assets: seq[string]
+  unless path.is_empty: assets.add path
+  FImageBlock(kind: "image", image: path, tags: tags, warns: warns, text: raw.text, assets: assets)
+
+proc parse_images*(raw: HalfParsedBlock, doc: FDoc): FImagesBlock =
+  assert raw.kind == "images"
+  var warns: seq[string]
+  let (path, tags) = parse_path_and_tags(raw.text, warns)
+  result = FImagesBlock(images_dir: path, kind: "images", tags: tags, warns: warns, text: raw.text)
+  unless path.is_empty:
+    result.assets = @[path]
+    let images_path = asset_path(doc, path)
+    proc normalise_asset_path(fname: string): string =
+      if path == ".": fname else: path & "/" & fname
+    result.images = fs.read_dir(images_path)
+      .filter((entry) => entry.kind == file).pick(name).map(normalise_asset_path).sort
+    result.assets.add result.images
+
+test "image":
+  let img = parse_image(hblock("image", "some.png #t1 #t2"), test_fdoc())
+  check (img.image, img.tags, img.assets) == ("some.png", @["t1", "t2"], @["some.png"])
+
+test "images, missing":
+  let imgs = parse_images(hblock("images", "missing/dir\n#t1 #t2"), test_fdoc())
+  check (imgs.images_dir, imgs.images, imgs.tags, imgs.assets) == ("missing/dir", @[], @["t1", "t2"],
+    @["missing/dir"])
+
+test "images":
+  let imgs = parse_images(hblock("images", ". #t1 #t2"), test_fdoc())
+  check (imgs.images_dir, imgs.images, imgs.tags, imgs.assets) == (".", @["img.png"], @["t1", "t2"],
+    @[".", "img.png"])
+
+# FTextConfig --------------------------------------------------------------------------------------
+proc init*(_: type[FTextConfig]): FTextConfig =
+  var block_parsers: Table[string, FBlockParser]
+  block_parsers["text"]   = (blk, doc, config) => parse_text(blk, doc, config)
+  block_parsers["list"]   = (blk, doc, config) => parse_list(blk, doc, config)
+  block_parsers["data"]   = (blk, doc, config) => parse_data(blk)
+  block_parsers["code"]   = (blk, doc, config) => parse_code(blk)
+  block_parsers["image"]  = (blk, doc, config) => parse_image(blk, doc)
+  block_parsers["images"] = (blk, doc, config) => parse_images(blk, doc)
+
+  var embed_parsers: Table[string, FEmbedParser]
+  embed_parsers["image"] = embed_parser_image
+  embed_parsers["code"]  = embed_parser_code
+
+  FTextConfig(block_parsers: block_parsers, embed_parsers: embed_parsers)
 
 # parse_ftext --------------------------------------------------------------------------------------
-proc parse_ftext*(text: string, location = ""): FDoc =
+proc post_process_block(blk: FBlock, doc: FDoc, config: FTextConfig) =
+  for rpath in blk.assets:
+    assert not rpath.is_empty, "asset can't be empty"
+    unless fs.exist(asset_path(doc, rpath)):
+      blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
+
+proc parse_ftext*(text, location: string, config = FTextConfig.init): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
   let (tags, tags_line_n) = pr.consume_tags
-  let doc = FDoc(hash: text.hash.int, location: location, tags: tags,
-    title: extract_title_from_location(location), tags_line_n: tags_line_n)
+  let doc = FDoc.init location
+  doc.hash = text.hash.int; doc.tags = tags; doc.tags_line_n = tags_line_n
   for raw in raw_blocks:
     if   raw.kind == "title":
       doc.title = parse_title raw
     elif raw.kind == "section":
       let section = parse_section raw
       doc.sections.add section
-      # result.warns.add section.warns
     else:
       if doc.sections.is_empty: doc.sections.add FSection(line_n: 1)
-      if raw.kind in fblock_parsers:
-        let blk = fblock_parsers[raw.kind](raw, doc)
-        doc.sections[^1].blocks.add blk
-        # result.warns.add blk.warns
-      else:
-        let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
-        doc.sections[^1].blocks.add blk
-        doc.warns.add fmt"Unknown block '{blk.kind}'"
+      doc.sections[^1].blocks.add:
+        if raw.kind in config.block_parsers:
+          let blk = config.block_parsers[raw.kind](raw, doc, config)
+          blk.id = raw.id; blk.args = raw.args; blk.line_n = raw.line_n
+          post_process_block(blk, doc, config)
+          blk
+        else:
+          let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
+          doc.warns.add fmt"Unknown block '{blk.kind}'"
+          blk
   doc
 
 test "parse_ftext":
@@ -649,7 +874,7 @@ test "parse_ftext":
       #t #t2
     """.dedent
 
-    let doc = parse_ftext text
+    let doc = parse_ftext(text, "some.ft")
     check doc.sections.len == 1
     let section = doc.sections[0]
     check section.blocks.len == 3
@@ -676,68 +901,77 @@ test "parse_ftext":
       #t #t2
     """.dedent
 
-    let doc = parse_ftext text
+    let doc = parse_ftext(text, "some.ft")
     check doc.title == "Some title"
     check doc.sections.len == 2
     check doc.sections[0].line_n == 3
     check doc.sections[1].line_n == 7
 
-# image, images ------------------------------------------------------------------------------------
-proc fdoc_asset_path*(fdoc_path: string, asset_path: string): string =
-  assert not asset_path.starts_with '/', "fdoc asset path can't be absolute"
-  let fdoc_dir = fdoc_path.parent_dir
-  let fdoc_name = fdoc_path.file_name_ext.name
-  fmt"{fdoc_dir}/{fdoc_name}/{asset_path}"
-
-proc parse_path_and_tags(text: string): tuple[path: string, tags, warns: seq[string]] =
-  let parts = text.split("#", maxsplit = 1)
-  var path = parts[0].trim; var warns, tags: seq[string]
-  if path.starts_with '/':
-    warns.add "Path can't be absolute"
-    path = ""
-  if parts.len > 1:
-    let pr = Parser.init("#" & parts[1])
-    tags = pr.consume_tags.tags
-    if pr.has:
-      warns.add "Unknown content in image: '" & pr.remainder & "'"
-  (path, tags, warns)
-
-proc parse_image*(raw: HalfParsedBlock, doc: FDoc): FImageBlock =
-  assert raw.kind == "image"
-  let (path, tags, warns) = parse_path_and_tags(raw.text)
-  FImageBlock(kind: "image", image: path, tags: tags, warns: warns, id: raw.id, args: raw.args, text: raw.text)
-
-
-proc parse_images*(raw: HalfParsedBlock, doc: FDoc): FImagesBlock =
-  assert raw.kind == "images"
-  let (path, tags, warns) = parse_path_and_tags(raw.text)
-  result = FImagesBlock(kind: "images", tags: tags, warns: warns, id: raw.id, args: raw.args, text: raw.text)
-  unless path.is_empty or path.starts_with('/'):
-    result.images_dir = path
-    result.images = fs.read_dir(fdoc_asset_path(doc.location, path))
-      .filter((entry) => entry.kind == file).pick(path).map((path) => path.file_name)
-
-fblock_parsers["image"] = (blk, doc) => parse_image(blk, doc)
-fblock_parsers["images"] = (blk, doc) => parse_images(blk, doc)
-
-test "image, images":
-  let ftext_dir = current_source_path().parent_dir.absolute_path
-  let fdoc_location = fmt"{ftext_dir}/test/some.ft"
-
+test "parse_ftext, missing assets":
   let text = """
-    some.png #t1 #t2 ^image
+    image{missing1.png} ^text
 
-    . #t1 #t2 ^images
+    missing2.png ^image
 
-    a/b
-    #t1 #t2 ^images
+    missing_dir ^images
   """.dedent
 
-  let doc = parse_ftext(text, fdoc_location)
-  check doc.sections[0].blocks.len == 3
-  let img1 = doc.sections[0].blocks[0].FImageBlock
-  check (img1.image, img1.tags) == ("some.png", @["t1", "t2"])
-  let img2 = doc.sections[0].blocks[1].FImagesBlock
-  check (img2.images_dir, img2.images, img1.tags) == (".", @["img.png"], @["t1", "t2"])
-  let img3 = doc.sections[0].blocks[2].FImagesBlock
-  check (img3.images_dir, img3.images, img1.tags) == ("a/b", @[], @["t1", "t2"])
+  let doc = parse_ftext(text, test_fdoc_location())
+  let blocks = doc.sections[0].blocks
+  check blocks.len == 3
+  check blocks[0].warns == @["Asset don't exist some/missing1.png"]
+  check blocks[1].warns == @["Asset don't exist some/missing2.png"]
+  check blocks[2].warns == @["Asset don't exist some/missing_dir"]
+
+
+# # to_html ------------------------------------------------------------------------------------------
+
+
+# proc to_safe_html*(
+#   text: seq[FTextItem], to_link = to_link, to_glink = to_glink, to_tag = to_tag, fembed_parsers = fembed_parsers
+# ): string =
+#   var em = false
+#   for i, ti in text:
+#     if   not em and ti.em == true:
+#       em = true
+#       result.add "<b>"
+#     elif em and ti.em != true:
+#       result.add "</b>"
+#       em = false
+
+#     case ti.kind
+#     of FTextItemKind.text:
+#       result.add ti.text.escape_html
+#     of link:
+#       result.add to_link(ti.text, ti.link)
+#     of glink:
+#       result.add to_glink(ti.text, ti.glink)
+#     of tag:
+#       result.add to_tag(ti.text)
+#     of embed:
+#       result.add:
+#         if ti.embed_kind in fembed_parsers:
+#           fembed_parsers[ti.embed_kind](ti.text)
+#         else:
+#           "<code>" & ti.embed_kind.escape_html & "{" & ti.text.escape_html & "}" & "</code>"
+
+#   if em:
+#     result.add "</b>"
+
+# proc to_safe_html*(
+#   blk: FTextBlock, to_link = to_link, to_glink = to_glink, to_tag = to_tag, fembed_parsers = fembed_parsers
+# ): string =
+#   template call_to_safe_html(text): string =
+#     to_safe_html(text, to_link = to_link, to_glink = to_glink, to_tag = to_tag, fembed_parsers = fembed_parsers)
+
+#   for i, pr in blk.formatted_text:
+#     case pr.kind
+#     of text:
+#       result.add "<p>" & call_to_safe_html(pr.text) & "</p>"
+#     of list:
+#       result.add "<ul>\n"
+#       for j, list_item in pr.list:
+#         result.add "  <li>" & call_to_safe_html(list_item) & "</li>"
+#         if j < pr.list.high: result.add "\n"
+#       result.add "</ul>"
+#     if i < blk.formatted_text.high: result.add "\n"

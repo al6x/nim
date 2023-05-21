@@ -86,7 +86,7 @@ proc exist*(fs: FS, path: string): bool =
 
 
 type FsEntryKind* = enum file, dir
-type FsEntry* = tuple[kind: FsEntryKind, path: string]
+type FsEntry* = tuple[kind: FsEntryKind, name, path: string]
 
 proc read_dir*(fs: FS, path: string, hidden = false): seq[FsEntry] =
   for entry in walk_dir(path, relative = true):
@@ -97,7 +97,7 @@ proc read_dir*(fs: FS, path: string, hidden = false): seq[FsEntry] =
       of pcDir:        FsEntryKind.dir
       of pcLinkToDir:  FsEntryKind.dir
     if hidden or not entry.path.starts_with("."):
-      result.add (kind, path & "/" & entry.path)
+      result.add (kind, entry.path, path & "/" & entry.path)
 
 
 

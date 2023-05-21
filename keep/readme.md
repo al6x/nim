@@ -12,6 +12,9 @@
 
 # Features
 
+- In search it's posible to control if show doc or block, by adding `block forest` doc by default.
+- Each block has same UI, two lines top and bottom
+- It's possible to create virtual docs, as search term, a sequence of blocks.
 - Store, manage playlists and play Music, on external drive
 - Store Books
 - Store and play Audibooks, on external drive
@@ -24,8 +27,8 @@
 - Search, tags and spaces filters, index book context
 - Publish selected notes as pdf book
 - SpreadSheet
-- Git for history and sharing
-- Github or any other Git hosting for publishing, collaboration
+- Git and GitHub for history and sharing
+- Git for collaboration, updates, conflict resolution
 - Any file hosting for sharing
 - Ftext format is almost the same as Nim ftext DSL
 

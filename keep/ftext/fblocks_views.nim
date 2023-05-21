@@ -1,15 +1,23 @@
 import base, mono/core, std/osproc
 import ../core/spacem, ./fdoc, ./ftext, ./helpers, ../ui/palette as pl
 
-# proc FBlockView(doc: FDoc, section: FSection, blk: FBlock): El =
-#   let edit = el(IconButton, (icon: "edit", title: "Edit")):
-#     it.on_click proc = open_editor(doc.location, section.line_n)
-#   el(NoteSection, (title: section.title, tags: section.tags, controls: @[edit]))
-
+# Base
 method render_fblock*(self: FBlock, doc: FDoc, section: FSection, parent: Component): El {.base.} =
-  # throw "not implemented"
-  render text block xxx not implemented
+  let text = fmt"No view for {self.kind} block"
+  let edit = el(IconButton, (icon: "edit", title: "Edit")):
+    it.on_click proc = open_editor(doc.location, self.line_n)
+  el(NoteTextBlock, (html: text.escape_html, controls: @[edit], warns: @[text]))
 
-# method render_fblock*(self: FTextBlock, doc: FDoc, section: FSection, parent: Component): El {.base.} =
-#   FBlock
-#   # parent.el(FDocView, fmt"{space.id}/{doc.id}", (space: space, doc: doc))
+# Text
+method render_fblock*(self: FTextBlock, doc: FDoc, section: FSection, parent: Component): El =
+  let edit = el(IconButton, (icon: "edit", title: "Edit")):
+    it.on_click proc = open_editor(doc.location, self.line_n)
+
+
+  el(NoteTextBlock, (html: self.code, controls: @[edit], warns: self.warns, tags: self.tags))
+
+# Code
+method render_fblock*(self: FCodeBlock, doc: FDoc, section: FSection, parent: Component): El =
+  let edit = el(IconButton, (icon: "edit", title: "Edit")):
+    it.on_click proc = open_editor(doc.location, self.line_n)
+  el(NoteCodeBlock, (code: self.code, controls: @[edit], warns: self.warns, tags: self.tags))

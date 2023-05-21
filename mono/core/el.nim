@@ -1,4 +1,4 @@
-import base
+import base, ext/html
 
 type
   SpecialInputKeys* = enum alt, ctrl, meta, shift
@@ -244,30 +244,10 @@ proc diff*(id: openarray[int], new_el: El, old_el: El): seq[UpdateElement] =
     if not set_children.is_empty: update.set_children = set_children.some
     if not del_children.is_empty: update.del_children = del_children.some
 
-# escape_html, js ----------------------------------------------------------------------------------
-const ESCAPE_HTML_MAP = {
-  "&": "&amp;",
-  "<":  "&lt;",
-  ">":  "&gt;",
-  "\"": "&quot;",
-  "'":  "&#39;"
-}.to_table
-
-proc escape_html*(html: string): string =
-  html.replace(re"""([&<>'"])""", (c) => ESCAPE_HTML_MAP[c])
-
-test "escape_html":
-  check escape_html("""<div attr="val">""") == "&lt;div attr=&quot;val&quot;&gt;"
-
-proc escape_js*(js: string): string =
-  js.to_json.to_s.replace(re"""^"|"$""", "")
-
-test "escape_js":
-  assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
 
 # to_html ------------------------------------------------------------------------------------------
-proc escape_html_text(s: string): string = s.escape_html
-proc escape_html_attr_name(name: string): string = name.escape_html
+proc escape_html_text(s: string): safe_html = s.escape_html
+proc escape_html_attr_name(name: string): safe_html = name.escape_html
 proc escape_html_attr_value(v: JsonNode): string =
   # (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
   "\"" & (if v.kind == JString: v.get_str.escape_html else: v.to_s(false).escape_html) & "\""
