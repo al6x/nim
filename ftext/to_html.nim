@@ -2,33 +2,35 @@ import base, ./parse, ext/html
 
 type
   # Embed are things like `text image{some.png} text`
-  EmbedToHtml*  = proc(text: string, parsed: Option[JsonNode], doc: FDoc): SafeHtml
+  FEmbedContext* = tuple[blk: FBlock, doc: FDoc, space_id: string]
+
+  FEmbedToHtml*  = proc(text: string, parsed: Option[JsonNode], context: FEmbedContext): SafeHtml
 
   FTextHtmlConfig* = ref object
-    embeds*: Table[string, EmbedToHtml]
-    link*:   proc (text: string, link: FLink, doc: FDoc): SafeHtml
-    glink*:  proc (text, link: string, doc: FDoc): SafeHtml
-    tag*:    proc (tag: string, doc: FDoc): SafeHtml
+    embeds*: Table[string, FEmbedToHtml]
+    link*:   proc (text: string, link: FLink, context: FEmbedContext): SafeHtml
+    glink*:  proc (text, link: string, context: FEmbedContext): SafeHtml
+    tag*:    proc (tag: string, context: FEmbedContext): SafeHtml
 
-proc link(text: string, link: FLink, doc: FDoc): SafeHtml =
-  let target = (if link.space == ".": doc.id else: link.space) & "/" & link.doc
-  fmt"""<a class="link" href="{target.escape_html}">{text.escape_html}</a>""".to(SafeHtml)
+proc link(text: string, link: FLink, context: FEmbedContext): SafeHtml =
+  let target = "/" & (if link.space == ".": context.space_id else: link.space) & "/" & link.doc
+  fmt"""<a class="link" href="{target.escape_html}">{text.escape_html}</a>"""
 
-proc tag(tag: string, doc: FDoc): SafeHtml =
-  fmt"""<a class="tag" href="/tags/{tag.escape_html}">#{tag.escape_html}</a>""".to(SafeHtml)
+proc tag(tag: string, context: FEmbedContext): SafeHtml =
+  fmt"""<a class="tag" href="/tags/{tag.escape_html}">#{tag.escape_html}</a>"""
 
-proc glink(text, link: string, doc: FDoc): SafeHtml =
-  fmt"""<a class="glink" href="{link.escape_html}">{text.escape_html}</a>""".to(SafeHtml)
+proc glink(text, link: string, context: FEmbedContext): SafeHtml =
+  fmt"""<a class="glink" href="{link.escape_html}">{text.escape_html}</a>"""
 
-proc embed_image(text: string, parsed: Option[JsonNode], doc: FDoc): SafeHtml =
-  let target = doc.id & "/" & text
-  fmt"""<img src="{target.escape_html}"/>""".to(SafeHtml)
+proc embed_image(text: string, parsed: Option[JsonNode], context: FEmbedContext): SafeHtml =
+  let target = "/" & context.space_id & "/" & context.doc.id & "/" & text
+  fmt"""<img src="{target.escape_html}"/>"""
 
-proc embed_code(text: string, parsed: Option[JsonNode], doc: FDoc): SafeHtml =
-  fmt"""<code>{text.escape_html}</code>""".to(SafeHtml)
+proc embed_code(text: string, parsed: Option[JsonNode], context: FEmbedContext): SafeHtml =
+  fmt"""<code>{text.escape_html}</code>"""
 
 proc init*(_: type[FTextHtmlConfig]): FTextHtmlConfig =
-  var embeds: Table[string, EmbedToHtml]
+  var embeds: Table[string, FEmbedToHtml]
   embeds["image"] = embed_image
   embeds["code"]  = embed_code
   FTextHtmlConfig(embeds: embeds, link: link, glink: glink, tag: tag)
@@ -36,7 +38,7 @@ proc init*(_: type[FTextHtmlConfig]): FTextHtmlConfig =
 let default_config = FTextHtmlConfig.init
 
 # to_html ------------------------------------------------------------------------------------------
-proc to_html*(text: seq[FTextItem], doc: FDoc, config = default_config): SafeHtml =
+proc to_html*(text: seq[FTextItem], context: FEmbedContext, config = default_config): SafeHtml =
   var html = ""
 
   var em = false
@@ -46,50 +48,50 @@ proc to_html*(text: seq[FTextItem], doc: FDoc, config = default_config): SafeHtm
     elif em and item.em != true:
       em = false; html.add "</b>"
 
-    if i != 0: html.add " "
-
     case item.kind
     of FTextItemKind.text:
       html.add item.text.escape_html
     of FTextItemKind.link:
-      html.add config.link(item.text, item.link, doc)
+      html.add config.link(item.text, item.link, context)
     of FTextItemKind.glink:
-      html.add config.glink(item.text, item.glink, doc)
+      html.add config.glink(item.text, item.glink, context)
     of FTextItemKind.tag:
-      html.add config.tag(item.text, doc)
+      html.add config.tag(item.text, context)
     of FTextItemKind.embed:
       html.add:
         if item.embed_kind in config.embeds:
           let embed = config.embeds[item.embed_kind]
-          embed(item.text, item.parsed, doc)
+          embed(item.text, item.parsed, context)
         else:
-          embed_code(item.embed_kind & "{" & item.text & "}", JsonNode.none, doc)
+          embed_code(item.embed_kind & "{" & item.text & "}", JsonNode.none, context)
 
   if em:
     html.add "</b>"
-  html.to(SafeHtml)
+  html
 
-proc to_html*(blk: FTextBlock, doc: FDoc, config = default_config): SafeHtml =
+proc to_html*(blk: FTextBlock, doc: FDoc, space_id: string, config = default_config): SafeHtml =
+  let context: FEmbedContext = (blk, doc, space_id)
   var html = ""
   for i, pr in blk.formatted_text:
     case pr.kind
     of text:
-      html.add "<p>" & pr.text.to_html(doc, config) & "</p>"
+      html.add "<p>" & pr.text.to_html(context, config) & "</p>"
     of list:
       html.add "<ul>\n"
       for j, list_item in pr.list:
-        html.add "  <li>" & list_item.to_html(doc, config) & "</li>"
+        html.add "  <li>" & list_item.to_html(context, config) & "</li>"
         if j < pr.list.high: html.add "\n"
       html.add "</ul>"
     if i < blk.formatted_text.high: html.add "\n"
-  html.to(SafeHtml)
+  html
 
-proc to_html*(blk: FListBlock, doc: FDoc, config = default_config): SafeHtml =
+proc to_html*(blk: FListBlock, doc: FDoc, space_id: string, config = default_config): SafeHtml =
+  let context: FEmbedContext = (blk, doc, space_id)
   var html = ""
   for i, list_item in blk.list:
-    html.add "<p>" & list_item.to_html(doc, config) & "</p>"
+    html.add "<p>" & list_item.to_html(context, config) & "</p>"
     if i < blk.list.high: html.add "\n"
-  html.to(SafeHtml)
+  html
 
 test "to_html":
   let text = """
@@ -103,5 +105,5 @@ test "to_html":
   let tb = doc.sections[0].blocks[0].FTextBlock
   let lb = doc.sections[0].blocks[1].FListBlock
 
-  check tb.to_html(doc) == """<p>Some <a class="tag" href="/tags/tag">#tag</a> text</p>"""
-  check lb.to_html(doc) == "<p>a</p>\n<p>b</p>"
+  check tb.to_html(doc, "space") == """<p>Some <a class="tag" href="/tags/tag">#tag</a> text</p>"""
+  check lb.to_html(doc, "space") == "<p>a</p>\n<p>b</p>"

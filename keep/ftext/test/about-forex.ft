@@ -19,14 +19,12 @@ way down [to zero](http://some.com). ^list
 
 Additional consequences of those 3 main issues ^section
 
-1.1 No right for a mistake. If you made a mistake on the stock market, if you can wait, there's a
+- 1.1 No right for a mistake. If you made a mistake on the stock market, if you can wait, there's a
 chance that over time stock will grow back. Not true for Forex.
-
-1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
-
-1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees. With
+- 1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
+- 1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees. With
 Forex keeping currencies doesn't make sense because it's a depreciating asset, so there will be
-probably lots of transactions and lots of fees. ^list
+probably lots of transactions and lots of fees. ^text
 
 palette = Palette.init(mockup_mode = true)
 mockup_section("Text"):

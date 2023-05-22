@@ -250,7 +250,7 @@ proc escape_html_text(s: string): SafeHtml = s.escape_html
 proc escape_html_attr_name(name: string): SafeHtml = name.escape_html
 proc escape_html_attr_value(v: JsonNode): SafeHtml =
   # (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
-  ("\"" & (if v.kind == JString: v.get_str.escape_html else: v.to_s(false).escape_html) & "\"").to(SafeHtml)
+  "\"" & (if v.kind == JString: v.get_str.escape_html else: v.to_s(false).escape_html) & "\""
 
 proc to_html*(el: JsonNode, indent = "", comments = false): string =
   assert el.kind == JObject, "to_html element data should be JObject"

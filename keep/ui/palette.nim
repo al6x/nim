@@ -192,14 +192,14 @@ proc NoteTextBlock*(
 ): El =
   note_block(controls, warns, tags):
     el".ftext flash": # Body
-      it.attr("html", html.to_s)
+      it.attr("html", html)
 
 proc NoteListBlock*(
   html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
   note_block(controls, warns, tags):
     el".ftext flash": # Body
-      it.attr("html", html.to_s)
+      it.attr("html", html)
 
 proc NoteCodeBlock*(
   code: string, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
@@ -418,7 +418,7 @@ proc stub_data: StubData =
         There are multiple reasons to About Forex. Every single of those reasons is big enough
         to stay away from such investment. Forex has all of them.
       </p>
-    """.dedent.trim.to(SafeHtml)
+    """.dedent.trim
 
   result.text_block2_html =
     """
@@ -440,7 +440,7 @@ proc stub_data: StubData =
           and because it doesn't has any bottom value, it can fell all the way down to zero.
         </li>
       </ul>
-    """.dedent.trim.to(SafeHtml)
+    """.dedent.trim
 
   result.text_block_with_image_html =
     """
@@ -465,7 +465,7 @@ proc stub_data: StubData =
         leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
         wipe you out.
       </p>
-    """.dedent.trim.to(SafeHtml)
+    """.dedent.trim
 
   result.list_block1_html =
     """
@@ -483,7 +483,7 @@ proc stub_data: StubData =
         With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
         there will be probably lots of transactions and lots of fees.
       </p>
-    """.dedent.trim.to(SafeHtml)
+    """.dedent.trim
 
   result.code_block1 = """
     palette = Palette.init(mockup_mode = true)

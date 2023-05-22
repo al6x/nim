@@ -27,7 +27,7 @@ type
     hash*:        int
     location*:    string
     asset_path*:  string # same as location but without .ft extension
-    space_path*:  string # location dirname
+    # space_path*:  string # location dirname
     title*:       string
     sections*:    seq[FSection]
     tags*:        seq[string]
@@ -96,7 +96,8 @@ type # Config
 proc init*(_: type[FDoc], location: string): FDoc =
   assert location.ends_with ".ft"
   let id = location.file_name.file_name_ext.name
-  FDoc(id: id, title: id, location: location, asset_path: location[0..^4], space_path: location.parent_dir)
+  # space_path: location.parent_dir
+  FDoc(id: id, title: id, location: location, asset_path: location[0..^4])
 
 proc fdoc_asset_path*(fdoc_asset_path, relative_path: string): string =
   assert not relative_path.starts_with '/'
@@ -412,7 +413,7 @@ proc consume_inline_text*(pr: Parser, stop: (proc: bool)): seq[FTextItem] =
   var text = ""; var em_started_i: int = -1
 
   template finish_text =
-    text = text.replace(re"[\s\n]+", " ").trim
+    text = text.replace(re"[\s\n]+", " ") #.trim
     if not text.is_empty:
       result.add FTextItem(kind: FTextItemKind.text, text: text)
       text = ""
@@ -446,6 +447,20 @@ proc consume_inline_text*(pr: Parser, stop: (proc: bool)): seq[FTextItem] =
 
   finish_text()
 
+  # Removing trailing space from last element or whole element if it's empty
+  if (not result.is_empty) and result.last.kind == FTextItemKind.text:
+    result[^1].text = result[^1].text.strip(leading = false, trailing = true)
+    if result.last.text.is_empty: discard result.pop
+
+proc consume_inline_text*(text: string): seq[FTextItem] =
+  let pr = Parser.init(text)
+  result = pr.consume_inline_text(() => false)
+  assert pr.warns.is_empty, "parsing ftext, unexpected warnings"
+
+test "consume_inline_text, space":
+  check consume_inline_text("**a**b ").mapit(it.text) == @["a", "b"]
+  check consume_inline_text("**a** b\n").mapit(it.text) == @["a", " b"]
+
 # text_paragraph -----------------------------------------------------------------------------------
 let not_st_chars = {' ', '\t'}.complement
 proc is_text_paragraph*(pr: Parser): bool =
@@ -466,6 +481,7 @@ proc consume_list_item*(pr: Parser): seq[FTextItem] =
   pr.skip space_chars
   assert pr.get == '-'
   pr.inc
+  pr.skip space_chars
   proc stop: bool = pr.is_text_paragraph or pr.is_text_list or pr.is_text_list_item
   pr.consume_inline_text(stop)
 
@@ -578,31 +594,33 @@ test "parse_text":
 
   block: # Paragraph 1
     check parsed[0].kind == text
-    check parsed[0].text.len == 11
+    check parsed[0].text.len == 13
     var it = parsed[0].text
 
-    check it, 0,  (kind: "text", text: "Some text")
+    check it, 0,  (kind: "text", text: "Some text ")
     check it, 1,  (kind: "glink", text: "some link", glink: "http://site.com")
-    check it, 2,  (kind: "text", text: "another")
-    check it, 3,  (kind: "text", text: "text, and", em: true)
+    check it, 2,  (kind: "text", text:  " another ")
+    check it, 3,  (kind: "text", text: "text, and ", em: true)
     check it, 4,  (kind: "link", text: "link 2", link: (space: ".", doc: "link 2"), em: true)
-    check it, 5,  (kind: "text", text: "more", )
+    check it, 5,  (kind: "text", text: " more ")
     check it, 6,  (kind: "tag", text: "tag1")
-    check it, 7,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
-    check it, 8,  (kind: "text", text: "some")
-    check it, 9,  (kind: "embed", embed_kind: "code", text: "code 2")
-    check it, 10, (kind: "embed", embed_kind: "some", text: "some")
+    check it, 7,  (kind: "text", text: " ")
+    check it, 8,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
+    check it, 9,  (kind: "text", text: " some ")
+    check it, 10, (kind: "embed", embed_kind: "code", text: "code 2")
+    check it, 11, (kind: "text", text: " ")
+    check it, 12, (kind: "embed", embed_kind: "some", text: "some")
 
   block: # Paragraph 2
     check parsed[1].kind == list
     check parsed[1].list.len == 2
     var it = parsed[1].list
     check it, 0, [
-      (kind: "text", text: "Line"),
+      (kind: "text", text: "Line "),
       (kind: "tag", text: "lt1")
     ]
     check it, 1, [
-      (kind: "text", text: "Line 2").to_json,
+      (kind: "text", text: "Line 2 ").to_json,
       (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some).to_json
     ]
 
@@ -610,9 +628,9 @@ test "parse_text":
     check parsed[2].kind == text
     check parsed[2].text.len == 3
     var it = parsed[2].text
-    check it, 0, (kind: "text", text: "And")
+    check it, 0, (kind: "text", text: "And ")
     check it, 1, (kind: "tag", text: "tag2")
-    check it, 2, (kind: "text", text: "another")
+    check it, 2, (kind: "text", text: " another")
 
 # list ---------------------------------------------------------------------------------------------
 proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
@@ -645,11 +663,11 @@ test "parse_list_as_items":
 
     check parsed.len == 2
     check parsed, 0, [
-      (kind: "text", text: "Line"),
+      (kind: "text", text: "Line "),
       (kind: "tag", text: "tag")
     ]
     check parsed, 1, [
-      (kind: "text", text: "Line 2").to_json,
+      (kind: "text", text: "Line 2 ").to_json,
       (kind: "embed", embed_kind: "image", text: "some-img").to_json
     ]
 
@@ -664,12 +682,12 @@ test "parse_list_as_items":
 
     check parsed.len == 2
     check parsed, 0, [
-      (kind: "text", text: "Line"),
+      (kind: "text", text: "Line "),
       (kind: "tag", text: "tag"),
-      (kind: "text", text: "some text")
+      (kind: "text", text: " some text")
     ]
     check parsed, 1, [
-      (kind: "text", text: "Line 2").to_json,
+      (kind: "text", text: "Line 2 ").to_json,
       (kind: "embed", embed_kind: "image", text: "some-img").to_json
     ]
 
@@ -714,13 +732,14 @@ test "parse_list":
 
   block: # Line 1
     var it = parsed[0]
-    check it, 0,  (kind: "text", text: "Some")
+    check it, 0,  (kind: "text", text: "Some ")
     check it, 1,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
-    check it, 2,  (kind: "embed", embed_kind: "some", text: "some")
+    check it, 2,  (kind: "text", text: " ")
+    check it, 3,  (kind: "embed", embed_kind: "some", text: "some")
 
   block: # Line 2
     var it = parsed[1]
-    check it, 0,  (kind: "text", text: "Another")
+    check it, 0,  (kind: "text", text: "Another ")
     check it, 1,  (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some)
 
 # data ---------------------------------------------------------------------------------------------

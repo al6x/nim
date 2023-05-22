@@ -35,7 +35,7 @@ proc render*(self: FDocView): El =
             el(FSectionView, (doc: doc, section: section))
 
           for blk in section.blocks: # Blocks
-            add_or_return blk.render_fblock(doc, section, parent = self)
+            add_or_return blk.render_fblock(doc, self.space, parent = self)
 
   result.window_title doc.title
 

@@ -5,7 +5,7 @@ import ./test
 export strformat
 export strutils except `%`
 
-
+# LODO remove and use strutils.strip
 proc trim*(s: string): string =
   s.replace(re("\\A[\\n\\s\\t]+|[\\n\\s\\t]+\\Z"), "")
 
