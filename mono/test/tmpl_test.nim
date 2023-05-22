@@ -1,4 +1,4 @@
-import base, ./component, ./el, ./tmpl
+import base, ../core/[component, el, tmpl]
 
 test "el html":
   let html = el"ul.c1":

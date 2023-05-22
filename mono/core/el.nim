@@ -112,24 +112,6 @@ proc parse_tag*(s: string): Table[string, string] =
       if tokens.len > 2: throw fmt"invalid attribute '{token}'"
       result[tokens[0]] = if tokens.len > 1: tokens[1] else: "true"
 
-test "parse_tag":
-  template check_attrs(tag: string, expected) =
-    check parse_tag(tag) == expected.to_table
-
-  check_attrs "span#id.c-1.c2 .c3  .c-4 type=checkbox required", {
-    "tag": "span", "id": "id", "class": "c-1 c2 c3 c-4", "type": "checkbox", "required": "true"
-  }
-  check_attrs "span",     { "tag": "span" }
-  check_attrs "#id",      { "id": "id" }
-  check_attrs ".c-1",     { "class": "c-1" }
-  check_attrs "div  a=b", { "tag": "div", "a": "b" }
-  check_attrs " .a  a=b", { "class": "a", "a": "b" }
-  check_attrs " .a",      { "class": "a" }
-
-  check_attrs "$controls .a",     { "c": "controls", "class": "a" }
-  check_attrs "$controls.a",      { "c": "controls", "class": "a" }
-  check_attrs "button$button.a",  { "tag": "button", "c": "button", "class": "a" }
-
 proc nattrs*(self: El): JsonNode =
   # Normalised attributes. El stores attributes in shortcut format,
   # like`"tag: ul.todos checked"`, normalisation delayed to improve performance.
@@ -149,10 +131,6 @@ proc nattrs*(self: El): JsonNode =
       nattrs["class"] = (nattrs["c"].get_str & " C" & delimiter & class).to_json
     self.nattrs_cached = nattrs.sort.some
   return self.nattrs_cached.get
-
-test "nattrs":
-  check El.init(tag = "ul.todos", attrs = (class: "editing").to_json).nattrs ==
-    """{"class":"todos editing","tag":"ul"}""".parse_json
 
 proc get*(self: El, el_path: seq[int]): El =
   result = self
@@ -297,26 +275,6 @@ proc to_html*(el: El, indent = "", comments = false): string =
 
 proc to_html*(els: openarray[El], indent = "", comments = false): string =
   els.map((el) => el.to_html(indent = indent, comments = comments)).join("\n").replace(re"\n\n\n", "\n\n")
-
-test "to_html":
-  let el = %{ class: "parent", children: [
-    { class: "counter", children: [
-      { tag: "input", value: "some", type: "text" },
-      { tag: "button", text: "+" },
-    ] }
-  ] }
-  let html = """
-    <div class="parent">
-      <div class="counter">
-        <input type="text" value="some"></input>
-        <button>+</button>
-      </div>
-    </div>""".dedent
-  check el.to_html == html
-
-  check El.init.to_html == "<div></div>"
-
-  check (%{ text: 0 }).to_html == "<div>0</div>" # from error
 
 proc window_title*(el: JsonNode): string =
   assert el.kind == JObject, "to_html element data should be JObject"
