@@ -1,5 +1,4 @@
-import base, ext/html
-import ./core, ./parse
+import base, ext/html, ./core
 
 type
   # Embed are things like `text image{some.png} text`
@@ -93,18 +92,3 @@ proc to_html*(blk: FListBlock, doc: FDoc, space_id: string, config = default_con
     html.add "<p>" & list_item.to_html(context, config) & "</p>"
     if i < blk.list.high: html.add "\n"
   html
-
-test "to_html":
-  let text = """
-    Some #tag text ^text
-
-    - a
-    - b ^list
-  """.dedent
-
-  let doc = FDoc.parse(text, "doc.ft")
-  let tb = doc.sections[0].blocks[0].FTextBlock
-  let lb = doc.sections[0].blocks[1].FListBlock
-
-  check tb.to_html(doc, "space") == """<p>Some <a class="tag" href="/tags/tag">#tag</a> text</p>"""
-  check lb.to_html(doc, "space") == "<p>a</p>\n<p>b</p>"
