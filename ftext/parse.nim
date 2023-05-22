@@ -1,6 +1,8 @@
 import base, ext/[parser, yaml]
 import ./core
 
+export core
+
 type # Config
   HalfParsedBlock* = tuple[text: string, kind: string, id: string, args: string, line_n: int]
 

@@ -1,5 +1,7 @@
 import base, ext/html, ./core
 
+export core
+
 type
   # Embed are things like `text image{some.png} text`
   FEmbedContext* = tuple[blk: FBlock, doc: FDoc, space_id: string]
