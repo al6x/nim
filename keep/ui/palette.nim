@@ -336,7 +336,6 @@ proc render_mockup: seq[El] =
       tags: data.note_tags, tags_controls: controls_stub,
       right: right
     )):
-      # el(PSection, ())
       el(PTextBlock, (html: data.text_block1_html))
       el(PSection, (title: "Trends are down", tags: @["Finance", "Trading"]))
       el(PTextBlock, (html: data.text_block2_html, controls: controls_stub))

@@ -31,6 +31,5 @@ proc render*(self: FDocView): El =
 
   result.window_title doc.title
 
-
 method render_doc*(doc: FDocHead, space: Space, parent: Component): El =
   parent.el(FDocView, fmt"{space.id}/{doc.id}", (space: space, doc: doc))

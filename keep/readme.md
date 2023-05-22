@@ -1,6 +1,5 @@
 # Todo
 
-- remove note, blocks are global UI el
 - Make photos,
 - Serve file space/doc.method-serve_file(rel_doc_path): tuple[path, mime]
 - search list
