@@ -1,5 +1,5 @@
 import base, mono/core, std/osproc
-import ../core/spacem, ./fdoc_head, ftext/[parse, to_html], ./helpers, ../ui/palette as pl
+import ../core/spacem, ./fdoc_head, ftext/html, ./helpers, ../ui/palette as pl
 
 # Base
 method render_fblock*(self: FBlock, doc: FDoc, space: Space, parent: Component): El {.base.} =

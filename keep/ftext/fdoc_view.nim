@@ -1,5 +1,5 @@
 import base, mono/core, std/osproc
-import ../core/spacem, ./fdoc_head, ftext/parse, ./helpers, ../ui/palette as pl, ./fblocks_views
+import ../core/spacem, ./fdoc_head, ftext/core as _, ./helpers, ../ui/palette as pl, ./fblocks_views
 
 proc FSectionView(doc: FDoc, section: FSection): El =
   let edit = el(IconButton, (icon: "edit", title: "Edit")):

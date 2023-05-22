@@ -173,8 +173,9 @@ proc Note*(
 
     it.add content
 
-    note_block(tags_controls, tags_warnings, tags): # Tags
-      discard
+    unless tags.is_empty:
+      note_block(tags_controls, tags_warnings, tags): # Tags
+        discard
 
 proc NoteSection*(
   title: string, tags: seq[string] = @[], controls: seq[El] = @[], warns: seq[string] = @[]
