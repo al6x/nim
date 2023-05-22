@@ -1,85 +1,5 @@
 import base, ext/[parser, yaml], std/os
-
-type
-  FLink* = tuple[space, doc: string]
-
-  FBlock* = ref object of RootObj
-    kind*:     string
-    id*:       string # If not set explicitly, will be hash of block's text
-    args*:     string
-    tags*:     seq[string]
-    links*:    seq[FLink]
-    assets*:   seq[string]
-    glinks*:   seq[string]
-    text*:     string
-    line_n*:   int
-    warns*:    seq[string]
-
-  FSection* = ref object
-    title*:    string
-    blocks*:   seq[FBlock]
-    tags*:     seq[string]
-    warns*:    seq[string]
-    line_n*:   int
-
-  FDoc* = ref object
-    id*:          string
-    hash*:        int
-    location*:    string
-    asset_path*:  string # same as location but without .ft extension
-    # space_path*:  string # location dirname
-    title*:       string
-    sections*:    seq[FSection]
-    tags*:        seq[string]
-    tags_line_n*: int
-    warns*:       seq[string]
-
-  FTextItemKind* = enum text, link, glink, tag, embed
-  FTextItem* = object
-    text*: string
-    em*:   Option[bool]
-    case kind*: FTextItemKind
-    of text:
-      discard
-    of link:
-      link*: FLink
-    of glink:
-      glink*: string
-    of tag:
-      discard
-    of embed:
-      embed_kind*: string
-      parsed*:     Option[JsonNode]
-
-  FParagraphKind* = enum text, list
-  FParagraph* = object
-    case kind*: FParagraphKind
-    of text:
-      text*: seq[FTextItem]
-    of list:
-      list*: seq[seq[FTextItem]]
-
-  FTextBlock* = ref object of FBlock
-    formatted_text*: seq[FParagraph]
-
-  FListBlock* = ref object of FBlock
-    list*: seq[seq[FTextItem]]
-
-  FCodeBlock* = ref object of FBlock
-    code*: string
-
-  FDataBlock* = ref object of FBlock
-    data*: JsonNode
-
-  FImageBlock* = ref object of FBlock
-    image*: string
-
-  FImagesBlock* = ref object of FBlock
-    images_dir*: string
-    images*:     seq[string]
-
-  FUnknownBlock* = ref object of FBlock
-    raw*: string
+import ./core
 
 type # Config
   HalfParsedBlock = tuple[text: string, kind: string, id: string, args: string, line_n: int]
@@ -146,7 +66,7 @@ proc map*(paragraphs: seq[FParagraph], map_fn: (FTextItem) -> FTextItem): seq[FP
   for ph in paragraphs:
     result.add:
       case ph.kind
-      of text:
+      of FParagraphKind.text:
         var mph = FParagraph(kind: text)
         for item in ph.text:
           mph.text.add map_fn(item)
@@ -162,10 +82,10 @@ proc each*(list: seq[seq[FTextItem]], fn: (proc (item: FTextItem))) =
 proc each*(paragraphs: seq[FParagraph], fn: (proc (item: FTextItem))) =
   for ph in paragraphs:
       case ph.kind
-      of text:
+      of FParagraphKind.text:
         for item in ph.text:
           fn(item)
-      of list:
+      of FParagraphKind.list:
         ph.list.each(fn)
 
 proc normalize_asset_path(path: string, warns: var seq[string]): string =
@@ -516,7 +436,7 @@ proc parse_text_as_items*(pr: Parser): seq[FParagraph] =
 
 proc add_text_item_data(blk: FBlock, item: FTextItem): void =
   case item.kind
-  of text:
+  of FTextItemKind.text:
     blk.text.add_text item.text
   of link:
     blk.links.add item.link
@@ -758,8 +678,10 @@ proc parse_section*(raw: HalfParsedBlock): FSection =
   var texts: seq[string]
   for item in formatted_text:
     case item.kind
-    of text: texts.add item.text
-    of tag:  result.tags.add item.text
+    of FTextItemKind.text:
+      texts.add item.text
+    of tag:
+      result.tags.add item.text
     else:
       result.warns.add fmt"Invalid text in section : '{pr.remainder}'"
   result.title = texts.join " "

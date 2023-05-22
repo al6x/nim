@@ -1,4 +1,5 @@
-import base, ./parse, ext/html
+import base, ext/html
+import ./core, ./parse
 
 type
   # Embed are things like `text image{some.png} text`
