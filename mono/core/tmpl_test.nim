@@ -41,9 +41,9 @@ test "el component":
 
   let root_el = el(App, ())
   check root_el.to_html == """
-    <app class="App Component">
-      <panel class="Panel Component blue">
-        <button class="Button Component blue"></button>
+    <app class="App C">
+      <panel class="Panel C blue">
+        <button class="Button C blue"></button>
       </panel>
     </app>
   """.dedent.trim
@@ -81,11 +81,11 @@ test "el proc component":
 
   let root_el = el(App, ())
   check root_el.to_html == """
-    <app class="App Component">
-      <layout class="LRLayout Component">
+    <app class="App C">
+      <layout class="LRLayout C">
         <left>
-          <panel class="Panel Component blue small">
-            <button class="Button Component blue"></button>
+          <panel class="Panel C blue small">
+            <button class="Button C blue"></button>
           </panel>
         </left>
       </layout>
@@ -119,9 +119,9 @@ test "el stateful component":
 
   let root_el = el(App, ())
   check root_el.to_html == """
-    <app class="App Component">
-      <panel class="Panel Component blue">
-        <button class="Button Component blue"></button>
+    <app class="App C">
+      <panel class="Panel C blue">
+        <button class="Button C blue"></button>
       </panel>
     </app>
   """.dedent.trim
@@ -138,7 +138,7 @@ test "nesting, from error":
 
   let root_el = el(App1, ())
   check root_el.to_html == """
-    <div class="App1 Component panel1">
+    <div class="App1 C panel1">
       <div class="list">
         <div class="list-item"></div>
       </div>

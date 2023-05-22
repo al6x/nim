@@ -190,7 +190,7 @@ proc to_json_hook*(self: El): JsonNode =
 
   json
 
-proc diff*(id: openarray[int], new_el: El, old_el: El): seq[UpdateElement] =
+proc diff*(id: openarray[int], new_el, old_el: El): seq[UpdateElement] =
   # Using shallow_equal to avoid attribute normalisation as it's a heavy operation
   if new_el.shallow_equal(old_el):
     for i, new_child in new_el.children:
