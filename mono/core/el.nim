@@ -168,12 +168,12 @@ proc to_json_hook*(self: El): JsonNode =
 
   json
 
-proc diff*(id: openarray[int], new_el, old_el: El): seq[UpdateElement] =
+proc diff*(id: openarray[int], old_el, new_el: El): seq[UpdateElement] =
   # Using shallow_equal to avoid attribute normalisation as it's a heavy operation
   if new_el.shallow_equal(old_el):
     for i, new_child in new_el.children:
       let old_child = old_el.children[i]
-      result.add diff(id & [i], new_child, old_child)
+      result.add diff(id & [i], old_child, new_child)
     return
 
   let update = UpdateElement(el: id.to_seq)
@@ -213,7 +213,7 @@ proc diff*(id: openarray[int], new_el, old_el: El): seq[UpdateElement] =
           # If tag is different replacing
           set_children[$i] = new_child.to_json
         else:
-          result.add diff(id & [i], new_child, old_child)
+          result.add diff(id & [i], old_child, new_child)
 
     var del_children: seq[int]
     if new_el.children.len < old_el.children.len:

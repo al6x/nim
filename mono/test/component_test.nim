@@ -1,31 +1,30 @@
 import base, ../core/[el, component, tmpl]
 
 # diff ---------------------------------------------------------------------------------------------
-test "diff":
-  template tdiff(id, a, b, s) =
-    check diff(id, a, b).to_json == s
+template diff(id, a, b, s) =
+  check diff(id, a, b).to_json == s
 
-  tdiff [0], el("#i.a r", it.text("t1")), el(".b c", it.text("t0")), %[
-    { el:[0], set_attrs: { class: "a", id: "i", r: "true", text: "t1" }, del_attrs: ["c"] }
+test "diff, simple":
+  diff [], el(".b c", it.text("t0")), el("#i.a r", it.text("t1")), %[
+    { el:[], set_attrs: { class: "a", id: "i", r: "true", text: "t1" }, del_attrs: ["c"] }
   ]
 
-  block:
-    let a = el".a2":
-      el".b2":
-        it.text("bbb2")
-      el".c2"
-    let b = el".a1 aa1":
-      el".b1 bb1":
-        it.text("bbb1")
-      el"span.c1"
-      el"d1"
-    tdiff [0], a, b, %[
-      { el: [0], set_attrs: { class: "a2" }, del_attrs: ["aa1"], del_children: [2], set_children: {
-        "1": { class: "c2" }
-      } },
-      { el: [0, 0], set_attrs: { class: "b2", text: "bbb2" }, del_attrs: ["bb1"] }
-    ]
-
+test "diff, nested":
+  let a = el".a1 aa1":
+    el".b1 bb1":
+      it.text("bbb1")
+    el"span.c1"
+    el"d1"
+  let b = el".a2":
+    el".b2":
+      it.text("bbb2")
+    el".c2"
+  diff [], a, b, %[
+    { el: [], set_attrs: { class: "a2" }, del_attrs: ["aa1"], del_children: [2], set_children: {
+      "1": { class: "c2" }
+    } },
+    { el: [0], set_attrs: { class: "b2", text: "bbb2" }, del_attrs: ["bb1"] }
+  ]
 
 # counter ------------------------------------------------------------------------------------------
 type Counter = ref object of Component

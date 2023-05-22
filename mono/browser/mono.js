@@ -359,7 +359,29 @@ function apply_update(root, update) {
         el.replaceWith(to_element(set));
         self_updated = true;
     }
-    let set_attrs = update.set_attrs, attrs_updated = false;
+    let attrs_changed = false;
+    let del_attrs = update.del_attrs;
+    if (del_attrs) {
+        for (const k of del_attrs){
+            assert(k != "children", "del_attrs can't del children");
+            if ([
+                "window_title",
+                "window_location"
+            ].includes(k)) {} else {
+                if (k == "text") {
+                    el.innerText = "";
+                } else if (k == "html") {
+                    el.innerHTML = "";
+                } else if (boolean_attr_properties.includes(k)) {
+                    el[k] = false;
+                } else {
+                    el.removeAttribute(k);
+                }
+                attrs_changed = true;
+            }
+        }
+    }
+    let set_attrs = update.set_attrs;
     let window_title, window_location;
     if (set_attrs) {
         for(const k in set_attrs){
@@ -383,33 +405,12 @@ function apply_update(root, update) {
                 } else {
                     el.setAttribute(k, v_str);
                 }
-                attrs_updated = true;
+                attrs_changed = true;
             }
         }
     }
     if (window_title) set_window_title(window_title);
     if (window_location) set_window_location(window_location);
-    let del_attrs = update.del_attrs;
-    if (del_attrs) {
-        for (const k of del_attrs){
-            assert(k != "children", "del_attrs can't del children");
-            if ([
-                "window_title",
-                "window_location"
-            ].includes(k)) {} else {
-                if (k == "text") {
-                    el.innerText = "";
-                } else if (k == "html") {
-                    el.innerHTML = "";
-                } else if (boolean_attr_properties.includes(k)) {
-                    el[k] = false;
-                } else {
-                    el.removeAttribute(k);
-                }
-                attrs_updated = true;
-            }
-        }
-    }
     let set_children = update.set_children, children_updated = [];
     if (set_children) {
         let positions = [];
@@ -447,7 +448,7 @@ function apply_update(root, update) {
         let child = el.children[pos];
         if (child.hasAttribute("flash")) flash(child);
     }
-    if (self_updated || attrs_updated || children_updated.length > 0 || children_deleted) {
+    if (self_updated || attrs_changed || children_updated.length > 0 || children_deleted) {
         let flasheable = el;
         while(flasheable){
             if (flasheable.hasAttribute("flash")) {

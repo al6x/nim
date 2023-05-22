@@ -349,7 +349,31 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
     self_updated = true
   }
 
-  let set_attrs = update.set_attrs, attrs_updated = false
+  // del_attrs should be done before set_attrs,
+  // otherwise case `del_attrs: ['text'], set_attrs: { html: 'some' }` won't work.
+  let attrs_changed = false
+  let del_attrs = update.del_attrs
+  if (del_attrs) {
+    for (const k of del_attrs) {
+      assert(k != "children", "del_attrs can't del children")
+      if (["window_title", "window_location"].includes(k)) {
+        // do nothing
+      } else {
+        if (k == "text") {
+          el.innerText = ""
+        } else if (k == "html") {
+          el.innerHTML = ""
+        } else if (boolean_attr_properties.includes(k)) {
+          (el as any)[k] = false
+        } else {
+          el.removeAttribute(k)
+        }
+        attrs_changed = true
+      }
+    }
+  }
+
+  let set_attrs = update.set_attrs
   let window_title: string | undefined, window_location: string | undefined
   if (set_attrs) {
     for (const k in set_attrs) {
@@ -373,34 +397,13 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
         } else {
           el.setAttribute(k, v_str)
         }
-        attrs_updated = true
+        attrs_changed = true
       }
     }
   }
 
   if (window_title) set_window_title(window_title)
   if (window_location) set_window_location(window_location)
-
-  let del_attrs = update.del_attrs
-  if (del_attrs) {
-    for (const k of del_attrs) {
-      assert(k != "children", "del_attrs can't del children")
-      if (["window_title", "window_location"].includes(k)) {
-        // do nothing
-      } else {
-        if (k == "text") {
-          el.innerText = ""
-        } else if (k == "html") {
-          el.innerHTML = ""
-        } else if (boolean_attr_properties.includes(k)) {
-          (el as any)[k] = false
-        } else {
-          el.removeAttribute(k)
-        }
-        attrs_updated = true
-      }
-    }
-  }
 
   let set_children = update.set_children, children_updated = []
   if (set_children) {
@@ -440,7 +443,7 @@ function apply_update(root: HTMLElement, update: UpdateElement) {
     let child = el.children[pos] as HTMLElement
     if (child.hasAttribute("flash")) flash(child)
   }
-  if (self_updated || attrs_updated || children_updated.length > 0 || children_deleted) {
+  if (self_updated || attrs_changed || children_updated.length > 0 || children_deleted) {
     let flasheable: HTMLElement | null = el // Flashing self or parent element
     while (flasheable) {
       if (flasheable.hasAttribute("flash")) {

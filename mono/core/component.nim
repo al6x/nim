@@ -124,7 +124,7 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   self.after_render
 
   let updates = if self.current_tree.is_some:
-    diff(@[], new_tree, self.current_tree.get)
+    diff(@[], self.current_tree.get, new_tree)
   else:
     @[UpdateElement(el: @[], set: new_tree.to_json.some)]
   self.current_tree = new_tree.some
