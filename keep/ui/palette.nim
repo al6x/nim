@@ -13,41 +13,25 @@ proc nomockup*(class: string): string =
   if palette.mockup_mode: "" else: class
 
 # Common -------------------------------------------------------------------------------------------
-proc IconButton*(icon: string, title = "", size = "w-5 h-5", color = "bg-gray-500"): El =
+proc PIconButton*(icon: string, title = "", size = "w-5 h-5", color = "bg-gray-500"): El =
   let asset_root = if palette.mockup_mode: "" else: "/assets/palette/"
   el"button .block.svg-icon":
     it.class size & " " & color
     unless title.is_empty: it.attr("title", title)
     it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
 
-proc SymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
+proc PSymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
   el"button.block":
     it.class size & " " & color
     it.text sym.to_s
 
-proc TextButton*(text: string, color = "text-blue-800"): El =
+proc PTextButton*(text: string, color = "text-blue-800"): El =
   el"button":
     it.class color
     it.text text
 
-type LRLayout* = ref object of Component
-  left*, right*: seq[El]
-
-proc set_attrs*(self: LRLayout) =
-  discard
-
-proc render*(self: LRLayout): El =
-  el""".w-full .flex {nomockup".min-h-screen"}""":
-    el"$LRLeft .w-9/12": # .z-10
-      it.add self.left
-    el"""$LRRight.w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
-      el".absolute .top-0 .right-0 .m-2 .mt-4":
-        el(IconButton, (icon: "controls"))
-      el"""$LRRight {nomockup".right-panel-content"} .pt-2""":
-        it.add self.right
-
-type MessageKind* = enum info, warn
-proc Message*(text: string, kind: MessageKind = info): El =
+type PMessageKind* = enum info, warn
+proc PMessage*(text: string, kind: PMessageKind = info): El =
   el".m-2 .p-2.rounded.bg-slate-50":
     case kind
     of info: discard
@@ -55,43 +39,42 @@ proc Message*(text: string, kind: MessageKind = info): El =
     it.text text
 
 # Right --------------------------------------------------------------------------------------------
-proc RSection*(title = "", closed = false, content: seq[El]): El =
+proc PRBlock*(title = "", closed = false, content: seq[El]): El =
   el".relative .m-2 .mb-3 flash":
     if closed:
       assert not title.is_empty, "can't have empty title on closed rsection"
       el".text-gray-300":
         it.text title
       el".absolute .top-0 .right-0 .pt-1":
-        el(IconButton, (icon: "left", size: "w-4 h-4", color: "bg-gray-300"))
+        el(PIconButton, (icon: "left", size: "w-4 h-4", color: "bg-gray-300"))
     else:
       if not title.is_empty:
         el".text-gray-300":
           it.text title
       if content.is_empty:
         # Adding invisible button to keep height of control panel the same as with buttons
-        el(IconButton, (icon: "edit")):
+        el(PIconButton, (icon: "edit")):
           it.class("opacity-0")
       else:
         it.add content
 
-
-proc RFavorites*(links: openarray[(string, string)], closed = false): El =
-  el(RSection, (title: "Favorites", closed: closed)):
+proc PFavorites*(links: openarray[(string, string)], closed = false): El =
+  el(PRBlock, (title: "Favorites", closed: closed)):
     for (text, link) in links:
       el"a.block.text-blue-800":
         it.text text
         it.location link
 
-proc RBacklinks*(links: openarray[(string, string)], closed = false): El =
-  el(RSection, (title: "Backlinks", closed: closed)):
+proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
+  el(PRBlock, (title: "Backlinks", closed: closed)):
     for (text, link) in links:
       el"a .block .text-sm .text-blue-800":
         it.text text
         it.location link
 
 type CloudTag* = tuple[text, link: string, size: int]
-proc RTags*(tags: openarray[CloudTag], closed = false): El =
-  el(RSection, (title: "Tags", closed: closed)):
+proc PTags*(tags: openarray[CloudTag], closed = false): El =
+  el(PRBlock, (title: "Tags", closed: closed)):
     el".-mr-1 flash":
       for (text, link, size) in tags:
         let size_class = case size
@@ -105,14 +88,14 @@ proc RTags*(tags: openarray[CloudTag], closed = false): El =
           it.text text
           it.location "#"
 
-proc RSearchField*(text = ""): El =
+proc PSearchField*(text = ""): El =
   el("input .border .rounded .border-gray-300 .px-1 .w-full " &
     ".focus:outline-none .placeholder-gray-500 type=text"):
     it.attr("placeholder", "Search...")
     if not text.is_empty: it.value text
 
-proc RSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
-  el(RSection, (title: "Space", closed: closed)):
+proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
+  el(PRBlock, (title: "Space", closed: closed)):
     el"a .text-blue-800":
       it.text "Finance"
       it.location "#"
@@ -124,10 +107,11 @@ proc RSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
             it.text text
             it.location link
 
-# Note ---------------------------------------------------------------------------------------------
-template inline_controls(controls: seq[El]): auto =
+# Blocks ---------------------------------------------------------------------------------------------
+template inline_controls(controls: seq[El], hover: bool): auto =
   unless controls.is_empty:
-    el"""{nomockup".hidden_controls"}.absolute.right-0.top-1.flex.bg-white .rounded.p-1""":
+    el""".absolute.right-0.top-1.flex.bg-white .rounded.p-1""":
+      if hover and not palette.mockup_mode: it.class "hidden_controls"
       it.style "margin-top: 0;"
       for c in controls: it.add(c)
 
@@ -147,69 +131,51 @@ template inline_tags(tags: seq[string]): auto =
           it.text "#" & tag
           it.location "#"
 
-template note_block(controls: seq[El], warns: seq[string], tags: seq[string], code): auto =
-  el".note_block.flex.flex-col.space-y-1":
+template rblock_layout(controls: seq[El], warns, tags: seq[string], hover: bool, code): auto =
+  el".pblock.flex.flex-col.space-y-1":
+    if hover: it.class "pblock_hover"
     inline_warns(warns)
     code
     inline_tags(tags)
     # Should be the last one, otherwise the first element will have extra margin
-    inline_controls(controls)
+    inline_controls(controls, hover)
 
-proc Note*(
-  title: string, location = "", title_controls = seq[El].init,
-  warns = seq[string].init,
-  tags: seq[string], tags_controls = seq[El].init, tags_warnings = seq[string].init,
-  content: seq[El]
-): El =
-  el".flex.flex-col .space-y-1.mt-2.mb-2":
-    # el"a.block.absolute.left-2 .text-gray-300": # Anchor
-    #   it.class "top-3.5"
-    #   it.text "#"
-    #   it.location "#"
-    note_block(title_controls, warns, @[]): # Title
-      el".text-xl flash":
-        it.text title
-        it.attr("title", location)
-
-    it.add content
-
-    unless tags.is_empty:
-      note_block(tags_controls, tags_warnings, tags): # Tags
-        discard
-
-proc NoteSection*(
+proc PSection*(
   title: string, tags: seq[string] = @[], controls: seq[El] = @[], warns: seq[string] = @[]
 ): El =
-  el".note_block":
+  rblock_layout(controls, warns, tags, true):
     el".text-xl flash": # Title
       it.text title
-    inline_warns(warns)
-    inline_tags(tags)
-    # Should be the last one, otherwise the first element will have extra margin
-    inline_controls(controls)
+  # el".rblock_layout":
+  #   el".text-xl flash": # Title
+  #     it.text title
+  #   inline_warns(warns)
+  #   inline_tags(tags)
+  #   # Should be the last one, otherwise the first element will have extra margin
+  #   inline_controls(controls)
 
-proc NoteTextBlock*(
+proc PTextBlock*(
   html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
-  note_block(controls, warns, tags):
+  rblock_layout(controls, warns, tags, true):
     el".ftext flash": # Body
       it.attr("html", html)
 
-proc NoteListBlock*(
+proc PListBlock*(
   html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
-  note_block(controls, warns, tags):
+  rblock_layout(controls, warns, tags, true):
     el".ftext flash": # Body
       it.attr("html", html)
 
-proc NoteCodeBlock*(
+proc PCodeBlock*(
   code: string, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
-  note_block(controls, warns, tags):
+  rblock_layout(controls, warns, tags, true):
     el".ftext flash": # Body
       it.attr("html", "<pre>" & code.escape_html & "</pre>")
 
-proc NoteImagesBlock*(
+proc PImagesBlock*(
   images: seq[string], controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
   template render_td =
@@ -228,7 +194,7 @@ proc NoteImagesBlock*(
               it.attr("src", images[i])
               i.inc
 
-  note_block(controls, warns, tags):
+  rblock_layout(controls, warns, tags, true):
     if images.len <= 4:
       el"table cellspacing=0 cellpadding=0 flash": # removing cell borders
         el"tdata":
@@ -247,7 +213,7 @@ proc NoteImagesBlock*(
                 render_td()
 
 # Search -------------------------------------------------------------------------------------------
-proc SearchItem*(title, subtitle, before, match, after: string): El =
+proc PSearchItem*(title, subtitle, before, match, after: string): El =
   el".pl-8.pr-8 .mb-2":
     el"span .text-gray-500":
       el"span":
@@ -267,10 +233,10 @@ proc SearchItem*(title, subtitle, before, match, after: string): El =
           it.text title
           it.location "#"
 
-proc Search*(title = "Found", more: int, content: seq[El]): El =
+proc PSearch*(title = "Found", more: int, content: seq[El]): El =
   el".pt-3.pb-3":
     el".float-right.mr-8.mt-1":
-      el(IconButton, (icon: "cross"))
+      el(PIconButton, (icon: "cross"))
     el".pl-8.mb-2 .text-xl":
       it.text title
     el"":
@@ -278,8 +244,44 @@ proc Search*(title = "Found", more: int, content: seq[El]): El =
 
     if more > 0:
       el".pl-8.pr-8.mb-2.float-right":
-        el(TextButton, (text: fmt"{more} more"))
+        el(PTextButton, (text: fmt"{more} more"))
 
+# PApp ---------------------------------------------------------------------------------------------
+proc layout*(left, right: seq[El]): El =
+  el""".w-full .flex {nomockup".min-h-screen"}""":
+    el"$PLeft .w-9/12":
+      it.add left
+    el""".w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
+      # el".absolute .top-0 .right-0 .m-2 .mt-4":
+      #   el(PIconButton, (icon: "controls"))
+      el"""$PRight {nomockup".right-panel-content"} .pt-2""":
+        it.add right
+
+proc PApp*(
+  title: string, title_hint = "", title_controls = seq[El].init,
+  warns = seq[string].init,
+  tags: seq[string] = @[], tags_controls = seq[El].init, tags_warnings = seq[string].init,
+  right: seq[El] = @[],
+  content: seq[El]
+): El =
+  let left =
+    el".flex.flex-col .space-y-1.mt-2.mb-2":
+      # el"a.block.absolute.left-2 .text-gray-300": # Anchor
+      #   it.class "top-3.5"
+      #   it.text "#"
+      #   it.location "#"
+      rblock_layout(title_controls, warns, @[], false): # Title
+        el".text-xl flash":
+          it.text title
+          it.attr("title", title_hint)
+
+      it.add content
+
+      unless tags.is_empty:
+        rblock_layout(tags_controls, tags_warnings, tags, true): # Tags
+          discard
+
+  layout(@[left], right)
 
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
@@ -287,7 +289,7 @@ proc MockupSection*(title: string, content: seq[El]): El =
     el".relative.ml-5 .text-2xl":
       it.text title
     # el".absolute.right-5.top-3":
-    #   el(IconButton, (icon: "code"))
+    #   el(PIconButton, (icon: "code"))
     el".border .border-gray-300 .rounded .m-5 .mt-1":
       it.add content
 
@@ -313,70 +315,67 @@ proc render_mockup: seq[El] =
   palette = Palette.init(mockup_mode = true)
 
   let controls_stub = @[
-    el(IconButton, (icon: "edit")),
-    el(IconButton, (icon: "controls"))
+    el(PIconButton, (icon: "edit")),
+    el(PIconButton, (icon: "controls"))
   ]
 
   mockup_section("Note"):
-    el(LRLayout, ()):
+    let right = els:
+      el(PRBlock, ()):
+        el(PIconButton, (icon: "edit"))
+      el(PRBlock, ()):
+        el(PSearchField, ())
+      el(PFavorites, (links: data.links))
+      el(PTags, (tags: data.tags))
+      el(PSpaceInfo, (warns: @[("12 warns", "/warns")]))
+      el(PBacklinks, (links: data.links))
+      el(PRBlock, (title: "Other", closed: true))
 
-      it.left = els:
-        el(Note, (title: "About Forex", title_controls: controls_stub, tags: data.note_tags,
-          tags_controls: controls_stub)):
-          # el(NoteSection, ())
-          el(NoteTextBlock, (html: data.text_block1_html))
-          el(NoteSection, (title: "Trends are down", tags: @["Finance", "Trading"]))
-          el(NoteTextBlock, (html: data.text_block2_html, controls: controls_stub))
-          el(NoteSection, (title: "Additional consequences of those 3 main issues", controls: controls_stub))
-          el(NoteListBlock, (html: data.list_block1_html, warns: @["Invalid tag #some", "Invalid link /some"]))
-
-      it.right = els:
-        el(RSection, ()):
-          el(IconButton, (icon: "edit"))
-        el(RSection, ()):
-          el(RSearchField, ())
-        el(RFavorites, (links: data.links))
-        el(RTags, (tags: data.tags))
-        el(RSpaceInfo, (warns: @[("12 warns", "/warns")]))
-        el(RBacklinks, (links: data.links))
-        el(RSection, (title: "Other", closed: true))
+    el(PApp, (
+      title: "About Forex", title_controls: controls_stub,
+      tags: data.note_tags, tags_controls: controls_stub,
+      right: right
+    )):
+      # el(PSection, ())
+      el(PTextBlock, (html: data.text_block1_html))
+      el(PSection, (title: "Trends are down", tags: @["Finance", "Trading"]))
+      el(PTextBlock, (html: data.text_block2_html, controls: controls_stub))
+      el(PSection, (title: "Additional consequences of those 3 main issues", controls: controls_stub))
+      el(PListBlock, (html: data.list_block1_html, warns: @["Invalid tag #some", "Invalid link /some"]))
 
   mockup_section("Text"):
-    el(LRLayout, ()):
-      it.left = els:
-        el(Note, (title: "About Forex", tags: data.note_tags)):
-          # el(NoteSection, ())
-          el(NoteTextBlock, (html: data.text_block_with_image_html))
-          el(NoteSection, (title: "Additional consequences of those 3 main issues"))
-          el(NoteListBlock, (html: data.list_block1_html))
-          el(NoteCodeBlock, (code: data.code_block1))
-          el(NoteTextBlock, (html: data.text_block1_html))
-          el(NoteImagesBlock, (images: data.knots[0..3], tags: @["Knots", "Bushcraft"]))
-          el(NoteListBlock, (html: data.list_block1_html))
-          el(NoteImagesBlock, (images: data.knots))
-          el(NoteListBlock, (html: data.list_block1_html))
+    el(PApp, (title: "About Forex", tags: data.note_tags)):
+      el(PTextBlock, (html: data.text_block_with_image_html))
+      el(PSection, (title: "Additional consequences of those 3 main issues"))
+      el(PListBlock, (html: data.list_block1_html))
+      el(PCodeBlock, (code: data.code_block1))
+      el(PTextBlock, (html: data.text_block1_html))
+      el(PImagesBlock, (images: data.knots[0..3], tags: @["Knots", "Bushcraft"]))
+      el(PListBlock, (html: data.list_block1_html))
+      el(PImagesBlock, (images: data.knots))
+      el(PListBlock, (html: data.list_block1_html))
 
   mockup_section("Search"):
-    el(LRLayout, ()):
-      it.right = els:
-        el(RSection, ()) # Adding empty controls, to keep search field same distance from the top
-        el(RSection, ()):
-          el(RSearchField, (text: "finance/ About Forex"))
+    let right = els:
+      el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
+        el(PRBlock, ()):
+          el(PSearchField, (text: "finance/ About Forex"))
 
-      it.left = els:
-        el(Search, (title: "Found", more: 23)):
-          for i in 1..6:
-            el(SearchItem, (
-              title: "Risk Simulation",
-              subtitle: "",
-              before: "there are multiple reasons to",
-              match: "About Forex",
-              after: "Every single of those reasons is big enough to stay away from " &
-                "such investment. Forex has all of them"
-            ))
+    el(PApp, (title: "Search", right: right)):
+      el(PSearch, (title: "Found", more: 23)):
+        for i in 1..6:
+          el(PSearchItem, (
+            title: "Risk Simulation",
+            subtitle: "",
+            before: "there are multiple reasons to",
+            match: "About Forex",
+            after: "Every single of those reasons is big enough to stay away from " &
+              "such investment. Forex has all of them"
+          ))
 
   mockup_section("Misc"):
-    el(Message, (text: "Some top level message"))
+    el(PApp, (title: "Misc")):
+      el(PMessage, (text: "Some top level message"))
 
 when is_main_module:
   let html = """
@@ -489,11 +488,11 @@ proc stub_data: StubData =
   result.code_block1 = """
     palette = Palette.init(mockup_mode = true)
     mockup_section("Text"):
-      el(LRLayout, ()):
+      el(PApp, ()):
         it.left = els:
           el(Note, (title: "About Forex", tags: data.note_tags)):
-            el(NoteSection, ()):
-              el(NoteTextBlock, (html: data.text_block_with_image_html))
+            el(PSection, ()):
+              el(PTextBlock, (html: data.text_block_with_image_html))
   """.dedent.trim
 
   let dir = current_source_path().parent_dir.absolute_path

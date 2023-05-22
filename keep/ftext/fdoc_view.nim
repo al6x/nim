@@ -1,11 +1,6 @@
 import base, mono/core, std/osproc
 import ../core/spacem, ./fdoc_head, ftext/core as _, ./helpers, ../ui/palette as pl, ./fblocks_views
 
-proc FSectionView(doc: FDoc, section: FSection): El =
-  let edit = el(IconButton, (icon: "edit", title: "Edit")):
-    it.on_click proc = open_editor(doc.location, section.line_n)
-  el(NoteSection, (title: section.title, tags: section.tags, controls: @[edit]))
-
 type FDocView* = ref object of Component
   space*: Space
   doc*:   FDocHead
@@ -16,26 +11,23 @@ proc set_attrs*(self: FDocView, space: Space, doc: FDocHead) =
 proc render*(self: FDocView): El =
   let head = self.doc; let doc = self.doc.doc
 
-  let edit_title = el(IconButton, (icon: "edit", title: "Edit")):
-    it.on_click proc = open_editor(doc.location)
-  let edit_tags = el(IconButton, (icon: "edit", title: "Edit")):
-    it.on_click proc = open_editor(doc.location, doc.tags_line_n)
+  let edit_title = edit_btn(doc.location)
+  let edit_tags  = edit_btn(doc.location, doc.tags_line_n)
 
-  result = el(LRLayout, ()):
-    it.left = els:
-      el(Note, (
-        title: doc.title, location: doc.location, title_controls: @[edit_title],
-        tags: doc.tags, tags_controls: @[edit_tags]
-      )):
-        for warn in doc.warns: # Doc warns
-          el(Message, (text: warn, kind: MessageKind.warn))
+  result = el(PApp, ( # App
+    title: doc.title, title_hint: doc.location, title_controls: @[edit_title],
+    tags: doc.tags, tags_controls: @[edit_tags]
+  )):
+    for warn in doc.warns: # Doc warns
+      el(PMessage, (text: warn, kind: PMessageKind.warn))
 
-        for section in doc.sections: # Sections
-          unless section.title.is_empty:
-            el(FSectionView, (doc: doc, section: section))
+    for section in doc.sections: # Sections
+      unless section.title.is_empty:
+        let edit_section = edit_btn(doc.location, section.line_n)
+        el(PSection, (title: section.title, tags: section.tags, controls: @[edit_section]))
 
-          for blk in section.blocks: # Blocks
-            add_or_return blk.render_fblock(doc, self.space, parent = self)
+      for blk in section.blocks: # Blocks
+        add_or_return blk.render_fblock(doc, self.space, parent = self)
 
   result.window_title doc.title
 

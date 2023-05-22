@@ -1,3 +1,19 @@
+type PLayout* = ref object of Component
+  left*, right*: seq[El]
+
+proc set_attrs*(self: PLayout) =
+  discard
+
+proc render*(self: PLayout): El =
+  el""".w-full .flex {nomockup".min-h-screen"}""":
+    el"$PLeft .w-9/12":
+      it.add self.left
+    el""".w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
+      # el".absolute .top-0 .right-0 .m-2 .mt-4":
+      #   el(PIconButton, (icon: "controls"))
+      el"""$PRight {nomockup".right-panel-content"} .pt-2""":
+        it.add self.right
+
 # Templates
 
 - Difference with HTML Templates

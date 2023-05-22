@@ -4,18 +4,19 @@
 
 .hidden_controls { display: none; }
 
-.note_block {
-  @apply px-8; @apply py-1;
+.pblock {
+  @apply pr-8; @apply py-1; @apply pl-6; @apply ml-2;
   position: relative; border-top: 1px solid white; border-bottom: 1px solid white;
 }
-.note_block:hover { @apply border-gray-200; }
-.note_block:hover .hidden_controls { display: block; }
-.note_block:after {
+
+.pblock_hover:hover { @apply border-gray-200; }
+.pblock_hover:hover .hidden_controls { display: block; }
+.pblock_hover:after {
   @apply bg-gray-200;
   position: absolute; margin: 0 !important; display: none; content: '';
   top: 0; bottom: 0; left: 0; width: 5px;
 }
-.note_block:hover:after { display: block; }
+.pblock_hover:hover:after { display: block; }
 
 
 .svg-icon {

@@ -17,7 +17,7 @@ proc on_location*(self: AppView, url: Url) =
 proc render_home(self: AppView): El =
   let h = db.home
   if h.is_none:
-    el(Message, (text: "Home page not defined, add #home tag to any page you want to used as home page"))
+    el(PMessage, (text: "Home page not defined, add #home tag to any page you want to used as home page"))
   else:
     render_doc(h.get.doc, h.get.space, parent = self)
 
@@ -28,9 +28,9 @@ proc render_doc_helper(self: AppView, sid, did: string): El =
       let doc = space.docs[did]
       render_doc(doc, space, parent = self)
     else:
-      el(Message, (text: fmt"Doc not found, {sid}/{did}"))
+      el(PMessage, (text: fmt"Doc not found, {sid}/{did}"))
   else:
-    el(Message, (text: fmt"Space not found, {sid}"))
+    el(PMessage, (text: fmt"Space not found, {sid}"))
 
 proc render_search(self: AppView): El =
   el(""):

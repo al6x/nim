@@ -28,11 +28,11 @@ probably lots of transactions and lots of fees. ^text
 
 palette = Palette.init(mockup_mode = true)
 mockup_section("Text"):
-  el(LRLayout, ()):
+  el(App, ()):
     it.left = els:
       el(Note, (title: "About Forex", tags: data.note_tags)):
-        el(NoteSection, ()):
-          el(NoteTextBlock, (html: data.text_block_with_image_html)) ^code
+        el(Section, ()):
+          el(TextBlock, (html: data.text_block_with_image_html)) ^code
 
 There are multiple reasons to About Forex. Every single of those reasons is big enough to stay away
 from such investment. Forex has all of them. ^text
