@@ -93,7 +93,7 @@ proc render*(self: BlogView): El =
 when is_main_module:
   import mono/http, std/os
 
-  let page: AppPage = proc(root_el: JsonNode): string =
+  let page: PageFn = proc(root_el: JsonNode): string =
     """
       <!DOCTYPE html>
       <html>
@@ -126,12 +126,11 @@ when is_main_module:
     Post(id: "3", title: "Title 3", text: "Text 3"),
   ])
 
-  proc build_app(url: Url): tuple[page: AppPage, app: AppFn] =
+  proc build_app(session: Session, url: Url) =
     let blog_view = BlogView(blog: blog)
 
-    let app: AppFn = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
+    session.page = page
+    session.app  = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
       blog_view.process(events, mono_id)
-
-    (page, app)
 
   run_http_server(build_app, port = 2000)

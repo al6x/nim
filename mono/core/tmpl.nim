@@ -13,7 +13,8 @@ template els*(code): seq[El] =
     it_content
 
 # html el ------------------------------------------------------------------------------------------
-template add_or_return*(e: El): auto =
+template add_or_return*(e_arg: El): auto =
+  let e = e_arg
   assert not e.is_nil
   # Order is important, first `it` should be checked, see "nesting, from error" test case
   when compiles(it.add(e)):         it.add(e)

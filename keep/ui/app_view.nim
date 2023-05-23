@@ -22,30 +22,24 @@ proc render_home(self: AppView): El =
     render_doc(h.get.doc, h.get.space, parent = self)
 
 proc render_doc_helper(self: AppView, sid, did: string): El =
-  if sid in db.spaces:
-    let space = db.spaces[sid]
-    if did in space.docs:
-      let doc = space.docs[did]
-      render_doc(doc, space, parent = self)
-    else:
-      el(PMessage, (text: fmt"Doc not found, {sid}/{did}"))
-  else:
-    el(PMessage, (text: fmt"Space not found, {sid}"))
+  let found = db.get(sid, did)
+  if found.is_none: return el(PMessage, (text: fmt"Not found"))
+  let (space, doc) = found.get
+  doc.render_doc(space, parent = self)
 
 proc render_search(self: AppView): El =
-  el(""):
-    it.text "Search not impl"
+  el("", it.text "Search not impl")
 
 proc render_unknown(self: AppView): El =
-  el(""):
-    it.text "Unknown not impl"
+  el("", it.text "Unknown not impl")
 
 proc render*(self: AppView): El =
   let l = self.location
   case l.kind
   of LocationKind.home: self.render_home
-  of doc:               self.render_doc_helper(l.space, l.doc)
+  of doc:               self.render_doc_helper(l.sid, l.did)
   of search:            self.render_search
+  of asset:             throw "asset should never happen in render"
   of unknown:           self.render_unknown
 
 proc on_timer*(self: AppView): bool =
@@ -58,7 +52,19 @@ proc on_timer*(self: AppView): bool =
     self.on_timer_db_version = db.version.some
     true
 
-let page: AppPage = proc(root_el: JsonNode): string =
+proc on_binary*(self: AppView, url: Url): BinaryResponse =
+  let l = Location.parse url
+  if l.kind == asset:
+    let found = db.get(l.sid, l.did)
+    if found.is_none:
+      http_response(content = "Asset not found", code = 404)
+    else:
+      let (space, doc) = found.get
+      doc.serve_asset(space, l.asset)
+  else:
+    http_response "Invalid asset path", 400
+
+let page: PageFn = proc(root_el: JsonNode): string =
   """
     <!DOCTYPE html>
     <html>
@@ -82,14 +88,14 @@ let page: AppPage = proc(root_el: JsonNode): string =
     .replace("{title}", root_el.window_title.escape_html)
     .replace("{html}", root_el.to_html(comments = true))
 
-
-proc build_app_view*(url: Url): tuple[page: AppPage, app: AppFn] =
+proc build_app_view*(session: Session, url: Url) =
   let app_view = AppView()
 
-  let app_fn: AppFn = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
+  session.page = page
+  session.app  = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
     app_view.process(events, mono_id)
-
-  (page, app_fn)
+  session.on_binary = (proc(url: Url): BinaryResponse =
+    app_view.on_binary(url)).some
 
 proc build_app_view_asset_paths*(): seq[string] =
   let dir = current_source_path().parent_dir.absolute_path

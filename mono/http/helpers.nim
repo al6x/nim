@@ -1,7 +1,8 @@
 import base, ext/[url, async]
 import std/[deques, httpcore, asynchttpserver, asyncnet, os]
 
-let mime* = (ref Table[string, string])()
+type Mime* = ref Table[string, string]
+let mime* = Mime()
 mime["js"]   = "text/javascript; charset=UTF-8"
 mime["css"]  = "text/css; charset=UTF-8"
 mime["svg"]  = "image/svg+xml"
@@ -31,12 +32,22 @@ proc read_asset_file*(asset_paths: seq[string], path: string): Option[string] =
     if fs.exist(try_path):
       return fs.read(try_path).some
 
+proc get_for_path*(mime: Mime, path: string): string =
+  var (_, _, ext) = path.split_file
+  ext = ext.replace(re"^\.", "")
+  mime[].get(ext, "text/html")
+
 proc serve_asset_file*(req: Request, asset_paths: seq[string], url: Url): Future[void] {.async.} =
   let data = read_asset_file(asset_paths, url.path_as_s.replace("/assets/", "/"))
   if data.is_some:
-    var (dir, name, ext) = url.path_as_s.split_file
-    ext = ext.replace(re"^\.", "")
-    await req.respond(data.get, mime[].get(ext, "text/html"))
+    await req.respond(data.get, mime.get_for_path(url.path_as_s))
+  else:
+    await req.respond(Http404, "Not found")
+
+proc serve_file*(req: Request, path: string): Future[void] {.async.} =
+  assert path.starts_with "/", "path should be absolute"
+  if fs.exist(path):
+    await req.respond(fs.read(path), mime.get_for_path(path))
   else:
     await req.respond(Http404, "Not found")
 

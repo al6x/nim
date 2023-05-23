@@ -132,7 +132,6 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   if updates.is_empty: @[]
   else:                @[OutEvent(kind: update, updates: updates)]
 
-
 # initial_root_el ----------------------------------------------------------------------------------
 proc initial_root_el*(events: seq[OutEvent]): JsonNode =
   assert events.len == 1, "to_html can't convert more than single event"

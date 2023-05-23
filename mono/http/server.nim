@@ -5,16 +5,15 @@ import ./helpers, ../core
 let http_log = Log.init "http"
 
 # Apps ---------------------------------------------------------------------------------------------
-type AppPage*  = proc(initial_root_el: JsonNode): string
-type BuildApp* = proc (url: Url): tuple[page: AppPage, app: AppFn]
+type BuildApp* = proc (session: Session, url: Url)
 
 proc handle_app_load(
   req: Request, sessions: Sessions, url: Url, build_app: BuildApp, asset_paths: seq[string],
 ): Future[void] {.async.} =
   # Creating session, initial location event and serving app.html
-  let (page, app) = build_app url
   let mono_id = secure_random_token(6)
-  let session = Session.init(mono_id, app)
+  let session = Session.init(mono_id)
+  build_app(session, url)
   sessions[][mono_id] = session
   session.log.info "created"
   let location = InEvent(kind: location, location: url)
@@ -28,7 +27,7 @@ proc handle_app_load(
   session.outbox.clear
   session.log.info ">> initial html"
 
-  await req.respond(page(root_el), "text/html; charset=UTF-8")
+  await req.respond(session.page(root_el), "text/html; charset=UTF-8")
 
 proc handle_app_in_event(req: Request, session: Session, events: seq[InEvent]): Future[void] {.async.} =
   # Processing happen in another async process, it's inefficient but help to avoid messy async error stack traces.
@@ -52,6 +51,22 @@ proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[v
       break
     await sleep_async 1
 
+proc handle_on_binary(req: Request, mono_id: string, url: Url, sessions: Sessions): Future[void] {.async.} =
+  if mono_id notin sessions[]:
+    await req.respond(Http500, "Session expired")
+  else:
+    let session = sessions[][mono_id]
+    if session.on_binary.is_some:
+      let binary = (session.on_binary.get)(url)
+      case binary.kind
+      of BinaryResponseKind.file:
+        await req.serve_file(binary.path)
+      of BinaryResponseKind.http:
+        await req.respond(HttpCode(binary.code), binary.content, new_http_headers(binary.headers))
+    else:
+      session.log.error("on_binary not defined")
+      await req.respond(Http500, "Error, on_binary not defined")
+
 proc build_http_handler(
   sessions: Sessions, build_app: BuildApp, asset_paths: seq[string], pull_timeout_ms: int
 ): auto =
@@ -63,6 +78,8 @@ proc build_http_handler(
       elif path_s == "/favicon.ico":
         # await req.respond(Http404, "")
         await req.serve_asset_file(asset_paths, url)
+      elif "mono_id" in url.params:
+        await req.handle_on_binary(url.params["mono_id"], url, sessions)
       else:
         await req.handle_app_load(sessions, url, build_app, asset_paths)
     elif req.req_method == HttpPost: # POST

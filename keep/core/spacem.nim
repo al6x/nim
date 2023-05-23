@@ -39,6 +39,9 @@ proc log*(self: Space): Log =
 method render_doc*(doc: Doc, space: Space, parent: Component): El {.base.} =
   throw "not implemented"
 
+method serve_asset*(doc: Doc, space: Space, asset: string): BinaryResponse {.base.} =
+  throw "not implemented"
+
 proc init*(_: type[Space], id: string, version = 0): Space =
   Space(id: id, version: version)
 

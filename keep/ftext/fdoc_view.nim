@@ -33,3 +33,6 @@ proc render*(self: FDocView): El =
 
 method render_doc*(doc: FDocHead, space: Space, parent: Component): El =
   parent.el(FDocView, fmt"{space.id}/{doc.id}", (space: space, doc: doc))
+
+method serve_asset*(doc: FDocHead, space: Space, asset_rpath: string): BinaryResponse =
+  file_response asset_path(doc.doc, asset_rpath)

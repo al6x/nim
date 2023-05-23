@@ -153,7 +153,7 @@ when is_main_module:
   # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView
   import mono/http, std/os
 
-  let page: AppPage = proc(root_el: JsonNode): string =
+  let page: PageFn = proc(root_el: JsonNode): string =
     # Feature: content and title in initial HTML page to improve SEO.
     """
       <!DOCTYPE html>
@@ -183,14 +183,13 @@ when is_main_module:
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk")])
 
-  proc build_app(url: Url): tuple[page: AppPage, app: AppFn] =
+  proc build_app(session: Session, url: Url) =
     let todo_view = TodoView()
     todo_view.set_attrs(todo = todo)
 
-    let app: AppFn = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
+    session.page = page
+    session.app  = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
       todo_view.process(events, mono_id)
-
-    (page, app)
 
   # Path to folder with CSS styles and images
   let assets_path = current_source_path().parent_dir.absolute_path
