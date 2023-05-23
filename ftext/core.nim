@@ -80,3 +80,16 @@ type
 
   FUnknownBlock* = ref object of FBlock
     raw*: string
+
+proc init*(_: type[FDoc], location: string): FDoc =
+  assert location.ends_with ".ft"
+  let id = location.file_name.file_name_ext.name
+  # space_path: location.parent_dir
+  FDoc(id: id, title: id, location: location, asset_path: location[0..^4])
+
+proc fdoc_asset_path*(fdoc_asset_path, relative_path: string): string =
+  assert not relative_path.starts_with '/'
+  fdoc_asset_path & "/" & relative_path
+
+proc asset_path*(doc: FDoc, relative_path: string): string =
+  fdoc_asset_path(doc.asset_path, relative_path)

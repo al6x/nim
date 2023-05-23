@@ -197,20 +197,21 @@ proc PImagesBlock*(
   rblock_layout(controls, warns, tags, true):
     if images.len <= 4:
       el"table cellspacing=0 cellpadding=0 flash": # removing cell borders
-        el"tdata":
-          el"tr":
-            var i = 0
-            for col in 0..(images.high * 2 - 2):
-              render_td()
+        # el"tdata":
+        el"tr":
+          var i = 0
+          for col in 0..(images.high * 2 - 2):
+            render_td()
     else:
       el"table cellspacing=0 cellpadding=0 flash":
-        it.style "border-spacing: 0 0.6rem; border-collapse: separate;" # setting margin after each row
-        el"tdata":
-          var i = 0
-          for row in 0..(images.len / 4).floor.int:
-            el"tr":
-              for col in 0..6:
-                render_td()
+        # setting margin after each row
+        it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
+        # el"tdata":
+        var i = 0
+        for row in 0..(images.len / 4).floor.int:
+          el"tr":
+            for col in 0..6:
+              render_td()
 
 # Search -------------------------------------------------------------------------------------------
 proc PSearchItem*(title, subtitle, before, match, after: string): El =

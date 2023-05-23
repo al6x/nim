@@ -37,11 +37,9 @@ type Session* = ref object
 
 var session* {.threadvar.}: Session
 template with_session*(s: Session, code) =
-  try:
-    session = s
-    code
-  finally:
-    session = nil
+  session = s
+  defer: session = nil
+  code
 
 proc init*(_: type[Session], mono_id: string, app: AppFn): Session =
   Session(id: mono_id, app: app, last_accessed_ms: timer_ms())
@@ -69,8 +67,3 @@ proc collect_garbage*(self: Sessions, session_timeout_ms: int) =
 
 proc add_timer_event*(self: Sessions) =
   for id, session in self: session.inbox.add(InEvent(kind: timer))
-
-
-# proc to(e: OutEvent, _: type[SessionPostEvent]): SessionPostEvent =
-#   assert e.kind == eval
-#   PullEvent(kind: eval, code: e.code)

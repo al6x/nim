@@ -279,3 +279,76 @@ proc to_html*(els: openarray[El], indent = "", comments = false): string =
 proc window_title*(el: JsonNode): string =
   assert el.kind == JObject, "to_html element data should be JObject"
   if "window_title" in el: el["window_title"].get_str else: ""
+
+# attrs --------------------------------------------------------------------------------------------
+proc attr*[T](self: El, k: string, v: T) =
+  self.attrs[k] = v.to_json
+
+proc value*[T](self: El, v: T) =
+  self.attr("value", v)
+
+proc text*[T](self: El, text: T) =
+  self.attr("text", text)
+
+proc style*(self: El, style: string) =
+  self.attr("style", style)
+
+proc class*(self: El, class: string) =
+  let class = if "class" in self.attrs: self.attrs["class"].get_str & " " & class else: class
+  self.attr "class", class
+
+proc location*[T](self: El, location: T) =
+  self.attr("href", location.to_s)
+
+proc window_title*(self: El, title: string) =
+  self.attr("window_title", title)
+
+proc window_location*[T](self: El, location: T) =
+  self.attr("window_location", location.to_s)
+
+# events -------------------------------------------------------------------------------------------
+proc extras_getset*(self: El): ElExtras =
+  if self.extras.is_none: self.extras = ElExtras().some
+  self.extras.get
+
+proc init*(_: type[SetValueHandler], handler: (proc(v: string)), delay: bool): SetValueHandler =
+  SetValueHandler(handler: handler, delay: delay)
+
+template bind_to*(element: El, variable, delay) =
+  let el = element
+  el.value variable
+
+  el.extras_getset.set_value = SetValueHandler.init(
+    (proc(v: string) {.closure.} =
+      variable = typeof(variable).parse v
+      el.attrs["value"] = variable.to_json # updating value on the element, to avoid it being detected by diff
+    ),
+    delay
+  ).some
+
+template bind_to*(element: El, variable) =
+  bind_to(element, variable, false)
+
+proc on_click*(self: El, fn: proc(e: ClickEvent)) =
+  self.extras_getset.on_click = fn.some
+
+proc on_click*(self: El, fn: proc()) =
+  self.extras_getset.on_click = (proc(e: ClickEvent) = fn()).some
+
+proc on_dblclick*(self: El, fn: proc(e: ClickEvent)) =
+  self.extras_getset.on_dblclick = fn.some
+
+proc on_dblclick*(self: El, fn: proc()) =
+  self.extras_getset.on_dblclick = (proc(e: ClickEvent) = fn()).some
+
+proc on_keydown*(self: El, fn: proc(e: KeydownEvent)) =
+  self.extras_getset.on_keydown = fn.some
+
+proc on_change*(self: El, fn: proc(e: ChangeEvent)) =
+  self.extras_getset.on_change = fn.some
+
+proc on_blur*(self: El, fn: proc(e: BlurEvent)) =
+  self.extras_getset.on_blur = fn.some
+
+proc on_blur*(self: El, fn: proc()) =
+  self.extras_getset.on_blur = (proc(e: BlurEvent) = fn()).some

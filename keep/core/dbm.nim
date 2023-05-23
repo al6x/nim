@@ -36,3 +36,10 @@ template build_db_process_cb*(db): auto =
   proc =
     db_process()
     db_bgjobs()
+
+proc get*(db: Db, sid, did: string): Option[(Space, Doc)] =
+  if sid in db.spaces:
+    let space = db.spaces[sid]
+    if did in space.docs:
+      let doc = space.docs[did]
+      return (space, doc).some

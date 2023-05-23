@@ -59,3 +59,8 @@ var new_tree: El =
     rendered[0]
   else:
     rendered
+
+template with_session*(s: Session, code) =
+  session = s
+  defer: session = nil
+  code
