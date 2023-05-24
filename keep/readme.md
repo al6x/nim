@@ -1,6 +1,9 @@
 # Todo
 
-- Make photo and search
+- Add bin/release for base, ext, ftext
+- Make video about parser FText
+- Make image, ask on StackOv abotu trigram search
+- Make search
 - Serve file space/doc.method-serve_file(rel_doc_path): tuple[path, mime]
 - search list
 - Move edit button to section right, `vscode -g fpath:line`
@@ -12,7 +15,8 @@
 
 # Features
 
-- Integrate other tools and data
+- Extensible, different spaces, docs, blocks, actions
+- Integrates other tools and data
 - In search it's posible to control if show doc or block, by adding `block forest` doc by default.
 - Each block has same UI, two lines top and bottom
 - It's possible to create virtual docs, as search term, a sequence of blocks.
