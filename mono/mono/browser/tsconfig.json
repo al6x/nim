@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "strict": true,
+    "strictPropertyInitialization": true,
+    "lib": [
+      "es2018",
+      "dom",
+      // "dom.iterable"
+    ]
+  }
+}
