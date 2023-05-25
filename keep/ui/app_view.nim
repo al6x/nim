@@ -17,13 +17,14 @@ proc on_location*(self: AppView, url: Url) =
 proc render_home(self: AppView): El =
   let h = db.home
   if h.is_none:
-    el(PMessage, (text: "Home page not defined, add #home tag to any page you want to used as home page"))
+    let text = "Home page not defined, add #home tag to any page you want to used as home page"
+    el(PMessage, (text: text, top: true))
   else:
     render_doc(h.get.doc, h.get.space, parent = self)
 
 proc render_doc_helper(self: AppView, sid, did: string): El =
   let found = db.get(sid, did)
-  if found.is_none: return el(PMessage, (text: fmt"Not found"))
+  if found.is_none: return el(PMessage, (text: fmt"Not found", top: true))
   let (space, doc) = found.get
   doc.render_doc(space, parent = self)
 

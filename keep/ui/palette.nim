@@ -1,5 +1,6 @@
 import base, mono/core, std/os, ftext/[core, parse]
 import ftext/render except El, el, els
+import std/macros
 
 # Support ------------------------------------------------------------------------------------------
 type Palette* = ref object
@@ -32,8 +33,9 @@ proc PTextButton*(text: string, color = "text-blue-800"): El =
     it.text text
 
 type PMessageKind* = enum info, warn
-proc PMessage*(text: string, kind: PMessageKind = info): El =
-  el".m-2 .p-2.rounded.bg-slate-50":
+proc PMessage*(text: string, kind: PMessageKind = info, top = false): El =
+  el".p-2.rounded.bg-slate-50":
+    if top: it.class "m-5"
     case kind
     of info: discard
     of warn: it.class "text-orange-800"
@@ -133,10 +135,15 @@ template inline_tags(tags: seq[(string, string)]) =
           it.text "#" & tag
           it.location link
 
-template block_layout(
-  warns: seq[string], controls: seq[El], tags: seq[(string, string)], hover: bool, code
-): auto =
+template block_layout(code: untyped): auto =
   el".pblock.flex.flex-col.space-y-1":
+    code
+
+template block_layout(
+  warns_arg: untyped, controls: seq[El], tags: seq[(string, string)], hover: bool, code
+): auto =
+  let warns: seq[string] = warns_arg # otherwise it clashes with template overriding
+  block_layout:
     if hover: it.class "pblock_hover"
     inline_warns(warns)
     code
@@ -296,39 +303,31 @@ proc render_mockup: seq[El] =
         for blk in section.blocks: # Blocks
           el(FBlock, (blk: blk, context: context, controls: controls_stub))
 
-  # mockup_section("Text"):
-  #   el(PApp, (title: "About Forex", tags: data.note_tags)):
-  #     el(PTextBlock, (html: data.text_block_with_image_html))
-  #     el(PSection, (title: "Additional consequences of those 3 main issues"))
-  #     el(PListBlock, (html: data.list_block1_html))
-  #     el(PCodeBlock, (code: data.code_block1))
-  #     el(PTextBlock, (html: data.text_block1_html))
-  #     el(PImagesBlock, (images: data.knots[0..3], tags: @["Knots", "Bushcraft"]))
-  #     el(PListBlock, (html: data.list_block1_html))
-  #     el(PImagesBlock, (images: data.knots))
-  #     el(PListBlock, (html: data.list_block1_html))
+  mockup_section("Search"):
+    let right = els:
+      el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
+        el(PRBlock, ()):
+          el(PSearchField, (text: "finance/ About Forex"))
 
-  # mockup_section("Search"):
-  #   let right = els:
-  #     el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
-  #       el(PRBlock, ()):
-  #         el(PSearchField, (text: "finance/ About Forex"))
+    el(PApp, (title: "Search", right: right)):
+      el(PSearch, (title: "Found", more: 23)):
+        for i in 1..6:
+          el(PSearchItem, (
+            title: "Risk Simulation",
+            subtitle: "",
+            before: "there are multiple reasons to",
+            match: "About Forex",
+            after: "Every single of those reasons is big enough to stay away from " &
+              "such investment. Forex has all of them"
+          ))
 
-  #   el(PApp, (title: "Search", right: right)):
-  #     el(PSearch, (title: "Found", more: 23)):
-  #       for i in 1..6:
-  #         el(PSearchItem, (
-  #           title: "Risk Simulation",
-  #           subtitle: "",
-  #           before: "there are multiple reasons to",
-  #           match: "About Forex",
-  #           after: "Every single of those reasons is big enough to stay away from " &
-  #             "such investment. Forex has all of them"
-  #         ))
+  mockup_section("Misc"):
+    el(PApp, (title: "Misc")):
+      block_layout:
+        el(PMessage, (text: "Some message"))
 
-  # mockup_section("Misc"):
-  #   el(PApp, (title: "Misc")):
-  #     el(PMessage, (text: "Some top level message"))
+  mockup_section("Misc"):
+    el(PMessage, (text: "Some top level message", top: true))
 
 when is_main_module:
   let html = """
@@ -351,7 +350,6 @@ when is_main_module:
   p fmt"{fname} generated"
   say "done"
 
-
 proc stub_data: StubData =
   result.links = [
     "How to trade safely", "Stock Option Insurance", "Simulating Risk", "Math Modelling"
@@ -365,92 +363,3 @@ proc stub_data: StubData =
 
   let ui_dir = current_source_path().parent_dir.absolute_path
   result.fdoc = FDoc.read(fmt"{ui_dir}/assets/sample/about-forex.ft")
-
-  # result.note_tags = @["Forex", "Margin", "Fake"]
-
-  # result.text_block1_html =
-  #   """
-  #     <p>
-  #       There are multiple reasons to About Forex. Every single of those reasons is big enough
-  #       to stay away from such investment. Forex has all of them.
-  #     </p>
-  #   """.dedent.trim
-
-  # result.text_block2_html =
-  #   """
-  #     <ul>
-  #       <li>
-  #         <b>Negative trend</b>. Odds are against you. Stock market on average goes up, but
-  #           the currencies on average going down.
-  #       </li>
-  #       <li>
-  #         <b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to
-  #         100k$. If you don't have such <a class="text-link" href="#">money</a> - you will be using
-  #         leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
-  #         wipe you out.
-  #       </li>
-  #       <li>
-  #         <b>No intrinsic value</b>. Unlike <a class="text-tag" href="#">#stocks</a> that has
-  #         intrinsic value, currencies doesn't have it. Currencies are based on belief in those
-  #         who controls it. And <code>believes</code> and actions of those who controls it can change suddently
-  #         and because it doesn't has any bottom value, it can fell all the way down to zero.
-  #       </li>
-  #     </ul>
-  #   """.dedent.trim
-
-  # result.text_block_with_image_html =
-  #   """
-  #     <p>
-  #       Odds are against you. Stock market on average goes up, but
-  #       the currencies on average going down. Small market fluctuation - and the margin call would
-  #       wipe you out.
-  #     </p>
-
-  #     <p>
-  #       Stock market on average goes up, but the currencies on average going
-  #       down. And <code>believes</code> and actions of those who controls it can change suddently
-  #       and because it doesn't has any bottom value, it can fell all the way down to zero.
-  #       Odds are against you.
-  #     </p>
-
-  #     <img src="images/msft_chart.png"/>
-
-  #     <p>
-  #       <b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to
-  #       100k$. If you don't have such <a class="text-link" href="#">money</a> - you will be using
-  #       leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would
-  #       wipe you out.
-  #     </p>
-  #   """.dedent.trim
-
-  # result.list_block1_html =
-  #   """
-  #     <p>
-  #       1.1 No right for a mistake. If you made a mistake on the stock market, if you can
-  #       wait, there's a chance that over time stock will grow back. Not true for Forex.
-  #     </p>
-
-  #     <p>
-  #       1.2 Currency is a depreciating asset, it looses the value over time. The time plays against you.
-  #     </p>
-
-  #     <p>
-  #       1.3 Fees. With stock you can buy and hold over long period, paying little transaction fees.
-  #       With Forex keeping currencies doesn't make sense because it's a depreciating asset, so
-  #       there will be probably lots of transactions and lots of fees.
-  #     </p>
-  #   """.dedent.trim
-
-  # result.code_block1 = """
-  #   palette = Palette.init(mockup_mode = true)
-  #   mockup_section("Text"):
-  #     el(PApp, ()):
-  #       it.left = els:
-  #         el(Note, (title: "About Forex", tags: data.note_tags)):
-  #           el(PSection, ()):
-  #             el(PTextBlock, (html: data.text_block_with_image_html))
-  # """.dedent.trim
-
-  # let dir = current_source_path().parent_dir.absolute_path
-  # result.knots = fs.read_dir(fmt"{dir}/assets/palette/images/knots")
-  #   .pick(path).mapit("images/knots/" & it.file_name)
