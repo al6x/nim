@@ -13,6 +13,7 @@ version="2.1.1"
 
 # base ---------------------------------------------------------------------------------------------
 cp -r base tmp/releases
+mv tmp/releases/base/base/readme.md tmp/releases/base
 
 cat >tmp/releases/base/base.nimble <<EOL
 version     = ${version}
@@ -28,6 +29,7 @@ EOL
 # ext ----------------------------------------------------------------------------------------------
 mkdir tmp/releases/ext
 cp -r ext tmp/releases/ext
+mv tmp/releases/base/ext/readme.md tmp/releases/ext
 
 cat >tmp/releases/ext/ext.nimble <<EOL
 version     = ${version}
@@ -44,6 +46,8 @@ EOL
 # ftext --------------------------------------------------------------------------------------------
 mkdir tmp/releases/ftext
 cp -r ftext tmp/releases/ftext
+mv tmp/releases/base/ftext/readme.md tmp/releases/ftext
+mv tmp/releases/base/ftext/readme tmp/releases/ftext
 
 cat >tmp/releases/ftext/ftext.nimble <<EOL
 version     = ${version}
@@ -61,6 +65,7 @@ EOL
 # mono ---------------------------------------------------------------------------------------------
 mkdir tmp/releases/mono
 cp -r mono tmp/releases/mono
+mv tmp/releases/base/mono/readme.md tmp/releases/mono
 
 cat >tmp/releases/mono/mono.nimble <<EOL
 version     = ${version}
