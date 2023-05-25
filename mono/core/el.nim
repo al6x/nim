@@ -1,4 +1,5 @@
-import base, ext/html
+import base
+from ext/html import escape_html, escape_js, parse_tag
 
 type
   SpecialInputKeys* = enum alt, ctrl, meta, shift
@@ -60,71 +61,21 @@ proc shallow_equal(self, other: El): bool =
   # Avoiding attribute normalisation as it's a heavy operation
   self.tag == other.tag and self.attrs == other.attrs and self.children.len == other.children.len
 
-const special    = {'#', '.', '$'}
-const delimiters = special + {' '}
-proc parse_tag*(s: string): Table[string, string] =
-  # Parses `"span#id.c1.c2 type=checkbox required"`
-
-  proc consume_token(i: var int): string =
-    var token = ""
-    while i < s.len and s[i] notin delimiters:
-      token.add s[i]
-      i.inc
-    token
-
-  # skipping space
-  var i = 0
-  proc skip_space =
-    while i < s.len and s[i] == ' ': i.inc
-  skip_space()
-
-  # tag
-  if i < s.len and s[i] notin delimiters:
-    result["tag"] = consume_token i
-  skip_space()
-
-  # component, id, class
-  var classes: seq[string]
-  while i < s.len and s[i] in special:
-    i.inc
-
-    case s[i-1]
-    of '$': result["c"] = consume_token i  # component
-    of '#': result["id"] = consume_token i # id
-    of '.': classes.add consume_token(i)   # class
-    else:   throw "internal error"
-    skip_space()
-
-  if not classes.is_empty: result["class"] = classes.join(" ")
-
-  # attrs
-  var attr_tokens: seq[string]
-  while true:
-    skip_space()
-    if i == s.len: break
-    let token = consume_token(i)
-    if token.is_empty: break
-    attr_tokens.add token
-
-  if not attr_tokens.is_empty:
-    for token in attr_tokens:
-      let tokens = token.split "="
-      if tokens.len > 2: throw fmt"invalid attribute '{token}'"
-      result[tokens[0]] = if tokens.len > 1: tokens[1] else: "true"
-
 proc nattrs*(self: El): JsonNode =
   # Normalised attributes. El stores attributes in shortcut format,
   # like`"tag: ul.todos checked"`, normalisation delayed to improve performance.
   if self.nattrs_cached.is_none:
     let nattrs = self.attrs.copy
-    for k, v in parse_tag(self.tag):
+    let (parsed_tag, parsed_attrs) = parse_tag(self.tag)
+    for k, v in parsed_attrs:
       if k in nattrs:
         case k
         of "class": nattrs["class"] = (v & " " & nattrs["class"].get_str).to_json
         else:       throw fmt"can't redefine attribute '{k}' for '{self.attrs}'"
       else:
         nattrs[k] = v.to_json
-    if "tag" notin nattrs: nattrs["tag"] = "div".to_json
+    # if "tag" notin nattrs: nattrs["tag"] = "div".to_json
+    nattrs["tag"] = parsed_tag.to_json
     if "c" in nattrs:
       let class = if "class" in nattrs: nattrs["class"].get_str else: ""
       let delimiter = if class.is_empty: "" else: " "
@@ -230,7 +181,7 @@ proc escape_html_attr_value(v: JsonNode): SafeHtml =
   # (if v.kind == JString: "\"" & v.get_str.escape_html & "\"" else: v.to_s(false).escape_html)
   "\"" & (if v.kind == JString: v.get_str.escape_html else: v.to_s(false).escape_html) & "\""
 
-proc to_html*(el: JsonNode, indent = "", comments = false): string =
+proc to_html*(el: JsonNode, indent = "", comments = false): SafeHtml =
   assert el.kind == JObject, "to_html element data should be JObject"
   if comments and "c" in el:
     result.add "\n" & indent & fmt"""<!-- {el["c"].get_str.escape_html_text} -->""" & "\n"

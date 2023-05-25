@@ -1,1 +1,1 @@
-import ./core, ./test/[parse_test, html_test]
+import ./core, ./test/[parse_test, render_test]

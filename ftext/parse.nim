@@ -4,14 +4,12 @@ import ./core
 export core
 
 type # Config
-  HalfParsedBlock* = tuple[text: string, kind: string, id: string, args: string, line_n: int]
-
-  FBlockParser* = proc (hblock: HalfParsedBlock, doc: FDoc, config: FTextConfig): FBlock
+  FBlockParser* = proc (hblock: FRawBlock, doc: FDoc, config: FParseConfig): FBlock
 
   # Embed are things like `text image{some.png} text`
-  FEmbedParser* = proc (raw: string, blk: FBlock, doc: FDoc, config: FTextConfig): Option[JsonNode]
+  FEmbedParser* = proc (raw: string, blk: FBlock, doc: FDoc, config: FParseConfig): Option[JsonNode]
 
-  FTextConfig* = ref object
+  FParseConfig* = ref object
     block_parsers*: Table[string, FBlockParser]
     embed_parsers*: Table[string, FEmbedParser]
 
@@ -133,7 +131,7 @@ let not_tick_chars           = {'^'}.complement
 let not_allowed_in_block_ext = {'}'}
 let block_id_type_chars      = alphanum_chars + {'.'}
 
-proc consume_block*(pr: Parser, blocks: var seq[HalfParsedBlock]) =
+proc consume_block*(pr: Parser, blocks: var seq[FRawBlock]) =
   let start = pr.i
   let non_empty_start = pr.i + pr.find(not_space_chars)
   let body = pr.consume(proc (c: auto): bool =
@@ -155,11 +153,18 @@ proc consume_block*(pr: Parser, blocks: var seq[HalfParsedBlock]) =
   let args = pr.consume (c) => c != '\n'
 
   if not kind.is_empty:
-    blocks.add (body.trim, kind.trim, id, args.trim, pr.text.line_n(non_empty_start)) # body could be empty
+    # ignoring trailing spaces and newlines to get correct block end line position
+    let prc = pr.scopy
+    while prc.i > 0 and prc.get in space_chars: prc.i.dec
+
+    blocks.add FRawBlock(text: body.trim, kind: kind.trim, id: id, args: args.trim,
+      lines: (pr.text.line_n(non_empty_start), prc.text.line_n(prc.i)))
+    # chars*, lines*: (int, int) # block position in text
+    # blocks.add (body.trim, kind.trim, id, args.trim, pr.text.line_n(non_empty_start)) # body could be empty
   else:
     pr.i = start # rolling back
 
-proc consume_blocks*(pr: Parser): seq[HalfParsedBlock] =
+proc consume_blocks*(pr: Parser): seq[FRawBlock] =
   var prev_i = -1
   while true:
     pr.consume_block result
@@ -364,11 +369,11 @@ proc add_text_item_data(blk: FBlock, item: FTextItem): void =
   of embed:
     discard
 
-proc parse_text*(raw: HalfParsedBlock, doc: FDoc, config: FTextConfig): FTextBlock =
+proc parse_text*(raw: FRawBlock, doc: FDoc, config: FParseConfig): FTextBlock =
   assert raw.kind == "text"
   let pr = Parser.init raw.text
   let formatted_text = pr.parse_text_as_items
-  let blk = FTextBlock(kind: "text", warns: pr.warns)
+  let blk = FTextBlock(warns: pr.warns)
 
   proc post_process(item: FTextItem): FTextItem =
     var item = item
@@ -384,13 +389,13 @@ proc parse_text*(raw: HalfParsedBlock, doc: FDoc, config: FTextConfig): FTextBlo
   blk.formatted_text = map(formatted_text, post_process)
   blk
 
-proc embed_parser_image*(path: string, blk: FBlock, doc: FDoc, config: FTextConfig): Option[JsonNode] =
+proc embed_parser_image*(path: string, blk: FBlock, doc: FDoc, config: FParseConfig): Option[JsonNode] =
   let path = normalize_asset_path(path, blk.warns)
   blk.assets.add path
   blk.text.add_text path
   path.to_json.some
 
-proc embed_parser_code*(code: string, blk: FBlock, doc: FDoc, config: FTextConfig): Option[JsonNode] =
+proc embed_parser_code*(code: string, blk: FBlock, doc: FDoc, config: FParseConfig): Option[JsonNode] =
   blk.text.add_text code
 
 # list ---------------------------------------------------------------------------------------------
@@ -411,11 +416,11 @@ proc parse_list_as_items*(pr: Parser): seq[seq[FTextItem]] =
         pr.warns.add "Unknown content in list: '" & pr.remainder & "'"
         break
 
-proc parse_list*(raw: HalfParsedBlock, doc: FDoc, config: FTextConfig): FListBlock =
+proc parse_list*(raw: FRawBlock, doc: FDoc, config: FParseConfig): FListBlock =
   assert raw.kind == "list"
   let pr = Parser.init raw.text
   let list = pr.parse_list_as_items
-  let blk = FListBlock(kind: "list", warns: pr.warns)
+  let blk = FListBlock(warns: pr.warns)
 
   proc post_process(item: FTextItem): FTextItem =
     var item = item
@@ -432,17 +437,17 @@ proc parse_list*(raw: HalfParsedBlock, doc: FDoc, config: FTextConfig): FListBlo
   blk
 
 # data ---------------------------------------------------------------------------------------------
-proc parse_data*(raw: HalfParsedBlock): FDataBlock =
+proc parse_data*(raw: FRawBlock): FDataBlock =
   assert raw.kind == "data"
   let json = parse_yaml raw.text
-  FDataBlock(kind: "data", data: json, text: raw.text)
+  FDataBlock(data: json, text: raw.text)
 
 # section ------------------------------------------------------------------------------------------
-proc parse_section*(raw: HalfParsedBlock): FSection =
+proc parse_section*(raw: FRawBlock): FSection =
   assert raw.kind == "section"
   let pr = Parser.init raw.text
   let formatted_text = pr.consume_inline_text () => false
-  result = FSection(line_n: raw.line_n)
+  result = FSection(raw: raw)
   if pr.has_next: result.warns.add fmt"Invalid text in section : '{pr.remainder}'"
   var texts: seq[string]
   for item in formatted_text:
@@ -457,7 +462,7 @@ proc parse_section*(raw: HalfParsedBlock): FSection =
   if result.title.is_empty: result.warns.add fmt"Empty section title"
 
 # title --------------------------------------------------------------------------------------------
-proc parse_title*(raw: HalfParsedBlock): string =
+proc parse_title*(raw: FRawBlock): string =
   assert raw.kind == "title"
   raw.text
 
@@ -465,9 +470,9 @@ proc parse_title*(raw: HalfParsedBlock): string =
 #   location.split("/").last.replace(re"\.[a-zA-Z0-9]+", "")
 
 # code ---------------------------------------------------------------------------------------------
-proc parse_code*(raw: HalfParsedBlock): FCodeBlock =
+proc parse_code*(raw: FRawBlock): FCodeBlock =
   assert raw.kind == "code"
-  FCodeBlock(kind: "code", code: raw.text.trim, text: raw.text.trim)
+  FCodeBlock(code: raw.text.trim, text: raw.text.trim)
 
 # image, images ------------------------------------------------------------------------------------
 proc parse_path_and_tags(text: string, warns: var seq[string]): tuple[path: string, tags: seq[string]] =
@@ -481,19 +486,19 @@ proc parse_path_and_tags(text: string, warns: var seq[string]): tuple[path: stri
       warns.add "Unknown content in image: '" & pr.remainder & "'"
   (path, tags)
 
-proc parse_image*(raw: HalfParsedBlock, doc: FDoc): FImageBlock =
+proc parse_image*(raw: FRawBlock, doc: FDoc): FImageBlock =
   assert raw.kind == "image"
   var warns: seq[string]
   let (path, tags) = parse_path_and_tags(raw.text, warns)
   var assets: seq[string]
   unless path.is_empty: assets.add path
-  FImageBlock(kind: "image", image: path, tags: tags, warns: warns, text: raw.text, assets: assets)
+  FImageBlock(image: path, tags: tags, warns: warns, text: raw.text, assets: assets)
 
-proc parse_images*(raw: HalfParsedBlock, doc: FDoc): FImagesBlock =
+proc parse_images*(raw: FRawBlock, doc: FDoc): FImagesBlock =
   assert raw.kind == "images"
   var warns: seq[string]
   let (path, tags) = parse_path_and_tags(raw.text, warns)
-  result = FImagesBlock(images_dir: path, kind: "images", tags: tags, warns: warns, text: raw.text)
+  result = FImagesBlock(images_dir: path, tags: tags, warns: warns, text: raw.text)
   unless path.is_empty:
     result.assets = @[path]
     let images_path = asset_path(doc, path)
@@ -503,8 +508,8 @@ proc parse_images*(raw: HalfParsedBlock, doc: FDoc): FImagesBlock =
       .filter((entry) => entry.kind == file).pick(name).map(normalise_asset_path).sort
     result.assets.add result.images
 
-# FTextConfig --------------------------------------------------------------------------------------
-proc init*(_: type[FTextConfig]): FTextConfig =
+# FParseConfig --------------------------------------------------------------------------------------
+proc init*(_: type[FParseConfig]): FParseConfig =
   var block_parsers: Table[string, FBlockParser]
   block_parsers["text"]   = (blk, doc, config) => parse_text(blk, doc, config)
   block_parsers["list"]   = (blk, doc, config) => parse_list(blk, doc, config)
@@ -517,18 +522,16 @@ proc init*(_: type[FTextConfig]): FTextConfig =
   embed_parsers["image"] = embed_parser_image
   embed_parsers["code"]  = embed_parser_code
 
-  FTextConfig(block_parsers: block_parsers, embed_parsers: embed_parsers)
-
-let default_config = FTextConfig.init
+  FParseConfig(block_parsers: block_parsers, embed_parsers: embed_parsers)
 
 # parse --------------------------------------------------------------------------------------------
-proc post_process_block(blk: FBlock, doc: FDoc, config: FTextConfig) =
+proc post_process_block(blk: FBlock, doc: FDoc, config: FParseConfig) =
   for rpath in blk.assets:
     assert not rpath.is_empty, "asset can't be empty"
     unless fs.exist(asset_path(doc, rpath)):
       blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
 
-proc parse*(_: type[FDoc], text, location: string, config = default_config): FDoc =
+proc parse*(_: type[FDoc], text, location: string, config = FParseConfig.init): FDoc =
   let pr = Parser.init(text)
   let raw_blocks = pr.consume_blocks
   let (tags, tags_line_n) = pr.consume_tags
@@ -541,18 +544,19 @@ proc parse*(_: type[FDoc], text, location: string, config = default_config): FDo
       let section = parse_section raw
       doc.sections.add section
     else:
-      if doc.sections.is_empty: doc.sections.add FSection(line_n: 1)
+      if doc.sections.is_empty:
+        let raw = FRawBlock(lines: (-1, -1))
+        doc.sections.add FSection(raw: raw)
       doc.sections[^1].blocks.add:
-        if raw.kind in config.block_parsers:
-          let blk = config.block_parsers[raw.kind](raw, doc, config)
-          blk.id = raw.id; blk.args = raw.args; blk.line_n = raw.line_n
-          post_process_block(blk, doc, config)
-          blk
+        let blk = if raw.kind in config.block_parsers:
+          config.block_parsers[raw.kind](raw, doc, config)
         else:
-          let blk = FUnknownBlock(kind: raw.kind, raw: raw.text, id: raw.id, args: raw.args, text: raw.text)
-          doc.warns.add fmt"Unknown block '{blk.kind}'"
-          blk
+          doc.warns.add fmt"Unknown block kind '{raw.kind}'"
+          FUnknownBlock()
+        blk.id = raw.id; blk.hash = raw.text.hash.int; blk.raw = raw
+        post_process_block(blk, doc, config)
+        blk
   doc
 
-proc read*(_: type[FDoc], location: string, config = default_config): FDoc =
+proc read*(_: type[FDoc], location: string, config = FParseConfig.init): FDoc =
   FDoc.parse(text = fs.read(location), location = location, config = config)

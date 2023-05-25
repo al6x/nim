@@ -108,30 +108,31 @@ proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
             it.location link
 
 # Blocks ---------------------------------------------------------------------------------------------
-template inline_controls(controls: seq[El], hover: bool): auto =
+template inline_controls(controls: seq[El], hover: bool) =
   unless controls.is_empty:
     el""".absolute.right-0.top-1.flex.bg-white .rounded.p-1""":
       if hover and not palette.mockup_mode: it.class "hidden_controls"
       it.style "margin-top: 0;"
       for c in controls: it.add(c)
 
-template inline_warns(warns: seq[string]): auto =
-  unless warns.is_empty:
+template inline_warns(warns: seq[string]) =
+  let warnsv: seq[string] = warns
+  unless warnsv.is_empty:
     el".border-l-4.border-orange-800 flash":
-      for w in warns:
+      for warn in warnsv:
         el".inline-block .text-orange-800 .ml-2":
-          it.text w
+          it.text warn
 
-template inline_tags(tags: seq[string]): auto =
-  let tagsv: seq[string] = tags
+template inline_tags(tags: seq[(string, string)]) =
+  let tagsv: seq[(string, string)] = tags
   unless tagsv.is_empty:
     el".flex.-mr-2 flash":
-      for tag in tagsv:
+      for (tag, link) in tagsv:
         el"a .mr-2 .text-blue-800":
           it.text "#" & tag
-          it.location "#"
+          it.location link
 
-template rblock_layout(controls: seq[El], warns, tags: seq[string], hover: bool, code): auto =
+template block_layout(controls: seq[El], warns, tags: seq[string], hover: bool, code): auto =
   el".pblock.flex.flex-col.space-y-1":
     if hover: it.class "pblock_hover"
     inline_warns(warns)
@@ -143,35 +144,28 @@ template rblock_layout(controls: seq[El], warns, tags: seq[string], hover: bool,
 proc PSection*(
   title: string, tags: seq[string] = @[], controls: seq[El] = @[], warns: seq[string] = @[]
 ): El =
-  rblock_layout(controls, warns, tags, true):
+  block_layout(controls, warns, tags, true):
     el".text-xl flash": # Title
       it.text title
-  # el".rblock_layout":
-  #   el".text-xl flash": # Title
-  #     it.text title
-  #   inline_warns(warns)
-  #   inline_tags(tags)
-  #   # Should be the last one, otherwise the first element will have extra margin
-  #   inline_controls(controls)
 
 proc PTextBlock*(
   html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
-  rblock_layout(controls, warns, tags, true):
+  block_layout(controls, warns, tags, true):
     el".ftext flash": # Body
       it.attr("html", html)
 
 proc PListBlock*(
   html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
-  rblock_layout(controls, warns, tags, true):
+  block_layout(controls, warns, tags, true):
     el".ftext flash": # Body
       it.attr("html", html)
 
 proc PCodeBlock*(
   code: string, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
 ): El =
-  rblock_layout(controls, warns, tags, true):
+  block_layout(controls, warns, tags, true):
     el".ftext flash": # Body
       it.attr("html", "<pre>" & code.escape_html & "</pre>")
 
@@ -194,7 +188,7 @@ proc PImagesBlock*(
               it.attr("src", images[i])
               i.inc
 
-  rblock_layout(controls, warns, tags, true):
+  block_layout(controls, warns, tags, true):
     if images.len <= 4:
       el"table cellspacing=0 cellpadding=0 flash": # removing cell borders
         # el"tdata":
@@ -271,7 +265,7 @@ proc PApp*(
       #   it.class "top-3.5"
       #   it.text "#"
       #   it.location "#"
-      rblock_layout(title_controls, warns, @[], false): # Title
+      block_layout(title_controls, warns, @[], false): # Title
         el".text-xl flash":
           it.text title
           it.attr("title", title_hint)
@@ -279,7 +273,7 @@ proc PApp*(
       it.add content
 
       unless tags.is_empty:
-        rblock_layout(tags_controls, tags_warnings, tags, true): # Tags
+        block_layout(tags_controls, tags_warnings, tags, true): # Tags
           discard
 
   layout(@[left], right)

@@ -3,31 +3,33 @@ import base
 type
   FLink* = tuple[space, doc: string]
 
+  FRawBlock* = object
+    text*, kind*, id*, args*: string
+    lines*: (int, int) # block position in text
+
   FBlock* = ref object of RootObj
-    kind*:     string
-    id*:       string # If not set explicitly, will be hash of block's text
-    args*:     string
-    tags*:     seq[string]
-    links*:    seq[FLink]
-    assets*:   seq[string]
-    glinks*:   seq[string]
-    text*:     string
-    line_n*:   int
-    warns*:    seq[string]
+    id*:     string
+    hash*:   int         # hash of block's text
+    tags*:   seq[string]
+    links*:  seq[FLink]
+    assets*: seq[string]
+    glinks*: seq[string]
+    text*:   string
+    warns*:  seq[string]
+    raw*:    FRawBlock
 
   FSection* = ref object
-    title*:    string
-    blocks*:   seq[FBlock]
-    tags*:     seq[string]
-    warns*:    seq[string]
-    line_n*:   int
+    title*:  string
+    blocks*: seq[FBlock]
+    tags*:   seq[string]
+    warns*:  seq[string]
+    raw*:    FRawBlock
 
   FDoc* = ref object
     id*:          string
-    hash*:        int
+    hash*:        int    # hash of docs's text
     location*:    string
     asset_path*:  string # same as location but without .ft extension
-    # space_path*:  string # location dirname
     title*:       string
     sections*:    seq[FSection]
     tags*:        seq[string]
@@ -79,7 +81,7 @@ type
     images*:     seq[string]
 
   FUnknownBlock* = ref object of FBlock
-    raw*: string
+    discard
 
 proc init*(_: type[FDoc], location: string): FDoc =
   assert location.ends_with ".ft"

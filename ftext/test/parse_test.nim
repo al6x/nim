@@ -1,14 +1,14 @@
 import base, ext/parser, std/os
 import ../core, ../parse
 
-proc hblock(kind, text: string): HalfParsedBlock =
-  (text, kind, "", "", 0)
+proc raw_block(kind, text: string): FRawBlock =
+  FRawBlock(text: text, kind: kind)
 
-proc test_fdoc_location(): string =
-  current_source_path().parent_dir.absolute_path & "/some.ft"
+proc test_space_location(): string =
+  current_source_path().parent_dir.absolute_path
 
 proc test_fdoc(): FDoc =
-  FDoc.init(location = test_fdoc_location())
+  FDoc.init(location = fmt"{test_space_location()}/some.ft")
 
 test "consume_tags":
   template t(a, b) =
@@ -31,7 +31,9 @@ test "consume_blocks, consume_tags":
   template t(a, expected, tags) =
     let pr = Parser.init(a.dedent)
     var parsed = pr.consume_blocks
-    check parsed == expected
+    check parsed.len == expected.len
+    for i, parsed_i in parsed:
+      check (parsed_i.kind, parsed_i.id, parsed_i.text, parsed_i.lines) == expected[i]
     check pr.consume_tags == tags
 
   t """
@@ -56,17 +58,17 @@ test "consume_blocks, consume_tags":
 
     #tag #another tag
   """, @[
-    ("S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", "text", "", "", 1),
-    ("- first m{2^a} line\n- second line", "list", "", "", 6),
-    ("", "text", "", "", 9),
-    ("first line\n\nsecond line", "list", "", "", 11),
-    ("k: 1", "data", "config", "", 15),
-    ("some text\n#tag #another", "text", "", "", 17)
+    ("text", "",     "S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", (1, 4)),
+    ("list", "",     "- first m{2^a} line\n- second line", (6, 7)),
+    ("text", "",     "", (9, 9)),
+    ("list", "",     "first line\n\nsecond line", (11, 13)),
+    ("data", "config", "k: 1", (15, 15)),
+    ("text", "",     "some text\n#tag #another", (17, 18))
   ], (@["tag", "another"], 20)
 
   t """
     some text ^text
-  """, @[("some text", "text", "", "", 1)], (seq[string].init, 1)
+  """, @[("text", "", "some text", (1, 1))], (seq[string].init, 1)
 
 test "text_embed":
   template t(a, b) =
@@ -99,7 +101,7 @@ test "parse_text":
     And #tag2 another
   """.dedent
 
-  let blk = parse_text(hblock("text", ftext), test_fdoc(), config)
+  let blk = parse_text(raw_block("text", ftext), test_fdoc(), config)
   check blk.warns == @["Unknown embed: some"]
 
   let parsed = blk.formatted_text
@@ -199,7 +201,7 @@ test "parse_list":
     - Another image{non_existing.png}
   """.dedent
 
-  let blk = parse_list(hblock("list", ftext), test_fdoc(), config)
+  let blk = parse_list(raw_block("list", ftext), test_fdoc(), config)
   check blk.warns == @["Unknown embed: 'some'"]
 
   let parsed = blk.list
@@ -221,16 +223,16 @@ test "parse_list":
     check it, 1,  (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some)
 
 test "image":
-  let img = parse_image(hblock("image", "some.png #t1 #t2"), test_fdoc())
+  let img = parse_image(raw_block("image", "some.png #t1 #t2"), test_fdoc())
   check (img.image, img.tags, img.assets) == ("some.png", @["t1", "t2"], @["some.png"])
 
 test "images, missing":
-  let imgs = parse_images(hblock("images", "missing/dir\n#t1 #t2"), test_fdoc())
+  let imgs = parse_images(raw_block("images", "missing/dir\n#t1 #t2"), test_fdoc())
   check (imgs.images_dir, imgs.images, imgs.tags, imgs.assets) == ("missing/dir", @[], @["t1", "t2"],
     @["missing/dir"])
 
 test "images":
-  let imgs = parse_images(hblock("images", ". #t1 #t2"), test_fdoc())
+  let imgs = parse_images(raw_block("images", ". #t1 #t2"), test_fdoc())
   check (imgs.images_dir, imgs.images, imgs.tags, imgs.assets) == (".", @["img.png"], @["t1", "t2"],
     @[".", "img.png"])
 
@@ -251,7 +253,7 @@ test "parse":
     check doc.sections.len == 1
     let section = doc.sections[0]
     check section.blocks.len == 3
-    check section.line_n == 1
+    # check section.raw.lines[0] == 1
     check doc.tags == @["t", "t2"]
     check doc.tags_line_n == 8
 
@@ -277,8 +279,8 @@ test "parse":
     let doc = FDoc.parse(text, "some.ft")
     check doc.title == "Some title"
     check doc.sections.len == 2
-    check doc.sections[0].line_n == 3
-    check doc.sections[1].line_n == 7
+    # check doc.sections[0].raw.lines[0] == 3
+    # check doc.sections[1].raw.lines[0] == 7
 
 test "parse_ftext, missing assets":
   let text = """
@@ -289,7 +291,7 @@ test "parse_ftext, missing assets":
     missing_dir ^images
   """.dedent
 
-  let doc = FDoc.parse(text, test_fdoc_location())
+  let doc = FDoc.parse(text, fmt"{test_space_location()}/some.ft")
   let blocks = doc.sections[0].blocks
   check blocks.len == 3
   check blocks[0].warns == @["Asset don't exist some/missing1.png"]

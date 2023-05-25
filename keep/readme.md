@@ -13,6 +13,10 @@
 
 - FText, long link reference, [N. Taleb Random](nt_random), [nt_random](http://ntaleb.org/random)
 
+# Notes
+
+Use two todos, first organised in Keep, and log like buffer on mobile.
+
 # Features
 
 - Extensible, different spaces, docs, blocks, actions
