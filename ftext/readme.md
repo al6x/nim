@@ -1,6 +1,6 @@
-**Formal Text**, Text **as Data**
+**Formal Text**, Text as Data
 
-Markdown specifies How it Looks, FormalText **specifies What it Means**, the structure of the Data.
+Markdown specifies How it Looks, FormalText **specifies What it Means, the structure of the Data**.
 
 The Formal Text document is a sequence of blocks, blocks could be of different types, text,
 list, table, images, charts etc. More blocks could and should be added, easy extensibility is
