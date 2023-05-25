@@ -6,5 +6,5 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= 1.6"
-requires "https://github.com/al6x/nim#releases?subdir=releases/base"
-requires "https://github.com/al6x/nim#releases?subdir=releases/ext"
+requires "https://github.com/al6x/nim?subdir=releases/base@#releases"
+requires "https://github.com/al6x/nim?subdir=releases/ext@#releases"
