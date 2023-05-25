@@ -1,4 +1,4 @@
-import base, ext/html, ../core/el
+import base, ../core/el
 
 test "nattrs":
   check El.init(tag = "ul.todos", attrs = (class: "editing").to_json).nattrs ==
