@@ -1,5 +1,5 @@
 import base
-from ext/html import escape_html, escape_js, parse_tag
+import ext/html except El, el #import escape_html, escape_js, parse_tag
 
 type
   SpecialInputKeys* = enum alt, ctrl, meta, shift
