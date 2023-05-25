@@ -64,12 +64,10 @@ And you should see this page
 
 ![](readme/vscode.png)
 
-Install '' extension and then add following to VSCode `settings.json`
+Install 'Highlight' by 'Fabio Spampinato' extension, and then add following to VSCode `settings.json`
 
 ```JSON
   "highlight.regexes": {
-    // FText
-
     // tags
     "(#[a-zA-Zа-яА-Я]+[a-zA-Zа-яА-Я0-9]*)": {
       "filterFileRegex": ".*.ft$",
