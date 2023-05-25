@@ -1,6 +1,6 @@
 Formal Text, Text as Data
 
-Markdown defines How it Looks, the visual style, FormalText defines What it Is, the data.
+Markdown specify How it Looks, FormalText specify What it Means.
 
 # Todo
 
