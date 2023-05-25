@@ -9,7 +9,7 @@ git checkout dev
 rm -rf tmp/releases
 mkdir -p tmp/releases
 
-version="2.1.1"
+version="2.1.2"
 
 # base ---------------------------------------------------------------------------------------------
 cp -r base tmp/releases
