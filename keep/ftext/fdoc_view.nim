@@ -16,10 +16,11 @@ proc render*(self: FDocView): El =
 
   result = el(PApp, ( # App
     title: doc.title, title_hint: doc.location, title_controls: @[edit_title],
+    warns: doc.warns,
     tags: doc.tags, tags_controls: @[edit_tags]
   )):
-    for warn in doc.warns: # Doc warns
-      el(PMessage, (text: warn, kind: PMessageKind.warn))
+    # for warn in doc.warns: # Doc warns
+    #   el(PMessage, (text: warn, kind: PMessageKind.warn))
 
     for section in doc.sections: # Sections
       unless section.title.is_empty:

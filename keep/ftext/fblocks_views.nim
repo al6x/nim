@@ -1,6 +1,8 @@
 import base, mono/core, std/osproc
 import ../core/spacem, ./fdoc_head, ftext/html, ./helpers, ../ui/palette as pl, ../ui/location
 
+delete
+
 # Base
 method render_fblock*(self: FBlock, doc: FDoc, space: Space, parent: Component): El {.base.} =
   let text = fmt"No view for {self.kind} block"
