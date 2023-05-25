@@ -1,0 +1,6 @@
+@import "./reset.css";
+@import "./ftext.css";
+
+.pblock {
+  @apply px-4; @apply py-1;
+}

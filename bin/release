@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+# DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+set -e
+
+git checkout dev
+
+rm -rf tmp/releases
+mkdir -p tmp/releases
+
+version="2.1.0"
+
+# base ---------------------------------------------------------------------------------------------
+cp -r base tmp/releases
+
+cat >tmp/releases/base/base.nimble <<EOL
+version     = ${version}
+author      = "Alex Craft https://github.com/al6x"
+description = "Extensions for Nim std"
+license     = "MIT"
+
+srcDir = "."
+
+requires "nim >= 1.6"
+EOL
+
+# ext ----------------------------------------------------------------------------------------------
+mkdir tmp/releases/ext
+cp -r ext tmp/releases/ext
+
+cat >tmp/releases/ext/ext.nimble <<EOL
+version     = ${version}
+author      = "Alex Craft https://github.com/al6x"
+description = "Extensions for Nim std"
+license     = "MIT"
+
+srcDir = "."
+
+requires "nim >= 1.6"
+requires "https://github.com/al6x/nim#releases?subdir=releases/base"
+EOL
+
+# ftext --------------------------------------------------------------------------------------------
+mkdir tmp/releases/ftext
+cp -r ftext tmp/releases/ftext
+
+cat >tmp/releases/ftext/ftext.nimble <<EOL
+version     = ${version}
+author      = "Alex Craft https://github.com/al6x"
+description = "Formal Text, Text as Data"
+license     = "MIT"
+
+srcDir = "."
+
+requires "nim >= 1.6"
+requires "https://github.com/al6x/nim#releases?subdir=releases/base"
+requires "https://github.com/al6x/nim#releases?subdir=releases/ext"
+EOL
+
+# mono ---------------------------------------------------------------------------------------------
+mkdir tmp/releases/mono
+cp -r mono tmp/releases/mono
+
+cat >tmp/releases/mono/mono.nimble <<EOL
+version     = ${version}
+author      = "Alex Craft https://github.com/al6x"
+description = "Mono UI Web Framework"
+license     = "MIT"
+
+srcDir = "."
+
+requires "nim >= 1.6"
+requires "https://github.com/al6x/nim#releases?subdir=releases/base"
+requires "https://github.com/al6x/nim#releases?subdir=releases/ext"
+requires "https://github.com/al6x/nim#releases?subdir=releases/ftext"
+EOL
+
+# Switching to releases branch ---------------------------------------------------------------------
+git checkout releases
+rm -rf releases
+mv tmp/releases .
