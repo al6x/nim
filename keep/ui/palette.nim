@@ -1,4 +1,5 @@
-import base, mono/core, std/os
+import base, mono/core, std/os, ftext/core
+import ftext/render except El, el
 
 # Support ------------------------------------------------------------------------------------------
 type Palette* = ref object
@@ -132,7 +133,9 @@ template inline_tags(tags: seq[(string, string)]) =
           it.text "#" & tag
           it.location link
 
-template block_layout(controls: seq[El], warns, tags: seq[string], hover: bool, code): auto =
+template block_layout(
+  warns: seq[string], controls: seq[El], tags: seq[(string, string)], hover: bool, code
+): auto =
   el".pblock.flex.flex-col.space-y-1":
     if hover: it.class "pblock_hover"
     inline_warns(warns)
@@ -141,71 +144,20 @@ template block_layout(controls: seq[El], warns, tags: seq[string], hover: bool, 
     # Should be the last one, otherwise the first element will have extra margin
     inline_controls(controls, hover)
 
-proc PSection*(
-  title: string, tags: seq[string] = @[], controls: seq[El] = @[], warns: seq[string] = @[]
-): El =
-  block_layout(controls, warns, tags, true):
-    el".text-xl flash": # Title
-      it.text title
+proc with_path(tags: seq[string], context: FContext): seq[(string, string)] =
+  tags.map((tag) => (tag, (context.config.tag_path)(tag, context)))
 
-proc PTextBlock*(
-  html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
-): El =
-  block_layout(controls, warns, tags, true):
-    el".ftext flash": # Body
+proc FSection*(section: FSection, context: FContext, controls: seq[El] = @[]): El =
+  let html = render.to_html(section.to_html(context))
+  block_layout(section.warns, controls, section.tags.with_path(context), true):
+    el".ftext flash":
       it.attr("html", html)
 
-proc PListBlock*(
-  html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
-): El =
-  block_layout(controls, warns, tags, true):
-    el".ftext flash": # Body
+proc FBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
+  let html = render.to_html(blk.to_html(context))
+  block_layout(blk.warns, controls, blk.tags.with_path(context), true):
+    el".ftext flash":
       it.attr("html", html)
-
-proc PCodeBlock*(
-  code: string, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
-): El =
-  block_layout(controls, warns, tags, true):
-    el".ftext flash": # Body
-      it.attr("html", "<pre>" & code.escape_html & "</pre>")
-
-proc PImagesBlock*(
-  images: seq[string], controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
-): El =
-  template render_td =
-    el"td":
-      if col.is_even:
-        it.style "width: 1.33%;"
-      else:
-        it.style "width: 24%; text-align: center; vertical-align: middle;"
-        if i < images.len:
-          # flex needed to align vertically
-          el".flex .rounded.overflow-hidden.border.border-gray-300.bg-slate-50":
-            it.style "width: 100%; aspect-ratio: 1;" # making height same as width so cell will be square
-            el"img.block.ml-auto.mr-auto": # centering horizontally
-              # Limiting image max height and width
-              it.style "object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"
-              it.attr("src", images[i])
-              i.inc
-
-  block_layout(controls, warns, tags, true):
-    if images.len <= 4:
-      el"table cellspacing=0 cellpadding=0 flash": # removing cell borders
-        # el"tdata":
-        el"tr":
-          var i = 0
-          for col in 0..(images.high * 2 - 2):
-            render_td()
-    else:
-      el"table cellspacing=0 cellpadding=0 flash":
-        # setting margin after each row
-        it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
-        # el"tdata":
-        var i = 0
-        for row in 0..(images.len / 4).floor.int:
-          el"tr":
-            for col in 0..6:
-              render_td()
 
 # Search -------------------------------------------------------------------------------------------
 proc PSearchItem*(title, subtitle, before, match, after: string): El =

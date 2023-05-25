@@ -223,7 +223,3 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
         el"tr":
           for col in 0..6:
             render_td()
-
-
-
-

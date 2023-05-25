@@ -1,5 +1,6 @@
 # Todo
 
+- move releases to main
 - Add bin/release for base, ext, ftext
 - Make video about parser FText
 - Make image, ask on StackOv abotu trigram search

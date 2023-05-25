@@ -1,0 +1,15 @@
+.ftext { @apply flex; @apply flex-col; @apply space-y-2; }
+.ftext > * { display: block; }
+
+.ftext > pre { @apply text-sm; @apply border; @apply rounded; @apply border-gray-300; @apply px-2; @apply py-1; }
+
+.ftext > ul > li > code,
+.ftext > p > code {
+  padding: 1px 4px; @apply border; @apply rounded; @apply border-gray-300;
+  @apply text-sm;
+}
+
+.ftext a.tag, .ftext a.link, .ftext a.glink { @apply text-blue-800; }
+
+.ftext > ul { @apply flex; @apply flex-col; @apply space-y-2; }
+.ftext > ul > li { display: block; }

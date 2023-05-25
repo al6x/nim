@@ -1,3 +1,62 @@
+proc PTextBlock*(
+  html: SafeHtml, warns: seq[string] = @[], controls: seq[El] = @[], tags: seq[(string, string)] = @[]
+): El =
+  block_layout(warns, controls, tags, true):
+    el".ftext flash": # Body
+      it.attr("html", html)
+
+proc PListBlock*(
+  html: SafeHtml, controls = seq[El].init, warns: seq[string] = @[], tags: seq[string] = @[]
+): El =
+  block_layout(warns, controls, tags, true):
+    el".ftext flash": # Body
+      it.attr("html", html)
+
+proc PCodeBlock*(
+  code: string, warns: seq[string] = @[], controls: seq[El] = @[], tags: seq[(string, string)] = @[]
+): El =
+  block_layout(warns, controls, tags, true):
+    el".ftext flash": # Body
+      it.attr("html", "<pre>" & code.escape_html & "</pre>")
+
+proc PImagesBlock*(
+  images: seq[string], warns: seq[string] = @[], controls: seq[El] = @[], tags: seq[(string, string)] = @[]
+): El =
+  template render_td =
+    el"td":
+      if col.is_even:
+        it.style "width: 1.33%;"
+      else:
+        it.style "width: 24%; text-align: center; vertical-align: middle;"
+        if i < images.len:
+          # flex needed to align vertically
+          el".flex .rounded.overflow-hidden.border.border-gray-300.bg-slate-50":
+            it.style "width: 100%; aspect-ratio: 1;" # making height same as width so cell will be square
+            el"img.block.ml-auto.mr-auto": # centering horizontally
+              # Limiting image max height and width
+              it.style "object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"
+              it.attr("src", images[i])
+              i.inc
+
+  block_layout(warns, controls, tags, true):
+    if images.len <= 4:
+      el"table cellspacing=0 cellpadding=0 flash": # removing cell borders
+        # el"tdata":
+        el"tr":
+          var i = 0
+          for col in 0..(images.high * 2 - 2):
+            render_td()
+    else:
+      el"table cellspacing=0 cellpadding=0 flash":
+        # setting margin after each row
+        it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
+        # el"tdata":
+        var i = 0
+        for row in 0..(images.len / 4).floor.int:
+          el"tr":
+            for col in 0..6:
+              render_td()
+
 proc to_html*(blk: FListBlock, doc: FDoc, space_id: string, config = default_config): SafeHtml =
   let context: FEmbedContext = (blk, doc, space_id)
   var html = ""
