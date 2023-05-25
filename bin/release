@@ -13,7 +13,6 @@ version="2.1.1"
 
 # base ---------------------------------------------------------------------------------------------
 cp -r base tmp/releases
-mv tmp/releases/base/base/readme.md tmp/releases/base
 
 cat >tmp/releases/base/base.nimble <<EOL
 version     = ${version}
