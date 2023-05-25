@@ -1,11 +1,13 @@
 Formal Text, Text as Data
 
-Markdown specify How it Looks, FormalText specify What it Means.
+Markdown specify How it Looks, **FormalText specify What it Means**.
 
 The Formal Text document is a sequence of blocks, blocks could be of different types, text,
 list, table, images, charts etc.
 
-I'm using it for Notebook App, but it also could be used separately.
+I'm using it for Notebook App (screenshot below), but it also could be used separately.
+
+![](readme/keep.png)
 
 # Todo
 
