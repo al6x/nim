@@ -95,14 +95,24 @@ EOL
 
 # Switching to releases branch ---------------------------------------------------------------------
 git checkout main
-# rm -rf ./base
-# rm -rf ./ext
-# rm -rf ./ftext
-# rm -rf ./mono
-# rm -rf ./nodem
-# mv tmp/releases .
-# git add .
-# git commit -m "version $version"
-# git push
-# git checkout dev
-# echo "release done, switched back to dev"
+
+rm -rf ./base
+mv tmp/releases/base .
+
+rm -rf ./ext
+mv tmp/releases/ext .
+
+rm -rf ./ftext
+mv tmp/releases/ftext .
+
+rm -rf ./mono
+mv tmp/releases/mono .
+
+rm -rf ./nodem
+mv tmp/releases/nodem .
+
+git add .
+git commit -m "version $version"
+git push
+git checkout dev
+echo "release done, switched back to dev"
