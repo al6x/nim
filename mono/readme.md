@@ -30,12 +30,6 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 
 `nimble install https://github.com/al6x/nim?subdir=mono`
 
-If there's any issues with nimble install, install it manually:
-
-- Download dependencies [base](../base), [ext](../ext), and this library - mono.
-- Add all three to Nim build paths.
-- Check if `import base, mono/core` works.
-
 Then run [todo example](examples/todo.nim) and start experimenting.
 
 Use `import base/log; log_emitters.len = 0` to silence the default console logger.
