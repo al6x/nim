@@ -2,15 +2,20 @@ Formal Text, Text as Data
 
 Markdown specify How it Looks, FormalText specify What it Means.
 
+The Formal Text document is a sequence of blocks, blocks could be of different types, text,
+list, table, images, charts etc.
+
+I'm using it for Notebook App, but it also could be used separately.
+
 # Todo
 
 - Hash of doc should also include hash of its assets
 
 # Features
 
-Invisible, it looks as much as possible like normal text.
+Invisible, it try to look like normal text as much as possible.
 
-Extensible, blocks, embeds, assets.
+Extensible, blocks, embeds, assets, define your own.
 
 Validates the correctness of the data, tags, links, asset paths are validated.
 

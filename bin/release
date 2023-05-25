@@ -15,7 +15,7 @@ version="2.1.1"
 cp -r base tmp/releases
 
 cat >tmp/releases/base/base.nimble <<EOL
-version     = ${version}
+version     = "${version}"
 author      = "Alex Craft https://github.com/al6x"
 description = "Extensions for Nim std"
 license     = "MIT"
@@ -31,7 +31,7 @@ cp -r ext tmp/releases/ext
 mv tmp/releases/ext/ext/readme.md tmp/releases/ext
 
 cat >tmp/releases/ext/ext.nimble <<EOL
-version     = ${version}
+version     = "${version}"
 author      = "Alex Craft https://github.com/al6x"
 description = "Extensions for Nim std"
 license     = "MIT"
@@ -49,7 +49,7 @@ mv tmp/releases/ftext/ftext/readme.md tmp/releases/ftext
 mv tmp/releases/ftext/ftext/readme tmp/releases/ftext
 
 cat >tmp/releases/ftext/ftext.nimble <<EOL
-version     = ${version}
+version     = "${version}"
 author      = "Alex Craft https://github.com/al6x"
 description = "Formal Text, Text as Data"
 license     = "MIT"
@@ -67,7 +67,7 @@ cp -r mono tmp/releases/mono
 mv tmp/releases/mono/mono/readme.md tmp/releases/mono
 
 cat >tmp/releases/mono/mono.nimble <<EOL
-version     = ${version}
+version     = "${version}"
 author      = "Alex Craft https://github.com/al6x"
 description = "Mono UI Web Framework"
 license     = "MIT"
