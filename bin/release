@@ -79,8 +79,7 @@ requires "https://github.com/al6x/nim?subdir=ext"
 EOL
 
 # nodem --------------------------------------------------------------------------------------------
-mkdir tmp/releases/nodem
-cp -r nodem tmp/releases/nodem
+cp -r nodem tmp/releases
 
 cat >tmp/releases/nodem/nodem.nimble <<EOL
 version     = "1.4.0"
