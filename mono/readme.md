@@ -28,7 +28,7 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 
 # Install
 
-`nimble install https://github.com/al6x/nim?subdir=releases/mono@#releases`
+`nimble install https://github.com/al6x/nim?subdir=mono`
 
 If there's any issues with nimble install, install it manually:
 

@@ -52,7 +52,7 @@ Note the last line with `knots` the images from the `knots` folder will be displ
 Rendering Formal Text:
 
 ```
-nimble install https://github.com/al6x/nim?subdir=releases/ftext@#releases
+nimble install https://github.com/al6x/nim?subdir=ftext
 
 nim r ftext/examples/example.nim
 

@@ -5,8 +5,6 @@
 set -e
 
 git checkout dev
-git checkout main
-git merge dev
 
 rm -rf tmp/releases
 mkdir -p tmp/releases
@@ -41,7 +39,7 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=releases/base#releases"
+requires "https://github.com/al6x/nim?subdir=base"
 EOL
 
 # ftext --------------------------------------------------------------------------------------------
@@ -59,7 +57,7 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=releases/ext#releases"
+requires "https://github.com/al6x/nim?subdir=ext"
 EOL
 
 # mono ---------------------------------------------------------------------------------------------
@@ -77,15 +75,34 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=releases/ext#releases"
+requires "https://github.com/al6x/nim?subdir=ext"
+EOL
+
+# nodem --------------------------------------------------------------------------------------------
+mkdir tmp/releases/nodem
+cp -r nodem tmp/releases/nodem
+
+cat >tmp/releases/nodem/nodem.nimble <<EOL
+version     = "1.4.0"
+author      = "Alex Craft http://al6x.com"
+description = "Call remote functions as local"
+license     = "MIT"
+
+srcDir = "."
+
+requires "nim >= 1.4.2"
 EOL
 
 # Switching to releases branch ---------------------------------------------------------------------
-git checkout releases
-rm -rf releases
-mv tmp/releases .
-git add .
-git commit -m "version $version"
-git push
-git checkout dev
-echo "release done, switched back to dev"
+git checkout main
+# rm -rf ./base
+# rm -rf ./ext
+# rm -rf ./ftext
+# rm -rf ./mono
+# rm -rf ./nodem
+# mv tmp/releases .
+# git add .
+# git commit -m "version $version"
+# git push
+# git checkout dev
+# echo "release done, switched back to dev"
