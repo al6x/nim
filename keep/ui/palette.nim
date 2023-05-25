@@ -238,10 +238,11 @@ proc MockupSection*(title: string, content: seq[El]): El =
     el".border .border-gray-300 .rounded .m-5 .mt-1":
       it.add content
 
-template mockup_section(t: string, code) =
+template mockup_section(title_arg: string, code) =
+  let built: El = block: code
   result.add:
-    el(MockupSection, (title: t)):
-      code
+    el(MockupSection, (title: title_arg)):
+      add_or_return built
 
 type StubData = object
   links:     seq[(string, string)]
@@ -292,8 +293,9 @@ proc render_mockup: seq[El] =
         for blk in section.blocks: # Blocks
           el(FBlock, (blk: blk, context: context, controls: controls_stub))
 
-  let search_controls = @[el(PIconButton, (icon: "cross"))]
   mockup_section("Search"):
+    let search_controls = @[el(PIconButton, (icon: "cross"))]
+
     let right = els:
       el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
         el(PRBlock, ()):
