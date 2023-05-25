@@ -58,7 +58,6 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= $nim_version"
-requires "https://github.com/al6x/nim?subdir=base == $version"
 requires "https://github.com/al6x/nim?subdir=ext == $version"
 EOL
 
@@ -77,7 +76,6 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= $nim_version"
-requires "https://github.com/al6x/nim?subdir=base == $version"
 requires "https://github.com/al6x/nim?subdir=ext == $version"
 EOL
 
