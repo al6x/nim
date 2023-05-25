@@ -9,6 +9,7 @@ git checkout dev
 rm -rf tmp/releases
 mkdir -p tmp/releases
 
+nim_version="1.6"
 version="2.1.2"
 
 # base ---------------------------------------------------------------------------------------------
@@ -22,7 +23,7 @@ license     = "MIT"
 
 srcDir = "."
 
-requires "nim >= 1.6"
+requires "nim >= $nim_version"
 EOL
 
 # ext ----------------------------------------------------------------------------------------------
@@ -38,8 +39,8 @@ license     = "MIT"
 
 srcDir = "."
 
-requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=base"
+requires "nim >= $nim_version"
+requires "https://github.com/al6x/nim?subdir=base == $version"
 EOL
 
 # ftext --------------------------------------------------------------------------------------------
@@ -56,8 +57,8 @@ license     = "MIT"
 
 srcDir = "."
 
-requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=ext"
+requires "nim >= $nim_version"
+requires "https://github.com/al6x/nim?subdir=ext == $version"
 EOL
 
 # mono ---------------------------------------------------------------------------------------------
@@ -74,8 +75,8 @@ license     = "MIT"
 
 srcDir = "."
 
-requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=ext"
+requires "nim >= $nim_version"
+requires "https://github.com/al6x/nim?subdir=ext == $version"
 EOL
 
 # nodem --------------------------------------------------------------------------------------------
