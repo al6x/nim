@@ -49,9 +49,11 @@ knots #bushcraft #knots ^images
 
 Note the last line with `knots` the images from the `knots` folder will be displayed as a gallery.
 
-Render it
+Rendering Formal Text:
 
 ```
+nimble install https://github.com/al6x/nim?subdir=releases/ftext@#releases
+
 nim r ftext/examples/example.nim
 
 # To serve images properly the static server needed
