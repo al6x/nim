@@ -14,7 +14,7 @@ var palette* {.threadvar.}: Palette
 proc nomockup*(class: string): string =
   if palette.mockup_mode: "" else: class
 
-# Common -------------------------------------------------------------------------------------------
+# Elementary ---------------------------------------------------------------------------------------
 proc PIconButton*(icon: string, title = "", size = "w-5 h-5", color = "bg-gray-500"): El =
   let asset_root = if palette.mockup_mode: "" else: "/assets/palette/"
   el"button .block.svg-icon":
@@ -110,7 +110,7 @@ proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
             it.text text
             it.location link
 
-# Blocks ---------------------------------------------------------------------------------------------
+# Blocks -------------------------------------------------------------------------------------------
 template inline_controls(controls: seq[El], hover: bool) =
   unless controls.is_empty:
     el""".absolute.right-0.top-1.flex.bg-white .rounded.p-1""":
@@ -151,6 +151,7 @@ template block_layout(
     # Should be the last one, otherwise the first element will have extra margin
     inline_controls(controls, hover)
 
+# FBlocks ------------------------------------------------------------------------------------------
 proc with_path(tags: seq[string], context: FContext): seq[(string, string)] =
   tags.map((tag) => (tag, (context.config.tag_path)(tag, context)))
 
@@ -170,7 +171,8 @@ proc FBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
 
 # Search -------------------------------------------------------------------------------------------
 proc PSearchItem*(title, subtitle, before, match, after: string): El =
-  el".pl-8.pr-8 .mb-2":
+  block_layout:
+  # el".pl-8.pr-8 .mb-2":
     el"span .text-gray-500":
       el"span":
         it.text before
@@ -188,19 +190,6 @@ proc PSearchItem*(title, subtitle, before, match, after: string): El =
         el"a .text-blue-800":
           it.text title
           it.location "#"
-
-proc PSearch*(title = "Found", more: int, content: seq[El]): El =
-  el".pt-3.pb-3":
-    el".float-right.mr-8.mt-1":
-      el(PIconButton, (icon: "cross"))
-    el".pl-8.mb-2 .text-xl":
-      it.text title
-    el"":
-      it.add content
-
-    if more > 0:
-      el".pl-8.pr-8.mb-2.float-right":
-        el(PTextButton, (text: fmt"{more} more"))
 
 # PApp ---------------------------------------------------------------------------------------------
 proc layout*(left, right: seq[El]): El =
@@ -303,23 +292,30 @@ proc render_mockup: seq[El] =
         for blk in section.blocks: # Blocks
           el(FBlock, (blk: blk, context: context, controls: controls_stub))
 
+  let search_controls = @[el(PIconButton, (icon: "cross"))]
   mockup_section("Search"):
     let right = els:
       el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
         el(PRBlock, ()):
           el(PSearchField, (text: "finance/ About Forex"))
 
-    el(PApp, (title: "Search", right: right)):
-      el(PSearch, (title: "Found", more: 23)):
-        for i in 1..6:
-          el(PSearchItem, (
-            title: "Risk Simulation",
-            subtitle: "",
-            before: "there are multiple reasons to",
-            match: "About Forex",
-            after: "Every single of those reasons is big enough to stay away from " &
-              "such investment. Forex has all of them"
-          ))
+    el(PApp, (title: "Found", title_controls: search_controls, right: right)):
+      for i in 1..6:
+        el(PSearchItem, (
+          title: "Risk Simulation",
+          subtitle: "",
+          before: "there are multiple reasons to",
+          match: "About Forex",
+          after: "Every single of those reasons is big enough to stay away from " &
+            "such investment. Forex has all of them"
+        ))
+
+      let more = 23
+      if more > 0:
+        block_layout:
+          el"":
+            el(PTextButton, (text: fmt"{more} more")):
+              it.class "block float-right"
 
   mockup_section("Misc"):
     el(PApp, (title: "Misc")):

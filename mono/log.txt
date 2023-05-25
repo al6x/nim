@@ -1,3 +1,17 @@
+proc PSearch*(title = "Found", more: int, content: seq[El]): El =
+  el".pt-3.pb-3":
+    el".float-right.mr-8.mt-1":
+      el(PIconButton, (icon: "cross"))
+    el".pl-8.mb-2 .text-xl":
+      it.text title
+    el"":
+      it.add content
+
+    if more > 0:
+      el".pl-8.pr-8.mb-2.float-right":
+        el(PTextButton, (text: fmt"{more} more"))
+
+
 proc PTextBlock*(
   html: SafeHtml, warns: seq[string] = @[], controls: seq[El] = @[], tags: seq[(string, string)] = @[]
 ): El =
