@@ -3,7 +3,8 @@
 Markdown specifies How it Looks, FormalText **specifies What it Means**, the structure of the Data.
 
 The Formal Text document is a sequence of blocks, blocks could be of different types, text,
-list, table, images, charts etc.
+list, table, images, charts etc. More blocks could and should be added, easy extensibility is
+core feature, blocks for charts, computations (like Python Notebook) etc.
 
 I'm using it for Notebook App (screenshot below), but it also could be used separately.
 
