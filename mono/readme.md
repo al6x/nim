@@ -4,6 +4,8 @@ Nim UI/Web/Desktop/Mobile Framework
 
 Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4).
 
+![](readme/todo.png)
+
 # Features
 
 - Reactive, like Svelte, with compact and clean code.

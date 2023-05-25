@@ -66,6 +66,7 @@ EOL
 mkdir tmp/releases/mono
 cp -r mono tmp/releases/mono
 mv tmp/releases/mono/mono/readme.md tmp/releases/mono
+mv tmp/releases/mono/mono/readme tmp/releases/mono
 
 cat >tmp/releases/mono/mono.nimble <<EOL
 version     = "${version}"
