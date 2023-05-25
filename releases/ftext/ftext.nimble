@@ -1,4 +1,4 @@
-version     = 2.1.1
+version     = "2.1.1"
 author      = "Alex Craft https://github.com/al6x"
 description = "Formal Text, Text as Data"
 license     = "MIT"

@@ -1,4 +1,4 @@
-version     = 2.1.1
+version     = "2.1.1"
 author      = "Alex Craft https://github.com/al6x"
 description = "Mono UI Web Framework"
 license     = "MIT"
