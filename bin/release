@@ -5,6 +5,8 @@
 set -e
 
 git checkout dev
+git checkout main
+git merge dev
 
 rm -rf tmp/releases
 mkdir -p tmp/releases
