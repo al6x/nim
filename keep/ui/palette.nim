@@ -248,10 +248,6 @@ type StubData = object
   links:     seq[(string, string)]
   tags:      seq[CloudTag]
   fdoc:      FDoc
-  # note_tags: seq[string]
-  # text_block1_html, text_block2_html, list_block1_html, text_block_with_image_html: SafeHtml
-  # code_block1: string
-  # knots: seq[string]
 
 var data: StubData
 proc stub_data: StubData
@@ -294,12 +290,12 @@ proc render_mockup: seq[El] =
           el(FBlock, (blk: blk, context: context, controls: controls_stub))
 
   mockup_section("Search"):
-    let search_controls = @[el(PIconButton, (icon: "cross"))]
-
     let right = els:
       el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
         el(PRBlock, ()):
           el(PSearchField, (text: "finance/ About Forex"))
+
+    let search_controls = @[el(PIconButton, (icon: "cross"))]
 
     el(PApp, (title: "Found", title_controls: search_controls, right: right)):
       for i in 1..6:
