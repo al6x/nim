@@ -75,7 +75,7 @@ test "el proc component":
       el(Panel, (color: "blue")):
         el(Button, (color: "blue"))
     el"app":
-      el(LRLayout, (left: left))
+      el(LRLayout, (left: left.children))
 
   let root_el = el(App, ())
   check root_el.to_html == """

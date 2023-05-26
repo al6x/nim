@@ -124,18 +124,18 @@ proc html_el*(html: SafeHtml): El =
 proc text_el*(text: string): El =
   El(kind: ElKind.text, text_data: text)
 
-# proc sequal*(self, other: El): bool =
-#   # Shallow equal, avoiding comparing children, as it's a heavy operation
-#   if self.kind != other.kind: return false
-#   case self.kind
-#   of ElKind.el:
-#     self.tag == other.tag and self.attrs == other.attrs and self.children.len == other.children.len
-#   of ElKind.text:
-#     self.text_data == other.text_data
-#   of ElKind.html:
-#     self.html_data == other.html_data
-#   of ElKind.list:
-#     self.children.len == other.children.len
+proc `==`*(self, other: El): bool {.no_side_effect.} =
+  if self.kind != other.kind: return false
+  case self.kind
+  of ElKind.el:
+    self.tag == other.tag and self.attrs == other.attrs and self.children == other.children and
+      self.extras == self.extras
+  of ElKind.text:
+    self.text_data == other.text_data
+  of ElKind.html:
+    self.html_data == other.html_data
+  of ElKind.list:
+    self.children == other.children
 
 proc contains*(el: El, k: string): bool =
   k in el.attrs
@@ -241,9 +241,9 @@ proc add*(parent: El, child: El) =
 proc add*(parent: El, list: seq[El]) =
   parent.children.add list
 
-template els*(code): seq[El] =
+template els*(code): El =
   block:
-    var it {.inject.} = seq[El].init #El(kind: ElKind.list)
+    var it {.inject.} = El(kind: ElKind.list)
     code
     it
 
