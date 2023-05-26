@@ -19,9 +19,10 @@ test "escape_js":
   assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
 
 # parse_tag ----------------------------------------------------------------------------------------
-const special    = {'#', '.', '$'}
-const delimiters = special + {' '}
 proc parse_tag*(s: string): tuple[tag: string, attrs: Table[string, string]] =
+  const special = {'#', '.', '$'}
+  const delimiters = special + {' '}
+
   # Parses `"span#id.c1.c2 type=checkbox required"`
   var tag = "div"; var attrs: Table[string, string]
 
@@ -92,33 +93,30 @@ test "parse_tag":
   check_attrs "$controls .a",     ("div",    { "c": "controls", "class": "a" })
   check_attrs "$controls.a",      ("div",    { "c": "controls", "class": "a" })
   check_attrs "button$button.a",  ("button", { "c": "button", "class": "a" })
+  check_attrs "block-ft .a",      ("block-ft", { "class": "a" })
 
 # el -----------------------------------------------------------------------------------------------
 type
+  ElAttrs*  = Table[string, string]
+  ElExtras* = ref object of RootObj
   ElKind* = enum el, text, html, list
   El* = ref object
     children*: seq[El]
     case kind*: ElKind
     of el:
       tag*:      string
-      attrs*:    Table[string, string]
+      attrs*:    ElAttrs
     of text:
       text_data*: string
     of html:
       html_data*: SafeHtml
     of list:
       discard
+    extras*: Option[ElExtras] # Integration with other frameworks
 
-proc init*(_: type[El], tag = "", attrs: openarray[(string, string)] = seq[(string, string)].init): El =
-  var (parsed_tag, parsed_attrs) = parse_tag(tag)
-  for (k, v) in attrs:
-    if k in parsed_attrs:
-      case k
-      of "class": parsed_attrs["class"] = v & " " & parsed_attrs["class"]
-      else:       throw fmt"can't redefine attribute '{k}' for '{tag}'"
-    else:
-      parsed_attrs[k] = v
-  El(kind: ElKind.el, tag: parsed_tag, attrs: parsed_attrs)
+proc init*(_: type[El], tag = ""): El =
+  let (tag, attrs) = parse_tag(tag)
+  El(kind: ElKind.el, tag: tag, attrs: attrs)
 
 proc html_el*(html: SafeHtml): El =
   El(kind: ElKind.html, html_data: html)
@@ -126,43 +124,97 @@ proc html_el*(html: SafeHtml): El =
 proc text_el*(text: string): El =
   El(kind: ElKind.text, text_data: text)
 
-proc is_self_closing_tag(tag: string): bool =
-  tag in ["img"]
+# proc sequal*(self, other: El): bool =
+#   # Shallow equal, avoiding comparing children, as it's a heavy operation
+#   if self.kind != other.kind: return false
+#   case self.kind
+#   of ElKind.el:
+#     self.tag == other.tag and self.attrs == other.attrs and self.children.len == other.children.len
+#   of ElKind.text:
+#     self.text_data == other.text_data
+#   of ElKind.html:
+#     self.html_data == other.html_data
+#   of ElKind.list:
+#     self.children.len == other.children.len
 
-proc to_html*(el: El, indent = "", comments = false): SafeHtml =
+proc contains*(el: El, k: string): bool =
+  k in el.attrs
+
+proc `[]`*(el: El, k: string): string =
+  el.attrs[k]
+
+proc `[]=`*(el: El, k: string, v: string | int | bool) =
+  el.attrs[k] = v.to_s
+
+proc normalise_attrs*(el: El): OrderedTable[string, string] =
+  assert el.kind == ElKind.el
+  sort:
+    if el.tag == "input" and "type" in el and el["type"] == "checkbox":
+      # Normalising value
+      assert el.children.is_empty
+      var attrs = el.attrs
+      case attrs["value"]
+      of "true":  attrs["checked"] = "true"
+      of "false": discard
+      else:       throw "unknown input value"
+      attrs.del "value"
+      attrs
+    else:
+      el.attrs
+
+proc to_json_hook*(el: El): JsonNode =
   case el.kind
   of ElKind.el:
-    result.add indent & "<" & el.tag
-    for k, v in el.attrs:
-      result.add " " & k & "=\"" & v.escape_html & "\""
-    if el.tag.is_self_closing_tag:
-      result.add "/>"
+    if el.children.is_empty:
+      %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs }
     else:
-      result.add ">"
-      unless el.children.is_empty:
-        # Single text or html content
-        if el.children.len == 1 and el.children[0].kind in [ElKind.text, ElKind.html]:
-          result.add el.children[0].to_html(comments = comments)
-        else:
-          result.add "\n"
-          for child in el.children:
-            result.add child.to_html(indent = indent & "  ", comments = comments) & "\n"
-          result.add indent
-      result.add "</" & el.tag & ">"
+      %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs, children: el.children }
   of ElKind.text:
-    result.add el.text_data.escape_html
+    %{ kind: el.kind, text: el.text_data }
   of ElKind.html:
-    result.add el.html_data
+    %{ kind: el.kind, html: el.html_data }
+  of ElKind.list:
+    throw "json for el.list is not implemented"
+
+proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
+  case el.kind
+  of ElKind.el:
+    let attrs = el.normalise_attrs
+    html.add indent & "<" & el.tag
+    for k, v in attrs:
+      html.add " " & k & "=\"" & v.escape_html & "\""
+    # if el.tag.is_self_closing_tag:
+    #   result.add "/>"
+    # else:
+    html.add ">"
+    unless el.children.is_empty:
+      if el.children.len == 1 and el.children[0].kind in [ElKind.text, ElKind.html]:
+        # Single text or html content
+        el.children[0].to_html(html, comments = comments)
+      else:
+        html.add "\n"
+        for child in el.children:
+          child.to_html(html, indent = indent & "  ", comments = comments)
+          html.add "\n"
+        html.add indent
+    html.add "</" & el.tag & ">"
+  of ElKind.text:
+    html.add el.text_data.escape_html
+  of ElKind.html:
+    html.add el.html_data
   of ElKind.list:
     for i, item in el.children:
-      result.add item.to_html(indent = indent, comments = comments)
-      if i < el.children.high: result.add "\n"
+      item.to_html(html, indent = indent, comments = comments)
+      if i < el.children.high: html.add "\n"
+
+proc to_html*(el: El, indent = "", comments = false): SafeHtml =
+  el.to_html(result, indent = indent, comments = comments)
 
 proc to_html*(els: openarray[El], indent = "", comments = false): string =
   els.map((el) => el.to_html(indent = indent, comments = comments)).join("\n")
 
 # attrs --------------------------------------------------------------------------------------------
-proc attr*[T](self: El, k: string | int | bool, v: T) =
+proc attr*[T](self: El, k: string, v: T) =
   self.attrs[k] = v.to_s
 
 proc value*[T](self: El, v: T) =
@@ -178,32 +230,58 @@ proc style*(self: El, style: string) =
   self.attr("style", style)
 
 proc class*(self: El, class: string) =
-  let class = if "class" in self.attrs: self.attrs["class"] & " " & class else: class
+  let class = if "class" in self: self["class"] & " " & class else: class
   self.attr "class", class
 
 # template -----------------------------------------------------------------------------------------
-proc add*(parent: El, child: El | seq[El]) =
-  parent.children.add child
+proc add*(parent: El, child: El) =
+  if child.kind == list: parent.children.add child.children
+  else:                  parent.children.add child
 
-template els*(code): El =
+proc add*(parent: El, list: seq[El]) =
+  parent.children.add list
+
+template els*(code): seq[El] =
   block:
-    var it {.inject.} = El(kind: ElKind.list)
+    var it {.inject.} = seq[El].init #El(kind: ElKind.list)
     code
     it
 
-template add_or_return*(e_arg: El): auto =
+template add_or_return_el*(e_arg: El): auto =
   let e = e_arg
   assert not e.is_nil
-  when compiles(it.add(e)):         it.add(e)
-  else:                             e
+  when compiles(it.add(e)): it.add(e)
+  # when declared(it): it.add(e)
+  else:              e
 
 template el*(html: string, code): auto =
   let el = block:
     let it {.inject.} = El.init(fmt(html, '{', '}'))
     code
     it
-  add_or_return el
+  add_or_return_el el
 
 template el*(html: string): auto =
-  el(html, attrs):
+  el(html):
     discard
+
+test "el, basics":
+  check el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
+
+  discard els(el("a", el("b"))) # should work
+
+  let h =
+    el".parent":
+      el".counter":
+        el"input type=text":
+          it.value "some"
+        el"button":
+          it.text "+"
+  let html = """
+    <div class="parent">
+      <div class="counter">
+        <input type="text" value="some"></input>
+        <button>+</button>
+      </div>
+    </div>""".dedent
+  check h.to_html == html

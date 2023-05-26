@@ -93,7 +93,7 @@ proc render*(self: TodoView): El =
   proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
-  el"header $TodoView .header":
+  el"header .header":
     it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
     el"h1":
       it.text("todos")
@@ -153,7 +153,7 @@ when is_main_module:
   # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView
   import mono/http, std/os
 
-  let page: PageFn = proc(root_el: JsonNode): string =
+  let page: PageFn = proc(root_el: El): string =
     # Feature: content and title in initial HTML page to improve SEO.
     """
       <!DOCTYPE html>
@@ -178,7 +178,7 @@ when is_main_module:
       </html>
     """.dedent
       .replace("{title}", root_el.window_title.escape_html)
-      .replace("{html}", root_el.to_html(comments = true))
+      .replace("{html}", root_el.to_html)
 
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk")])

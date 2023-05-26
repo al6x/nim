@@ -20,7 +20,7 @@ proc fill*[T](len: int, fn: (i: int) -> T): seq[T] =
   for i in 0..<len: result[i] = fn(i)
 
 
-func contains*[T](list: openarray[T], check: (T) -> bool): bool =
+proc contains*[T](list: openarray[T], check: (T) -> bool): bool =
   for v in list:
     if check(v): return true
   false
@@ -30,8 +30,8 @@ proc `&`*[T](x, y: openarray[T]): seq[T] =
   x.to_seq & y.to_seq
 
 
-func is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
-func is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0
+proc is_empty*[T](list: openarray[T]): bool {.inline.} = list.len == 0
+proc is_blank*[T](list: openarray[T]): bool {.inline.} = list.len == 0
 
 
 proc fget*[T](list: openarray[T], check: (T) -> bool, start = 0): Option[T] =
@@ -49,19 +49,19 @@ proc fget*[T](list: openarray[T], check: (T, int) -> bool, start = 0): Option[T]
   T.none
 
 
-func first*[T](list: openarray[T]): T =
+proc first*[T](list: openarray[T]): T =
   assert not list.is_empty, "can't get first from empty list"
   list[0]
 
-# func first*[T](list: openarray[T], check: (T) -> bool, start = 0): T =
+# proc first*[T](list: openarray[T], check: (T) -> bool, start = 0): T =
 #   list.fget(check, start).get
 
 
-func first_optional*[T](list: openarray[T]): Option[T] =
+proc first_optional*[T](list: openarray[T]): Option[T] =
   if list.is_empty: T.none else: list[0].some
 
 
-func last*[T](list: openarray[T]): T =
+proc last*[T](list: openarray[T]): T =
   assert not list.is_empty, "can't get last from empty list"
   list[^1]
 
@@ -79,7 +79,7 @@ proc delete*[T](s: var seq[T], cond: (T) -> bool): void =
   s = s.filter((v) => not cond(v))
 
 
-func findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
+proc findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
   if start <= (list.len - 1):
     for i in start..(list.len - 1):
       if list[i] == value: return i.some
@@ -133,12 +133,12 @@ test "pick":
   check people.pick(name_fn) == @["John", "Sarah"]
 
 
-func map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} =
+proc map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} =
   for i, v in list: result.add(op(v, i))
 
 
-func sort*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
-# func sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
+proc sort*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
+# proc sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
 
 test "sort_by":
   check @[(3, 2), (1, 3)].sort((v) => v) == @[(1, 3), (3, 2)]
@@ -147,7 +147,8 @@ test "sort_by":
 proc sort*[T](list: openarray[T]): seq[T] {.inline.} = list.sorted
 
 
-func reverse*[T](list: openarray[T]): seq[T] {.inline.} = list.reversed
+proc reverse*[T](list: openarray[T]): seq[T] =
+  list.reversed
 
 
 proc findi_min*[T, C](list: openarray[T], op: (T) -> C): int =
@@ -189,26 +190,26 @@ proc find_max*[T, C](list: openarray[T], op: (T) -> C): T =
   list[list.findi_max(op)]
 
 
-func reject*[V](list: openarray[V], op: (V) -> bool): seq[V] =
+proc reject*[V](list: openarray[V], op: (V) -> bool): seq[V] =
   list.filter((v) => not op(v))
 
 
-func filter*[V](list: openarray[V], fn: (V, int) -> bool): seq[V] =
+proc filter*[V](list: openarray[V], fn: (V, int) -> bool): seq[V] =
   for i, v in list:
     if fn(v, i): result.add v
 
-func filter*[V](list: openarray[Option[V]]): seq[V] =
+proc filter*[V](list: openarray[Option[V]]): seq[V] =
   for o in list:
     if o.is_some: result.add o.get
 
 
-func filter_map*[V, R](list: openarray[V], convert: (V) -> Option[R]): seq[R] =
+proc filter_map*[V, R](list: openarray[V], convert: (V) -> Option[R]): seq[R] =
   for v in list:
     let o = convert(v)
     if o.is_some: result.add o.get
 
 
-func filter_map*[V, R](list: openarray[V], convert: (V, int) -> Option[R]): seq[R] =
+proc filter_map*[V, R](list: openarray[V], convert: (V, int) -> Option[R]): seq[R] =
   for i, v in list:
     let o = convert(v, i)
     if o.is_some: result.add o.get
@@ -218,12 +219,12 @@ proc each*[T](list: openarray[T], cb: (proc (v: T))) =
   for v in list: cb(v)
 
 
-func shuffle*[T](list: openarray[T], seed = 1): seq[T] =
+proc shuffle*[T](list: openarray[T], seed = 1): seq[T] =
   var rand = random.init_rand(seed)
   result = list.to_seq
   random.shuffle(rand, result)
 
-func shuffle*[T](list: openarray[T], rand: random.Rand): seq[T] =
+proc shuffle*[T](list: openarray[T], rand: random.Rand): seq[T] =
   result = list.to_seq
   random.shuffle(rand, result)
 
@@ -233,7 +234,7 @@ proc count*[T](list: openarray[T], fn: (T) -> bool): int {.inline.} =
     if fn(v): result.inc 1
 
 
-func batches*[T](list: openarray[T], size: int): seq[seq[T]] =
+proc batches*[T](list: openarray[T], size: int): seq[seq[T]] =
   var i = 0
   while i < list.len:
     var batch: seq[T]
@@ -250,22 +251,22 @@ test "batches":
   check @[1, 2].batches(2) == @[@[1, 2]]
 
 
-func flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
+proc flatten*[T](list: openarray[seq[T] | openarray[T]]): seq[T] =
   for list2 in list:
     for v in list2:
       result.add(v)
 
 
-func unique*[T](list: openarray[T]): seq[T] =
+proc unique*[T](list: openarray[T]): seq[T] =
   list.deduplicate
 
 
-func zip*[A, B](a: openarray[A], b: openarray[B]): seq[(A, B)] =
+proc zip*[A, B](a: openarray[A], b: openarray[B]): seq[(A, B)] =
   # Difference from sequtils.zip is that it requires a and b sizes to be the same
   assert a.len == b.len
   sequtils.zip(a, b)
 
-func zip*[A, B, R](a: openarray[A], b: openarray[B], op: (A, B) -> R): seq[R] =
+proc zip*[A, B, R](a: openarray[A], b: openarray[B], op: (A, B) -> R): seq[R] =
   sequtils.zip(a, b).map((pair) => op(pair[0], pair[1]))
 
 

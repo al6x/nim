@@ -337,7 +337,7 @@ when is_main_module:
 
       </body>
     </html>
-  """.dedent.trim.replace("{html}", render_mockup().to_html(comments = true))
+  """.dedent.trim.replace("{html}", render_mockup().to_html)
   let dir = current_source_path().parent_dir.absolute_path
   let fname = fmt"{dir}/assets/palette/palette.html"
   fs.write fname, html

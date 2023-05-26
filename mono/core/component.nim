@@ -1,5 +1,5 @@
 import base, std/macros, ext/url
-import ./el
+import ./mono_el
 
 type
   InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer
@@ -31,7 +31,7 @@ type
     of eval:
       code*: string
     of update:
-      updates*: seq[UpdateElement]
+      updates*: seq[UpdateEl]
 
   Component* = ref object of RootObj
     current_tree:   Option[El]
@@ -63,8 +63,8 @@ proc get_child_component*[T](self: Component, _: type[T], id: string): T =
 template process_in_event*[C](self: C, event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
     let el = self.current_tree.get.get event.el
-    if el.extras.is_some and el.extras.get.`handler_name`.is_some:
-      let handler {.inject.} = el.extras.get.`handler_name`.get
+    if el.extras.is_some and el.extras_get.`handler_name`.is_some:
+      let handler {.inject.} = el.extras_get.`handler_name`.get
       code
       true
     else:
@@ -96,8 +96,8 @@ template process_in_event*[C](self: C, event: InEvent): bool =
     # Setting value on binded variable
     let render_for_input_change = block:
       let el = self.current_tree.get.get event.el
-      if el.extras.is_some and el.extras.get.set_value.is_some:
-        let set_value = el.extras.get.set_value.get
+      if el.extras.is_some and el.extras_get.set_value.is_some:
+        let set_value = el.extras_get.set_value.get
         set_value.handler event.input.value
         not set_value.delay
       else:
@@ -120,20 +120,20 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
 
   # when compiles(self.act): self.act # Do something before render
   let new_tree = self.render
-  new_tree.attrs["mono_id"] = id.to_json
+  new_tree.attrs["mono_id"] = id
   self.after_render
 
   let updates = if self.current_tree.is_some:
     diff(@[], self.current_tree.get, new_tree)
   else:
-    @[UpdateElement(el: @[], set: new_tree.to_json.some)]
+    @[UpdateEl(el: @[], set: new_tree.some)]
   self.current_tree = new_tree.some
 
   if updates.is_empty: @[]
   else:                @[OutEvent(kind: update, updates: updates)]
 
 # initial_root_el ----------------------------------------------------------------------------------
-proc initial_root_el*(events: seq[OutEvent]): JsonNode =
+proc initial_root_el*(events: seq[OutEvent]): El =
   assert events.len == 1, "to_html can't convert more than single event"
   assert events[0].kind == update, "to_html can't convert event other than update"
   assert events[0].updates.len == 1, "to_html can't convert more than single update"

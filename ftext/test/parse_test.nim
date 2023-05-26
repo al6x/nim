@@ -86,7 +86,7 @@ test "consume_inline_text, space":
   check consume_inline_text("**a** b\n").mapit(it.text) == @["a", " b"]
 
 test "parse_text":
-  let config = FTextConfig()
+  let config = FParseConfig()
   config.embed_parsers["image"] = embed_parser_image
   config.embed_parsers["code"] = embed_parser_code
 
@@ -192,7 +192,7 @@ test "parse_list_as_items":
     ]
 
 test "parse_list":
-  let config = FTextConfig()
+  let config = FParseConfig()
   config.embed_parsers["image"] = embed_parser_image
   config.embed_parsers["code"] = embed_parser_code
 

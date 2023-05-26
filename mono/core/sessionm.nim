@@ -1,5 +1,5 @@
-import std/[deques]
-import base, ext/url, ./component
+import std/deques
+import base, ext/url, ./component, ./mono_el
 
 type
   SessionPostEventKind* = enum events, pull
@@ -38,7 +38,7 @@ type
   # sync process. Result of processing stored in outbox, which periodically checked by async HTTP handler
   # and sent to Browser if needed.
   AppFn*    = proc(events: seq[InEvent], mono_id: string): seq[OutEvent]
-  PageFn*   = proc(initial_root_el: JsonNode): string
+  PageFn*   = proc(initial_root_el: El): string
   OnBinary* = proc(url: Url): BinaryResponse
 
   Session* = ref object

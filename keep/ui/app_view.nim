@@ -87,7 +87,7 @@ let page: PageFn = proc(root_el: JsonNode): string =
     </html>
   """.dedent
     .replace("{title}", root_el.window_title.escape_html)
-    .replace("{html}", root_el.to_html(comments = true))
+    .replace("{html}", root_el.to_html)
 
 proc build_app_view*(session: Session, url: Url) =
   let app_view = AppView()

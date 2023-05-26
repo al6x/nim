@@ -1,4 +1,2 @@
-import ./core/[component, tmpl, el, sessionm], ext/url
-import ext/html except El, el, els
-export component, tmpl, el, sessionm, url
-export html except El, el, els
+import ./core/[component, tmpl, mono_el, sessionm], ext/url
+export component, tmpl, mono_el, sessionm, url

@@ -20,18 +20,24 @@ type InEvent =
   { kind: 'input',    el: number[], input:    InputEvent }
 
 // Out events
-interface UpdateElement {
+type TagEl  = { kind: "el",   tag: string, attrs: Record<string, string>, children: El[] }
+type TextEl = { kind: "text", text: string }
+type HtmlEl = { kind: "html", html: string }
+// type ListEl = { kind: "list", children: El[] }
+type El = TagEl | TextEl | HtmlEl
+
+interface UpdateEl {
   el:            number[]
-  set?:          Record<string, unknown>
-  set_attrs?:    Record<string, unknown>
+  set?:          El // Record<string, El>
+  set_attrs?:    Record<string, string>
   del_attrs?:    string[]
-  set_children?: Record<string, Record<string, unknown>>
+  set_children?: Record<string, Record<string, El>>
   del_children?: number[]
 }
 
 type OutEvent =
   { kind: 'eval',   code: string } |
-  { kind: 'update', updates: UpdateElement[] }
+  { kind: 'update', updates: UpdateEl[] }
 
 // Session events
 type SessionPostEvent = { kind: 'events', mono_id: string, events: InEvent[] }
@@ -339,7 +345,7 @@ function el_by_path(root: HTMLElement, path: number[]): HTMLElement {
 
 let attr_properties = ["value"]
 let boolean_attr_properties = ["checked"]
-function apply_update(root: HTMLElement, update: UpdateElement) {
+function apply_update(root: HTMLElement, update: UpdateEl) {
   let el = el_by_path(root, update.el)
   let set = update.set
 
