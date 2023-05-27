@@ -16,7 +16,7 @@ proc to_json_hook*(delete_attrs: seq[ElAttrDel]): JsonNode =
 
 # types --------------------------------------------------------------------------------------------
 proc replace          *(id: seq[int], el: El                         ): Diff = %["replace", id, el.to_html]
-proc add_children     *(id: seq[int], els: seq[El]                   ): Diff = %["add_children", id, els.to_html]
+proc add_children     *(id: seq[int], els: seq[El]                   ): Diff = %["add_children", id, els.mapit(it.to_html)]
 proc set_children_len *(id: seq[int], len: int                       ): Diff = %["set_children_len", id, len]
 proc set_attrs        *(id: seq[int], attrs: Table[string, ElAttrVal]): Diff = %["set_attrs", id, attrs.to_json]
 proc del_attrs        *(id: seq[int], attrs: seq[ElAttrDel]          ): Diff = %["del_attrs", id, attrs.to_json]
