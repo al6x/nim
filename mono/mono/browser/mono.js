@@ -152,17 +152,36 @@ function listen_to_dom_events() {
             keys.push("meta");
         return keys;
     }
-    async function post_event(mono_id, event) {
+    let post_batches = {}; // Batching events to avoid multiple sends
+    let batch_timeout = undefined;
+    function post_event(mono_id, event) {
+        if (!(mono_id in post_batches))
+            post_batches[mono_id] = [];
+        post_batches[mono_id].push(event);
+        if (batch_timeout != undefined)
+            clearTimeout(batch_timeout);
+        batch_timeout = setTimeout(post_events, 1);
+    }
+    async function post_events() {
         // Sending changed input events with event
+        // LODO inputs should be limited to mono root el
         let input_events = Object.values(changed_inputs);
         changed_inputs = {};
-        Log("").info(">>", event);
-        let data = { kind: 'events', mono_id, events: [...input_events, event] };
-        try {
-            await send("post", location.href, data);
-        }
-        catch {
-            Log("http").error("can't send event");
+        let batches = post_batches;
+        post_batches = {};
+        for (const mono_id in batches) {
+            let events = batches[mono_id];
+            Log("").info(">>", events);
+            async function send_mono_x() {
+                let data = { kind: 'events', mono_id, events: [...input_events, ...events] };
+                try {
+                    await send("post", location.href, data);
+                }
+                catch {
+                    Log("http").error("can't send event");
+                }
+            }
+            send_mono_x();
         }
     }
 }
@@ -297,14 +316,20 @@ class ApplyDiffImpl {
     set_text(id, text) {
         let el = el_by_path(this.root, id);
         el.innerText = text;
+        this.flash_if_needed(el);
     }
     set_html(id, html) {
         let el = el_by_path(this.root, id);
         el.innerHTML = html;
+        this.flash_if_needed(el);
     }
     flash_if_needed(el) {
         let flasheable = el; // Flashing self or parent element
         while (flasheable) {
+            if (flasheable.hasAttribute("noflash")) {
+                flasheable = null;
+                break;
+            }
             if (flasheable.hasAttribute("flash"))
                 break;
             flasheable = flasheable.parentElement;
