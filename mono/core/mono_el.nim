@@ -44,18 +44,15 @@ proc get*(self: El, el_path: seq[int]): El =
   for i in el_path:
     result = result.children[i]
 
-# to_html ------------------------------------------------------------------------------------------
-proc window_title*(el: El): string =
-  # assert el.kind == JObject, "to_html element data should be JObject"
-  # if "window_title" in el: el["window_title"].get_str else: ""
-  if "window_title" in el: el["window_title"] else: ""
-
-# attrs --------------------------------------------------------------------------------------------
+# window el ----------------------------------------------------------------------------------------
 proc window_title*(self: El, title: string) =
   self.attr("window_title", title)
 
 proc window_location*(self: El, location: string | Url) =
   self.attr("window_location", location.to_s)
+
+proc window_title*(el: El): string =
+  if "window_title" in el: el["window_title"] else: ""
 
 # events -------------------------------------------------------------------------------------------
 proc extras_getset*(self: El): MonoElExtras =

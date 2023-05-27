@@ -6,22 +6,16 @@ type
   SessionPostEvent* = object
     mono_id*: string
     case kind*: SessionPostEventKind
-    of events:
-      events*: seq[InEvent]
-    of pull:
-      discard
+    of events: events*: seq[InEvent]
+    of pull:   discard
 
   SessionPullEventKind* = enum events, ignore, expired, error
   SessionPullEvent* = object
     case kind*: SessionPullEventKind
-    of events:
-      events*: seq[OutEvent]
-    of ignore:
-      discard
-    of expired:
-      discard
-    of error:
-      message*: string
+    of events:  events*: seq[OutEvent]
+    of ignore:  discard
+    of expired: discard
+    of error:   message*: string
 
   BinaryResponseKind* = enum file, http
   BinaryResponse* = object

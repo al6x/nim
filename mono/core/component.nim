@@ -7,33 +7,22 @@ type
   InEvent* = object
     el*: seq[int]
     case kind*: InEventType
-    of location:
-      location*: Url
-    of click:
-      click*: ClickEvent
-    of dblclick:
-      dblclick*: ClickEvent
-    of keydown:
-      keydown*: KeydownEvent
-    of change:
-      change*: ChangeEvent
-    of blur:
-      blur*: BlurEvent
-    of input:
-      input*: InputEvent
-    of timer: # Triggered periodically, to check and pick any background changes in state
-      discard
+    of location: location*: Url
+    of click:    click*: ClickEvent
+    of dblclick: dblclick*: ClickEvent
+    of keydown:  keydown*: KeydownEvent
+    of change:   change*: ChangeEvent
+    of blur:     blur*: BlurEvent
+    of input:    input*: InputEvent
+    of timer:    discard # Triggered periodically, to check and pick any background changes in state
 
   OutEventKind* = enum eval, initial_el, update
 
   OutEvent* = object
     case kind*: OutEventKind
-    of eval:
-      code*: string
-    of initial_el:
-      el*: El
-    of update:
-      diffs*: seq[Diff]
+    of eval:       code*: string
+    of initial_el: el*: El
+    of update:     diffs*: seq[Diff]
 
   Component* = ref object of RootObj
     current_tree:   Option[El]
@@ -80,20 +69,15 @@ template process_in_event*[C](self: C, event: InEvent): bool =
     else:
       false
   of click:
-    if_handler_found on_click:
-      handler event.click
+    if_handler_found on_click, handler(event.click)
   of dblclick:
-    if_handler_found on_dblclick:
-      handler event.dblclick
+    if_handler_found on_dblclick, handler(event.dblclick)
   of keydown:
-    if_handler_found on_keydown:
-      handler event.keydown
+    if_handler_found on_keydown, handler(event.keydown)
   of change:
-    if_handler_found on_change:
-      handler event.change
+    if_handler_found on_change, handler(event.change)
   of blur:
-    if_handler_found on_blur:
-      handler event.blur
+    if_handler_found on_blur, handler(event.blur)
   of input:
     # Setting value on binded variable
     let render_for_input_change = block:
