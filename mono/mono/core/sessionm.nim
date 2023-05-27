@@ -1,27 +1,21 @@
-import std/[deques]
-import base, ext/url, ./component
+import std/deques
+import base, ext/url, ./component, ./mono_el
 
 type
   SessionPostEventKind* = enum events, pull
   SessionPostEvent* = object
     mono_id*: string
     case kind*: SessionPostEventKind
-    of events:
-      events*: seq[InEvent]
-    of pull:
-      discard
+    of events: events*: seq[InEvent]
+    of pull:   discard
 
   SessionPullEventKind* = enum events, ignore, expired, error
   SessionPullEvent* = object
     case kind*: SessionPullEventKind
-    of events:
-      events*: seq[OutEvent]
-    of ignore:
-      discard
-    of expired:
-      discard
-    of error:
-      message*: string
+    of events:  events*: seq[OutEvent]
+    of ignore:  discard
+    of expired: discard
+    of error:   message*: string
 
   BinaryResponseKind* = enum file, http
   BinaryResponse* = object
@@ -38,7 +32,7 @@ type
   # sync process. Result of processing stored in outbox, which periodically checked by async HTTP handler
   # and sent to Browser if needed.
   AppFn*    = proc(events: seq[InEvent], mono_id: string): seq[OutEvent]
-  PageFn*   = proc(initial_root_el: JsonNode): string
+  PageFn*   = proc(initial_el: El): SafeHtml
   OnBinary* = proc(url: Url): BinaryResponse
 
   Session* = ref object

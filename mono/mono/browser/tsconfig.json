@@ -1,12 +1,18 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ES6",
     "strictNullChecks": true,
     "strict": true,
     "strictPropertyInitialization": true,
     "lib": [
       "es2018",
+      "es6",
       "dom",
       // "dom.iterable"
-    ]
-  }
+    ],
+    "downlevelIteration": true,
+
+  },
+  "include": ["*.ts"]
 }

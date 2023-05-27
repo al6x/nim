@@ -23,11 +23,12 @@ proc handle_app_load(
   # Processing in another async process, it's inefficient but help to avoid messy async error stack traces.
   while session.outbox.is_empty: await sleep_async 1
 
-  let root_el = session.outbox.initial_root_el
+  # Getting initial el
+  let initial_el = session.outbox.get_initial_el
   session.outbox.clear
   session.log.info ">> initial html"
 
-  await req.respond(session.page(root_el), "text/html; charset=UTF-8")
+  await req.respond(session.page(initial_el), "text/html; charset=UTF-8")
 
 proc handle_app_in_event(req: Request, session: Session, events: seq[InEvent]): Future[void] {.async.} =
   # Processing happen in another async process, it's inefficient but help to avoid messy async error stack traces.

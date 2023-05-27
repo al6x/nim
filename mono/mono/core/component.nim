@@ -1,5 +1,5 @@
 import base, std/macros, ext/url
-import ./el
+import ./mono_el, ./diff
 
 type
   InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer
@@ -7,31 +7,22 @@ type
   InEvent* = object
     el*: seq[int]
     case kind*: InEventType
-    of location:
-      location*: Url
-    of click:
-      click*: ClickEvent
-    of dblclick:
-      dblclick*: ClickEvent
-    of keydown:
-      keydown*: KeydownEvent
-    of change:
-      change*: ChangeEvent
-    of blur:
-      blur*: BlurEvent
-    of input:
-      input*: InputEvent
-    of timer: # Triggered periodically, to check and pick any background changes in state
-      discard
+    of location: location*: Url
+    of click:    click*: ClickEvent
+    of dblclick: dblclick*: ClickEvent
+    of keydown:  keydown*: KeydownEvent
+    of change:   change*: ChangeEvent
+    of blur:     blur*: BlurEvent
+    of input:    input*: InputEvent
+    of timer:    discard # Triggered periodically, to check and pick any background changes in state
 
-  OutEventType* = enum eval, update
+  OutEventKind* = enum eval, initial_el, update
 
   OutEvent* = object
-    case kind*: OutEventType
-    of eval:
-      code*: string
-    of update:
-      updates*: seq[UpdateElement]
+    case kind*: OutEventKind
+    of eval:       code*: string
+    of initial_el: el*: El
+    of update:     diffs*: seq[Diff]
 
   Component* = ref object of RootObj
     current_tree:   Option[El]
@@ -63,8 +54,8 @@ proc get_child_component*[T](self: Component, _: type[T], id: string): T =
 template process_in_event*[C](self: C, event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
     let el = self.current_tree.get.get event.el
-    if el.extras.is_some and el.extras.get.`handler_name`.is_some:
-      let handler {.inject.} = el.extras.get.`handler_name`.get
+    if el.extras.is_some and el.extras_get.`handler_name`.is_some:
+      let handler {.inject.} = el.extras_get.`handler_name`.get
       code
       true
     else:
@@ -78,26 +69,21 @@ template process_in_event*[C](self: C, event: InEvent): bool =
     else:
       false
   of click:
-    if_handler_found on_click:
-      handler event.click
+    if_handler_found on_click, handler(event.click)
   of dblclick:
-    if_handler_found on_dblclick:
-      handler event.dblclick
+    if_handler_found on_dblclick, handler(event.dblclick)
   of keydown:
-    if_handler_found on_keydown:
-      handler event.keydown
+    if_handler_found on_keydown, handler(event.keydown)
   of change:
-    if_handler_found on_change:
-      handler event.change
+    if_handler_found on_change, handler(event.change)
   of blur:
-    if_handler_found on_blur:
-      handler event.blur
+    if_handler_found on_blur, handler(event.blur)
   of input:
     # Setting value on binded variable
     let render_for_input_change = block:
       let el = self.current_tree.get.get event.el
-      if el.extras.is_some and el.extras.get.set_value.is_some:
-        let set_value = el.extras.get.set_value.get
+      if el.extras.is_some and el.extras_get.set_value.is_some:
+        let set_value = el.extras_get.set_value.get
         set_value.handler event.input.value
         not set_value.delay
       else:
@@ -120,28 +106,16 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
 
   # when compiles(self.act): self.act # Do something before render
   let new_tree = self.render
-  new_tree.attrs["mono_id"] = id.to_json
+  new_tree.attrs["mono_id"] = id
   self.after_render
 
-  let updates = if self.current_tree.is_some:
-    diff(@[], self.current_tree.get, new_tree)
+  if self.current_tree.is_some:
+    let diffs = diff(@[], self.current_tree.get, new_tree)
+    unless diffs.is_empty: result.add OutEvent(kind: update, diffs: diffs)
   else:
-    @[UpdateElement(el: @[], set: new_tree.to_json.some)]
+    result.add OutEvent(kind: initial_el, el: new_tree)
   self.current_tree = new_tree.some
 
-  if updates.is_empty: @[]
-  else:                @[OutEvent(kind: update, updates: updates)]
-
-# initial_root_el ----------------------------------------------------------------------------------
-proc initial_root_el*(events: seq[OutEvent]): JsonNode =
-  assert events.len == 1, "to_html can't convert more than single event"
-  assert events[0].kind == update, "to_html can't convert event other than update"
-  assert events[0].updates.len == 1, "to_html can't convert more than single update"
-  let update = events[0].updates[0]
-  assert update.el == @[], "to_html can convert only root element"
-  assert (
-    update.set_attrs.is_none and update.del_attrs.is_none and
-    update.set_children.is_none and update.del_children.is_none
-  ), "to_html requires all changes other than `set` be empty"
-  assert update.set.is_some, "to_html the `set` required"
-  update.set.get
+proc get_initial_el*(outbox: seq[OutEvent]): El =
+  assert outbox.len == 1 and outbox[0].kind == OutEventKind.initial_el, "initial_el required"
+  outbox[0].el

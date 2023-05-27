@@ -1,4 +1,4 @@
-import std/[tables, sugar, hashes]
+import std/[tables, sugar, hashes, algorithm]
 import ./option, ./support, ./test
 
 export tables
@@ -51,15 +51,15 @@ test "filter_map":
 
 
 # keys ---------------------------------------------------------------------------------------------
-proc keys*[K, V](table: Table[K, V]): seq[K] =
+proc keys*[K, V](table: Table[K, V] | OrderedTable[K, V]): seq[K] =
   for k in table.keys: result.add k
 
 
 # values -------------------------------------------------------------------------------------------
-proc values*[K, V](table: Table[K, V]): seq[V] =
+proc values*[K, V](table: Table[K, V] | OrderedTable[K, V]): seq[V] =
   for v in table.values: result.add v
 
-proc values*[K, V](table: OrderedTable[K, V] | ref OrderedTable[K, V]): seq[V] =
+proc values*[K, V](table: OrderedTable[K, V] | OrderedTable[K, V]): seq[V] =
   for v in table.values: result.add v
 
 
@@ -145,3 +145,6 @@ proc hash*[K, V](table: Table[K, V]): Hash =
   for k, v in table:
     result = result !& k.hash !& v.hash
   result = !$result
+
+proc sort*[K, V](table: Table[K, V] | OrderedTable[K, V]): OrderedTable[K, V] =
+  for k in table.keys.sorted(): result[k] = table[k]

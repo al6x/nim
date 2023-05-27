@@ -44,24 +44,24 @@ proc post_url(id: string): string =
 # post_view ----------------------------------------------------------------------------------------
 # Feature: fuctional component, for simple components function could be used
 proc PostView*(post: Post): El =
-  el".post":
+  el"post-view.block":
     it.window_title post.title
     el"a.block":
-      it.location posts_url()
+      it.attr("href", posts_url())
       it.text "All Posts"
-    el".post":
-      el".post_title":
+    el"post.block":
+      el"post-title.block":
         it.text post.title
-      el".post_text":
+      el"post-text.block":
         it.text post.text
 
 # posts_view ---------------------------------------------------------------------------------------
 proc PostsView*(blog: Blog): El =
-  el".post_items":
+  el"posts-view.block":
     it.window_title "Posts"
     for post in blog.posts:
       el"a.block":
-        it.location post_url(post.id)
+        it.attr("href", post_url(post.id))
         it.text post.title
 
 
@@ -86,14 +86,15 @@ proc render*(self: BlogView): El =
     let post = self.blog.posts.fget_by(id, id).get
     el(PostView, (post: post))
   of unknown:
-    el(PostsView, (blog: self.blog)):
-      # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
-      it.window_location(posts_url())
+    let e = el(PostsView, (blog: self.blog))
+    # Feature: redirect, in case of invalid url , for example '/' changing it to '/posts'
+    e.window_location(posts_url())
+    e
 
 when is_main_module:
   import mono/http, std/os
 
-  let page: PageFn = proc(root_el: JsonNode): string =
+  let page: PageFn = proc(root_el: El): SafeHtml =
     """
       <!DOCTYPE html>
       <html>
@@ -118,7 +119,7 @@ when is_main_module:
       # Feature: Setting title in initial HTML to improve SEO. Could be omited, as
       # it will be set automatically by JS.
       .replace("{title}", root_el.window_title.escape_html)
-      .replace("{html}", root_el.to_html(comments = true))
+      .replace("{html}", root_el.to_html)
 
   let blog = Blog(posts: @[
     Post(id: "1", title: "Title 1", text: "Text 1"),

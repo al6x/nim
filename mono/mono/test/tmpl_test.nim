@@ -1,11 +1,11 @@
-import base, ../core/[component, el, tmpl]
+import base, ../core/[component, mono_el, tmpl]
 
 test "el html":
   let html = el"ul.c1":
     for text in @["t1"]:
       el"li.c2":
-        it.attr("class", "c3") # Feature: setting attribute using `it`
-        it.text(text)
+        it.class "c3" # Feature: setting attribute using `it`
+        it.text text
         it.on_click(proc (e: auto) = discard)
 
   check html.to_html == """
@@ -41,13 +41,12 @@ test "el component":
 
   let root_el = el(App, ())
   check root_el.to_html == """
-    <app class="App C">
-      <panel class="Panel C blue">
-        <button class="Button C blue"></button>
+    <app>
+      <panel class="blue">
+        <button class="blue"></button>
       </panel>
     </app>
   """.dedent.trim
-
 
 test "el proc component":
   proc Button(color: string): El =
@@ -60,8 +59,8 @@ test "el proc component":
 
   type LRLayout = ref object of Component
     left*, right*: seq[El]
-  proc set_attrs(self: LRLayout) =
-    discard
+  proc set_attrs(self: LRLayout, left = seq[El].init, right = seq[El].init) =
+    self.left = left; self.right = right
   proc render(self: LRLayout): El =
     el"layout":
       if not self.left.is_empty:
@@ -72,20 +71,19 @@ test "el proc component":
           it.add self.right
 
   proc App: El =
+    let left = els:
+      el(Panel, (color: "blue")):
+        el(Button, (color: "blue"))
     el"app":
-      el(LRLayout, ()):
-        # Feature: if there are many slots, like `panel.left/right`, it could be set explicitly using `it`
-        it.left = els:
-          el(Panel, (color: "blue")):
-            el(Button, (color: "blue"))
+      el(LRLayout, (left: left.children))
 
   let root_el = el(App, ())
   check root_el.to_html == """
-    <app class="App C">
-      <layout class="LRLayout C">
+    <app>
+      <layout>
         <left>
-          <panel class="Panel C blue small">
-            <button class="Button C blue"></button>
+          <panel class="blue small">
+            <button class="blue"></button>
           </panel>
         </left>
       </layout>
@@ -119,28 +117,28 @@ test "el stateful component":
 
   let root_el = el(App, ())
   check root_el.to_html == """
-    <app class="App C">
-      <panel class="Panel C blue">
-        <button class="Button C blue"></button>
+    <app>
+      <panel class="blue">
+        <button class="blue"></button>
       </panel>
     </app>
   """.dedent.trim
 
 test "nesting, from error":
   proc Panel1(content: seq[El]): El =
-    el".panel1":
+    el"panel":
       it.add content
 
   proc App1(): El =
     el(Panel1, ()):
-      el".list":
-        el".list-item"
+      el"list":
+        el"list-item"
 
   let root_el = el(App1, ())
   check root_el.to_html == """
-    <div class="App1 C panel1">
-      <div class="list">
-        <div class="list-item"></div>
-      </div>
-    </div>
+    <panel>
+      <list>
+        <list-item></list-item>
+      </list>
+    </panel>
   """.dedent.trim

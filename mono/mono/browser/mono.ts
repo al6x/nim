@@ -1,7 +1,8 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
+import { p, el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal,
+  sleep } from "./helpers.js"
 
-let p = console.log.bind(console), global = window as any
-
+// Types -------------------------------------------------------------------------------------------
 // In events
 type SpecialInputKeys = 'alt' | 'ctrl' | 'meta' | 'shift'
 interface ClickEvent   { special_keys: SpecialInputKeys[] }
@@ -20,18 +21,9 @@ type InEvent =
   { kind: 'input',    el: number[], input:    InputEvent }
 
 // Out events
-interface UpdateElement {
-  el:            number[]
-  set?:          Record<string, unknown>
-  set_attrs?:    Record<string, unknown>
-  del_attrs?:    string[]
-  set_children?: Record<string, Record<string, unknown>>
-  del_children?: number[]
-}
-
 type OutEvent =
   { kind: 'eval',   code: string } |
-  { kind: 'update', updates: UpdateElement[] }
+  { kind: 'update', diffs: Diff[] }
 
 // Session events
 type SessionPostEvent = { kind: 'events', mono_id: string, events: InEvent[] }
@@ -43,7 +35,25 @@ type SessionPullEvent =
   { kind: 'expired' } |
   { kind: 'error', message: string }
 
+// Diff
+type SafeHtml = string
+type ElAttrKind = "string_prop" | "string_attr" | "bool_prop"
+type ElAttrVal = [string, ElAttrKind] | string
+type ElAttrDel = [string, ElAttrKind] | string
 
+type Diff = any[]
+
+interface ApplyDiff {
+  replace(id: number[], html: SafeHtml): void
+  add_children(id: number[], els: SafeHtml[]): void
+  set_children_len(id: number[], len: number): void
+  set_attrs(id: number[], attrs: Record<string, ElAttrVal>): void
+  del_attrs(id: number[], attrs: ElAttrDel[]): void
+  set_text(id: number[], text: string): void
+  set_html(id: number[], html: SafeHtml): void
+}
+
+// run ---------------------------------------------------------------------------------------------
 export function run() {
   listen_to_dom_events()
 
@@ -59,6 +69,56 @@ export function run() {
   pull(mono_id)
 }
 
+async function pull(mono_id: string): Promise<void> {
+  let log = Log("")
+  log.info("started")
+  main_loop: while (true) {
+    let res: SessionPullEvent
+    let last_call_was_retry = false
+    try {
+      res = await send<SessionPostPullEvent, SessionPullEvent>(
+        "post", location.href, { kind: "pull", mono_id }, -1
+      )
+      document.body.style.opacity = "1.0"
+      last_call_was_retry = false
+    } catch {
+      last_call_was_retry = true
+      if (!last_call_was_retry) log.warn("retrying...")
+      document.body.style.opacity = "0.7"
+      await sleep(1000)
+      continue
+    }
+
+    switch (res.kind) {
+      case 'events':
+        for (const event of res.events) {
+          log.info("<<", event)
+          switch(event.kind) {
+            case 'eval':
+              eval("'use strict'; " + event.code)
+              break
+            case 'update':
+              let root = find_one(`[mono_id="${mono_id}"]`)
+              if (!root) throw new Error("can't find mono root")
+              update(root, event.diffs)
+              break
+          }
+        }
+        break
+      case 'ignore':
+        break
+      case 'expired':
+        document.body.style.opacity = "0.4"
+        log.info("expired")
+        break main_loop
+      case 'error':
+        log.error(res.message)
+        throw new Error(res.message)
+    }
+  }
+}
+
+// events ------------------------------------------------------------------------------------------
 function listen_to_dom_events() {
   let changed_inputs: { [k: string]: InEvent } = {} // Keeping track of changed inputs
 
@@ -157,102 +217,6 @@ function listen_to_dom_events() {
   }
 }
 
-async function pull(mono_id: string): Promise<void> {
-  let log = Log("")
-  log.info("started")
-  main_loop: while (true) {
-    let res: SessionPullEvent
-    let last_call_was_retry = false
-    try {
-      res = await send<SessionPostPullEvent, SessionPullEvent>(
-        "post", location.href, { kind: "pull", mono_id }, -1
-      )
-      document.body.style.opacity = "1.0"
-      last_call_was_retry = false
-    } catch {
-      last_call_was_retry = true
-      if (!last_call_was_retry) log.warn("retrying...")
-      document.body.style.opacity = "0.7"
-      await sleep(1000)
-      continue
-    }
-
-    switch (res.kind) {
-      case 'events':
-        for (const event of res.events) {
-          log.info("<<", event)
-          switch(event.kind) {
-            case 'eval':
-              eval("'use strict'; " + event.code)
-              break
-            case 'update':
-              let root = find_one(`[mono_id="${mono_id}"]`)
-              if (!root) throw new Error("can't find mono root")
-              event.updates.forEach((update) => apply_update(root, update))
-              break
-          }
-        }
-        break
-      case 'ignore':
-        break
-      case 'expired':
-        document.body.style.opacity = "0.4"
-        log.info("expired")
-        break main_loop
-      case 'error':
-        log.error(res.message)
-        throw new Error(res.message)
-    }
-  }
-}
-
-const http_log = Log("http", false)
-function send<In, Out>(method: string, url: string, data: In, timeout = 5000): Promise<Out> {
-  http_log.info("send", { method, url, data })
-  return new Promise((resolve, reject) => {
-    var responded = false
-    var xhr = new XMLHttpRequest()
-    xhr.open(method.toUpperCase(), url, true)
-    xhr.onreadystatechange = function(){
-      if(responded) return
-      if(xhr.readyState == 4){
-        responded = true
-        if(xhr.status == 200) {
-          const response = JSON.parse(xhr.responseText)
-          http_log.info("receive", { method, url, data, response })
-          resolve(response)
-        } else {
-          const error = new Error(xhr.responseText)
-          http_log.info("error", { method, url, data, error })
-          reject(error)
-        }
-      }
-    }
-    if (timeout > 0) {
-      setTimeout(function(){
-        if(responded) return
-        responded = true
-        const error = new Error("no response from " + url + "!")
-        http_log.info("error", { method, url, data, error })
-        reject(error)
-      }, timeout)
-    }
-    xhr.send(JSON.stringify(data))
-  })
-}
-
-function find_all(query: string): HTMLElement[] {
-  let list: HTMLElement[] = [], els = document.querySelectorAll(query)
-  for (var i = 0; i < els.length; i++) list.push(els[i] as HTMLElement)
-  return list
-}
-
-function find_one(query: string): HTMLElement {
-  let el = document.querySelector(query)
-  if (!el) throw new Error("query_one haven't found any " + query)
-  return el as HTMLElement
-}
-
 function find_el_with_listener(
   target: HTMLElement, listener: string | undefined = undefined
 ): { mono_id: string, path: number[] } | undefined {
@@ -276,25 +240,6 @@ function find_el_with_listener(
   return undefined
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve, _reject) => { setTimeout(() => { resolve() }, ms) })
-}
-
-function Log(component: string, enabled = true) {
-  if (!enabled) return {
-    info(msg: string, data: unknown = {})  {},
-    error(msg: string, data: unknown = {}) {},
-    warn(msg: string, data: unknown = {})  {}
-  }
-
-  component = component.substring(0, 4).toLowerCase().padEnd(4)
-  return {
-    info(msg: string, data: unknown = {})  { console.log("  " + component + " " + msg, data) },
-    error(msg: string, data: unknown = {}) { console.log("E " + component + " " + msg, data) },
-    warn(msg: string, data: unknown = {})  { console.log("W " + component + " " + msg, data) }
-  }
-}
-
 // Different HTML inputs use different attributes for value
 function get_value(el: HTMLInputElement): string {
   let tag = el.tagName.toLowerCase()
@@ -305,153 +250,120 @@ function get_value(el: HTMLInputElement): string {
   }
 }
 
-function to_element(data: Record<string, unknown>): HTMLElement {
-  let tag: string = "tag" in data ? data["tag"] as string : "div"
-  let el = document.createElement(tag)
+// diff --------------------------------------------------------------------------------------------
+function set_attr(el: HTMLElement, k: string, v: ElAttrVal) {
+  // Some attrs requiring special threatment
+  let [value, kind]: [string, ElAttrKind] = Array.isArray(v) ? v : [v, "string_attr"]
 
-  for (const k in data) {
-    if (["c", "tag", "children", "text", "html"].indexOf(k) >= 0) continue
-    el.setAttribute(k, "" + data[k])
+  if (k == "window_title")    return set_window_title(value)
+  if (k == "window_location") return set_window_location(value)
+
+  switch(kind) {
+    case "bool_prop":
+      assert(["true", "false"].includes(value), "invalid bool_prop value: " + value)
+      ;(el as any)[k] = value == "true"
+      break
+    case "string_prop":
+      (el as any)[k] = value
+      break
+    case "string_attr":
+      el.setAttribute(k, value)
+      break
+    default:
+      throw new Error("unknown kind")
   }
-  if        ("text" in data) {
-    assert(!("children" in data), "to_element doesn't support both text and children")
-    assert(!("html" in data),     "to_element doesn't support both text and html")
-    el.textContent = "" + data["text"]
-  } else if ("html" in data) {
-    assert(!("children" in data), "to_element doesn't support both html and children")
-    el.innerHTML = "" + data["html"]
-  } else if ("children" in data) {
-    assert(Array.isArray(data["children"]), "to_element element children should be JArray")
-    let children = data["children"] as Record<string, unknown>[]
-    for (const child of children) el.appendChild(to_element(child))
-  }
-  return el
 }
 
-function el_by_path(root: HTMLElement, path: number[]): HTMLElement {
-  let el = root
-  for (const pos of path) {
-    assert(pos < el.children.length, "wrong path, child index is out of bounds")
-    el = el.children[pos] as HTMLElement
+function del_attr(el: HTMLElement, attr: ElAttrVal) {
+  // Some attrs requiring special threatment
+  let [k, kind]: [string, ElAttrKind] = Array.isArray(attr) ? attr : [attr, "string_attr"]
+
+  if (k == "window_title") return set_window_title("")
+  if (k == "window_location") return
+
+  switch(kind) {
+    case "bool_prop":
+      ;(el as any)[k] = false
+      break
+    case "string_prop":
+      delete (el as any)[k]
+      el.removeAttribute(k)
+      break
+    case "string_attr":
+      el.removeAttribute(k)
+      break
+    default:
+      throw new Error("unknown kind")
   }
-  return el
 }
 
-let attr_properties = ["value"]
-let boolean_attr_properties = ["checked"]
-function apply_update(root: HTMLElement, update: UpdateElement) {
-  let el = el_by_path(root, update.el)
-  let set = update.set
+function update(root: HTMLElement, diffs: Diff[]) {
+  new ApplyDiffImpl(root).update(diffs)
+}
 
-  let self_updated = false
-  if (set) {
-    el.replaceWith(to_element(set))
-    self_updated = true
+class ApplyDiffImpl implements ApplyDiff {
+  private flash_els = new Set<HTMLElement>()
+
+  constructor(
+    private root: HTMLElement
+  ) {}
+
+  update(diffs: Diff[]) {
+    this.flash_els.clear()
+
+    for (const diff of diffs) {
+      // Applying diffs
+      let fname = diff[0], [, ...args] = diff
+      assert(fname in this, "unknown diff function")
+      ;((this as any)[fname] as Function).apply(this, args)
+    }
+
+    for (const el of this.flash_els) flash(el) // Flashing
   }
 
-  // del_attrs should be done before set_attrs,
-  // otherwise case `del_attrs: ['text'], set_attrs: { html: 'some' }` won't work.
-  let attrs_changed = false
-  let del_attrs = update.del_attrs
-  if (del_attrs) {
-    for (const k of del_attrs) {
-      assert(k != "children", "del_attrs can't del children")
-      if (["window_title", "window_location"].includes(k)) {
-        // do nothing
-      } else {
-        if (k == "text") {
-          el.innerText = ""
-        } else if (k == "html") {
-          el.innerHTML = ""
-        } else if (boolean_attr_properties.includes(k)) {
-          (el as any)[k] = false
-        } else {
-          el.removeAttribute(k)
-        }
-        attrs_changed = true
-      }
+  replace(id: number[], html: SafeHtml): void {
+    el_by_path(this.root, id).outerHTML = html
+    this.flash_if_needed(el_by_path(this.root, id))
+  }
+  add_children(id: number[], els: SafeHtml[]): void {
+    for (const el of els) {
+      let parent = el_by_path(this.root, id)
+      parent.appendChild(build_el(el))
+      this.flash_if_needed(parent.lastChild as HTMLElement)
     }
   }
-
-  let set_attrs = update.set_attrs
-  let window_title: string | undefined, window_location: string | undefined
-  if (set_attrs) {
-    for (const k in set_attrs) {
-      let v_str = "" + set_attrs[k]
-      assert(k != "children", "set_attrs can't set children")
-      if        (k == "window_title") {
-        window_title = v_str
-      } else if (k == "window_location") {
-        window_location = v_str
-      } else {
-        if (k == "text") {
-          if (el.children.length > 0) el.innerHTML = ""
-          el.innerText = v_str
-        } else if (k == "html") {
-          if (el.children.length > 0) el.innerText = ""
-          el.innerHTML = v_str
-        } else if (boolean_attr_properties.includes(k)) {
-          (el as any)[k] = !!v_str
-        } else if (attr_properties.includes(k)) {
-          (el as any)[k] = v_str
-        } else {
-          el.setAttribute(k, v_str)
-        }
-        attrs_changed = true
-      }
-    }
+  set_children_len(id: number[], len: number): void {
+    let parent = el_by_path(this.root, id)
+    assert(parent.children.length >= len)
+    while (parent.children.length > len) parent.removeChild(parent.lastChild as HTMLElement)
+    this.flash_if_needed(parent) // flashing parent of deleted element
+  }
+  set_attrs(id: number[], attrs: Record<string, string>): void {
+    let el = el_by_path(this.root, id)
+    for (const k in attrs) set_attr(el, k, attrs[k])
+    this.flash_if_needed(el)
+  }
+  del_attrs(id: number[], attrs: string[]): void {
+    let el = el_by_path(this.root, id)
+    for (const attr of attrs) del_attr(el, attr)
+    this.flash_if_needed(el)
+  }
+  set_text(id: number[], text: string): void {
+    let el = el_by_path(this.root, id)
+    el.innerText = text
+  }
+  set_html(id: number[], html: SafeHtml): void {
+    let el = el_by_path(this.root, id)
+    el.innerHTML = html
   }
 
-  if (window_title) set_window_title(window_title)
-  if (window_location) set_window_location(window_location)
-
-  let set_children = update.set_children, children_updated = []
-  if (set_children) {
-    // Sorting by position, as map is not sorted
-    let positions: [number, HTMLElement][] = []
-    for (const pos_s in set_children) {
-      positions.push([parseInt(pos_s), to_element(set_children[pos_s])])
-    }
-    positions.sort((a, b) => a[0] - b[0])
-
-    for (const [pos, child] of positions) {
-      if (pos < el.children.length) {
-        el.children[pos].replaceWith(child)
-      } else {
-        assert(pos == el.children.length, "set_children can't have gaps in children positions")
-        el.appendChild(child)
-      }
-      children_updated.push(pos)
-    }
-  }
-
-  let del_children = update.del_children, children_deleted = false
-  if (del_children) {
-    // Sorting by position descending
-    let positions = [...del_children]
-    positions.sort((a, b) => a - b)
-    positions.reverse()
-    for (const pos of positions) {
-      assert(pos <= el.children.length, "del_children index out of bounds")
-      el.children[pos].remove()
-      children_deleted = true
-    }
-  }
-
-  // Flashing changed children
-  for (let pos of children_updated) {
-    let child = el.children[pos] as HTMLElement
-    if (child.hasAttribute("flash")) flash(child)
-  }
-  if (self_updated || attrs_changed || children_updated.length > 0 || children_deleted) {
+  flash_if_needed(el: HTMLElement) {
     let flasheable: HTMLElement | null = el // Flashing self or parent element
     while (flasheable) {
-      if (flasheable.hasAttribute("flash")) {
-        flash(flasheable)
-        break
-      }
+      if (flasheable.hasAttribute("flash")) break
       flasheable = flasheable.parentElement
     }
+    if (flasheable) this.flash_els.add(flasheable)
   }
 }
 
@@ -462,49 +374,4 @@ function set_window_title(title: string) {
 function set_window_location(location: string) {
   let current = window.location.pathname + window.location.search + window.location.hash
   if (location != current) history.pushState({}, "", location)
-}
-
-function assert(cond: boolean, message = "assertion failed") {
-  if (!cond) throw new Error(message)
-}
-
-function arrays_equal<T>(a: T[], b: T[]): boolean {
-  return JSON.stringify(a) == JSON.stringify(b)
-}
-
-// Highlight element with yellow flash
-let update_timeouts: { [key: string]: number } = {}
-let flash_id_counter = 0
-function flash(
-  el: HTMLElement,
-  before_delete         = false,
-  timeout               = 1500, // should be same as in CSS animation
-  before_delete_timeout = 400   // should be same as in CSS animation
-): void {
-  // const id = $el.get_attr('id')
-  let [klass, delay] = before_delete ?
-    ['flash_before_delete', before_delete_timeout] :
-    ['flash', timeout]
-
-  // ID needed when flash repeatedly triggered on the same element, before the previous flash has
-  // been finished. Without ID such fast flashes won't work properly.
-  // Example - frequent updates from the server changing counter.
-  if (!el.dataset.flash_id) el.dataset.flash_id = "" + (flash_id_counter++)
-  let id = el.dataset.flash_id
-
-  if (id in update_timeouts) {
-    clearTimeout(update_timeouts[id])
-    el.classList.remove(klass)
-    setTimeout(() => {
-      void (el as any).offsetWidth
-      el.classList.add(klass)
-    }) // Triggering re-render
-  } else {
-    el.classList.add(klass)
-  }
-
-  update_timeouts[id] = setTimeout(() => {
-    el.classList.remove(klass)
-    delete update_timeouts[id]
-  }, delay)
 }

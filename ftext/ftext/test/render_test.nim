@@ -1,5 +1,5 @@
 import base, std/os
-import ../core, ../parse, ../html
+import ../core, ../parse, ../render
 
 test "to_html, basics":
   let text = """
