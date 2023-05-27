@@ -38,12 +38,12 @@ proc render*(self: TodoItemView): El =
     (if self.editing.is_some: ".editing" else: "")
 
   # Feature: compact HTML template syntax
-  el"li{class_modifier} flash":
+  el"li{class_modifier}":
     el".view":
       el"input.toggle type=checkbox":
         # Feature: two way binding with autocast
         it.bind_to(self.item.completed)
-      el"label":
+      el"label flash":
         it.text(self.item.text)
         it.on_dblclick(proc = self.editing = self.item.text.some)
       el"button.destroy":
@@ -181,7 +181,7 @@ when is_main_module:
       .replace("{html}", root_el.to_html)
 
   # Feature: model could be shared, UI will be updated with changes
-  let todo = Todo(items: @[TodoItem(text: "Buy Milk")])
+  let todo = Todo(items: @[TodoItem(text: "Buy Milk"), TodoItem(text: "Buy Beef")])
 
   proc build_app(session: Session, url: Url) =
     let todo_view = TodoView()

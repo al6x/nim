@@ -31,12 +31,29 @@ proc field_names*[T](o: T): seq[string] =
 
 
 # parse --------------------------------------------------------------------------------------------
-proc parse*(_: type[int],    v: string): int    = v.parse_int
-proc parse*(_: type[float],  v: string): float  = v.parse_float
-proc parse*(_: type[string], v: string): string = v
-proc parse*(_: type[bool],   v: string): bool   =
+proc serialize*(v: int): string =
+  $v
+proc parse*(_: type[int], v: string): int =
+  v.parse_int
+
+proc serialize*(v: float): string =
+  $v
+proc parse*(_: type[float], v: string): float =
+  v.parse_float
+
+proc serialize*(v: string): string =
+  $v
+proc parse*(_: type[string], v: string): string =
+  v
+
+proc serialize*(v: bool): string =
+  if v: "true" else: "false"
+proc parse*(_: type[bool],   v: string): bool =
   if   v == "true":  true
   elif v == "false": false
   else:              v.to_lower in ["true", "t", "yes", "y", "on", "1"]
+
+proc serialize*[T](v: Option[T]): string =
+  if v.is_some: v.get.serialize else: ""
 proc parse*[T](_: type[Option[T]], v: string): Option[T] =
   if v == "": T.none else: T.parse(v).some

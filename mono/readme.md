@@ -66,10 +66,9 @@ keep the code size small, to have fast Nim compilation. You can change that and 
 
 # Todo
 
-- Deleting el flashes parent if it's flashable
-- Add screenshots of todo and keep as examples of apps made with mono
-- Inherit Component from El, so it.window_title would be possible inside el(Component)
-- `document.title` and `document.location`.
+- Two events fired, keydown and input change for Todo inline editing
+- Attr change response fired for Todo inline editing
+- Use JsonNode for attr value instead of string
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Better Async/Actor/Networking code.
 

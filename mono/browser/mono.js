@@ -297,14 +297,20 @@ class ApplyDiffImpl {
     set_text(id, text) {
         let el = el_by_path(this.root, id);
         el.innerText = text;
+        this.flash_if_needed(el);
     }
     set_html(id, html) {
         let el = el_by_path(this.root, id);
         el.innerHTML = html;
+        this.flash_if_needed(el);
     }
     flash_if_needed(el) {
         let flasheable = el; // Flashing self or parent element
         while (flasheable) {
+            if (flasheable.hasAttribute("noflash")) {
+                flasheable = null;
+                break;
+            }
             if (flasheable.hasAttribute("flash"))
                 break;
             flasheable = flasheable.parentElement;
