@@ -99,14 +99,14 @@ template process_in_event*[C](self: C, event: InEvent): bool =
     else:
       false
 
-proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
+proc process*[C](self: C, events: seq[InEvent], mono_id = ""): seq[OutEvent] =
   let state_changed_maybe = events.map((event) => self.process_in_event event).any
   # Optimisation, skipping render if there's no changes
   if (not state_changed_maybe) and self.current_tree.is_some: return @[]
 
   # when compiles(self.act): self.act # Do something before render
   let new_tree = self.render
-  new_tree.attrs["mono_id"] = id
+  new_tree.attrs["mono_id"] = mono_id
   self.after_render
 
   if self.current_tree.is_some:
