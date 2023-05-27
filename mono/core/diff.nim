@@ -1,29 +1,14 @@
 import base, ./mono_el
 
-# Diff ---------------------------------------------------------------------------------------------
-type
-  Diff* = JsonNode
+type Diff* = JsonNode
 
-proc replace*(id: seq[int], el: El): Diff =
-  %["replace", id, el.to_html]
-
-proc add_children*(id: seq[int], els: seq[El]): Diff =
-  %["add_children", id, els.to_html]
-
-proc set_children_len*(id: seq[int], len: int): Diff =
-  %["set_children_len", id, len]
-
-proc set_attrs*(id: seq[int], attrs: Table[string, string]): Diff =
-  %["set_attrs", id, attrs]
-
-proc del_attrs*(id: seq[int], attrs: seq[string]): Diff =
-  %["del_attrs", id, attrs]
-
-proc set_text*(id: seq[int], text: string): Diff =
-  %["set_text", id, text]
-
-proc set_html*(id: seq[int], html: string): Diff =
-  %["set_html", id, html]
+proc replace          *(id: seq[int], el: El                      ): Diff = %["replace", id, el.to_html]
+proc add_children     *(id: seq[int], els: seq[El]                ): Diff = %["add_children", id, els.to_html]
+proc set_children_len *(id: seq[int], len: int                    ): Diff = %["set_children_len", id, len]
+proc set_attrs        *(id: seq[int], attrs: Table[string, string]): Diff = %["set_attrs", id, attrs]
+proc del_attrs        *(id: seq[int], attrs: seq[string]          ): Diff = %["del_attrs", id, attrs]
+proc set_text         *(id: seq[int], text: string                ): Diff = %["set_text", id, text]
+proc set_html         *(id: seq[int], html: string                ): Diff = %["set_html", id, html]
 
 # diff ---------------------------------------------------------------------------------------------
 proc has_single_content_child(el: El): bool =
@@ -62,7 +47,8 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
     unless del_attrs.is_empty: diffs.add del_attrs(id, del_attrs)
 
   # children
-  if oel.has_single_content_child or nel.has_single_content_child: # text, html children
+  if oel.has_single_content_child or nel.has_single_content_child:
+    # text, html children
     if same_len_and_kind(oel.children, nel.children):
       # Updating text, html
       let ocontent = oel.get_single_content_child; let ncontent = nel.get_single_content_child;
@@ -80,7 +66,8 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
     else:
       # Structure changed, replacing with parent
       diffs.add replace(id, nel)
-  else: # el children
+  else:
+    # el children
     var add_children: seq[El]
     for i, nchild in nel.children:
       assert nchild.kind == ElKind.el, "mixed children content not supported"

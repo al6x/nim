@@ -13,6 +13,26 @@ test "diff, simple":
       ["set_text", [], "t1"]
     ]
 
+test "diff, children":
+  check_diff [],
+    el("a", (el("b1");      el("b2")          )),
+    el("a", (el("b1 attr"); el("c2"); el("d2"))),
+    %[
+      ["set_attrs",   [0], { attr: "true" }],
+      ["replace",     [1], "<c2></c2>"],
+      ["add_children",[],  "<d2></d2>"]
+    ]
+
+test "diff, del":
+  check_diff [],
+    el("a", (el("b1");      el("b2"); el("b3"))),
+    el("a", (el("b1 attr"); el("c2")          )),
+    %[
+      ["set_attrs",        [0], { attr: "true" }],
+      ["replace",          [1], "<c2></c2>"],
+      ["set_children_len", [],  2]
+    ]
+
 test "diff, html":
   check_diff [],
     el("", it.html("<a/>")),
