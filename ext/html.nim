@@ -114,6 +114,10 @@ type
       discard
     extras*: Option[ElExtras] # Integration with other frameworks
 
+  # Normalising inconsistencies in HTML attrs, some should be set as `el.setAttribute(k, v)` some as `el.k = v`.
+  ElAttrKind* = enum string_prop, string_attr, bool_prop
+  ElAttrVal* = (string, ElAttrKind)
+
 proc init*(_: type[El], tag = ""): El =
   let (tag, attrs) = parse_tag(tag)
   El(kind: ElKind.el, tag: tag, attrs: attrs)
@@ -146,21 +150,7 @@ proc `[]`*(el: El, k: string): string =
 proc `[]=`*(el: El, k: string, v: string | int | bool) =
   el.attrs[k] = v.to_s
 
-proc normalise_attrs*(el: El): OrderedTable[string, string] =
-  assert el.kind == ElKind.el
-  sort:
-    if el.tag == "input" and "type" in el and el["type"] == "checkbox":
-      # Normalising value
-      assert el.children.is_empty
-      var attrs = el.attrs
-      case attrs["value"]
-      of "true":  attrs["checked"] = "true"
-      of "false": discard
-      else:       throw "unknown input value"
-      attrs.del "value"
-      attrs
-    else:
-      el.attrs
+proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal]
 
 proc to_json_hook*(el: El): JsonNode =
   case el.kind
@@ -181,8 +171,15 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
   of ElKind.el:
     let attrs = el.normalise_attrs
     html.add indent & "<" & el.tag
-    for k, v in attrs:
-      html.add " " & k & "=\"" & v.escape_html & "\""
+    for k, (v, attr_kind) in attrs:
+      if attr_kind == bool_prop:
+        case v
+        of "true":  html.add " " & k
+        of "false": discard
+        else:       throw "unknown input value"
+      else:
+        html.add " " & k & "=\"" & v.escape_html & "\""
+
     # if el.tag.is_self_closing_tag:
     #   result.add "/>"
     # else:
@@ -285,3 +282,36 @@ test "el, basics":
       </div>
     </div>""".dedent
   check h.to_html == html
+
+# normalise_attrs ----------------------------------------------------------------------------------
+# proc normalise_attr_del*(el: El, attr: string): ElAttrDel =
+#   assert el.kind == ElKind.el
+
+#   if el.tag == "input" and "value" == attr:
+#     if "type" in el and el["type"] == "checkbox":
+#       (attr, bool_prop)
+#     else:
+#       (attr, string_prop)
+#   else:
+#     (attr, string_attr)
+
+proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal] =
+  assert el.kind == ElKind.el
+  var attrs = el.attrs.map((v) => (v, string_attr))
+
+  sort:
+    if el.tag == "input" and "value" in attrs:
+      if "type" in el and el["type"] == "checkbox":
+        # Normalising value for checkbox
+        assert el.children.is_empty
+        case attrs["value"][0]
+        of "true":  attrs["checked"] = ("true", bool_prop)
+        of "false": discard
+        else:       throw "unknown input value"
+        attrs.del "value"
+        attrs
+      else:
+        attrs["value"] = (attrs["value"][0], string_prop)
+        attrs
+    else:
+      attrs

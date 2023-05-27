@@ -71,3 +71,18 @@ test "diff, nested":
 
     ["set_children_len", [], 2]
   ]
+
+test "diff, bool_prop":
+  check_diff [],
+    el("input type=checkbox", it.value(false)),
+    el("input type=checkbox some", it.value(true)),
+    %[
+      ["set_attrs", [], { checked: ["true", "bool_prop"], some: "true" }]
+    ]
+
+  check_diff [],
+    el("input type=checkbox some", it.value(true)),
+    el("input type=checkbox", it.value(false)),
+    %[
+      ["del_attrs", [], [["checked", "bool_prop"], "some"]]
+    ]

@@ -1,14 +1,27 @@
 import base, ./mono_el
 
-type Diff* = JsonNode
+type
+  Diff* = JsonNode
+  ElAttrDel* = (string, ElAttrKind)
 
-proc replace          *(id: seq[int], el: El                      ): Diff = %["replace", id, el.to_html]
-proc add_children     *(id: seq[int], els: seq[El]                ): Diff = %["add_children", id, els.to_html]
-proc set_children_len *(id: seq[int], len: int                    ): Diff = %["set_children_len", id, len]
-proc set_attrs        *(id: seq[int], attrs: Table[string, string]): Diff = %["set_attrs", id, attrs]
-proc del_attrs        *(id: seq[int], attrs: seq[string]          ): Diff = %["del_attrs", id, attrs]
-proc set_text         *(id: seq[int], text: string                ): Diff = %["set_text", id, text]
-proc set_html         *(id: seq[int], html: string                ): Diff = %["set_html", id, html]
+# Helpers ------------------------------------------------------------------------------------------
+proc to_json_hook*(el: ElAttrVal | ElAttrDel): JsonNode =
+  if el[1] == string_attr: el[0].to_json else: %[el[0], el[1]]
+
+proc to_json_hook*(table: Table[string, ElAttrVal]): JsonNode =
+  table.map((v) => v.to_json_hook).sort.to_json
+
+proc to_json_hook*(delete_attrs: seq[ElAttrDel]): JsonNode =
+  delete_attrs.sort((v) => v[0]).map((v) => v.to_json_hook).to_json
+
+# types --------------------------------------------------------------------------------------------
+proc replace          *(id: seq[int], el: El                         ): Diff = %["replace", id, el.to_html]
+proc add_children     *(id: seq[int], els: seq[El]                   ): Diff = %["add_children", id, els.to_html]
+proc set_children_len *(id: seq[int], len: int                       ): Diff = %["set_children_len", id, len]
+proc set_attrs        *(id: seq[int], attrs: Table[string, ElAttrVal]): Diff = %["set_attrs", id, attrs.to_json]
+proc del_attrs        *(id: seq[int], attrs: seq[ElAttrDel]          ): Diff = %["del_attrs", id, attrs.to_json]
+proc set_text         *(id: seq[int], text: string                   ): Diff = %["set_text", id, text]
+proc set_html         *(id: seq[int], html: string                   ): Diff = %["set_html", id, html]
 
 # diff ---------------------------------------------------------------------------------------------
 proc has_single_content_child(el: El): bool =
@@ -33,17 +46,17 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
     return
 
   if oel.attrs != nel.attrs: # attrs
-    let (oattrs, nattrs) = (oel.normalise_attrs, nel.normalise_attrs)
+    let (oattrs, nattrs) = (oel.normalise_attrs, nel.normalise_attrs) # oattrs could be cached
 
-    var set_attrs: Table[string, string]
+    var set_attrs: Table[string, ElAttrVal]
     for k, v in nattrs:
       if k notin oattrs or v != oattrs[k]: set_attrs[k] = v
     unless set_attrs.is_empty: diffs.add set_attrs(id, set_attrs)
 
-    var del_attrs: seq[string]
+    var del_attrs: seq[ElAttrDel]
     for k, v in oattrs:
       if k notin nattrs:
-        del_attrs.add k
+        del_attrs.add (k, v[1])
     unless del_attrs.is_empty: diffs.add del_attrs(id, del_attrs)
 
   # children

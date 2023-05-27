@@ -1,3 +1,55 @@
+function to_element(data: Record<string, unknown>): HTMLElement {
+  let tag: string = "tag" in data ? data["tag"] as string : "div"
+  let el = document.createElement(tag)
+
+  for (const k in data) {
+    if (["c", "tag", "children", "text", "html"].indexOf(k) >= 0) continue
+    el.setAttribute(k, "" + data[k])
+  }
+  if        ("text" in data) {
+    assert(!("children" in data), "to_element doesn't support both text and children")
+    assert(!("html" in data),     "to_element doesn't support both text and html")
+    el.textContent = "" + data["text"]
+  } else if ("html" in data) {
+    assert(!("children" in data), "to_element doesn't support both html and children")
+    el.innerHTML = "" + data["html"]
+  } else if ("children" in data) {
+    assert(Array.isArray(data["children"]), "to_element element children should be JArray")
+    let children = data["children"] as Record<string, unknown>[]
+    for (const child of children) el.appendChild(to_element(child))
+  }
+  return el
+}
+
+
+let attr_properties = ["input.value"], boolean_attr_properties = ["input.checkbox.checked"]
+function set_attr(el: HTMLElement, k: string, v: string) {
+  // Some attrs requiring special threatment
+  if (boolean_attr_properties.includes(k)) {
+    (el as any)[k] = !!v
+  } else if (attr_properties.includes(k)) {
+    (el as any)[k] = v
+  } else {
+    el.setAttribute(k, v)
+  }
+}
+
+function del_attr(el: HTMLElement, k: string) {
+  if (boolean_attr_properties.includes(k)) {
+    (el as any)[k] = false
+  } else {
+    el.removeAttribute(k)
+  }
+}
+
+type TagEl  = { kind: "el",   tag: string, attrs: Record<string, string>, children: El[] }
+type TextEl = { kind: "text", text: string }
+type HtmlEl = { kind: "html", html: SafeHtml }
+// type ListEl = { kind: "list", children: El[] }
+type El = TagEl | TextEl | HtmlEl
+
+
+
 # initial_root_el ----------------------------------------------------------------------------------
 proc initial_root_el*(events: seq[OutEvent]): El =
   assert events.len == 1, "to_html can't convert more than single event"

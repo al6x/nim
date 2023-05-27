@@ -14,6 +14,54 @@ function run() {
     if (window_location) set_window_location(window_location);
     pull(mono_id);
 }
+async function pull(mono_id) {
+    let log = Log("");
+    log.info("started");
+    main_loop: while(true){
+        let res;
+        let last_call_was_retry = false;
+        try {
+            res = await send("post", location.href, {
+                kind: "pull",
+                mono_id
+            }, -1);
+            document.body.style.opacity = "1.0";
+            last_call_was_retry = false;
+        } catch  {
+            last_call_was_retry = true;
+            if (!last_call_was_retry) log.warn("retrying...");
+            document.body.style.opacity = "0.7";
+            await sleep(1000);
+            continue;
+        }
+        switch(res.kind){
+            case 'events':
+                for (const event of res.events){
+                    log.info("<<", event);
+                    switch(event.kind){
+                        case 'eval':
+                            eval("'use strict'; " + event.code);
+                            break;
+                        case 'update':
+                            let root = find_one(`[mono_id="${mono_id}"]`);
+                            if (!root) throw new Error("can't find mono root");
+                            update(root, event.diffs);
+                            break;
+                    }
+                }
+                break;
+            case 'ignore':
+                break;
+            case 'expired':
+                document.body.style.opacity = "0.4";
+                log.info("expired");
+                break main_loop;
+            case 'error':
+                log.error(res.message);
+                throw new Error(res.message);
+        }
+    }
+}
 function listen_to_dom_events() {
     let changed_inputs = {};
     async function on_click(raw_event) {
@@ -143,53 +191,130 @@ function listen_to_dom_events() {
         }
     }
 }
-async function pull(mono_id) {
-    let log = Log("");
-    log.info("started");
-    main_loop: while(true){
-        let res;
-        let last_call_was_retry = false;
-        try {
-            res = await send("post", location.href, {
-                kind: "pull",
-                mono_id
-            }, -1);
-            document.body.style.opacity = "1.0";
-            last_call_was_retry = false;
-        } catch  {
-            last_call_was_retry = true;
-            if (!last_call_was_retry) log.warn("retrying...");
-            document.body.style.opacity = "0.7";
-            await sleep(1000);
-            continue;
+function get_value(el) {
+    let tag = el.tagName.toLowerCase();
+    if (tag == "input" && el.type == "checkbox") {
+        return "" + el.checked;
+    } else {
+        return "" + el.value;
+    }
+}
+function set_attr(el, k, v) {
+    let [value, kind] = Array.isArray(v) ? v : [
+        v,
+        "string_attr"
+    ];
+    if (k == "window_title") return set_window_title(value);
+    if (k == "window_location") return set_window_location(value);
+    switch(kind){
+        case "bool_prop":
+            assert([
+                "true",
+                "false"
+            ].includes(value), "invalid bool_prop value: " + value);
+            el[k] = value == "true";
+            break;
+        case "string_prop":
+            el[k] = value;
+            break;
+        case "string_attr":
+            el.setAttribute(k, value);
+            break;
+        default:
+            throw new Error("unknown kind");
+    }
+}
+function del_attr(el, attr) {
+    let [k, kind] = Array.isArray(attr) ? attr : [
+        attr,
+        "string_attr"
+    ];
+    if (k == "window_title") return set_window_title("");
+    if (k == "window_location") return;
+    switch(kind){
+        case "bool_prop":
+            el[k] = false;
+            break;
+        case "string_prop":
+            delete el[k];
+            el.removeAttribute(k);
+            break;
+        case "string_attr":
+            el.removeAttribute(k);
+            break;
+        default:
+            throw new Error("unknown kind");
+    }
+}
+function update(root, diffs) {
+    new ApplyDiffImpl(root).update(diffs);
+}
+class ApplyDiffImpl {
+    root;
+    flash_els;
+    constructor(root){
+        this.root = root;
+        this.flash_els = new Set();
+    }
+    update(diffs) {
+        this.flash_els.clear();
+        for (const diff of diffs){
+            let fname = diff[0], [, ...args] = diff;
+            assert(fname in this, "unknown diff function");
+            this[fname].apply(this, args);
         }
-        switch(res.kind){
-            case 'events':
-                for (const event of res.events){
-                    log.info("<<", event);
-                    switch(event.kind){
-                        case 'eval':
-                            eval("'use strict'; " + event.code);
-                            break;
-                        case 'update':
-                            let root = find_one(`[mono_id="${mono_id}"]`);
-                            if (!root) throw new Error("can't find mono root");
-                            event.updates.forEach((update)=>apply_update(root, update));
-                            break;
-                    }
-                }
-                break;
-            case 'ignore':
-                break;
-            case 'expired':
-                document.body.style.opacity = "0.4";
-                log.info("expired");
-                break main_loop;
-            case 'error':
-                log.error(res.message);
-                throw new Error(res.message);
+        for (const el of this.flash_els)flash(el);
+    }
+    replace(id, html) {
+        el_by_path(this.root, id).outerHTML = html;
+        this.flash_if_needed(el_by_path(this.root, id));
+    }
+    add_children(id, els) {
+        for (const el of els){
+            let parent = el_by_path(this.root, id);
+            parent.appendChild(build_el(el));
+            this.flash_if_needed(parent.lastChild);
         }
     }
+    set_children_len(id, len) {
+        let parent = el_by_path(this.root, id);
+        assert(parent.children.length >= len);
+        while(parent.children.length > len)parent.removeChild(parent.lastChild);
+        this.flash_if_needed(parent);
+    }
+    set_attrs(id, attrs) {
+        let el = el_by_path(this.root, id);
+        for(const k in attrs)set_attr(el, k, attrs[k]);
+        this.flash_if_needed(el);
+    }
+    del_attrs(id, attrs) {
+        let el = el_by_path(this.root, id);
+        for (const attr of attrs)del_attr(el, attr);
+        this.flash_if_needed(el);
+    }
+    set_text(id, text) {
+        let el = el_by_path(this.root, id);
+        el.innerText = text;
+    }
+    set_html(id, html) {
+        let el = el_by_path(this.root, id);
+        el.innerHTML = html;
+    }
+    flash_if_needed(el) {
+        let flasheable = el;
+        while(flasheable){
+            if (flasheable.hasAttribute("flash")) break;
+            flasheable = flasheable.parentElement;
+        }
+        if (flasheable) this.flash_els.add(flasheable);
+    }
+}
+function set_window_title(title) {
+    if (document.title != title) document.title = title;
+}
+function set_window_location(location1) {
+    let current = window.location.pathname + window.location.search + window.location.hash;
+    if (location1 != current) history.pushState({}, "", location1);
 }
 const http_log = Log("http", false);
 function send(method, url, data, timeout = 5000) {
@@ -302,41 +427,6 @@ function Log(component, enabled = true) {
         }
     };
 }
-function get_value(el) {
-    let tag = el.tagName.toLowerCase();
-    if (tag == "input" && el.type == "checkbox") {
-        return "" + el.checked;
-    } else {
-        return "" + el.value;
-    }
-}
-function to_element(data) {
-    let tag = "tag" in data ? data["tag"] : "div";
-    let el = document.createElement(tag);
-    for(const k in data){
-        if ([
-            "c",
-            "tag",
-            "children",
-            "text",
-            "html"
-        ].indexOf(k) >= 0) continue;
-        el.setAttribute(k, "" + data[k]);
-    }
-    if ("text" in data) {
-        assert(!("children" in data), "to_element doesn't support both text and children");
-        assert(!("html" in data), "to_element doesn't support both text and html");
-        el.textContent = "" + data["text"];
-    } else if ("html" in data) {
-        assert(!("children" in data), "to_element doesn't support both html and children");
-        el.innerHTML = "" + data["html"];
-    } else if ("children" in data) {
-        assert(Array.isArray(data["children"]), "to_element element children should be JArray");
-        let children = data["children"];
-        for (const child of children)el.appendChild(to_element(child));
-    }
-    return el;
-}
 function el_by_path(root, path) {
     let el = root;
     for (const pos of path){
@@ -345,126 +435,11 @@ function el_by_path(root, path) {
     }
     return el;
 }
-let attr_properties = [
-    "value"
-];
-let boolean_attr_properties = [
-    "checked"
-];
-function apply_update(root, update) {
-    let el = el_by_path(root, update.el);
-    let set = update.set;
-    let self_updated = false;
-    if (set) {
-        el.replaceWith(to_element(set));
-        self_updated = true;
-    }
-    let attrs_changed = false;
-    let del_attrs = update.del_attrs;
-    if (del_attrs) {
-        for (const k of del_attrs){
-            assert(k != "children", "del_attrs can't del children");
-            if ([
-                "window_title",
-                "window_location"
-            ].includes(k)) {} else {
-                if (k == "text") {
-                    el.innerText = "";
-                } else if (k == "html") {
-                    el.innerHTML = "";
-                } else if (boolean_attr_properties.includes(k)) {
-                    el[k] = false;
-                } else {
-                    el.removeAttribute(k);
-                }
-                attrs_changed = true;
-            }
-        }
-    }
-    let set_attrs = update.set_attrs;
-    let window_title, window_location;
-    if (set_attrs) {
-        for(const k in set_attrs){
-            let v_str = "" + set_attrs[k];
-            assert(k != "children", "set_attrs can't set children");
-            if (k == "window_title") {
-                window_title = v_str;
-            } else if (k == "window_location") {
-                window_location = v_str;
-            } else {
-                if (k == "text") {
-                    if (el.children.length > 0) el.innerHTML = "";
-                    el.innerText = v_str;
-                } else if (k == "html") {
-                    if (el.children.length > 0) el.innerText = "";
-                    el.innerHTML = v_str;
-                } else if (boolean_attr_properties.includes(k)) {
-                    el[k] = !!v_str;
-                } else if (attr_properties.includes(k)) {
-                    el[k] = v_str;
-                } else {
-                    el.setAttribute(k, v_str);
-                }
-                attrs_changed = true;
-            }
-        }
-    }
-    if (window_title) set_window_title(window_title);
-    if (window_location) set_window_location(window_location);
-    let set_children = update.set_children, children_updated = [];
-    if (set_children) {
-        let positions = [];
-        for(const pos_s in set_children){
-            positions.push([
-                parseInt(pos_s),
-                to_element(set_children[pos_s])
-            ]);
-        }
-        positions.sort((a, b)=>a[0] - b[0]);
-        for (const [pos, child] of positions){
-            if (pos < el.children.length) {
-                el.children[pos].replaceWith(child);
-            } else {
-                assert(pos == el.children.length, "set_children can't have gaps in children positions");
-                el.appendChild(child);
-            }
-            children_updated.push(pos);
-        }
-    }
-    let del_children = update.del_children, children_deleted = false;
-    if (del_children) {
-        let positions = [
-            ...del_children
-        ];
-        positions.sort((a, b)=>a - b);
-        positions.reverse();
-        for (const pos of positions){
-            assert(pos <= el.children.length, "del_children index out of bounds");
-            el.children[pos].remove();
-            children_deleted = true;
-        }
-    }
-    for (let pos of children_updated){
-        let child = el.children[pos];
-        if (child.hasAttribute("flash")) flash(child);
-    }
-    if (self_updated || attrs_changed || children_updated.length > 0 || children_deleted) {
-        let flasheable = el;
-        while(flasheable){
-            if (flasheable.hasAttribute("flash")) {
-                flash(flasheable);
-                break;
-            }
-            flasheable = flasheable.parentElement;
-        }
-    }
-}
-function set_window_title(title) {
-    if (document.title != title) document.title = title;
-}
-function set_window_location(location1) {
-    let current = window.location.pathname + window.location.search + window.location.hash;
-    if (location1 != current) history.pushState({}, "", location1);
+function build_el(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    assert(tmp.children.length == 1, "exactly one el expected");
+    return tmp.firstChild;
 }
 function assert(cond, message = "assertion failed") {
     if (!cond) throw new Error(message);

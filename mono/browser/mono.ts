@@ -2,6 +2,7 @@
 
 let p = console.log.bind(console), global = window as any
 
+// Types -------------------------------------------------------------------------------------------
 // In events
 type SpecialInputKeys = 'alt' | 'ctrl' | 'meta' | 'shift'
 interface ClickEvent   { special_keys: SpecialInputKeys[] }
@@ -20,24 +21,9 @@ type InEvent =
   { kind: 'input',    el: number[], input:    InputEvent }
 
 // Out events
-type TagEl  = { kind: "el",   tag: string, attrs: Record<string, string>, children: El[] }
-type TextEl = { kind: "text", text: string }
-type HtmlEl = { kind: "html", html: string }
-// type ListEl = { kind: "list", children: El[] }
-type El = TagEl | TextEl | HtmlEl
-
-interface UpdateEl {
-  el:            number[]
-  set?:          El // Record<string, El>
-  set_attrs?:    Record<string, string>
-  del_attrs?:    string[]
-  set_children?: Record<string, Record<string, El>>
-  del_children?: number[]
-}
-
 type OutEvent =
   { kind: 'eval',   code: string } |
-  { kind: 'update', updates: UpdateEl[] }
+  { kind: 'update', diffs: Diff[] }
 
 // Session events
 type SessionPostEvent = { kind: 'events', mono_id: string, events: InEvent[] }
@@ -49,7 +35,25 @@ type SessionPullEvent =
   { kind: 'expired' } |
   { kind: 'error', message: string }
 
+// Diff
+type SafeHtml = string
+type ElAttrKind = "string_prop" | "string_attr" | "bool_prop"
+type ElAttrVal = [string, ElAttrKind] | string
+type ElAttrDel = [string, ElAttrKind] | string
 
+type Diff = any[]
+
+interface ApplyDiff {
+  replace(id: number[], html: SafeHtml): void
+  add_children(id: number[], els: SafeHtml[]): void
+  set_children_len(id: number[], len: number): void
+  set_attrs(id: number[], attrs: Record<string, ElAttrVal>): void
+  del_attrs(id: number[], attrs: ElAttrDel[]): void
+  set_text(id: number[], text: string): void
+  set_html(id: number[], html: SafeHtml): void
+}
+
+// run ---------------------------------------------------------------------------------------------
 export function run() {
   listen_to_dom_events()
 
@@ -65,6 +69,56 @@ export function run() {
   pull(mono_id)
 }
 
+async function pull(mono_id: string): Promise<void> {
+  let log = Log("")
+  log.info("started")
+  main_loop: while (true) {
+    let res: SessionPullEvent
+    let last_call_was_retry = false
+    try {
+      res = await send<SessionPostPullEvent, SessionPullEvent>(
+        "post", location.href, { kind: "pull", mono_id }, -1
+      )
+      document.body.style.opacity = "1.0"
+      last_call_was_retry = false
+    } catch {
+      last_call_was_retry = true
+      if (!last_call_was_retry) log.warn("retrying...")
+      document.body.style.opacity = "0.7"
+      await sleep(1000)
+      continue
+    }
+
+    switch (res.kind) {
+      case 'events':
+        for (const event of res.events) {
+          log.info("<<", event)
+          switch(event.kind) {
+            case 'eval':
+              eval("'use strict'; " + event.code)
+              break
+            case 'update':
+              let root = find_one(`[mono_id="${mono_id}"]`)
+              if (!root) throw new Error("can't find mono root")
+              update(root, event.diffs)
+              break
+          }
+        }
+        break
+      case 'ignore':
+        break
+      case 'expired':
+        document.body.style.opacity = "0.4"
+        log.info("expired")
+        break main_loop
+      case 'error':
+        log.error(res.message)
+        throw new Error(res.message)
+    }
+  }
+}
+
+// events ------------------------------------------------------------------------------------------
 function listen_to_dom_events() {
   let changed_inputs: { [k: string]: InEvent } = {} // Keeping track of changed inputs
 
@@ -163,55 +217,143 @@ function listen_to_dom_events() {
   }
 }
 
-async function pull(mono_id: string): Promise<void> {
-  let log = Log("")
-  log.info("started")
-  main_loop: while (true) {
-    let res: SessionPullEvent
-    let last_call_was_retry = false
-    try {
-      res = await send<SessionPostPullEvent, SessionPullEvent>(
-        "post", location.href, { kind: "pull", mono_id }, -1
-      )
-      document.body.style.opacity = "1.0"
-      last_call_was_retry = false
-    } catch {
-      last_call_was_retry = true
-      if (!last_call_was_retry) log.warn("retrying...")
-      document.body.style.opacity = "0.7"
-      await sleep(1000)
-      continue
-    }
-
-    switch (res.kind) {
-      case 'events':
-        for (const event of res.events) {
-          log.info("<<", event)
-          switch(event.kind) {
-            case 'eval':
-              eval("'use strict'; " + event.code)
-              break
-            case 'update':
-              let root = find_one(`[mono_id="${mono_id}"]`)
-              if (!root) throw new Error("can't find mono root")
-              event.updates.forEach((update) => apply_update(root, update))
-              break
-          }
-        }
-        break
-      case 'ignore':
-        break
-      case 'expired':
-        document.body.style.opacity = "0.4"
-        log.info("expired")
-        break main_loop
-      case 'error':
-        log.error(res.message)
-        throw new Error(res.message)
-    }
+// Different HTML inputs use different attributes for value
+function get_value(el: HTMLInputElement): string {
+  let tag = el.tagName.toLowerCase()
+  if (tag == "input" && el.type == "checkbox") {
+    return "" + el.checked
+  } else {
+    return "" + el.value
   }
 }
 
+// diff --------------------------------------------------------------------------------------------
+function set_attr(el: HTMLElement, k: string, v: ElAttrVal) {
+  // Some attrs requiring special threatment
+  let [value, kind]: [string, ElAttrKind] = Array.isArray(v) ? v : [v, "string_attr"]
+
+  if (k == "window_title")    return set_window_title(value)
+  if (k == "window_location") return set_window_location(value)
+
+  switch(kind) {
+    case "bool_prop":
+      assert(["true", "false"].includes(value), "invalid bool_prop value: " + value)
+      ;(el as any)[k] = value == "true"
+      break
+    case "string_prop":
+      (el as any)[k] = value
+      break
+    case "string_attr":
+      el.setAttribute(k, value)
+      break
+    default:
+      throw new Error("unknown kind")
+  }
+}
+
+function del_attr(el: HTMLElement, attr: ElAttrVal) {
+  // Some attrs requiring special threatment
+  let [k, kind]: [string, ElAttrKind] = Array.isArray(attr) ? attr : [attr, "string_attr"]
+
+  if (k == "window_title") return set_window_title("")
+  if (k == "window_location") return
+
+  switch(kind) {
+    case "bool_prop":
+      ;(el as any)[k] = false
+      break
+    case "string_prop":
+      delete (el as any)[k]
+      el.removeAttribute(k)
+      break
+    case "string_attr":
+      el.removeAttribute(k)
+      break
+    default:
+      throw new Error("unknown kind")
+  }
+}
+
+function update(root: HTMLElement, diffs: Diff[]) {
+  new ApplyDiffImpl(root).update(diffs)
+}
+
+class ApplyDiffImpl implements ApplyDiff {
+  private flash_els = new Set<HTMLElement>()
+
+  constructor(
+    private root: HTMLElement
+  ) {}
+
+  update(diffs: Diff[]) {
+    this.flash_els.clear()
+
+    for (const diff of diffs) {
+      // Applying diffs
+      let fname = diff[0], [, ...args] = diff
+      assert(fname in this, "unknown diff function")
+      ;((this as any)[fname] as Function).apply(this, args)
+    }
+
+    for (const el of this.flash_els) flash(el) // Flashing
+  }
+
+  replace(id: number[], html: SafeHtml): void {
+    el_by_path(this.root, id).outerHTML = html
+    this.flash_if_needed(el_by_path(this.root, id))
+  }
+  add_children(id: number[], els: SafeHtml[]): void {
+    for (const el of els) {
+      let parent = el_by_path(this.root, id)
+      parent.appendChild(build_el(el))
+      this.flash_if_needed(parent.lastChild as HTMLElement)
+    }
+  }
+  set_children_len(id: number[], len: number): void {
+    let parent = el_by_path(this.root, id)
+    assert(parent.children.length >= len)
+    while (parent.children.length > len) parent.removeChild(parent.lastChild as HTMLElement)
+    this.flash_if_needed(parent) // flashing parent of deleted element
+  }
+  set_attrs(id: number[], attrs: Record<string, string>): void {
+    let el = el_by_path(this.root, id)
+    for (const k in attrs) set_attr(el, k, attrs[k])
+    this.flash_if_needed(el)
+  }
+  del_attrs(id: number[], attrs: string[]): void {
+    let el = el_by_path(this.root, id)
+    for (const attr of attrs) del_attr(el, attr)
+    this.flash_if_needed(el)
+  }
+  set_text(id: number[], text: string): void {
+    let el = el_by_path(this.root, id)
+    el.innerText = text
+  }
+  set_html(id: number[], html: SafeHtml): void {
+    let el = el_by_path(this.root, id)
+    el.innerHTML = html
+  }
+
+  flash_if_needed(el: HTMLElement) {
+    let flasheable: HTMLElement | null = el // Flashing self or parent element
+    while (flasheable) {
+      if (flasheable.hasAttribute("flash")) break
+      flasheable = flasheable.parentElement
+    }
+    if (flasheable) this.flash_els.add(flasheable)
+  }
+}
+
+function set_window_title(title: string) {
+  if (document.title != title) document.title = title
+}
+
+function set_window_location(location: string) {
+  let current = window.location.pathname + window.location.search + window.location.hash
+  if (location != current) history.pushState({}, "", location)
+}
+
+// helpers -----------------------------------------------------------------------------------------
 const http_log = Log("http", false)
 function send<In, Out>(method: string, url: string, data: In, timeout = 5000): Promise<Out> {
   http_log.info("send", { method, url, data })
@@ -301,39 +443,6 @@ function Log(component: string, enabled = true) {
   }
 }
 
-// Different HTML inputs use different attributes for value
-function get_value(el: HTMLInputElement): string {
-  let tag = el.tagName.toLowerCase()
-  if (tag == "input" && el.type == "checkbox") {
-    return "" + el.checked
-  } else {
-    return "" + el.value
-  }
-}
-
-function to_element(data: Record<string, unknown>): HTMLElement {
-  let tag: string = "tag" in data ? data["tag"] as string : "div"
-  let el = document.createElement(tag)
-
-  for (const k in data) {
-    if (["c", "tag", "children", "text", "html"].indexOf(k) >= 0) continue
-    el.setAttribute(k, "" + data[k])
-  }
-  if        ("text" in data) {
-    assert(!("children" in data), "to_element doesn't support both text and children")
-    assert(!("html" in data),     "to_element doesn't support both text and html")
-    el.textContent = "" + data["text"]
-  } else if ("html" in data) {
-    assert(!("children" in data), "to_element doesn't support both html and children")
-    el.innerHTML = "" + data["html"]
-  } else if ("children" in data) {
-    assert(Array.isArray(data["children"]), "to_element element children should be JArray")
-    let children = data["children"] as Record<string, unknown>[]
-    for (const child of children) el.appendChild(to_element(child))
-  }
-  return el
-}
-
 function el_by_path(root: HTMLElement, path: number[]): HTMLElement {
   let el = root
   for (const pos of path) {
@@ -343,131 +452,11 @@ function el_by_path(root: HTMLElement, path: number[]): HTMLElement {
   return el
 }
 
-let attr_properties = ["value"]
-let boolean_attr_properties = ["checked"]
-function apply_update(root: HTMLElement, update: UpdateEl) {
-  let el = el_by_path(root, update.el)
-  let set = update.set
-
-  let self_updated = false
-  if (set) {
-    el.replaceWith(to_element(set))
-    self_updated = true
-  }
-
-  // del_attrs should be done before set_attrs,
-  // otherwise case `del_attrs: ['text'], set_attrs: { html: 'some' }` won't work.
-  let attrs_changed = false
-  let del_attrs = update.del_attrs
-  if (del_attrs) {
-    for (const k of del_attrs) {
-      assert(k != "children", "del_attrs can't del children")
-      if (["window_title", "window_location"].includes(k)) {
-        // do nothing
-      } else {
-        if (k == "text") {
-          el.innerText = ""
-        } else if (k == "html") {
-          el.innerHTML = ""
-        } else if (boolean_attr_properties.includes(k)) {
-          (el as any)[k] = false
-        } else {
-          el.removeAttribute(k)
-        }
-        attrs_changed = true
-      }
-    }
-  }
-
-  let set_attrs = update.set_attrs
-  let window_title: string | undefined, window_location: string | undefined
-  if (set_attrs) {
-    for (const k in set_attrs) {
-      let v_str = "" + set_attrs[k]
-      assert(k != "children", "set_attrs can't set children")
-      if        (k == "window_title") {
-        window_title = v_str
-      } else if (k == "window_location") {
-        window_location = v_str
-      } else {
-        if (k == "text") {
-          if (el.children.length > 0) el.innerHTML = ""
-          el.innerText = v_str
-        } else if (k == "html") {
-          if (el.children.length > 0) el.innerText = ""
-          el.innerHTML = v_str
-        } else if (boolean_attr_properties.includes(k)) {
-          (el as any)[k] = !!v_str
-        } else if (attr_properties.includes(k)) {
-          (el as any)[k] = v_str
-        } else {
-          el.setAttribute(k, v_str)
-        }
-        attrs_changed = true
-      }
-    }
-  }
-
-  if (window_title) set_window_title(window_title)
-  if (window_location) set_window_location(window_location)
-
-  let set_children = update.set_children, children_updated = []
-  if (set_children) {
-    // Sorting by position, as map is not sorted
-    let positions: [number, HTMLElement][] = []
-    for (const pos_s in set_children) {
-      positions.push([parseInt(pos_s), to_element(set_children[pos_s])])
-    }
-    positions.sort((a, b) => a[0] - b[0])
-
-    for (const [pos, child] of positions) {
-      if (pos < el.children.length) {
-        el.children[pos].replaceWith(child)
-      } else {
-        assert(pos == el.children.length, "set_children can't have gaps in children positions")
-        el.appendChild(child)
-      }
-      children_updated.push(pos)
-    }
-  }
-
-  let del_children = update.del_children, children_deleted = false
-  if (del_children) {
-    // Sorting by position descending
-    let positions = [...del_children]
-    positions.sort((a, b) => a - b)
-    positions.reverse()
-    for (const pos of positions) {
-      assert(pos <= el.children.length, "del_children index out of bounds")
-      el.children[pos].remove()
-      children_deleted = true
-    }
-  }
-
-  // Flashing changed children
-  for (let pos of children_updated) {
-    let child = el.children[pos] as HTMLElement
-    if (child.hasAttribute("flash")) flash(child)
-  }
-  if (self_updated || attrs_changed || children_updated.length > 0 || children_deleted) {
-    let flasheable: HTMLElement | null = el // Flashing self or parent element
-    while (flasheable) {
-      if (flasheable.hasAttribute("flash")) {
-        flash(flasheable)
-        break
-      }
-      flasheable = flasheable.parentElement
-    }
-  }
-}
-
-function set_window_title(title: string) {
-  if (document.title != title) document.title = title
-}
-
-function set_window_location(location: string) {
-  let current = window.location.pathname + window.location.search + window.location.hash
-  if (location != current) history.pushState({}, "", location)
+function build_el(html: SafeHtml): HTMLElement {
+  var tmp = document.createElement('div')
+  tmp.innerHTML = html
+  assert(tmp.children.length == 1, "exactly one el expected")
+  return tmp.firstChild as HTMLElement
 }
 
 function assert(cond: boolean, message = "assertion failed") {
