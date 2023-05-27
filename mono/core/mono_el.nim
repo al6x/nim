@@ -66,13 +66,13 @@ proc init*(_: type[SetValueHandler], handler: (proc(v: string)), delay: bool): S
   SetValueHandler(handler: handler, delay: delay)
 
 template bind_to*(element: El, variable, delay) =
-  let el = element
-  el.value variable.serialize
+  let el = element; let value_s = variable.serialize
+  el.value value_s
 
   el.extras_getset.set_value = SetValueHandler.init(
     (proc(v: string) {.closure.} =
       variable = typeof(variable).parse v
-      el.value variable.serialize # updating value on the element, to avoid it being detected by diff
+      el.value value_s # updating value on the element, to avoid it being detected by diff
     ),
     delay
   ).some
