@@ -205,15 +205,34 @@ function listen_to_dom_events() {
     return keys
   }
 
-  async function post_event(mono_id: string, event: InEvent): Promise<void> {
+  let post_batches: { [mono_id: string]: InEvent[] } = {} // Batching events to avoid multiple sends
+  let batch_timeout: number | undefined = undefined
+  function post_event(mono_id: string, event: InEvent) {
+    if (!(mono_id in post_batches)) post_batches[mono_id] = []
+    post_batches[mono_id].push(event)
+    if (batch_timeout != undefined) clearTimeout(batch_timeout)
+    batch_timeout = setTimeout(post_events, 1)
+  }
+
+  async function post_events(): Promise<void> {
     // Sending changed input events with event
+    // LODO inputs should be limited to mono root el
     let input_events = Object.values(changed_inputs)
     changed_inputs = {}
 
-    Log("").info(">>", event)
-    let data: SessionPostEvent = { kind: 'events', mono_id, events: [...input_events, event] }
-    try   { await send("post", location.href, data) }
-    catch { Log("http").error("can't send event") }
+    let batches = post_batches
+    post_batches = {}
+
+    for (const mono_id in batches) {
+      let events = batches[mono_id]
+      Log("").info(">>", events)
+      async function send_mono_x() {
+        let data: SessionPostEvent = { kind: 'events', mono_id, events: [...input_events, ...events] }
+        try   { await send("post", location.href, data) }
+        catch { Log("http").error("can't send event") }
+      }
+      send_mono_x()
+    }
   }
 }
 

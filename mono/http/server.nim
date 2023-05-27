@@ -33,8 +33,8 @@ proc handle_app_load(
 proc handle_app_in_event(req: Request, session: Session, events: seq[InEvent]): Future[void] {.async.} =
   # Processing happen in another async process, it's inefficient but help to avoid messy async error stack traces.
   session.inbox.add events
-  for event in events:
-    session.log.with(event).info "<<"
+  if events.len == 1: session.log.with(events[0]).info "<<"
+  else:               session.log.with((events: events)).info "<<"
   await req.respond("{}", "application/json")
 
 proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[void] {.async.} =
