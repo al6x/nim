@@ -39,18 +39,6 @@ type
     on_input*:    Option[InputHandler]
     set_value*:   Option[SetValueHandler]
 
-  UpdateEl* = ref object
-    el*:           seq[int]
-    set*:          Option[El]
-    set_attrs*:    Option[Table[string, string]]
-    del_attrs*:    Option[seq[string]]
-    set_children*: Option[Table[string, El]]
-    del_children*: Option[seq[int]]
-
-proc is_empty*(u: UpdateEl): bool =
-  u.set.is_empty and u.set_attrs.is_empty and u.del_attrs.is_empty and u.set_children.is_empty and
-    u.del_children.is_empty
-
 proc get*(self: El, el_path: seq[int]): El =
   result = self
   for i in el_path:
@@ -126,60 +114,3 @@ proc on_blur*(self: El, fn: proc(e: BlurEvent)) =
 proc on_blur*(self: El, fn: proc()) =
   self.attr("on_blur", true)
   self.extras_getset.on_blur = (proc(e: BlurEvent) = fn()).some
-
-# diff ---------------------------------------------------------------------------------------------
-proc diff(id: seq[int], oel, nel: El, updates: var seq[UpdateEl]) =
-  let update = UpdateEl(el: id)
-  updates.add update
-
-  if oel.kind != nel.kind: # different kind
-    update.set = nel.some
-
-  else: # same kind
-    case oel.kind
-
-    of ElKind.el: # el
-      if oel.tag != nel.tag: # tag
-        update.set = nel.some
-      else:
-        if oel.attrs != nel.attrs: # attrs
-          let (oattrs, nattrs) = (oel.normalise_attrs, nel.normalise_attrs)
-
-          var set_attrs: Table[string, string]
-          for k, v in nattrs:
-            if k notin oattrs or v != oattrs[k]: set_attrs[k] = v
-          unless set_attrs.is_empty: update.set_attrs = set_attrs.some
-
-          var del_attrs: seq[string]
-          for k, v in oattrs:
-            if k notin nattrs:
-              del_attrs.add k
-          unless del_attrs.is_empty: update.del_attrs = del_attrs.some
-
-        block: # children
-          var set_children: Table[string, El]
-          for i, nchild in nel.children:
-            if i > oel.children.high:
-              set_children[$i] = nchild
-            else:
-              let ochild = oel.children[i]
-              diff(id & [i], ochild, nchild, updates)
-          unless set_children.is_empty: update.set_children = set_children.some
-
-          var del_children: seq[int]
-          if nel.children.len < oel.children.len:
-            del_children = ((nel.children.high + 1)..oel.children.high).to_seq
-          unless del_children.is_empty: update.del_children = del_children.some
-
-    of ElKind.text: # text
-      if oel.text_data != nel.text_data: update.set = nel.some
-
-    of ElKind.html: # html
-      if oel.html_data != nel.html_data: update.set = nel.some
-
-    of ElKind.list: # list
-      throw "diff for el.list is not implemented"
-
-proc diff*(id: openarray[int], oel, nel: El): seq[UpdateEl] =
-  diff(id.to_seq, oel, nel, result)
-  result.reject(is_empty)

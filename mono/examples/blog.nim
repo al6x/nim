@@ -94,7 +94,7 @@ proc render*(self: BlogView): El =
 when is_main_module:
   import mono/http, std/os
 
-  let page: PageFn = proc(root_el: El): string =
+  let page: PageFn = proc(root_el: El): SafeHtml =
     """
       <!DOCTYPE html>
       <html>

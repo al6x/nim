@@ -1,5 +1,5 @@
 import base, std/macros, ext/url
-import ./mono_el
+import ./mono_el, ./diff
 
 type
   InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer
@@ -24,14 +24,16 @@ type
     of timer: # Triggered periodically, to check and pick any background changes in state
       discard
 
-  OutEventType* = enum eval, update
+  OutEventKind* = enum eval, initial_el, update
 
   OutEvent* = object
-    case kind*: OutEventType
+    case kind*: OutEventKind
     of eval:
       code*: string
+    of initial_el:
+      el*: El
     of update:
-      updates*: seq[UpdateEl]
+      diffs*: seq[Diff]
 
   Component* = ref object of RootObj
     current_tree:   Option[El]
@@ -123,25 +125,13 @@ proc process*[C](self: C, events: seq[InEvent], id = ""): seq[OutEvent] =
   new_tree.attrs["mono_id"] = id
   self.after_render
 
-  let updates = if self.current_tree.is_some:
-    diff(@[], self.current_tree.get, new_tree)
+  if self.current_tree.is_some:
+    let diffs = diff(@[], self.current_tree.get, new_tree)
+    unless diffs.is_empty: result.add OutEvent(kind: update, diffs: diffs)
   else:
-    @[UpdateEl(el: @[], set: new_tree.some)]
+    result.add OutEvent(kind: initial_el, el: new_tree)
   self.current_tree = new_tree.some
 
-  if updates.is_empty: @[]
-  else:                @[OutEvent(kind: update, updates: updates)]
-
-# initial_root_el ----------------------------------------------------------------------------------
-proc initial_root_el*(events: seq[OutEvent]): El =
-  assert events.len == 1, "to_html can't convert more than single event"
-  assert events[0].kind == update, "to_html can't convert event other than update"
-  assert events[0].updates.len == 1, "to_html can't convert more than single update"
-  let update = events[0].updates[0]
-  assert update.el == @[], "to_html can convert only root element"
-  assert (
-    update.set_attrs.is_none and update.del_attrs.is_none and
-    update.set_children.is_none and update.del_children.is_none
-  ), "to_html requires all changes other than `set` be empty"
-  assert update.set.is_some, "to_html the `set` required"
-  update.set.get
+proc get_initial_el*(outbox: seq[OutEvent]): El =
+  assert outbox.len == 1 and outbox[0].kind == OutEventKind.initial_el, "initial_el required"
+  outbox[0].el

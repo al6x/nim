@@ -153,7 +153,7 @@ when is_main_module:
   # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView
   import mono/http, std/os
 
-  let page: PageFn = proc(root_el: El): string =
+  let page: PageFn = proc(root_el: El): SafeHtml =
     # Feature: content and title in initial HTML page to improve SEO.
     """
       <!DOCTYPE html>
