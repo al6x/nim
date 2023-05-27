@@ -155,7 +155,7 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
 template inline_warns(warns: seq[string]) =
   let warnsv: seq[string] = warns
   unless warnsv.is_empty:
-    el"warns-ft.block.border-l-4.border-orange-800":
+    el"fwarns.block.border-l-4.border-orange-800":
       for warn in warnsv:
         el".inline-block .text-orange-800 .ml-2":
           it.text warn
@@ -163,14 +163,14 @@ template inline_warns(warns: seq[string]) =
 template inline_tags(tags: seq[string], context: FContext) =
   let tagsv: seq[string] = tags
   unless tagsv.is_empty:
-    el"tags-ft.block.flex.-mr-2":
+    el"ftags.block.flex.-mr-2":
       for tag in tagsv:
         el"a .mr-2 .text-blue-800":
           it.text "#" & tag
           it.attr("href", (context.config.tag_path)(tag, context))
 
 template block_layout(tname: string, warns, tags: seq[string], context: FContext, code) =
-  el(".block.pblock.flex.flex-col.space-y-1 .ftext"):
+  el(".block.pblock.flex.flex-col.space-y-1 .ftext c"):
     it.tag = tname
     inline_warns(warns)
     code
@@ -178,24 +178,24 @@ template block_layout(tname: string, warns, tags: seq[string], context: FContext
 
 proc to_html*(doc: FDoc, space_id: string, config = FHtmlConfig.init): El =
   let context = (doc, space_id, config).FContext
-  el".flex.flex-col .space-y-2":
-    block_layout("title-ft", doc.warns, @[], context): # Title and warns
+  el"fdoc.flex.flex-col .space-y-2":
+    block_layout("ftitle", doc.warns, @[], context): # Title and warns
       el".text-xl":
         it.text doc.title
 
     for section in doc.sections: # Sections
       unless section.title.is_empty:
-        block_layout("section-ft", section.warns, section.tags, context):
+        block_layout("fsection", section.warns, section.tags, context):
           it.add section.to_html(context)
 
       for blk in section.blocks: # Blocks
         # Not showing tags for Text and List blocks
         let tags: seq[string] = if blk of FTextBlock or blk of FListBlock: @[] else: blk.tags
-        block_layout(fmt"{blk.raw.kind}-ft", blk.warns, tags, context):
+        block_layout(fmt"f{blk.raw.kind}", blk.warns, tags, context):
           it.add blk.to_html(context)
 
     unless doc.tags.is_empty: # Tags
-      block_layout("doc-tags-ft", @[], doc.tags, context):
+      block_layout("fdoc-tags", @[], doc.tags, context):
         discard
 
 proc static_page_styles: SafeHtml =
@@ -213,7 +213,6 @@ proc to_html_page*(doc: FDoc, space_id: string, config = FHtmlConfig.init): stri
       <head>
         <title>{title}</title>
         <style>{static_page_styles()}</style>
-        <link rel="stylesheet" href="fdoc.css"/>
       </head>
       <body class="bg-slate-50">
         <div class="mx-auto py-4 max-w-5xl bg-white">
