@@ -1,6 +1,6 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
-
-let p = console.log.bind(console), global = window as any
+import { p, el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal,
+  sleep } from "./helpers.js"
 
 // Types -------------------------------------------------------------------------------------------
 // In events
@@ -217,6 +217,29 @@ function listen_to_dom_events() {
   }
 }
 
+function find_el_with_listener(
+  target: HTMLElement, listener: string | undefined = undefined
+): { mono_id: string, path: number[] } | undefined {
+  // Finds if there's element with specific listener
+  let path: number[] = [], current = target, el_with_listener_found = false
+  while (true) {
+    el_with_listener_found = el_with_listener_found || (listener === undefined) || current.hasAttribute(listener)
+    if (el_with_listener_found && current.hasAttribute("mono_id")) {
+      return { mono_id: current.getAttribute("mono_id")!, path }
+    }
+    let parent = current.parentElement
+    if (!parent) break
+    for (var i = 0; i < parent.children.length; i++) {
+      if (parent.children[i] == current) {
+        if (el_with_listener_found) path.unshift(i)
+        break
+      }
+    }
+    current = parent
+  }
+  return undefined
+}
+
 // Different HTML inputs use different attributes for value
 function get_value(el: HTMLInputElement): string {
   let tag = el.tagName.toLowerCase()
@@ -351,155 +374,4 @@ function set_window_title(title: string) {
 function set_window_location(location: string) {
   let current = window.location.pathname + window.location.search + window.location.hash
   if (location != current) history.pushState({}, "", location)
-}
-
-// helpers -----------------------------------------------------------------------------------------
-const http_log = Log("http", false)
-function send<In, Out>(method: string, url: string, data: In, timeout = 5000): Promise<Out> {
-  http_log.info("send", { method, url, data })
-  return new Promise((resolve, reject) => {
-    var responded = false
-    var xhr = new XMLHttpRequest()
-    xhr.open(method.toUpperCase(), url, true)
-    xhr.onreadystatechange = function(){
-      if(responded) return
-      if(xhr.readyState == 4){
-        responded = true
-        if(xhr.status == 200) {
-          const response = JSON.parse(xhr.responseText)
-          http_log.info("receive", { method, url, data, response })
-          resolve(response)
-        } else {
-          const error = new Error(xhr.responseText)
-          http_log.info("error", { method, url, data, error })
-          reject(error)
-        }
-      }
-    }
-    if (timeout > 0) {
-      setTimeout(function(){
-        if(responded) return
-        responded = true
-        const error = new Error("no response from " + url + "!")
-        http_log.info("error", { method, url, data, error })
-        reject(error)
-      }, timeout)
-    }
-    xhr.send(JSON.stringify(data))
-  })
-}
-
-function find_all(query: string): HTMLElement[] {
-  let list: HTMLElement[] = [], els = document.querySelectorAll(query)
-  for (var i = 0; i < els.length; i++) list.push(els[i] as HTMLElement)
-  return list
-}
-
-function find_one(query: string): HTMLElement {
-  let el = document.querySelector(query)
-  if (!el) throw new Error("query_one haven't found any " + query)
-  return el as HTMLElement
-}
-
-function find_el_with_listener(
-  target: HTMLElement, listener: string | undefined = undefined
-): { mono_id: string, path: number[] } | undefined {
-  // Finds if there's element with specific listener
-  let path: number[] = [], current = target, el_with_listener_found = false
-  while (true) {
-    el_with_listener_found = el_with_listener_found || (listener === undefined) || current.hasAttribute(listener)
-    if (el_with_listener_found && current.hasAttribute("mono_id")) {
-      return { mono_id: current.getAttribute("mono_id")!, path }
-    }
-    let parent = current.parentElement
-    if (!parent) break
-    for (var i = 0; i < parent.children.length; i++) {
-      if (parent.children[i] == current) {
-        if (el_with_listener_found) path.unshift(i)
-        break
-      }
-    }
-    current = parent
-  }
-  return undefined
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve, _reject) => { setTimeout(() => { resolve() }, ms) })
-}
-
-function Log(component: string, enabled = true) {
-  if (!enabled) return {
-    info(msg: string, data: unknown = {})  {},
-    error(msg: string, data: unknown = {}) {},
-    warn(msg: string, data: unknown = {})  {}
-  }
-
-  component = component.substring(0, 4).toLowerCase().padEnd(4)
-  return {
-    info(msg: string, data: unknown = {})  { console.log("  " + component + " " + msg, data) },
-    error(msg: string, data: unknown = {}) { console.log("E " + component + " " + msg, data) },
-    warn(msg: string, data: unknown = {})  { console.log("W " + component + " " + msg, data) }
-  }
-}
-
-function el_by_path(root: HTMLElement, path: number[]): HTMLElement {
-  let el = root
-  for (const pos of path) {
-    assert(pos < el.children.length, "wrong path, child index is out of bounds")
-    el = el.children[pos] as HTMLElement
-  }
-  return el
-}
-
-function build_el(html: SafeHtml): HTMLElement {
-  var tmp = document.createElement('div')
-  tmp.innerHTML = html
-  assert(tmp.children.length == 1, "exactly one el expected")
-  return tmp.firstChild as HTMLElement
-}
-
-function assert(cond: boolean, message = "assertion failed") {
-  if (!cond) throw new Error(message)
-}
-
-function arrays_equal<T>(a: T[], b: T[]): boolean {
-  return JSON.stringify(a) == JSON.stringify(b)
-}
-
-// Highlight element with yellow flash
-let update_timeouts: { [key: string]: number } = {}
-let flash_id_counter = 0
-function flash(
-  el: HTMLElement,
-  before_delete         = false,
-  timeout               = 1500, // should be same as in CSS animation
-  before_delete_timeout = 400   // should be same as in CSS animation
-): void {
-  // const id = $el.get_attr('id')
-  let [klass, delay] = before_delete ?
-    ['flash_before_delete', before_delete_timeout] :
-    ['flash', timeout]
-
-  // ID needed when flash repeatedly triggered on the same element, before the previous flash has
-  // been finished. Without ID such fast flashes won't work properly.
-  // Example - frequent updates from the server changing counter.
-  if (!el.dataset.flash_id) el.dataset.flash_id = "" + (flash_id_counter++)
-  let id = el.dataset.flash_id
-
-  if (id in update_timeouts) {
-    clearTimeout(update_timeouts[id])
-    el.classList.remove(klass)
-    setTimeout(() => {
-      void (el as any).offsetWidth
-      el.classList.add(klass)
-    }) // Triggering re-render
-  } else {
-    el.classList.add(klass)
-  }
-
-  update_timeouts[id] = setTimeout(() => {
-    el.classList.remove(klass)
-    delete update_timeouts[id]
-  }, delay)
 }
