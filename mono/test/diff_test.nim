@@ -20,7 +20,7 @@ test "diff, children":
     %[
       ["set_attrs",   [0], { attr: "true" }],
       ["replace",     [1], "<c2></c2>"],
-      ["add_children",[],  "<d2></d2>"]
+      ["add_children",[],  ["<d2></d2>"]]
     ]
 
 test "diff, del":
