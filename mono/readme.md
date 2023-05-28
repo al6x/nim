@@ -2,7 +2,12 @@ Nim UI/Web/Desktop/Mobile Framework
 
 **High productivity, simple and clean code** are main priorities.
 
-Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4).
+Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) or [Todo example](examples/todo.nim)
+
+```
+nimble install https://github.com/al6x/nim?subdir=mono
+nim r --experimental:overloadable_enums --threads:off todo.nim
+```
 
 ![](readme/todo.png)
 
@@ -13,11 +18,6 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 - Stateful Components and bidirectional data binding.
 - Multiple UI instances with shared memory updated automatically.
 - Fast initial page load and SEO friendly.
-
-# Ideas
-
-- Integration with WebComponent, Svelte, React, UI Kits.
-- Integration with LiveView, RoR, Laravel solutions for Desktop, IoS, Android.
 
 # Component Templates
 
@@ -51,8 +51,8 @@ Currently `-mm:orc` doesn't work, will work with the next Nim release.
 
 Checkout the repo, then run
 
-- `nim r --experimental:overloadable_enums --threads:off mono/test test` for tests.
-- `nim r --experimental:overloadable_enums --threads:off mono/examples/todo` for example.
+- `nim r --experimental:overloadable_enums --threads:off mono/test.nim test` for tests.
+- `nim r --experimental:overloadable_enums --threads:off mono/examples/todo.nim` for example.
 
 The whole library is just one function
 
@@ -74,6 +74,11 @@ keep the code size small, to have fast Nim compilation. You can change that and 
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Better Async/Actor/Networking code.
 - Slots for templates
+
+# Ideas
+
+- Integration with WebComponent, Svelte, React, UI Kits.
+- Integration with LiveView, RoR, Laravel solutions for Desktop, IoS, Android.
 
 # Deployment options
 
