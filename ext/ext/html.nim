@@ -169,6 +169,7 @@ proc to_json_hook*(el: El): JsonNode =
 proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
   case el.kind
   of ElKind.el:
+    # if newlines: html.add "\n"
     let attrs = el.normalise_attrs
     html.add indent & "<" & el.tag
     for k, (v, attr_kind) in attrs:
@@ -190,11 +191,15 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
         el.children[0].to_html(html, comments = comments)
       else:
         html.add "\n"
+        let newlines = "c" in el.children[0]
         for child in el.children:
+          if newlines: html.add "\n"
           child.to_html(html, indent = indent & "  ", comments = comments)
           html.add "\n"
+        if newlines: html.add "\n"
         html.add indent
     html.add "</" & el.tag & ">"
+    # if newlines: html.add "\n"
   of ElKind.text:
     html.add el.text_data.escape_html
   of ElKind.html:
@@ -297,7 +302,9 @@ test "el, basics":
 
 proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal] =
   assert el.kind == ElKind.el
-  var attrs = el.attrs.map((v) => (v, string_attr))
+  var attrs: Table[string, ElAttrVal]
+  for k, v in el.attrs:
+    if k != "c": attrs[k] = (v, string_attr)
 
   sort:
     if el.tag == "input" and "value" in attrs:

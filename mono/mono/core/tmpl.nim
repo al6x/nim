@@ -40,6 +40,7 @@ template el*[T](ComponentT: type[T], attrs: tuple, blk): auto =
     else:
       render(component)
 
+  el.attr("c", true)
   add_or_return_el el
 
 template el*[T](ComponentT: type[T], attrs: tuple): auto =
@@ -63,6 +64,7 @@ template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, bl
     else:
       render(component)
 
+  el.attr("c", true)
   add_or_return_el el
 
 template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): auto =
@@ -113,6 +115,7 @@ template el*(fn: proc, attrs: tuple, blk): auto =
       blk
       call_fn_with_content_r(fn, attrs, it, el)
 
+  el.attr("c", true)
   add_or_return_el el
 
 template el*(fn: proc, attrs: tuple): auto =
