@@ -57,7 +57,7 @@ Rendering Formal Text:
 ```
 nimble install https://github.com/al6x/nim?subdir=ftext
 
-nim r ftext/examples/example.nim
+nim r --experimental:overloadable_enums ftext/examples/example.nim
 
 # To serve images properly the static server needed
 # npm install -g node-static

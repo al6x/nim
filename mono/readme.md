@@ -14,6 +14,11 @@ Checkout the [Todo](examples/todo.nim) example or [Video Demo](https://www.youtu
 - Multiple UI instances with shared memory updated automatically.
 - Fast initial page load and SEO friendly.
 
+# Ideas
+
+- Integration with WebComponent, Svelte, React, UI Kits.
+- Integration with LiveView, RoR, Laravel solutions for Desktop, IoS, Android.
+
 # Component Templates
 
 - Clean UI with Components similar to Svelte or JSX.
@@ -46,8 +51,8 @@ Currently `-mm:orc` doesn't work, will work with the next Nim release.
 
 Checkout the repo, then run
 
-- `nim r mono/test test` for tests.
-- `nim r mono/examples/todo` for example.
+- `nim r --experimental:overloadable_enums --threads:off mono/test test` for tests.
+- `nim r --experimental:overloadable_enums --threads:off mono/examples/todo` for example.
 
 The whole library is just one function
 
@@ -68,6 +73,7 @@ keep the code size small, to have fast Nim compilation. You can change that and 
 
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Better Async/Actor/Networking code.
+- Slots for templates
 
 # Deployment options
 
