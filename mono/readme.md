@@ -35,7 +35,7 @@ nim r --experimental:overloadable_enums --threads:off todo.nim
 
 `nimble install https://github.com/al6x/nim?subdir=mono`
 
-Then run [todo example](examples/todo.nim) and start experimenting.
+Then run [Todo Example](mono/examples/todo.nim) and start experimenting.
 
 Use `import base/log; log_emitters.len = 0` to silence the default console logger.
 
@@ -60,7 +60,7 @@ The whole library is just one function
 let out: seq[OutEvent] = component.process(events: seq[InEvent])
 ```
 
-Checkout [core](core), especially the `mono/core/component_test` to see how it works.
+Checkout [core](mono/core) and tests to see how it works.
 
 Other packages are adapters to connect that function to different environments like Browser or Server.
 And provide transport for messages, like HTTP. You could replace it with your own adapter and transport,
