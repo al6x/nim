@@ -2,7 +2,7 @@ Nim UI/Web/Desktop/Mobile Framework
 
 **High productivity, simple and clean code** are main priorities.
 
-Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) or [Todo example](examples/todo.nim)
+Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) or [Todo Example](mono/examples/todo.nim)
 
 ```
 nimble install https://github.com/al6x/nim?subdir=mono
