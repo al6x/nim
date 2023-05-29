@@ -33,7 +33,7 @@ proc PTextButton*(text: string, color = "text-blue-800"): El =
 
 type PMessageKind* = enum info, warn
 proc PMessage*(text: string, kind: PMessageKind = info, top = false): El =
-  el".p-2.rounded.bg-slate-50":
+  el"pmessage .block.p-2.rounded.bg-slate-50":
     if top: it.class "m-5"
     case kind
     of info: discard
@@ -41,8 +41,8 @@ proc PMessage*(text: string, kind: PMessageKind = info, top = false): El =
     it.text text
 
 # Right --------------------------------------------------------------------------------------------
-proc PRBlock*(title = "", closed = false, content: seq[El]): El =
-  el".relative .m-2 .mb-3 flash":
+proc PRBlock*(tname = "prblock", title = "", closed = false, content: seq[El]): El =
+  el(tname & " .block.relative .m-2 .mb-3 flash c"):
     if closed:
       assert not title.is_empty, "can't have empty title on closed rsection"
       el".text-gray-300":
@@ -61,14 +61,14 @@ proc PRBlock*(title = "", closed = false, content: seq[El]): El =
         it.add content
 
 proc PFavorites*(links: openarray[(string, string)], closed = false): El =
-  el(PRBlock, (title: "Favorites", closed: closed)):
+  el(PRBlock, (tname: "prblock-favorites", title: "Favorites", closed: closed)):
     for (text, link) in links:
       el"a.block.text-blue-800":
         it.text text
         it.attr("href", link)
 
 proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
-  el(PRBlock, (title: "Backlinks", closed: closed)):
+  el(PRBlock, (tname: "prblock-backlinks", title: "Backlinks", closed: closed)):
     for (text, link) in links:
       el"a .block .text-sm .text-blue-800":
         it.text text
@@ -76,7 +76,7 @@ proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
 
 type CloudTag* = tuple[text, link: string, size: int]
 proc PTags*(tags: openarray[CloudTag], closed = false): El =
-  el(PRBlock, (title: "Tags", closed: closed)):
+  el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
     el".-mr-1 flash":
       for (text, link, size) in tags:
         let size_class = case size
@@ -97,7 +97,7 @@ proc PSearchField*(text = ""): El =
     if not text.is_empty: it.value text
 
 proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
-  el(PRBlock, (title: "Space", closed: closed)):
+  el(PRBlock, (tname: "prblock-space-info", title: "Space", closed: closed)):
     el"a .text-blue-800":
       it.text "Finance"
       it.attr("href", "#")
@@ -112,7 +112,7 @@ proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
 # Blocks -------------------------------------------------------------------------------------------
 template pblock_controls*(controls: seq[El], hover: bool) =
   unless controls.is_empty:
-    el""".absolute.right-0.top-1.flex.bg-white .rounded.p-1""":
+    el"pblock-controls .block.absolute.right-0.top-1.flex.bg-white .rounded.p-1":
       if hover and not palette.mockup_mode: it.class "hidden_controls"
       it.style "margin-top: 0;"
       for c in controls: it.add(c)
@@ -120,7 +120,7 @@ template pblock_controls*(controls: seq[El], hover: bool) =
 template pblock_warns*(warns: seq[string]) =
   let warnsv: seq[string] = warns
   unless warnsv.is_empty:
-    el".border-l-4.border-orange-800 flash":
+    el"pblock-warns .block.border-l-4.border-orange-800 flash":
       for warn in warnsv:
         el".inline-block .text-orange-800 .ml-2":
           it.text warn
@@ -128,21 +128,21 @@ template pblock_warns*(warns: seq[string]) =
 template pblock_tags*(tags: seq[(string, string)]) =
   let tagsv: seq[(string, string)] = tags
   unless tagsv.is_empty:
-    el".flex.-mr-2 flash":
+    el"pblock-tags .block.flex.-mr-2 flash":
       for (tag, link) in tagsv:
         el"a .mr-2 .text-blue-800":
           it.text "#" & tag
           it.attr("href", link)
 
-template pblock_layout*(code: untyped): auto =
-  el".pblock.flex.flex-col.space-y-1":
+template pblock_layout*(tname: string, code: untyped): auto =
+  el(tname & " .pblock.flex.flex-col.space-y-1 c"):
     code
 
 template pblock_layout*(
-  warns_arg: untyped, controls: seq[El], tags: seq[(string, string)], hover: bool, code
+  tname: string, warns_arg: untyped, controls: seq[El], tags: seq[(string, string)], hover: bool, code
 ): auto =
   let warns: seq[string] = warns_arg # otherwise it clashes with template overriding
-  pblock_layout:
+  pblock_layout(tname):
     if hover: it.class "pblock_hover"
     pblock_warns(warns)
     code
@@ -156,23 +156,24 @@ proc with_path(tags: seq[string], context: FContext): seq[(string, string)] =
 
 proc FSection*(section: FSection, context: FContext, controls: seq[El] = @[]): El =
   let html = render.to_html(section.to_html(context))
-  pblock_layout(section.warns, controls, section.tags.with_path(context), true):
+  pblock_layout("pblock-fsection", section.warns, controls, section.tags.with_path(context), true):
     el".ftext flash":
       it.attr("html", html)
 
 proc FBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
   let html = render.to_html(blk.to_html(context))
+  let tname = fmt"pblock-f{blk.raw.kind}"
   let tags: seq[(string, string)] =
     if blk of FTextBlock or blk of FListBlock: @[] else: blk.tags.with_path(context)
-  pblock_layout(blk.warns, controls, tags, true):
+  pblock_layout(tname, blk.warns, controls, tags, true):
     el".ftext flash":
       it.html html
 
 # Search -------------------------------------------------------------------------------------------
 proc PSearchItem*(title, subtitle, before, match, after: string): El =
-  pblock_layout:
+  pblock_layout("psearch-item"):
   # el".pl-8.pr-8 .mb-2":
-    el"span .text-gray-500":
+    el"psearch-item .text-gray-500":
       el"span":
         it.text before
       el"span .font-bold.text-black":
@@ -192,13 +193,13 @@ proc PSearchItem*(title, subtitle, before, match, after: string): El =
 
 # PApp ---------------------------------------------------------------------------------------------
 proc papp_layout*(left, right: seq[El]): El =
-  el""".w-full .flex {nomockup".min-h-screen"}""":
-    el"$PLeft .w-9/12":
+  el("papp .block.w-full .flex " & nomockup".min-h-screen" & " c"):
+    el"papp-left .block.w-9/12 c":
       it.add left
-    el""".w-3/12 .relative {nomockup".right-panel-hidden-icon"} .border-gray-300 .border-l .bg-slate-50""":
+    el(".w-3/12 .relative " & nomockup".right-panel-hidden-icon" & " .border-gray-300 .border-l .bg-slate-50"):
       # el".absolute .top-0 .right-0 .m-2 .mt-4":
       #   el(PIconButton, (icon: "controls"))
-      el"""$PRight {nomockup".right-panel-content"} .pt-2""":
+      el("papp-right .block " & nomockup".right-panel-content" & " .pt-2 c"):
         it.add right
 
 proc PApp*(
@@ -209,12 +210,12 @@ proc PApp*(
   content: seq[El]
 ): El =
   let left =
-    el".flex.flex-col .space-y-1.mt-2.mb-2":
+    el"pdoc .block.flex.flex-col .space-y-1.mt-2.mb-2 c":
       # el"a.block.absolute.left-2 .text-gray-300": # Anchor
       #   it.class "top-3.5"
       #   it.text "#"
       #   it.location "#"
-      pblock_layout(warns, title_controls, @[], false): # Title
+      pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
         el".text-xl flash":
           it.text title
           it.attr("title", title_hint)
@@ -222,14 +223,14 @@ proc PApp*(
       it.add content
 
       unless tags.is_empty:
-        pblock_layout(tags_warns, tags_controls, tags, true): # Tags
+        pblock_layout("pblock-doc-tags", tags_warns, tags_controls, tags, true): # Tags
           discard
 
   papp_layout(@[left], right)
 
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
-  el"":
+  el"pmockup .block c":
     el".relative.ml-5 .text-2xl":
       it.text title
     # el".absolute.right-5.top-3":
@@ -309,14 +310,14 @@ proc render_mockup: seq[El] =
 
       let more = 23
       if more > 0:
-        pblock_layout:
+        pblock_layout("pblock-pagination"):
           el"":
             alter_el(el(PTextButton, (text: fmt"{more} more"))):
               it.class "block float-right"
 
   mockup_section("Misc"):
     el(PApp, (title: "Misc")):
-      pblock_layout:
+      pblock_layout("pblock-misc"):
         el(PMessage, (text: "Some message"))
 
   mockup_section("Misc"):

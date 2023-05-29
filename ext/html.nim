@@ -261,7 +261,7 @@ template add_or_return_el*(e_arg: El): auto =
 
 template build_el*(html: string, code): El =
   block:
-    let it {.inject.} = El.init(fmt(html, '{', '}'))
+    let it {.inject.} = El.init(html) # El.init(fmt(html, '{', '}'))
     code
     it
 

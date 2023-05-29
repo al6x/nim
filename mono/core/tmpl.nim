@@ -40,7 +40,7 @@ template build_el*[T](ComponentT: type[T], attrs: tuple, blk): El =
     else:
       render(component)
 
-  el.attr("c", true)
+  # el.attr("c", true)
   el
 
 template build_el*[T](ComponentT: type[T], attrs: tuple): El =
@@ -70,7 +70,7 @@ template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tup
     else:
       render(component)
 
-  el.attr("c", true)
+  # el.attr("c", true)
   add_or_return_el el
 
 template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): El =
@@ -128,7 +128,7 @@ template build_el*(fn: proc, attrs: tuple, blk): El =
       blk
       call_fn_with_content_r(fn, attrs, it, el)
 
-  el.attr("c", true)
+  # el.attr("c", true)
   el
 
 template build_el*(fn: proc, attrs: tuple): El =
