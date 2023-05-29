@@ -151,16 +151,16 @@ template pblock_layout*(
     pblock_controls(controls, hover)
 
 # FBlocks ------------------------------------------------------------------------------------------
-proc with_path(tags: seq[string], context: FContext): seq[(string, string)] =
+proc with_path*(tags: seq[string], context: FContext): seq[(string, string)] =
   tags.map((tag) => (tag, (context.config.tag_path)(tag, context)))
 
-proc FSection*(section: FSection, context: FContext, controls: seq[El] = @[]): El =
+proc PFSection*(section: FSection, context: FContext, controls: seq[El] = @[]): El =
   let html = render.to_html(section.to_html(context))
   pblock_layout("pblock-fsection", section.warns, controls, section.tags.with_path(context), true):
     el".ftext flash":
       it.attr("html", html)
 
-proc FBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
+proc PFBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
   let html = render.to_html(blk.to_html(context))
   let tname = fmt"pblock-f{blk.raw.kind}"
   let tags: seq[(string, string)] =
@@ -284,10 +284,10 @@ proc render_mockup: seq[El] =
     )):
       for section in fdoc.sections: # Sections
         unless section.title.is_empty:
-          el(FSection, (section: section, context: context, controls: controls_stub))
+          el(PFSection, (section: section, context: context, controls: controls_stub))
 
         for blk in section.blocks: # Blocks
-          el(FBlock, (blk: blk, context: context, controls: controls_stub))
+          el(PFBlock, (blk: blk, context: context, controls: controls_stub))
 
   mockup_section("Search"):
     let right = els:

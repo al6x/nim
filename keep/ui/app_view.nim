@@ -65,7 +65,7 @@ proc on_binary*(self: AppView, url: Url): BinaryResponse =
   else:
     http_response "Invalid asset path", 400
 
-let page: PageFn = proc(root_el: JsonNode): string =
+let page: PageFn = proc(root_el: El): string =
   """
     <!DOCTYPE html>
     <html>

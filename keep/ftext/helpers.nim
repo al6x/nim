@@ -9,7 +9,7 @@ proc open_editor*(location: string, line = 1) =
   if output.exit_code != 0: throw fmt"Can't open editor: '{cmd}'"
 
 proc edit_btn*(location: string, line_n = 1): El =
-  el(PIconButton, (icon: "edit", title: "Edit")):
+  alter_el(el(PIconButton, (icon: "edit", title: "Edit"))):
     it.on_click proc = open_editor(location, line_n)
 
 # proc open_editor*(self: FDoc, section: FSection) =
