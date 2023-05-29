@@ -25,6 +25,7 @@ proc set_html         *(id: seq[int], html: string                   ): Diff = %
 
 # diff ---------------------------------------------------------------------------------------------
 proc has_single_content_child(el: El): bool =
+  # it's possible to support el.list, but it's very rarely needed and not worth to add complexity
   assert el.kind != ElKind.list, "el.list not supported"
   el.children.len == 1 and el.children[0].kind in [ElKind.text, ElKind.html]
 

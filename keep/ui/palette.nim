@@ -1,5 +1,4 @@
-import base, mono/core, std/os, ftext/[core, parse]
-import ftext/render except El, el, els
+import base, mono/core, std/os, ftext/[core, parse, render]
 import std/macros
 
 # Support ------------------------------------------------------------------------------------------
@@ -56,7 +55,7 @@ proc PRBlock*(title = "", closed = false, content: seq[El]): El =
           it.text title
       if content.is_empty:
         # Adding invisible button to keep height of control panel the same as with buttons
-        el(PIconButton, (icon: "edit")):
+        alter_el(el(PIconButton, (icon: "edit"))):
           it.class("opacity-0")
       else:
         it.add content
@@ -66,14 +65,14 @@ proc PFavorites*(links: openarray[(string, string)], closed = false): El =
     for (text, link) in links:
       el"a.block.text-blue-800":
         it.text text
-        it.location link
+        it.attr("href", link)
 
 proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
   el(PRBlock, (title: "Backlinks", closed: closed)):
     for (text, link) in links:
       el"a .block .text-sm .text-blue-800":
         it.text text
-        it.location link
+        it.attr("href", link)
 
 type CloudTag* = tuple[text, link: string, size: int]
 proc PTags*(tags: openarray[CloudTag], closed = false): El =
@@ -89,7 +88,7 @@ proc PTags*(tags: openarray[CloudTag], closed = false): El =
         el"a .mr-1 .align-middle .text-center .leading-4 .text-blue-800":
           it.class size_class
           it.text text
-          it.location "#"
+          it.attr("href", "#")
 
 proc PSearchField*(text = ""): El =
   el("input .border .rounded .border-gray-300 .px-1 .w-full " &
@@ -101,24 +100,24 @@ proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
   el(PRBlock, (title: "Space", closed: closed)):
     el"a .text-blue-800":
       it.text "Finance"
-      it.location "#"
+      it.attr("href", "#")
 
     if not warns.is_empty:
       el".border-l-2.border-orange-800 flex":
         for (text, link) in warns:
           el"a.block.ml-2 .text-sm .text-orange-800":
             it.text text
-            it.location link
+            it.attr("href", link)
 
 # Blocks -------------------------------------------------------------------------------------------
-template inline_controls(controls: seq[El], hover: bool) =
+template pblock_controls*(controls: seq[El], hover: bool) =
   unless controls.is_empty:
     el""".absolute.right-0.top-1.flex.bg-white .rounded.p-1""":
       if hover and not palette.mockup_mode: it.class "hidden_controls"
       it.style "margin-top: 0;"
       for c in controls: it.add(c)
 
-template inline_warns(warns: seq[string]) =
+template pblock_warns*(warns: seq[string]) =
   let warnsv: seq[string] = warns
   unless warnsv.is_empty:
     el".border-l-4.border-orange-800 flash":
@@ -126,30 +125,30 @@ template inline_warns(warns: seq[string]) =
         el".inline-block .text-orange-800 .ml-2":
           it.text warn
 
-template inline_tags(tags: seq[(string, string)]) =
+template pblock_tags*(tags: seq[(string, string)]) =
   let tagsv: seq[(string, string)] = tags
   unless tagsv.is_empty:
     el".flex.-mr-2 flash":
       for (tag, link) in tagsv:
         el"a .mr-2 .text-blue-800":
           it.text "#" & tag
-          it.location link
+          it.attr("href", link)
 
-template block_layout(code: untyped): auto =
+template pblock_layout*(code: untyped): auto =
   el".pblock.flex.flex-col.space-y-1":
     code
 
-template block_layout(
+template pblock_layout*(
   warns_arg: untyped, controls: seq[El], tags: seq[(string, string)], hover: bool, code
 ): auto =
   let warns: seq[string] = warns_arg # otherwise it clashes with template overriding
-  block_layout:
+  pblock_layout:
     if hover: it.class "pblock_hover"
-    inline_warns(warns)
+    pblock_warns(warns)
     code
-    inline_tags(tags)
+    pblock_tags(tags)
     # Should be the last one, otherwise the first element will have extra margin
-    inline_controls(controls, hover)
+    pblock_controls(controls, hover)
 
 # FBlocks ------------------------------------------------------------------------------------------
 proc with_path(tags: seq[string], context: FContext): seq[(string, string)] =
@@ -157,7 +156,7 @@ proc with_path(tags: seq[string], context: FContext): seq[(string, string)] =
 
 proc FSection*(section: FSection, context: FContext, controls: seq[El] = @[]): El =
   let html = render.to_html(section.to_html(context))
-  block_layout(section.warns, controls, section.tags.with_path(context), true):
+  pblock_layout(section.warns, controls, section.tags.with_path(context), true):
     el".ftext flash":
       it.attr("html", html)
 
@@ -165,13 +164,13 @@ proc FBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
   let html = render.to_html(blk.to_html(context))
   let tags: seq[(string, string)] =
     if blk of FTextBlock or blk of FListBlock: @[] else: blk.tags.with_path(context)
-  block_layout(blk.warns, controls, tags, true):
+  pblock_layout(blk.warns, controls, tags, true):
     el".ftext flash":
-      it.attr("html", html)
+      it.html html
 
 # Search -------------------------------------------------------------------------------------------
 proc PSearchItem*(title, subtitle, before, match, after: string): El =
-  block_layout:
+  pblock_layout:
   # el".pl-8.pr-8 .mb-2":
     el"span .text-gray-500":
       el"span":
@@ -183,16 +182,16 @@ proc PSearchItem*(title, subtitle, before, match, after: string): El =
       # el"span .mr-2"
       el"a .text-blue-800":
         it.text title
-        it.location "#"
+        it.attr("href", "#")
       if not subtitle.is_empty:
         el"span":
           it.text "/"
         el"a .text-blue-800":
           it.text title
-          it.location "#"
+          it.attr("href", "#")
 
 # PApp ---------------------------------------------------------------------------------------------
-proc layout*(left, right: seq[El]): El =
+proc papp_layout*(left, right: seq[El]): El =
   el""".w-full .flex {nomockup".min-h-screen"}""":
     el"$PLeft .w-9/12":
       it.add left
@@ -205,7 +204,7 @@ proc layout*(left, right: seq[El]): El =
 proc PApp*(
   title: string, title_hint = "", title_controls = seq[El].init,
   warns = seq[string].init,
-  tags: seq[(string, string)] = @[], tags_controls = seq[El].init, tags_warnings = seq[string].init,
+  tags: seq[(string, string)] = @[], tags_controls = seq[El].init, tags_warns = seq[string].init,
   right: seq[El] = @[],
   content: seq[El]
 ): El =
@@ -215,7 +214,7 @@ proc PApp*(
       #   it.class "top-3.5"
       #   it.text "#"
       #   it.location "#"
-      block_layout(warns, title_controls, @[], false): # Title
+      pblock_layout(warns, title_controls, @[], false): # Title
         el".text-xl flash":
           it.text title
           it.attr("title", title_hint)
@@ -223,10 +222,10 @@ proc PApp*(
       it.add content
 
       unless tags.is_empty:
-        block_layout(tags_warnings, tags_controls, tags, true): # Tags
+        pblock_layout(tags_warns, tags_controls, tags, true): # Tags
           discard
 
-  layout(@[left], right)
+  papp_layout(@[left], right)
 
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
@@ -242,7 +241,7 @@ template mockup_section(title_arg: string, code) =
   let built: El = block: code
   result.add:
     el(MockupSection, (title: title_arg)):
-      add_or_return built
+      add_or_return_el built
 
 type StubData = object
   links:     seq[(string, string)]
@@ -310,14 +309,14 @@ proc render_mockup: seq[El] =
 
       let more = 23
       if more > 0:
-        block_layout:
+        pblock_layout:
           el"":
-            el(PTextButton, (text: fmt"{more} more")):
+            alter_el(el(PTextButton, (text: fmt"{more} more"))):
               it.class "block float-right"
 
   mockup_section("Misc"):
     el(PApp, (title: "Misc")):
-      block_layout:
+      pblock_layout:
         el(PMessage, (text: "Some message"))
 
   mockup_section("Misc"):

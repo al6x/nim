@@ -243,11 +243,14 @@ proc add*(parent: El, child: El) =
 proc add*(parent: El, list: seq[El]) =
   parent.children.add list
 
-template els*(code): El =
+template list_el*(code): El =
   block:
     var it {.inject.} = El(kind: ElKind.list)
     code
     it
+
+template els*(code): seq[El] =
+  list_el(code).children
 
 template add_or_return_el*(e_arg: El): auto =
   let e = e_arg
@@ -256,16 +259,21 @@ template add_or_return_el*(e_arg: El): auto =
   # when declared(it): it.add(e)
   else:              e
 
-template el*(html: string, code): auto =
-  let el = block:
+template build_el*(html: string, code): El =
+  block:
     let it {.inject.} = El.init(fmt(html, '{', '}'))
     code
     it
-  add_or_return_el el
+
+template build_el*(html: string): El =
+  build_el(html):
+    discard
+
+template el*(html: string, code): auto =
+  add_or_return_el build_el(html, code)
 
 template el*(html: string): auto =
-  el(html):
-    discard
+  add_or_return_el build_el(html)
 
 test "el, basics":
   check el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
