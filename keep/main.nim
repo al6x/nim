@@ -9,7 +9,7 @@ block:
   let keep_dir = current_source_path().parent_dir.absolute_path
   let space = Space.init(id = "some")
   db.spaces[space.id] = space
-  space.add_ftext_dir fmt"{keep_dir}/ftext/test"
+  space.add_ftext_dir fmt"{keep_dir}/examples/finance"
 
 run_http_server(
   build_app_view,

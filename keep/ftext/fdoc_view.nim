@@ -14,7 +14,7 @@ proc render*(self: FDocView): El =
   let edit_title = edit_btn(fdoc.location)
   let edit_tags  = edit_btn(fdoc.location, fdoc.tags_line_n)
 
-  let context: FContext = (head.doc, self.space.id, FHtmlConfig.init)
+  let context = build_ftext_context(fdoc, self.space.id)
 
   result =
     el(PApp, ( # App

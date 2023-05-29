@@ -27,15 +27,17 @@ proc init*(_: type[FDocHead], doc: FDoc): FDocHead =
         warns:   sblock.warns
       )
 
-proc add_ftext_dir*(space: Space, path: string) =
-  space.log.with((path: path)).info "load"
+proc add_ftext_dir*(space: Space, space_path: string) =
+  unless fs.exist space_path: throw fmt"Space path don't exist: {space_path}"
+
+  space.log.with((path: space_path)).info "load"
   proc load(fpath: string): FDocHead =
     let parsed = FDoc.read fpath
     result = FDocHead.init parsed
     assert result.id == fpath.file_name_ext.name
 
   # Loading
-  for entry in fs.read_dir(path):
+  for entry in fs.read_dir(space_path):
     if entry.kind == file and entry.path.ends_with(".ft"):
       let fdoc = load entry.path
       if fdoc.id in space.docs:
@@ -45,7 +47,7 @@ proc add_ftext_dir*(space: Space, path: string) =
   space.version.inc
 
   # Watching files for chages
-  let get_changed = watch_dir path
+  let get_changed = watch_dir space_path
   proc check_for_changed_files =
     for entry in get_changed():
       if entry.kind == file and entry.path.ends_with(".ft"):

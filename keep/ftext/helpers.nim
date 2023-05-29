@@ -1,5 +1,16 @@
-import base, mono/core, std/osproc
+import base, mono/core, std/osproc, ext/url, ftext/[core, render]
 import ../core/spacem, ../ui/palette as pl
+
+proc build_ftext_context*(doc: FDoc, space_id: string): FContext =
+  let mono_id = session.id
+  proc ftext_image_path(path: string, context: FContext): string =
+    let path = "/" & context.space_id & "/" & context.doc.id & "/" & path
+    Url.init(path, { "mono_id": mono_id }).to_s
+
+  let html_config = FHtmlConfig.init
+  html_config.image_path = ftext_image_path
+
+  (doc, space_id, html_config)
 
 proc open_editor*(location: string, line = 1) =
   # LODO make editor configurable
