@@ -297,17 +297,6 @@ test "el, basics":
   check h.to_html == html
 
 # normalise_attrs ----------------------------------------------------------------------------------
-# proc normalise_attr_del*(el: El, attr: string): ElAttrDel =
-#   assert el.kind == ElKind.el
-
-#   if el.tag == "input" and "value" == attr:
-#     if "type" in el and el["type"] == "checkbox":
-#       (attr, bool_prop)
-#     else:
-#       (attr, string_prop)
-#   else:
-#     (attr, string_attr)
-
 proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal] =
   assert el.kind == ElKind.el
   var attrs: Table[string, ElAttrVal]
