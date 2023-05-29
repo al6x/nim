@@ -342,7 +342,7 @@ when is_main_module:
   let fname = fmt"{dir}/assets/palette/palette.html"
   fs.write fname, html
   p fmt"{fname} generated"
-  say "done"
+  # say "done"
 
 proc stub_data: StubData =
   result.links = [

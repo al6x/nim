@@ -30,26 +30,6 @@
 
 
 
-
-
-/* td > div { @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; } */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* .note-text-block >  */
 
 /* .right-panel .right-panel-controls-icon {
@@ -76,60 +56,6 @@
   transition-duration: 0.1s;
 } */
 
-
-@layer components {
-  .edges { border: 1px solid black; }
-
-  /* Left panel --------------------------------------------------------------------------------- */
-  .item-left-margin {
-    @apply pl-6;
-  }
-
-
-
-  .section-title {
-    @apply text-xl; @apply p-1; @apply item-left-margin;
-  }
-
-  .text-block {
-    @apply p-2; @apply item-left-margin;
-  }
-
-  .list-block {
-    @apply p-2; @apply item-left-margin;
-  }
-
-  .list-block-item {
-    @apply pb-2;
-  }
-
-  .note-tag {
-    @apply mr-2; @apply text-blue-800;
-  }
-
-  .text-link {
-    @apply text-blue-800;
-  }
-
-  .text-tag {
-    @apply text-blue-800;
-  }
-
-  .anchor { @apply text-gray-300; visibility: hidden; }
-  div:hover > .anchor { visibility: visible; }
-
-  /* Right panel -------------------------------------------------------------------------------- */
-
-
-
-  .backlinks a {
-    @apply block; @apply text-sm; @apply text-blue-800;
-  }
-
-
-  /* Images ------------------------------------------------------------------------------------- */
-  .svg-icon { background-size: contain; background-position: center; }
-}
 
   /* .right-panel-content { visibility: hidden; } */
   /* .right-panel:hover .right-panel-content { visibility: visible; } */

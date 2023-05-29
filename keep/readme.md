@@ -1,14 +1,11 @@
 # Todo
 
-- move releases to main
-- Add bin/release for base, ext, ftext
+- Add db.config and parse editor code like "{path} {line}
+- Turn alex/notes into space
 - Make video about parser FText
-- Make image, ask on StackOv abotu trigram search
 - Make search
-- Serve file space/doc.method-serve_file(rel_doc_path): tuple[path, mime]
-- search list
-- Move edit button to section right, `vscode -g fpath:line`
-- FText parser for: Section, Table, Code, Images
+- Add space/doc/block link for both embed and block display.
+- FText parser for: Table
 
 # LTodo
 
