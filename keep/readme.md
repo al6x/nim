@@ -1,14 +1,22 @@
 # Todo
 
-- Add db.config and parse editor code like "{path} {line}
+
+- Refactor space, so it can have mixed content, ftext etc
+- Add space.config and parse editor code like "{path} {line}, each space has its own editor, could
+  be local space or github space
 - Turn alex/notes into space
 - Make video about parser FText
 - Make search
+- Search with blackjack and hookers, index Wwar of the worlds, and libres, show query timing, tags facets with stats,
+  show query and chunk trigrams, don't do separate app, use with notes, just add extra vidgets to display
+  peformance and trigrams.
+
 - Add space/doc/block link for both embed and block display.
 - FText parser for: Table
 
 # LTodo
 
+- Checkout M. Fowler BiKi
 - FText, long link reference, [N. Taleb Random](nt_random), [nt_random](http://ntaleb.org/random)
 
 # Notes

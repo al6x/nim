@@ -52,20 +52,21 @@ type
     of embed:
       embed_kind*: string
       parsed*:     Option[JsonNode]
+  FInlineText* = seq[FTextItem]
 
   FParagraphKind* = enum text, list
   FParagraph* = object
     case kind*: FParagraphKind
     of text:
-      text*: seq[FTextItem]
+      text*: FInlineText
     of list:
-      list*: seq[seq[FTextItem]]
+      list*: seq[FInlineText]
 
   FTextBlock* = ref object of FBlock
     formatted_text*: seq[FParagraph]
 
   FListBlock* = ref object of FBlock
-    list*: seq[seq[FTextItem]]
+    list*: seq[FInlineText]
 
   FCodeBlock* = ref object of FBlock
     code*: string
@@ -82,6 +83,10 @@ type
 
   FUnknownBlock* = ref object of FBlock
     discard
+
+  FTableBlock* = ref object of FBlock
+    header*: Option[seq[FInlineText]]
+    rows*:   seq[seq[FInlineText]]
 
 proc init*(_: type[FDoc], location: string): FDoc =
   assert location.ends_with ".ft"

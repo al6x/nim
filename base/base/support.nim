@@ -70,6 +70,8 @@ proc `$`*[T: typed](x: ref T): string = "->" & $(x[])
 
 template p*(a) = echo a
 template p*(a, b) = echo a, ", ", b
+template p*(a, b, c) = echo a, ", ", b, ", ", c
+template p*(a, b, c, d) = echo a, ", ", b, ", ", c, " ", d
 
 
 type TimerSec* = proc: int

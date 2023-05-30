@@ -202,7 +202,8 @@ test "parse_list":
   """.dedent
 
   let blk = parse_list(raw_block("list", ftext), test_fdoc(), config)
-  check blk.warns == @["Unknown embed: 'some'"]
+  check blk.warns  == @["Unknown embed: some"]
+  check blk.assets == @["img.png", "non_existing.png"]
 
   let parsed = blk.list
   check parsed.len == 2
@@ -297,3 +298,145 @@ test "parse_ftext, missing assets":
   check blocks[0].warns == @["Asset don't exist some/missing1.png"]
   check blocks[1].warns == @["Asset don't exist some/missing2.png"]
   check blocks[2].warns == @["Asset don't exist some/missing_dir"]
+
+proc parse_table(text: string): FTableBlock =
+  let config = FParseConfig()
+  config.embed_parsers["image"] = embed_parser_image
+  config.embed_parsers["code"] = embed_parser_code
+
+  parse_table(raw_block("table", text), test_fdoc(), config)
+
+test "parse_table":
+  proc test_table(text: string) =
+    let blk = parse_table text
+    check blk.warns == @["Unknown embed: some"]
+    check blk.assets == @["img.png"]
+    let rows = blk.rows
+    check blk.header.is_none
+    check rows.len == 2
+    check (rows[0].len, rows[1].len) == (2, 2)
+    check rows[0][0].to_json == %[{ kind: "text", text: "text" }]
+    check rows[0][1].to_json == %[{ kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some }]
+
+    check rows[1][0].to_json == %[{ kind: "embed", embed_kind: "code", text: ",|" }]
+    check rows[1][1].to_json == %[{ kind: "embed", embed_kind: "some", text: "some" }]
+
+  test_table """
+    text, image{img.png}
+    code{,|}, some{some}
+  """.dedent
+
+  test_table """
+    text, image{img.png}
+
+    code{,|},
+    some{some}
+  """.dedent
+
+  test_table """
+    text,
+    image{img.png}
+
+    code{,|},
+    some{some}
+  """.dedent
+
+  test_table """
+    text | image{img.png}
+    code{,|} | some{some}
+  """.dedent
+
+test "parse_table with header":
+  proc test_table(text: string) =
+    let blk = parse_table text
+    check blk.assets == @["img.png"]
+    let rows = blk.rows
+    check blk.header.is_some
+    let header = blk.header.get
+    check header.len == 2
+    check header[0].to_json == %[{ kind: "text", text: "text" }]
+    check header[1].to_json == %[{ kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some }]
+
+    check rows.len == 1
+    check rows[0].len == 2
+    check rows[0][0].to_json == %[{ kind: "embed", embed_kind: "code", text: ",|" }]
+    check rows[0][1].to_json == %[{ kind: "text", text: "text2" }]
+
+  test_table """
+    text, image{img.png} header
+    code{,|}, text2
+  """.dedent
+
+  test_table """
+    text, image{img.png} header
+
+    code{,|},
+    text2
+  """.dedent
+
+  test_table """
+    text,
+    image{img.png} header
+
+    code{,|},
+    text2
+  """.dedent
+
+  test_table """
+    text,
+    image{img.png}
+    header
+
+    code{,|},
+    text2
+  """.dedent
+
+  test_table """
+    text | image{img.png} header
+    code{,|} | text2
+  """.dedent
+
+test "parse_table with tags":
+  proc test_table(text: string, rows: int) =
+    let blk = parse_table text
+    check blk.warns.is_empty
+    check blk.rows.len == rows
+    check blk.header.is_none
+    check blk.tags == @["t1", "t2"]
+
+  test_table("""
+    a1, a2
+    b1, b2
+    #t1 #t2
+  """.dedent, 2)
+
+  test_table("""
+    a1, a2
+    b1, b2
+    #t1, #t2
+  """.dedent, 3)
+
+  test_table("""
+    a1 | a2
+    b1 | b2
+    #t1, #t2
+  """.dedent, 2)
+
+  test_table("""
+    a1, a2
+
+    b1,
+    b2
+
+    #t1 #t2
+  """.dedent, 2)
+
+  test_table("""
+    a1,
+    a2
+
+    b1,
+    b2
+
+    #t1 #t2
+  """.dedent, 2)

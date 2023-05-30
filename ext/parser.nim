@@ -78,6 +78,12 @@ proc fget*(pr: Parser, fn: ((char) -> bool), shift = 0): Option[char] =
 proc fget*(pr: Parser, s: set[char], shift = 0): Option[char] =
   pr.fget(((c) => c in s), shift)
 
+proc starts_with*(pr: Parser, s: string, shift = 0): bool =
+  for j, c in s:
+    let i = pr.i + shift + j
+    if i > pr.text.high or s[j] != pr.text[i]: return false
+  true
+
 test "find, fget":
   let pr = Parser.init("abcd", 1)
   check pr.find({'c'}) == 1
@@ -85,3 +91,9 @@ test "find, fget":
 
 proc remainder*(pr: Parser): string =
   pr.text[pr.i..pr.text.high]
+
+# proc before_after*(pr: Parser): string =
+#   # for debug
+#   let before = pr.text[(pr.text.low, pr.i - 5).max..(pr.text.low, pr.i - 1).max]
+#   let after  = pr.text[(pr.text.high, pr.i + 1).min..(pr.text.high, pr.i + 5).min]
+#   fmt"{before}|{pr.get}|{after}"
