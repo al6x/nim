@@ -543,7 +543,7 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, blk: FTableBlock) =
 
   while pr.has:
     pr.skip space_chars
-    let token = pr.consume_inline_text(stop, trim = true)
+    let token = pr.consume_inline_text(stop)
     # p token
     if   is_header(): # header
       finish_row:
@@ -587,6 +587,23 @@ proc parse_table*(raw: FRawBlock, doc: FDoc, config: FParseConfig): FTableBlock 
         pr = Parser.init lines.join("\n").trim
 
   pr.parse_table_as_table(col_delimiter, blk)
+
+  block: # normalizing cols count
+    var cols = 0
+    if blk.header.is_some:
+      cols = blk.header.get.len
+    else:
+      for row in blk.rows:
+        if row.len > cols: cols = row.len
+    for i, row in blk.rows:
+      if row.len > cols:
+        blk.warns.add "Too many cols in row"
+        blk.rows[i].len = cols
+      elif row.len < cols:
+        blk.warns.add "Missing cols in row"
+        while blk.rows[i].len < cols: blk.rows[i].add @[]
+    blk.cols = cols
+
   proc post_process(item: FTextItem): FTextItem = post_process(item, blk, doc, config)
   if blk.header.is_some: blk.header = map(blk.header.get, post_process).some
   for i, row in blk.rows: blk.rows[i] = map(row, post_process)
@@ -601,6 +618,7 @@ proc init*(_: type[FParseConfig]): FParseConfig =
   block_parsers["code"]   = (blk, doc, config) => parse_code(blk)
   block_parsers["image"]  = (blk, doc, config) => parse_image(blk, doc)
   block_parsers["images"] = (blk, doc, config) => parse_images(blk, doc)
+  block_parsers["table"]  = (blk, doc, config) => parse_table(blk, doc, config)
 
   var embed_parsers: Table[string, FEmbedParser]
   embed_parsers["image"] = embed_parser_image

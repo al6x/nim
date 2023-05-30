@@ -87,6 +87,7 @@ type
   FTableBlock* = ref object of FBlock
     header*: Option[seq[FInlineText]]
     rows*:   seq[seq[FInlineText]]
+    cols*:   int # number of cols
 
 proc init*(_: type[FDoc], location: string): FDoc =
   assert location.ends_with ".ft"

@@ -313,6 +313,7 @@ test "parse_table":
     check blk.assets == @["img.png"]
     let rows = blk.rows
     check blk.header.is_none
+    check blk.cols == 2
     check rows.len == 2
     check (rows[0].len, rows[1].len) == (2, 2)
     check rows[0][0].to_json == %[{ kind: "text", text: "text" }]
@@ -350,6 +351,7 @@ test "parse_table with header":
   proc test_table(text: string) =
     let blk = parse_table text
     check blk.assets == @["img.png"]
+    check blk.cols == 2
     let rows = blk.rows
     check blk.header.is_some
     let header = blk.header.get

@@ -40,8 +40,9 @@ proc init*(_: type[FHtmlConfig]): FHtmlConfig =
 # to_html ------------------------------------------------------------------------------------------
 # base block
 method to_html*(blk: FBlock, context: FContext): El {.base.} =
-  el"":
-    it.text fmt"to_html not defined for {blk.raw.kind} block"
+  el".border-l-4.border-orange-800 .text-orange-800":
+    el".text-orange-800 .ml-2":
+      it.text fmt"to_html not defined for {blk.raw.kind} block"
 
 # section
 proc to_html*(section: FSection, context: FContext): El =
@@ -151,6 +152,50 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
           for col in 0..6:
             render_td()
 
+# table
+method to_html*(blk: FTableBlock, context: FContext): El =
+  # If columns has only images or embeds, making it no more than 25%
+  var col_styles: seq[string]
+  block:
+    proc has_single_embed_item(text: FInlineText): bool =
+      text.len == 0 or (text.len == 1 and text[0].kind == embed)
+
+    for i in 0..(blk.cols - 1):
+      if blk.rows.allit(it[i].has_single_embed_item):
+        col_styles.add "text-align: center; vertical-align: middle; max-width: 25%;"
+      else:
+        col_styles.add "vertical-align: middle;"
+
+  el"table cellspacing=0 cellpadding=0": # table
+    # setting margin after each row
+    it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
+
+    if blk.header.is_some: # header
+      el"tr":
+        for i, hcell in blk.header.get:
+          el"th":
+            it.style col_styles[i]
+            it.html hcell.to_html(context)
+
+    for row in blk.rows: # rows
+      el"tr":
+        for i, cell in row:
+          el"td":
+            it.style col_styles[i]
+            it.html cell.to_html(context)
+
+
+            # if i < images.len:
+            #   # flex needed to align vertically
+            #   el".flex .rounded.overflow-hidden.border.border-gray-300.bg-slate-50":
+            #     it.style "width: 100%; aspect-ratio: 1;" # making height same as width so cell will be square
+            #     el"img.block.ml-auto.mr-auto": # centering horizontally
+            #       # Limiting image max height and width
+            #       it.style "object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"
+            #       it.attr("src", images[i])
+            #       i.inc
+
+
 # to_html FDoc -------------------------------------------------------------------------------------
 template inline_warns(warns: seq[string]) =
   let warnsv: seq[string] = warns
@@ -213,6 +258,7 @@ proc to_html_page*(doc: FDoc, space_id: string, config = FHtmlConfig.init): stri
       <head>
         <title>{title}</title>
         <style>{static_page_styles()}</style>
+        <meta charset="UTF-8">
       </head>
       <body class="bg-slate-50">
         <div class="mx-auto py-4 max-w-5xl bg-white">

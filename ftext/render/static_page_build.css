@@ -727,8 +727,7 @@ video {
   padding-bottom: 0.25rem;
 }
 
-.ftext > ul > li > code,
-.ftext > p > code {
+.ftext code {
   padding: 1px 4px;
   border-width: 1px;
   border-radius: 0.25rem;
