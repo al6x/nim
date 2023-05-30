@@ -610,11 +610,11 @@ proc init*(_: type[FParseConfig]): FParseConfig =
 
 # parse --------------------------------------------------------------------------------------------
 proc post_process_block(blk: FBlock, doc: FDoc, config: FParseConfig) =
-  template make_unique(term) = blk.term = blk.term.unique
-  make_unique assets
-  make_unique links
-  make_unique glinks
-  make_unique warns
+  template normalise(term) = blk.term = blk.term.unique.sort
+  normalise assets
+  normalise links
+  normalise glinks
+  normalise warns
 
   for rpath in blk.assets:
     assert not rpath.is_empty, "asset can't be empty"
