@@ -625,16 +625,8 @@ video {
   padding-bottom: 1rem;
 }
 
-.pl-4 {
-  padding-left: 1rem;
-}
-
 .pr-4 {
   padding-right: 1rem;
-}
-
-.text-left {
-  text-align: left;
 }
 
 .text-xl {
@@ -671,7 +663,7 @@ video {
   display: block;
 }
 
-.ftext > pre {
+.ftext pre {
   font-size: 0.875rem;
   line-height: 1.25rem;
   border-radius: 0.25rem;
@@ -679,7 +671,6 @@ video {
   padding-right: 0.5rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
-  /* @apply border; @apply border-gray-300;  */
   --tw-bg-opacity: 1;
   background-color: rgb(249 250 251 / var(--tw-bg-opacity));
 }
@@ -689,7 +680,6 @@ video {
   border-radius: 0.25rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  /* @apply border; @apply border-gray-300; */
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity));
 }
@@ -719,8 +709,6 @@ video {
   width: 100%;
   aspect-ratio: 1;
   /* making height same as width so cell will be square */
-  /* Border and background */
-  /* @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; @apply bg-white; */
   border-radius: 0.25rem;
   overflow: hidden;
   --tw-bg-opacity: 1;
@@ -746,8 +734,6 @@ video {
   width: 100%;
   aspect-ratio: 1;
   /* making height same as width so cell will be square */
-  /* Border and background */
-  /* @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; @apply bg-white; */
   border-radius: 0.25rem;
   overflow: hidden;
   --tw-bg-opacity: 1;

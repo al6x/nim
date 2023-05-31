@@ -1,17 +1,8 @@
 .ftext { @apply flex; @apply flex-col; @apply space-y-2; }
 .ftext > * { display: block; }
 
-.ftext > pre {
-  @apply text-sm; @apply rounded; @apply px-2; @apply py-2;
-  /* @apply border; @apply border-gray-300;  */
-  @apply bg-gray-50;
-}
-
-.ftext code {
-  padding: 2px 5px; @apply rounded; @apply text-sm;
-  /* @apply border; @apply border-gray-300; */
-  @apply bg-gray-100;
-}
+.ftext pre { @apply text-sm; @apply rounded; @apply px-2; @apply py-2; @apply bg-gray-50; }
+.ftext code { padding: 2px 5px; @apply rounded; @apply text-sm; @apply bg-gray-100; }
 
 .ftext a.tag, .ftext a.link, .ftext a.glink { @apply text-blue-800; }
 
@@ -21,8 +12,6 @@
 .ftext_table_image_container {
   @apply flex;
   width: 100%; aspect-ratio: 1; /* making height same as width so cell will be square */
-  /* Border and background */
-  /* @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; @apply bg-white; */
   @apply rounded; @apply overflow-hidden; @apply bg-gray-50;
 }
 .ftext_table_image_container img {
@@ -33,8 +22,6 @@
 .ftext_images_image_container {
   @apply flex;
   width: 100%; aspect-ratio: 1; /* making height same as width so cell will be square */
-  /* Border and background */
-  /* @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; @apply bg-white; */
   @apply rounded; @apply overflow-hidden; @apply bg-gray-50;
 }
 .ftext_images_image_container img {
