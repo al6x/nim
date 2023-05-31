@@ -522,20 +522,8 @@ video {
   --tw-backdrop-sepia:  ;
 }
 
-.visible {
-  visibility: visible;
-}
-
-.collapse {
-  visibility: collapse;
-}
-
 .absolute {
   position: absolute;
-}
-
-.relative {
-  position: relative;
 }
 
 .mx-auto {
@@ -551,16 +539,8 @@ video {
   margin-left: 0.5rem;
 }
 
-.ml-auto {
-  margin-left: auto;
-}
-
 .mr-2 {
   margin-right: 0.5rem;
-}
-
-.mr-auto {
-  margin-right: auto;
 }
 
 .block {
@@ -579,24 +559,8 @@ video {
   display: table;
 }
 
-.contents {
-  display: contents;
-}
-
-.hidden {
-  display: none;
-}
-
 .max-w-5xl {
   max-width: 64rem;
-}
-
-.max-w-6xl {
-  max-width: 72rem;
-}
-
-.flex-grow {
-  flex-grow: 1;
 }
 
 .grow {
@@ -605,14 +569,6 @@ video {
 
 .border-collapse {
   border-collapse: collapse;
-}
-
-.transform {
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
-
-.resize {
-  resize: both;
 }
 
 .flex-col {
@@ -631,25 +587,17 @@ video {
   margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
 }
 
-.overflow-hidden {
-  overflow: hidden;
-}
-
-.rounded {
-  border-radius: 0.25rem;
-}
-
-.border {
-  border-width: 1px;
+.border-b {
+  border-bottom-width: 1px;
 }
 
 .border-l-4 {
   border-left-width: 4px;
 }
 
-.border-gray-300 {
+.border-gray-200 {
   --tw-border-opacity: 1;
-  border-color: rgb(209 213 219 / var(--tw-border-opacity));
+  border-color: rgb(229 231 235 / var(--tw-border-opacity));
 }
 
 .border-orange-800 {
@@ -667,9 +615,26 @@ video {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
 }
 
+.py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+.pl-4 {
+  padding-left: 1rem;
+}
+
+.pr-4 {
+  padding-right: 1rem;
+}
+
+.text-left {
+  text-align: left;
 }
 
 .text-xl {
@@ -685,14 +650,6 @@ video {
 .text-orange-800 {
   --tw-text-opacity: 1;
   color: rgb(154 52 18 / var(--tw-text-opacity));
-}
-
-.underline {
-  text-decoration-line: underline;
-}
-
-.outline {
-  outline-style: solid;
 }
 
 .filter {
@@ -717,24 +674,24 @@ video {
 .ftext > pre {
   font-size: 0.875rem;
   line-height: 1.25rem;
-  border-width: 1px;
   border-radius: 0.25rem;
-  --tw-border-opacity: 1;
-  border-color: rgb(209 213 219 / var(--tw-border-opacity));
   padding-left: 0.5rem;
   padding-right: 0.5rem;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  /* @apply border; @apply border-gray-300;  */
+  --tw-bg-opacity: 1;
+  background-color: rgb(249 250 251 / var(--tw-bg-opacity));
 }
 
 .ftext code {
-  padding: 1px 4px;
-  border-width: 1px;
+  padding: 2px 5px;
   border-radius: 0.25rem;
-  --tw-border-opacity: 1;
-  border-color: rgb(209 213 219 / var(--tw-border-opacity));
   font-size: 0.875rem;
   line-height: 1.25rem;
+  /* @apply border; @apply border-gray-300; */
+  --tw-bg-opacity: 1;
+  background-color: rgb(243 244 246 / var(--tw-bg-opacity));
 }
 
 .ftext a.tag, .ftext a.link, .ftext a.glink {
@@ -755,6 +712,60 @@ video {
 
 .ftext > ul > li {
   display: block;
+}
+
+.ftext_table_image_container {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1;
+  /* making height same as width so cell will be square */
+  /* Border and background */
+  /* @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; @apply bg-white; */
+  border-radius: 0.25rem;
+  overflow: hidden;
+  --tw-bg-opacity: 1;
+  background-color: rgb(249 250 251 / var(--tw-bg-opacity));
+}
+
+.ftext_table_image_container img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  /* centering horizontally */
+  -o-object-fit: contain;
+     object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  /* Limiting image max height and width */
+}
+
+.ftext_images_image_container {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1;
+  /* making height same as width so cell will be square */
+  /* Border and background */
+  /* @apply rounded; @apply overflow-hidden; @apply border; @apply border-gray-300; @apply bg-white; */
+  border-radius: 0.25rem;
+  overflow: hidden;
+  --tw-bg-opacity: 1;
+  background-color: rgb(249 250 251 / var(--tw-bg-opacity));
+}
+
+.ftext_images_image_container img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  /* centering horizontally */
+  -o-object-fit: contain;
+     object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  /* Limiting image max height and width */
 }
 
 .pblock {

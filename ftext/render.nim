@@ -125,18 +125,12 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
       else:
         it.style "width: 24%; text-align: center; vertical-align: middle;"
         if i < images.len:
-          # flex needed to align vertically
-          el".flex .rounded.overflow-hidden.border.border-gray-300.bg-slate-50":
-            it.style "width: 100%; aspect-ratio: 1;" # making height same as width so cell will be square
-            el"img.block.ml-auto.mr-auto": # centering horizontally
-              # Limiting image max height and width
-              it.style "object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"
-              it.attr("src", images[i])
-              i.inc
+          el".ftext_images_image_container":
+            el("img", it.attr("src", images[i]))
+        i.inc
 
   if images.len <= 4:
     el"table cellspacing=0 cellpadding=0": # removing cell borders
-      # el"tdata":
       el"tr":
         var i = 0
         for col in 0..(images.high * 2 - 2):
@@ -145,7 +139,6 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
     el"table cellspacing=0 cellpadding=0":
       # setting margin after each row
       it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
-      # el"tdata":
       var i = 0
       for row in 0..(images.len / 4).floor.int:
         el"tr":
@@ -155,45 +148,44 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
 # table
 method to_html*(blk: FTableBlock, context: FContext): El =
   # If columns has only images or embeds, making it no more than 25%
-  var col_styles: seq[string]
+  var single_image_cols: seq[bool]
   block:
-    proc has_single_embed_item(text: FInlineText): bool =
-      text.len == 0 or (text.len == 1 and text[0].kind == embed)
+    proc has_single_image(text: FInlineText): bool =
+      text.len == 1 and text[0].kind == embed and text[0].embed_kind == "image"
 
     for i in 0..(blk.cols - 1):
-      if blk.rows.allit(it[i].has_single_embed_item):
-        col_styles.add "text-align: center; vertical-align: middle; max-width: 25%;"
-      else:
-        col_styles.add "vertical-align: middle;"
+      var has_at_least_one_image = false; var has_non_image_content = false
+      for row in blk.rows: #.allit(it[i].has_single_image):
+        if   row[i].has_single_image: has_at_least_one_image = true
+        elif row[i].len > 0:          has_non_image_content  = true
+      single_image_cols.add has_at_least_one_image and not has_non_image_content
 
-  el"table cellspacing=0 cellpadding=0": # table
-    # setting margin after each row
-    it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
-
+  el"table": # table
     if blk.header.is_some: # header
-      el"tr":
-        for i, hcell in blk.header.get:
-          el"th":
-            it.style col_styles[i]
+      el"tr .border-b.border-gray-200":
+        let hrow = blk.header.get
+        for i, hcell in hrow:
+          el"th .py-1":
+            if i < hrow.high: it.class "pr-4"
+            if single_image_cols[i]: # image header
+              it.style "width: 25%; text-align: center; vertical-align: middle;"
+            else: # non image header
+              it.style "text-align: left; vertical-align: middle;"
             it.html hcell.to_html(context)
 
-    for row in blk.rows: # rows
+    for i, row in blk.rows: # rows
       el"tr":
-        for i, cell in row:
-          el"td":
-            it.style col_styles[i]
-            it.html cell.to_html(context)
-
-
-            # if i < images.len:
-            #   # flex needed to align vertically
-            #   el".flex .rounded.overflow-hidden.border.border-gray-300.bg-slate-50":
-            #     it.style "width: 100%; aspect-ratio: 1;" # making height same as width so cell will be square
-            #     el"img.block.ml-auto.mr-auto": # centering horizontally
-            #       # Limiting image max height and width
-            #       it.style "object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"
-            #       it.attr("src", images[i])
-            #       i.inc
+        if i < blk.rows.high: it.class "border-b border-gray-200"
+        for i, cell in row: # cols
+          el"td .py-1":
+            if i < row.high: it.class "pr-4"
+            if single_image_cols[i]: # cell with image
+              it.style "width: 25%; text-align: center; vertical-align: middle;"
+              el".ftext_table_image_container":
+                it.html cell.to_html(context)
+            else: # non image cell
+              it.style "vertical-align: middle;"
+              it.html cell.to_html(context)
 
 
 # to_html FDoc -------------------------------------------------------------------------------------
@@ -246,7 +238,10 @@ proc to_html*(doc: FDoc, space_id: string, config = FHtmlConfig.init): El =
 proc static_page_styles: SafeHtml =
   let styles_path = current_source_path().parent_dir.absolute_path & "/render/static_page_build.css"
   let css = fs.read styles_path
-  css.replace(re"[\s\n]+", " ").replace(re"/\*.+?\*/", "").trim # minifying into oneline
+  # result.add "<style>"
+  # result.add css.replace(re"[\s\n]+", " ").replace(re"/\*.+?\*/", "").trim # minifying into oneline
+  # result.add "</style>"
+  result.add """<link rel="stylesheet" href="/render/static_page_build.css">"""
 
 proc to_html_page*(doc: FDoc, space_id: string, config = FHtmlConfig.init): string =
   let doc_html = doc.to_html(space_id, config).to_html
@@ -257,7 +252,7 @@ proc to_html_page*(doc: FDoc, space_id: string, config = FHtmlConfig.init): stri
     <html>
       <head>
         <title>{title}</title>
-        <style>{static_page_styles()}</style>
+        {static_page_styles()}
         <meta charset="UTF-8">
       </head>
       <body class="bg-slate-50">

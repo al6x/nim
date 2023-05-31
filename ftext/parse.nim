@@ -544,7 +544,6 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, blk: FTableBlock) =
   while pr.has:
     pr.skip space_chars
     let token = pr.consume_inline_text(stop)
-    # p token
     if   is_header(): # header
       finish_row:
         blk.header = row.some
