@@ -111,11 +111,12 @@ proc consume_tag*(pr: Parser): Option[string] =
     pr.warns.add "Empty tag"
 
 proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tuple[tags: seq[string], line_n: int] =
-  var unknown = ""; var tags: seq[string]; var tags_start_pos = -1
+  var unknown = ""; var tags: seq[string];
+  pr.skip space_chars
+  let tags_start_pos = pr.i
   while pr.has:
     if stop(): break
     pr.skip((c) => c in tag_delimiter_chars)
-    tags_start_pos = pr.i
     if pr.is_tag:
       let tag = pr.consume_tag
       if tag.is_some: tags.add tag.get
