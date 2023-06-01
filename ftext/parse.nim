@@ -112,7 +112,7 @@ proc consume_tag*(pr: Parser): Option[string] =
 
 proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tuple[tags: seq[string], line_n: int] =
   var unknown = ""; var tags: seq[string]; var tags_start_pos = -1
-  while true:
+  while pr.has:
     if stop(): break
     pr.skip((c) => c in tag_delimiter_chars)
     tags_start_pos = pr.i
@@ -122,9 +122,8 @@ proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tup
     else:
       if pr.get.is_some: unknown.add pr.get.get
       pr.inc
-    if not pr.has_next: break
   if not unknown.is_empty:
-    pr.warns.add fmt"Unknown text in tags: '{unknown}'"
+    pr.warns.add fmt"Unknown text in tags: {unknown}"
   (tags, pr.text.line_n(tags_start_pos))
 
 # blocks -------------------------------------------------------------------------------------------
@@ -315,13 +314,15 @@ proc consume_inline_text*(text: string): FInlineText =
   assert pr.warns.is_empty, "parsing ftext, unexpected warnings"
 
 # text_paragraph -----------------------------------------------------------------------------------
-let not_st_chars = {' ', '\t'}.complement
+let st_chars = {' ', '\t'}; let not_st_chars = st_chars.complement
 proc is_text_paragraph*(pr: Parser): bool =
   pr.get == '\n' and pr.fget(not_st_chars, 1) == '\n'
 
 proc skip_text_paragraph*(pr: Parser) =
-  assert pr.get == '\n'
-  pr.skip space_chars
+  assert pr.is_text_paragraph
+  pr.skip {'\n'}
+  pr.skip st_chars
+  pr.skip {'\n'}
 
 # text_list ----------------------------------------------------------------------------------------
 proc is_text_list*(pr: Parser): bool =
@@ -362,6 +363,7 @@ proc parse_text_as_items*(pr: Parser): seq[FParagraph] =
         result.add FParagraph(kind: list, list: items)
     elif pr.is_text_paragraph:
       pr.skip_text_paragraph
+      pr.skip space_chars
     else:
       let inline_text = pr.consume_inline_text(stop)
       if not inline_text.is_empty:
@@ -415,30 +417,54 @@ proc embed_parser_code*(code: string, blk: FBlock, doc: FDoc, config: FParseConf
   blk.text.add_text code
 
 # list ---------------------------------------------------------------------------------------------
-proc parse_list_as_items*(pr: Parser): seq[FInlineText] =
-  if pr.fget(not_space_chars) == '-':
-    result = pr.consume_text_list
+proc parse_tags_on_last_line_if_present(raw: string, not_tags: (proc(lines: seq[string]): bool), blk: FBlock): string =
+  var lines = raw.trim.split("\n")
+  if lines.len > 0:
+    # let starts_with_tag_character = lpr.find_without_embed((c) => c == '#') >= 0
+    let starts_with_tag_character = lines.last.trim.starts_with("#")
+    if starts_with_tag_character and not not_tags(lines):
+      let lpr = Parser.init(lines.last.trim)
+      let (tags, line_n) = lpr.consume_tags
+      blk.tags.add tags
+      blk.warns.add lpr.warns
+      lines.len = lines.len - 1
+      return lines.join("\n").trim
+  raw
+
+proc parse_list_as_items*(raw: string, blk: FListBlock) =
+  let pr = Parser.init raw
+  if pr.fget(not_space_chars) == '-': # List imems start with '-' character
+    proc not_tags(lines: seq[string]): bool =
+      lines.last.trim.starts_with('-')
+    let raw_without_tags = parse_tags_on_last_line_if_present(raw, not_tags, blk)
+    let pr = Parser.init raw_without_tags
+    blk.list = pr.consume_text_list
     pr.skip space_chars
     if pr.has:
-      pr.warns.add "Unknown content in list: '" & pr.remainder & "'"
-  else:
+      blk.warns.add "Unknown content in list: '" & pr.remainder & "'"
+  else: # List imems start with new paragraph
+    proc not_tags(lines: seq[string]): bool =
+      # Should be separated with new line
+      lines.len > 2 and lines[^2].trim != ""
+    let raw_without_tags = parse_tags_on_last_line_if_present(raw, not_tags, blk)
+    let pr = Parser.init raw_without_tags
     while pr.has:
       let inline_text = pr.consume_inline_text(() => pr.is_text_paragraph)
       if not inline_text.is_empty:
-        result.add inline_text
+        blk.list.add inline_text
       elif pr.is_text_paragraph:
         pr.skip_text_paragraph
+        pr.skip space_chars
       else:
-        pr.warns.add "Unknown content in list: '" & pr.remainder & "'"
+        blk.warns.add "Unknown content in list: '" & pr.remainder & "'"
         break
 
 proc parse_list*(raw: FRawBlock, doc: FDoc, config: FParseConfig): FListBlock =
   assert raw.kind == "list"
-  let pr = Parser.init raw.text
-  let list = pr.parse_list_as_items
-  let blk = FListBlock(warns: pr.warns)
+  let blk = FListBlock()
+  parse_list_as_items(raw.text, blk)
   proc post_process(item: FTextItem): FTextItem = post_process(item, blk, doc, config)
-  blk.list = map(list, post_process)
+  blk.list = map(blk.list, post_process)
   blk
 
 # data ---------------------------------------------------------------------------------------------
@@ -571,28 +597,24 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, blk: FTableBlock) =
 
 proc parse_table*(raw: FRawBlock, doc: FDoc, config: FParseConfig): FTableBlock =
   assert raw.kind == "table"
+
+  let col_delimiter: char = block:
+    let pr = Parser.init raw.text
+    if pr.find_without_embed((c) => c == '|') >= 0: '|' else: ','
+
+  proc not_tags(lines: seq[string]): bool =
+    # If last line has tag character and don't have col delimiter character and is not a continuation
+    # of the table row
+    let last_line_has_col_delimiter = Parser.init(lines.last)
+      .find_without_embed((c) => c == col_delimiter) >= 0
+    let before_last_line_ending_with_col_delimiter = lines.len > 1 and
+      lines[^2].trim.ends_with(col_delimiter)
+    last_line_has_col_delimiter or before_last_line_ending_with_col_delimiter
+
   let blk = FTableBlock()
+  let text_without_tags = parse_tags_on_last_line_if_present(raw.text, not_tags, blk)
 
-  # Parsing tags on last line if present
-  var pr = Parser.init raw.text
-  let col_delimiter: char = if pr.find_without_embed((c) => c == '|') >= 0: '|' else: ','
-  block:
-    var lines = raw.text.trim.split("\n")
-    if lines.len > 0:
-      let lpr = Parser.init(lines.last)
-      let has_col_delimiter = lpr.find_without_embed((c) => c == col_delimiter) >= 0
-      let has_tag_character = lpr.find_without_embed((c) => c == '#') >= 0
-      let previous_line_not_ending_with_col_delimiter = lines.len == 1 or
-        not lines[^2].trim.ends_with(col_delimiter)
-      if has_tag_character and not has_col_delimiter and previous_line_not_ending_with_col_delimiter:
-        # If last line has tag character and don't have col delimiter character and is not a continuation
-        # of the table row
-        let (tags, line_n) = lpr.consume_tags
-        blk.tags.add tags
-        blk.warns.add lpr.warns
-        lines.len = lines.len - 1
-        pr = Parser.init lines.join("\n").trim
-
+  let pr = Parser.init(text_without_tags)
   pr.parse_table_as_table(col_delimiter, blk)
 
   block: # normalizing cols count
@@ -653,6 +675,8 @@ proc parse*(_: type[FDoc], text, location: string, config = FParseConfig.init): 
   let raw_blocks = pr.consume_blocks
   let (tags, tags_line_n) = pr.consume_tags
   let doc = FDoc.init location
+  doc.warns.add pr.warns
+  # if pr.has: doc.warns.add "Unknown content: " & pr.remainder
   doc.hash = text.hash.int; doc.tags = tags; doc.tags_line_n = tags_line_n
   for raw in raw_blocks:
     if   raw.kind == "title":

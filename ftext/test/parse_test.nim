@@ -10,6 +10,9 @@ proc test_space_location(): string =
 proc test_fdoc(): FDoc =
   FDoc.init(location = fmt"{test_space_location()}/some.ft")
 
+template check_i(list, i, expected) =
+  check list[i].to_json == expected.to_json
+
 test "consume_tags":
   template t(a, b) =
     let pr = Parser.init(a.dedent)
@@ -107,130 +110,146 @@ test "parse_text":
   let parsed = blk.formatted_text
   check parsed.len == 3
 
-  template check(list, i, expected) =
-    check list[i].to_json == expected.to_json
-
   block: # Paragraph 1
     check parsed[0].kind == text
     check parsed[0].text.len == 13
     var it = parsed[0].text
 
-    check it, 0,  (kind: "text", text: "Some text ")
-    check it, 1,  (kind: "glink", text: "some link", glink: "http://site.com")
-    check it, 2,  (kind: "text", text:  " another ")
-    check it, 3,  (kind: "text", text: "text, and ", em: true)
-    check it, 4,  (kind: "link", text: "link 2", link: (space: ".", doc: "link 2"), em: true)
-    check it, 5,  (kind: "text", text: " more ")
-    check it, 6,  (kind: "tag", text: "tag1")
-    check it, 7,  (kind: "text", text: " ")
-    check it, 8,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
-    check it, 9,  (kind: "text", text: " some ")
-    check it, 10, (kind: "embed", embed_kind: "code", text: "code 2")
-    check it, 11, (kind: "text", text: " ")
-    check it, 12, (kind: "embed", embed_kind: "some", text: "some")
+    check_i it, 0,  (kind: "text", text: "Some text ")
+    check_i it, 1,  (kind: "glink", text: "some link", glink: "http://site.com")
+    check_i it, 2,  (kind: "text", text:  " another ")
+    check_i it, 3,  (kind: "text", text: "text, and ", em: true)
+    check_i it, 4,  (kind: "link", text: "link 2", link: (space: ".", doc: "link 2"), em: true)
+    check_i it, 5,  (kind: "text", text: " more ")
+    check_i it, 6,  (kind: "tag", text: "tag1")
+    check_i it, 7,  (kind: "text", text: " ")
+    check_i it, 8,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png")
+    check_i it, 9,  (kind: "text", text: " some ")
+    check_i it, 10, (kind: "embed", embed_kind: "code", text: "code 2")
+    check_i it, 11, (kind: "text", text: " ")
+    check_i it, 12, (kind: "embed", embed_kind: "some", text: "some")
 
   block: # Paragraph 2
     check parsed[1].kind == list
     check parsed[1].list.len == 2
     var it = parsed[1].list
-    check it, 0, [
+    check_i it, 0, [
       (kind: "text", text: "Line "),
       (kind: "tag", text: "lt1")
     ]
-    check it, 1, [
+    check_i it, 1, [
       (kind: "text", text: "Line 2 ").to_json,
-      (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some).to_json
+      (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png").to_json
     ]
 
   block: # Paragraph 3
     check parsed[2].kind == text
     check parsed[2].text.len == 3
     var it = parsed[2].text
-    check it, 0, (kind: "text", text: "And ")
-    check it, 1, (kind: "tag", text: "tag2")
-    check it, 2, (kind: "text", text: " another")
+    check_i it, 0, (kind: "text", text: "And ")
+    check_i it, 1, (kind: "tag", text: "tag2")
+    check_i it, 2, (kind: "text", text: " another")
 
-test "parse_list_as_items":
-  template check(list, i, expected) =
-    check list[i].to_json == expected.to_json
-
-  block: # as list
-    let ftext = """
-      - Line #tag
-      - Line 2 image{some-img}
-    """.dedent
-    let parsed = Parser.init(ftext).parse_list_as_items
-
-    check parsed.len == 2
-    check parsed, 0, [
-      (kind: "text", text: "Line "),
-      (kind: "tag", text: "tag")
-    ]
-    check parsed, 1, [
-      (kind: "text", text: "Line 2 ").to_json,
-      (kind: "embed", embed_kind: "image", text: "some-img").to_json
-    ]
-
-  block: # as paragraphs
-    let ftext = """
-      Line #tag some
-      text
-
-      Line 2 image{some-img}
-    """.dedent
-    let parsed = Parser.init(ftext).parse_list_as_items
-
-    check parsed.len == 2
-    check parsed, 0, [
-      (kind: "text", text: "Line "),
-      (kind: "tag", text: "tag"),
-      (kind: "text", text: " some text")
-    ]
-    check parsed, 1, [
-      (kind: "text", text: "Line 2 ").to_json,
-      (kind: "embed", embed_kind: "image", text: "some-img").to_json
-    ]
-
-test "parse_list":
+proc parse_list(text: string): FListBlock =
   let config = FParseConfig()
   config.embed_parsers["image"] = embed_parser_image
   config.embed_parsers["code"] = embed_parser_code
 
-  let ftext = """
+  parse_list(raw_block("list", text), test_fdoc(), config)
+
+test "parse list":
+  let parsed = parse_list("""
+    - Line #tag
+    - Line 2 image{some-img}
+  """.dedent).list
+
+  check parsed.len == 2
+  check_i parsed, 0, [
+    (kind: "text", text: "Line "),
+    (kind: "tag", text: "tag")
+  ]
+  check_i parsed, 1, [
+    (kind: "text", text: "Line 2 ").to_json,
+    (kind: "embed", embed_kind: "image", text: "some-img", parsed: "some-img").to_json
+  ]
+
+test "parse_list, with warnings":
+  let blk = parse_list("""
     - Some image{img.png} some{some}
     - Another image{non_existing.png}
-  """.dedent
-
-  let blk = parse_list(raw_block("list", ftext), test_fdoc(), config)
-  check blk.warns  == @["Unknown embed: some"]
-  check blk.assets == @["img.png", "non_existing.png"]
+  """.dedent)
 
   let parsed = blk.list
   check parsed.len == 2
 
-  template check(list, i, expected) =
-    check list[i].to_json == expected.to_json
-
   block: # Line 1
     var it = parsed[0]
-    check it, 0,  (kind: "text", text: "Some ")
-    check it, 1,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
-    check it, 2,  (kind: "text", text: " ")
-    check it, 3,  (kind: "embed", embed_kind: "some", text: "some")
+    check_i it, 0,  (kind: "text", text: "Some ")
+    check_i it, 1,  (kind: "embed", embed_kind: "image", text: "img.png", parsed: "img.png".some)
+    check_i it, 2,  (kind: "text", text: " ")
+    check_i it, 3,  (kind: "embed", embed_kind: "some", text: "some")
 
   block: # Line 2
     var it = parsed[1]
-    check it, 0,  (kind: "text", text: "Another ")
-    check it, 1,  (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some)
+    check_i it, 0,  (kind: "text", text: "Another ")
+    check_i it, 1,  (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some)
+
+test "parse list, with paragraphs":
+  let parsed = parse_list("""
+    Line #tag some
+    text
+
+    Line 2 image{some-img}
+  """.dedent).list
+
+  check parsed.len == 2
+  check_i parsed, 0, [
+    (kind: "text", text: "Line "),
+    (kind: "tag", text: "tag"),
+    (kind: "text", text: " some text")
+  ]
+  check_i parsed, 1, [
+    (kind: "text", text: "Line 2 ").to_json,
+    (kind: "embed", embed_kind: "image", text: "some-img", parsed: "some-img").to_json
+  ]
 
 test "parse_list with tags":
-  let test = """
-  - a
-  - b
+  proc check_block(b: FListBlock) =
+    check b.list.len == 2
+    check (b.list[1], b.tags, b.warns.len).to_json == %[[{ kind: "text", text: "b" }], @["t"], 0]
+
+  check_block parse_list("""
+    - a
+    - b
+    #t
+  """.dedent)
+
+
+  check_block parse_list("""
+    - a
+    - b
+
+    #t
+  """.dedent)
+
+  check_block parse_list("""
+  a
+
+  b
 
   #t
-  """
-  p "test not impl, check tags"
+  """.dedent)
+
+  block:
+    let b = parse_list("""
+    a
+
+    b
+    #t
+    """.dedent)
+    check b.list.len == 2
+    check (b.tags, b.warns.len).to_json == %[@["t"], 0]
+    check b.list[1].to_json == %[{ kind: "text", text: "b " }, { kind: "tag", text: "t" }]
 
 test "image":
   let img = parse_image(raw_block("image", "some.png #t1 #t2"), test_fdoc())
@@ -458,4 +477,4 @@ test "doc, from error":
 
     Some
   """.dedent.trim, "some.ft")
-  p doc.warns, "shouldn't be empty"
+  check doc.warns == @["Unknown text in tags: Some"]
