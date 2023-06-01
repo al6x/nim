@@ -223,6 +223,15 @@ test "parse_list":
     check it, 0,  (kind: "text", text: "Another ")
     check it, 1,  (kind: "embed", embed_kind: "image", text: "non_existing.png", parsed: "non_existing.png".some)
 
+test "parse_list with tags":
+  let test = """
+  - a
+  - b
+
+  #t
+  """
+  p "test not impl, check tags"
+
 test "image":
   let img = parse_image(raw_block("image", "some.png #t1 #t2"), test_fdoc())
   check (img.image, img.tags, img.assets) == ("some.png", @["t1", "t2"], @["some.png"])
@@ -442,3 +451,11 @@ test "parse_table with tags":
 
     #t1 #t2
   """.dedent, 2)
+
+test "doc, from error":
+  let doc = FDoc.parse("""
+    Algorithms ^title
+
+    Some
+  """.dedent.trim, "some.ft")
+  p doc.warns, "shouldn't be empty"

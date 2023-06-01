@@ -7,9 +7,10 @@ db = Db.init
 
 block:
   let keep_dir = current_source_path().parent_dir.absolute_path
-  let space = Space.init(id = "some")
+  let space = Space.init(id = "notes")
   db.spaces[space.id] = space
   space.add_ftext_dir fmt"{keep_dir}/examples/finance"
+  space.add_ftext_dir fmt"/alex/notes"
 
 run_http_server(
   build_app_view,

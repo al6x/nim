@@ -71,6 +71,7 @@ keep the code size small, to have fast Nim compilation. You can change that and 
 
 # Todo
 
+- Twitter Example
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Better Async/Actor/Networking code.
 - Slots for templates

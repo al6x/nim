@@ -158,7 +158,7 @@ proc PFSection*(section: FSection, context: FContext, controls: seq[El] = @[]): 
   let html = render.to_html(section.to_html(context))
   pblock_layout("pblock-fsection", section.warns, controls, section.tags.with_path(context), true):
     el".ftext flash":
-      it.attr("html", html)
+      it.html html
 
 proc PFBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
   let html = render.to_html(blk.to_html(context))

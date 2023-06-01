@@ -49,6 +49,11 @@ proc to_html*(section: FSection, context: FContext): El =
   el".text-xl":
     it.text section.title
 
+# subsection
+method to_html*(blk: FSubsection, context: FContext): El =
+  el".text-lg":
+    it.text blk.title
+
 # text items
 proc to_html*(text: seq[FTextItem], context: FContext): SafeHtml =
   var html = ""; let config = context.config

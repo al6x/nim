@@ -84,6 +84,9 @@ type
   FUnknownBlock* = ref object of FBlock
     discard
 
+  FSubsection* = ref object of FBlock
+    title*:  string
+
   FTableBlock* = ref object of FBlock
     header*: Option[seq[FInlineText]]
     rows*:   seq[seq[FInlineText]]

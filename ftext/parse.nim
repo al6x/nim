@@ -448,23 +448,31 @@ proc parse_data*(raw: FRawBlock): FDataBlock =
   FDataBlock(data: json, text: raw.text)
 
 # section ------------------------------------------------------------------------------------------
-proc parse_section*(raw: FRawBlock): FSection =
-  assert raw.kind == "section"
-  let pr = Parser.init raw.text
+proc parse_section[T](raw: FRawBlock, section: T) =
+  let pr = Parser.init raw.text; let kind: string = raw.kind
   let formatted_text = pr.consume_inline_text () => false
-  result = FSection(raw: raw)
-  if pr.has_next: result.warns.add fmt"Invalid text in section : '{pr.remainder}'"
+  if pr.has_next: section.warns.add fmt"Invalid text in {kind}: '{pr.remainder}'"
   var texts: seq[string]
   for item in formatted_text:
     case item.kind
     of FTextItemKind.text:
       texts.add item.text
     of tag:
-      result.tags.add item.text
+      section.tags.add item.text
     else:
-      result.warns.add fmt"Invalid text in section : '{pr.remainder}'"
-  result.title = texts.join " "
-  if result.title.is_empty: result.warns.add fmt"Empty section title"
+      section.warns.add fmt"Invalid text in {kind} : '{pr.remainder}'"
+  section.title = texts.join " "
+  if section.title.is_empty: section.warns.add fmt"Empty {kind} title"
+
+proc parse_section*(raw: FRawBlock): FSection =
+  assert raw.kind == "section"
+  result = FSection(raw: raw)
+  parse_section(raw, result)
+
+proc parse_subsection*(raw: FRawBlock): FSubsection =
+  assert raw.kind == "subsection"
+  result = FSubsection(raw: raw)
+  parse_section(raw, result)
 
 # title --------------------------------------------------------------------------------------------
 proc parse_title*(raw: FRawBlock): string =
@@ -618,6 +626,8 @@ proc init*(_: type[FParseConfig]): FParseConfig =
   block_parsers["image"]  = (blk, doc, config) => parse_image(blk, doc)
   block_parsers["images"] = (blk, doc, config) => parse_images(blk, doc)
   block_parsers["table"]  = (blk, doc, config) => parse_table(blk, doc, config)
+
+  block_parsers["subsection"] = (blk, doc, config) => parse_subsection(blk)
 
   var embed_parsers: Table[string, FEmbedParser]
   embed_parsers["image"] = embed_parser_image

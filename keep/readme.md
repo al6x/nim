@@ -1,6 +1,10 @@
 # Todo
 
-
+- Use block or text table to display list of notes
+- "/misc ^images" - no warnings
+- Image on click open in new tab
+- Add block and doc id to search index
+- Make list as list, slow rendering, probably for text
 - Refactor space, so it can have mixed content, ftext etc
 - Add space.config and parse editor code like "{path} {line}, each space has its own editor, could
   be local space or github space
