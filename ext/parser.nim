@@ -2,18 +2,15 @@ import base
 
 type
   Parser* = ref object
-    text_ref*: ref string
-    i*:        int
-    warns*:    seq[string]
+    text*:  string
+    i*:     int
+    warns*: seq[string]
 
 proc init*(_: type[Parser], text: string, i = 0): Parser =
-  Parser(text_ref: text.to_ref, i: i)
+  Parser(text: text, i: i)
 
-proc scopy*(pr: Parser): Parser =
-  Parser(text_ref: pr.text_ref, i: pr.i, warns: pr.warns)
-
-proc text*(pr: Parser): string =
-  pr.text_ref[]
+proc deep_copy*(pr: Parser): Parser =
+  Parser(text: pr.text, i: pr.i, warns: pr.warns)
 
 proc get*(pr: Parser, shift = 0): Option[char] =
   let i = pr.i + shift
@@ -59,24 +56,25 @@ test "consume":
   check pr.consume({'b'}) == "bb"
   check pr.i == 3
 
-proc find*(pr: Parser, fn: (char) -> bool, shift = 0): int =
+proc find*(pr: Parser, fn: (char) -> bool, shift = 0, limit = -1): int =
   var j = shift
   while true:
+    if limit >= 0 and j > limit: break
     let c = pr.get j
     if c.is_none: break
     if fn(c.get): return j
     j.inc
   -1
 
-proc find*(pr: Parser, s: set[char], shift = 0): int =
-  pr.find(((c) => c in s), shift)
+proc find*(pr: Parser, s: set[char], shift = 0, limit = -1): int =
+  pr.find(((c) => c in s), shift = shift, limit = limit)
 
-proc fget*(pr: Parser, fn: ((char) -> bool), shift = 0): Option[char] =
-  let i = pr.find(fn, shift)
+proc fget*(pr: Parser, fn: ((char) -> bool), shift = 0, limit = -1): Option[char] =
+  let i = pr.find(fn, shift = shift, limit = limit)
   if i >= 0: return pr.get(i)
 
-proc fget*(pr: Parser, s: set[char], shift = 0): Option[char] =
-  pr.fget(((c) => c in s), shift)
+proc fget*(pr: Parser, s: set[char], shift = 0, limit = -1): Option[char] =
+  pr.fget(((c) => c in s), shift = shift, limit = limit)
 
 proc starts_with*(pr: Parser, s: string, shift = 0): bool =
   for j, c in s:

@@ -23,6 +23,8 @@ let alpha_chars          = {'a'..'z', 'A'..'Z'}
 let not_alpha_chars      = alpha_chars.complement
 let alphanum_chars       = alpha_chars + {'0'..'9'}
 
+const lookahead_limit = 32 # How much to look ahead, if it's too large parsing will be slow
+
 iterator items(ph: FParagraph): FTextItem =
   if ph.kind == text:
     for item in ph.text: yield item
@@ -155,7 +157,7 @@ proc consume_block*(pr: Parser, blocks: var seq[FRawBlock]) =
 
   if not kind.is_empty:
     # ignoring trailing spaces and newlines to get correct block end line position
-    let prc = pr.scopy
+    let prc = pr.deep_copy
     while prc.i > 0 and prc.get in space_chars: prc.i.dec
 
     blocks.add FRawBlock(text: body.trim, kind: kind.trim, id: id, args: args.trim,
@@ -174,7 +176,7 @@ proc consume_blocks*(pr: Parser): seq[FRawBlock] =
 
 # text_embedding -----------------------------------------------------------------------------------
 proc is_text_embed*(pr: Parser): bool =
-  (pr.get in alpha_chars and pr.fget(not_alpha_chars) == '{') or pr.get == '`'
+  (pr.get in alpha_chars and pr.fget(not_alpha_chars, limit = lookahead_limit) == '{') or pr.get == '`'
 
 proc consume_text_embed*(pr: Parser, items: var FInlineText) =
   # Consumes `some{text}` or `text`
@@ -200,16 +202,17 @@ proc consume_text_embed*(pr: Parser, items: var FInlineText) =
 
 # find_without_embed -------------------------------------------------------------------------------
 proc find_without_embed*(pr: Parser, fn: (char) -> bool): int =
-  let cpr = pr.scopy
+  let i = pr.i
+  defer: pr.i = i
   var tmp: FInlineText
   while true:
-    if cpr.is_text_embed:
-      cpr.consume_text_embed(tmp)
+    if pr.is_text_embed:
+      pr.consume_text_embed(tmp)
     else:
-      let c = cpr.get
+      let c = pr.get
       if c.is_none: break
-      if fn(c.get): return cpr.i - pr.i
-    cpr.inc
+      if fn(c.get): return pr.i - pr.i
+    pr.inc
   -1
 
 # text_link ----------------------------------------------------------------------------------------
@@ -317,7 +320,7 @@ proc consume_inline_text*(text: string): FInlineText =
 # text_paragraph -----------------------------------------------------------------------------------
 let st_chars = {' ', '\t'}; let not_st_chars = st_chars.complement
 proc is_text_paragraph*(pr: Parser): bool =
-  pr.get == '\n' and pr.fget(not_st_chars, 1) == '\n'
+  pr.get == '\n' and pr.fget(not_st_chars, 1, limit = lookahead_limit) == '\n'
 
 proc skip_text_paragraph*(pr: Parser) =
   assert pr.is_text_paragraph
@@ -327,10 +330,10 @@ proc skip_text_paragraph*(pr: Parser) =
 
 # text_list ----------------------------------------------------------------------------------------
 proc is_text_list*(pr: Parser): bool =
-  (pr.i == 0 or pr.is_text_paragraph) and pr.fget(not_space_chars) == '-'
+  (pr.i == 0 or pr.is_text_paragraph) and pr.fget(not_space_chars, limit = lookahead_limit) == '-'
 
 proc is_text_list_item*(pr: Parser): bool =
-  (pr.i == 0 or pr.get == '\n') and pr.fget(not_space_chars) == '-'
+  (pr.i == 0 or pr.get == '\n') and pr.fget(not_space_chars, limit = lookahead_limit) == '-'
 
 proc consume_list_item*(pr: Parser): FInlineText =
   pr.skip space_chars
@@ -434,7 +437,7 @@ proc parse_tags_on_last_line_if_present(raw: string, not_tags: (proc(lines: seq[
 
 proc parse_list_as_items*(raw: string, blk: FListBlock) =
   let pr = Parser.init raw
-  if pr.fget(not_space_chars) == '-': # List imems start with '-' character
+  if pr.fget(not_space_chars, limit = lookahead_limit) == '-': # List imems start with '-' character
     proc not_tags(lines: seq[string]): bool =
       lines.last.trim.starts_with('-')
     let raw_without_tags = parse_tags_on_last_line_if_present(raw, not_tags, blk)
@@ -551,7 +554,7 @@ proc parse_images*(raw: FRawBlock, doc: FDoc): FImagesBlock =
 # table --------------------------------------------------------------------------------------------
 proc parse_table_as_table(pr: Parser, col_delimiter: char, blk: FTableBlock) =
   let is_row_delimiter = block:
-    let pr = pr.scopy
+    let pr = pr.deep_copy
     # Default delimiter is newline, but if there's double newline happens anywhere in table text, then
     # the double newline used as delimiter.
     pr.skip space_chars
@@ -677,7 +680,6 @@ proc parse*(_: type[FDoc], text, location: string, config = FParseConfig.init): 
   let (tags, tags_line_n) = pr.consume_tags
   let doc = FDoc.init location
   doc.warns.add pr.warns
-  # if pr.has: doc.warns.add "Unknown content: " & pr.remainder
   doc.hash = text.hash.int; doc.tags = tags; doc.tags_line_n = tags_line_n
   for raw in raw_blocks:
     if   raw.kind == "title":
