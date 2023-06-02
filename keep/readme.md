@@ -1,5 +1,7 @@
 # Todo
 
+- Move render to keep
+- Base ftext classes on keep/base classes
 - Use block or text table to display list of notes
 - "/misc ^images" - no warnings
 - Image on click open in new tab
@@ -29,6 +31,7 @@ Use two todos, first organised in Keep, and log like buffer on mobile.
 
 # Features
 
+- It's a rendering and search engine, any data following doc and blocks structure could be rendered and searched.
 - Extensible, different spaces, docs, blocks, actions
 - Integrates other tools and data
 - In search it's posible to control if show doc or block, by adding `block forest` doc by default.
