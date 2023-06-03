@@ -15,7 +15,7 @@ export docm, helpers
 
 type
   FBlockSource* = ref object of BlockSource
-    text*, kind*, id*, args*: string
+    text*, id*, args*: string
     line_n*: (int, int) # block position in text
     tags*: seq[string]
 

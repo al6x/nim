@@ -24,16 +24,11 @@ macro call_set_attrs*(self: typed, targs: tuple) =
     args.add(nparam)
   newCall(ident"set_attrs", args)
 
-template capture_component_content*(code): seq[El] =
-  block:
-    var it {.inject.} = seq[El].init
-    code
-    it
-
 template build_el*[T](ComponentT: type[T], attrs: tuple, code): El =
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
   call_set_attrs(component, attrs)
-  render(component, capture_component_content(code))
+  let content = els(code)
+  render(component, content)
 
 template build_el*[T](ComponentT: type[T], attrs: tuple): El =
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
@@ -50,7 +45,8 @@ template el*[T](ComponentT: type[T], attrs: tuple): auto =
 template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, code): El =
   let component = parent.get_child_component(ChildT, id)
   call_set_attrs(component, attrs)
-  render(component, capture_component_content(code))
+  let content = els(code)
+  render(component, content)
 
 template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): El =
   let component = parent.get_child_component(ChildT, id)
@@ -95,8 +91,9 @@ macro call_fn_r*(f: proc, tuple_args: tuple, r: typed): typed =
     `r` = `call_expr`
 
 template build_el*(fn: proc, attrs: tuple, code): El =
+  let content = els(code)
   var el: El
-  call_fn_with_content_r(fn, attrs, capture_component_content(code), el)
+  call_fn_with_content_r(fn, attrs, content, el)
   el
 
 template build_el*(fn: proc, attrs: tuple): El =

@@ -196,7 +196,7 @@ proc consume_text_embed*(pr: Parser, items: var Text) =
     ("code", body)
   else:
     throw "invalid text embed"
-  items.add TextItem(kind: embed, embed: UnparsedEmbed(kind: kind, body: body))
+  items.add TextItem(kind: embed, embed: Embed(kind: kind, body: body))
 
 # find_without_embed -------------------------------------------------------------------------------
 proc find_without_embed*(pr: Parser, fn: (char) -> bool): int =
@@ -399,12 +399,11 @@ proc post_process*(item: TextItem, blk: Block, doc: Doc, config: FParseConfig): 
   var item = item
   blk.add_text_item_data item # Extracting text
   if item.kind == embed: # Post processing embed items
-    assert item.embed of UnparsedEmbed, "internal error, UnparsedEmbed expected"
-    let up_embed = item.embed.UnparsedEmbed
-    let (kind, body) = (up_embed.kind, up_embed.body)
+    let (kind, body) = (item.embed.kind, item.embed.body)
     if kind in config.embed_parsers:
       let eparser: FEmbedParser = config.embed_parsers[kind]
       item.embed = eparser(body, blk, doc, config)
+      item.embed.kind = kind; item.embed.body = body
     else:
       blk.warns.add fmt"Unknown embed: " & kind
   item
@@ -726,7 +725,7 @@ proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): D
   let (tags, tags_line_n) = pr.consume_tags
   let doc = init_fdoc location
   doc.warns.add pr.warns
-  let doc_source = FDocSource(tags: tags, tags_line_n: tags_line_n)
+  let doc_source = FDocSource(kind: "ftext", tags: tags, tags_line_n: tags_line_n)
   doc.hash = text.hash.int; doc.tags = tags; doc.source = doc_source
   for source in source_blocks:
     if   source.kind == "title":
@@ -745,6 +744,7 @@ proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): D
         doc.warns.add fmt"Unknown block kind '{source.kind}'"
         UnknownBlock()
       blk.id = source.id; blk.hash = source.text.hash.int; blk.source = source
+      blk.blocksids = blk.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
       post_process_block(blk, doc, config)
       doc.blocks.add blk
   doc
