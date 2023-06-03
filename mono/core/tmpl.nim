@@ -24,44 +24,41 @@ macro call_set_attrs*(self: typed, targs: tuple) =
     args.add(nparam)
   newCall(ident"set_attrs", args)
 
-template build_el*[T](ComponentT: type[T], attrs: tuple, blk): El =
-  let content = block:
+template capture_component_content*(code): seq[El] =
+  block:
     var it {.inject.} = seq[El].init
-    blk
+    code
     it
+
+template build_el*[T](ComponentT: type[T], attrs: tuple, code): El =
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
   call_set_attrs(component, attrs)
-  render(component, content)
+  render(component, capture_component_content(code))
 
 template build_el*[T](ComponentT: type[T], attrs: tuple): El =
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
   call_set_attrs(component, attrs)
   render(component)
 
-template el*[T](ComponentT: type[T], attrs: tuple, blk): auto =
-  add_or_return_el build_el(ComponentT, attrs, blk)
+template el*[T](ComponentT: type[T], attrs: tuple, code): auto =
+  add_or_return_el build_el(ComponentT, attrs, code)
 
 template el*[T](ComponentT: type[T], attrs: tuple): auto =
   add_or_return_el build_el(ComponentT, attrs)
 
 # stateful component el ----------------------------------------------------------------------------
-template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, blk): El =
-  let content = block:
-    var it {.inject.} = seq[El].init
-    blk
-    it
-
+template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, code): El =
   let component = parent.get_child_component(ChildT, id)
   call_set_attrs(component, attrs)
-  render(component, content)
+  render(component, capture_component_content(code))
 
 template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): El =
   let component = parent.get_child_component(ChildT, id)
   call_set_attrs(component, attrs)
   render(component)
 
-template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, blk): auto =
-  add_or_return_el build_el(parent, ChildT, id, attrs, blk)
+template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, code): auto =
+  add_or_return_el build_el(parent, ChildT, id, attrs, code)
 
 template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): auto =
   add_or_return_el build_el(parent, ChildT, id, attrs)
@@ -97,28 +94,24 @@ macro call_fn_r*(f: proc, tuple_args: tuple, r: typed): typed =
   quote do:
     `r` = `call_expr`
 
-# type ProcComponentDoesntAcceptContent* = object
-template build_el*(fn: proc, attrs: tuple, blk): El =
-  block:
-    var it {.inject.} = seq[El].init
-    blk
-    var el: El
-    call_fn_with_content_r(fn, attrs, it, el)
-    el
+template build_el*(fn: proc, attrs: tuple, code): El =
+  var el: El
+  call_fn_with_content_r(fn, attrs, capture_component_content(code), el)
+  el
 
 template build_el*(fn: proc, attrs: tuple): El =
   var el: El
   call_fn_r(fn, attrs, el)
   el
 
-template el*(fn: proc, attrs: tuple, blk): auto =
-  add_or_return_el build_el(fn, attrs, blk)
+template el*(fn: proc, attrs: tuple, code): auto =
+  add_or_return_el build_el(fn, attrs, code)
 
 template el*(fn: proc, attrs: tuple): auto =
   add_or_return_el build_el(fn, attrs)
 
 # alter --------------------------------------------------------------------------------------------
-template alter_el*(el_expression, blk): auto =
+template alter_el*(el_expression, code): auto =
   let el_to_alter = block:
     var it {.inject.} = seq[El].init
     el_expression
@@ -126,5 +119,5 @@ template alter_el*(el_expression, blk): auto =
     it[0]
   block:
     var it {.inject.} = el_to_alter
-    blk
+    code
   add_or_return_el el_to_alter
