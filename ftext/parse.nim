@@ -416,11 +416,11 @@ proc args_should_be_empty(source: FBlockSource, warns: var seq[string]) =
 proc parse_text*(source: FBlockSource, doc: Doc, config: FParseConfig): TextBlock =
   assert source.kind == "text"
   let pr = Parser.init source.text
-  let formatted_text = pr.parse_text_as_items
+  let ftext = pr.parse_text_as_items
   let blk = TextBlock(warns: pr.warns)
   source.args_should_be_empty blk.warns
   proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, config)
-  blk.formatted_text = map(formatted_text, post_process)
+  blk.ftext = map(ftext, post_process)
   blk
 
 proc parse_embed_image*(path: string, blk: Block): ImageEmbed =
@@ -496,10 +496,10 @@ proc parse_data*(source: FBlockSource): DataBlock =
 # section ------------------------------------------------------------------------------------------
 proc parse_section[T](source: FBlockSource, section: T) =
   let pr = Parser.init source.text; let kind: string = source.kind
-  let formatted_text = pr.consume_inline_text () => false
+  let ftext = pr.consume_inline_text () => false
   if pr.has_next: section.warns.add fmt"Invalid text in {kind}: '{pr.remainder}'"
   var texts: seq[string]
-  for item in formatted_text:
+  for item in ftext:
     case item.kind
     of TextItemKind.text:
       texts.add item.text

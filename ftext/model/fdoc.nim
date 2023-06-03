@@ -50,7 +50,7 @@ type
       list*: seq[Text]
 
   TextBlock* = ref object of Block
-    formatted_text*: seq[Paragraph]
+    ftext*: seq[Paragraph]
 
   ListBlock* = ref object of Block
     list*: seq[Text]

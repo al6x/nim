@@ -91,7 +91,7 @@ proc to_html*(text: seq[FTextItem], context: FContext): SafeHtml =
 # text
 method to_html*(blk: FTextBlock, context: FContext): El =
   list_el:
-    for i, pr in blk.formatted_text:
+    for i, pr in blk.ftext:
       case pr.kind
       of FParagraphKind.text:
         el "p":

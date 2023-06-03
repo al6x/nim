@@ -1,6 +1,7 @@
 import base
 
 type
+  # doc, block -------------------------------------------------------------------------------------
   Link* = tuple[sid, did, bid: string]
 
   BlockSource* = ref object of RootObj
@@ -27,40 +28,7 @@ type
     warns*:       seq[string]
     source*:      DocSource
 
-  Embed* = ref object of RootObj
-
-  ImageEmbed* = ref object of Embed
-    path*: string
-
-  CodeEmbed* = ref object of Embed
-    code*: string
-
-  UnparsedEmbed* = ref object of Embed
-    kind*, body*: string
-
-  TextItemKind* = enum text, link, glink, tag, embed
-  TextItem* = object
-    text*: string
-    em*:   Option[bool]
-    case kind*: TextItemKind
-    of text:  discard
-    of link:  link*: Link
-    of glink: glink*: string
-    of tag:   discard
-    of embed: embed*: Embed
-  Text* = seq[TextItem]
-
-  ParagraphKind* = enum text, list
-  Paragraph* = object
-    case kind*: ParagraphKind
-    of text:
-      text*: Text
-    of list:
-      list*: seq[Text]
-
-  TextBlock* = ref object of Block
-    formatted_text*: seq[Paragraph]
-
+  # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block
     list*: seq[Text]
 
@@ -91,6 +59,41 @@ type
     header*: Option[seq[Text]]
     rows*:   seq[seq[Text]]
     cols*:   int # number of cols
+
+  # embed ------------------------------------------------------------------------------------------
+  Embed* = ref object of RootObj
+
+  ImageEmbed* = ref object of Embed
+    path*: string
+
+  CodeEmbed* = ref object of Embed
+    code*: string
+
+  UnparsedEmbed* = ref object of Embed
+    kind*, body*: string
+
+  # text -------------------------------------------------------------------------------------------
+  TextItemKind* = enum text, link, glink, tag, embed
+  TextItem* = object
+    text*: string
+    em*:   Option[bool]
+    case kind*: TextItemKind
+    of text:  discard
+    of link:  link*: Link
+    of glink: glink*: string
+    of tag:   discard
+    of embed: embed*: Embed
+  Text* = seq[TextItem]
+
+  ParagraphKind* = enum text, list
+  Paragraph* = object
+    case kind*: ParagraphKind
+    of text: text*: Text
+    of list: list*: seq[Text]
+
+  TextBlock* = ref object of Block
+    ftext*: seq[Paragraph]
+
 
 proc doc_asset_path*(doc_asset_path, relative_asset_path: string): string =
   assert not relative_asset_path.starts_with '/'

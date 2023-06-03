@@ -106,7 +106,7 @@ test "parse_text":
   let blk = parse_text(block_source("text", ftext), test_fdoc(), config)
   check blk.warns == @["Unknown embed: some"]
 
-  let parsed = blk.formatted_text
+  let parsed = blk.ftext
   check parsed.len == 3
 
   block: # Paragraph 1
