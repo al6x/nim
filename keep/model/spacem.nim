@@ -39,13 +39,23 @@ proc validate_tags*(space: Space) =
 proc validate_links*[Db](space: Space, db: Db) =
   for blk in space.blocks:
     for link in blk.links:
-      let (sid, did) = link
-      if sid == ".":
-        if did notin space.docs:
-          blk.warns.add fmt"Invalid link: {link.local_link_to_s}"
-      else:
-        if sid notin db.spaces:
-          blk.warns.add fmt"Invalid link: {link.local_link_to_s}"
-        else:
-          if did notin space.docs:
-            blk.warns.add fmt"Invalid link: {link.local_link_to_s}"
+      let (sid, did, bid) = link
+      try:
+        let doc = (if sid == ".": space else: db.spaces[sid]).docs[did]
+        unless bid.is_empty: discard doc.blockids[bid]
+      except:
+        blk.warns.add fmt"Invalid link: {link.to_s}"
+
+      # let space = if sid == ".": space
+      # elif sid in db.spaces:     db.spaces[sid]
+      # else:
+      #   blk.warns.add fmt"Invalid link: {link.local_link_to_s}"
+      #   continue
+
+      # let doc = if did in space.docs: space.docs[did]
+      # else:
+      #   continue
+      #   blk.warns.add fmt"Invalid link: {link.local_link_to_s}"
+
+      # unless bid.is_empty or bid in doc.blockids:
+      #   blk.warns.add fmt"Invalid link: {link.local_link_to_s}"

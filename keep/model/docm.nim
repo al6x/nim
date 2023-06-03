@@ -5,7 +5,9 @@ type
   Link* = tuple[sid, did, bid: string]
 
   BlockSource* = ref object of RootObj
+    kind*: string
   DocSource* = ref object of RootObj
+    kind*: string
 
   Block* = ref object of RootObj
     id*:     string
@@ -24,6 +26,7 @@ type
     asset_path*:  Option[string]
     title*:       string
     blocks*:      seq[Block]
+    blockids*:    Table[string, Block] # for quick access by id
     tags*:        seq[string]
     warns*:       seq[string]
     source*:      DocSource
@@ -62,6 +65,7 @@ type
 
   # embed ------------------------------------------------------------------------------------------
   Embed* = ref object of RootObj
+    kind*, body*: string
 
   ImageEmbed* = ref object of Embed
     path*: string
@@ -69,8 +73,6 @@ type
   CodeEmbed* = ref object of Embed
     code*: string
 
-  UnparsedEmbed* = ref object of Embed
-    kind*, body*: string
 
   # text -------------------------------------------------------------------------------------------
   TextItemKind* = enum text, link, glink, tag, embed
@@ -102,3 +104,6 @@ proc doc_asset_path*(doc_asset_path, relative_asset_path: string): string =
 proc asset_path*(doc: Doc, asset_path: string): string =
   if doc.asset_path.is_none: throw fmt"Doc doesn't have assets: {doc.id}"
   doc_asset_path(doc.asset_path.get, asset_path)
+
+proc `$`*(link: Link): string =
+  "/" & link.sid & "/" & link.did & (if link.bid.is_empty: "" else: "/" & link.bid)
