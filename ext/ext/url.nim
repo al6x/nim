@@ -13,7 +13,16 @@ type Url* = object
     discard
 
 proc init*(_: type[Url], path = seq[string].init, params = init_table[string, string]()): Url =
-  Url(is_full: false, path: path, params: params)
+  Url(is_full: false, path: path.reject(is_empty), params: params)
+
+proc init*(_: type[Url], path: seq[string], params: openarray[(string, string)]): Url =
+  Url(is_full: false, path: path, params: params.to_table)
+
+proc init*(_: type[Url], path: string, params = init_table[string, string]()): Url =
+  Url.init(path.split("/"), params)
+
+proc init*(_: type[Url], path: string, params: openarray[(string, string)]): Url =
+  Url.init(path, params.to_table)
 
 proc init*(
   _: type[Url], scheme = "http", host: string, port = 80, path = seq[string].init,
@@ -83,6 +92,8 @@ test "parse, path, query":
   check url.to_s == url_s
   check url.path == @["path"]
   check url.params == {"c": "d", "a": "b"}.to_table
+
+  check Url.init("/a/b").to_s == "/a/b" # from error
 
 test "json":
   let url = Url.parse "http://host.com/path?a=b&c=d"

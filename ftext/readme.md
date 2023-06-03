@@ -12,6 +12,7 @@ I'm using it for Notebook App (screenshot below), but it also could be used sepa
 
 # Todo
 
+- Autolinks and text{text with special characters}
 - Hash of doc should also include hash of its assets
 
 # Features
@@ -22,7 +23,9 @@ Extensible, blocks, embeds, assets, define your own.
 
 Validates the correctness of the data, tags, links, asset paths are validated.
 
-Default blocks - text, image, images, code, data
+Links to other docs and blocks in other docs.
+
+Default blocks - text, image, images, code, data, table
 
 Searchable, each block exposes its content as text, tags which is then used to search.
 
@@ -57,11 +60,11 @@ Rendering Formal Text:
 ```
 nimble install https://github.com/al6x/nim?subdir=ftext
 
-nim r --experimental:overloadable_enums ftext/examples/example.nim
+nim r --experimental:overloadable_enums ftext/render/example.nim
 
 # To serve images properly the static server needed
 # npm install -g node-static
-ftext/examples/bin/serve_assets
+ftext/bin/serve_example_assets
 
 open http://localhost:3000/finance/about-forex.html
 ```

@@ -1,4 +1,4 @@
-version     = "2.2.1"
+version     = "2.3.0"
 author      = "Alex Craft https://github.com/al6x"
 description = "Extensions for Nim std"
 license     = "MIT"
@@ -6,4 +6,5 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=base == 2.2.1"
+requires "yaml == 1.1.0"
+requires "https://github.com/al6x/nim?subdir=base == 2.3.0"

@@ -101,3 +101,9 @@ proc align*(n: int, digits: int): string = ($n).align(digits, '0')
 #   check "abc".match({'c'}, 2)  == true
 #   check "abcd".match({'c'}, 2) == false
 
+proc `len=`*(s: var string, n: int) =
+  s.set_len n
+
+proc fill*(_: type[string], len: int, c: char): string =
+  result.len = len
+  for i in 0..<len: result[i] = c

@@ -235,7 +235,6 @@ proc class*(self: El, class: string) =
   let class = if "class" in self: self["class"] & " " & class else: class
   self.attr "class", class
 
-# template -----------------------------------------------------------------------------------------
 proc add*(parent: El, child: El) =
   if child.kind == list: parent.children.add child.children
   else:                  parent.children.add child
@@ -243,29 +242,39 @@ proc add*(parent: El, child: El) =
 proc add*(parent: El, list: seq[El]) =
   parent.children.add list
 
-template els*(code): El =
+# template -----------------------------------------------------------------------------------------
+template build_el*(html: string, code): El =
   block:
-    var it {.inject.} = El(kind: ElKind.list)
+    let it {.inject.} = El.init(html) # El.init(fmt(html, '{', '}'))
     code
     it
+
+template build_el*(html: string): El =
+  El.init(html) # El.init(fmt(html, '{', '}'))
+
+template els*(code): seq[El] =
+  block:
+    var it {.inject.} = seq[El].init
+    code
+    it
+
+template list_el*(code): El =
+  El(kind: ElKind.list, children: els(code))
 
 template add_or_return_el*(e_arg: El): auto =
   let e = e_arg
   assert not e.is_nil
-  when compiles(it.add(e)): it.add(e)
-  # when declared(it): it.add(e)
-  else:              e
+  when declared(it):
+    when typeof(it) is El:      it.children.add e
+    elif typeof(it) is seq[El]: it.add e
+    else:                       e
+  else:                         e
 
 template el*(html: string, code): auto =
-  let el = block:
-    let it {.inject.} = El.init(fmt(html, '{', '}'))
-    code
-    it
-  add_or_return_el el
+  add_or_return_el build_el(html, code)
 
 template el*(html: string): auto =
-  el(html):
-    discard
+  add_or_return_el build_el(html)
 
 test "el, basics":
   check el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
@@ -289,36 +298,22 @@ test "el, basics":
   check h.to_html == html
 
 # normalise_attrs ----------------------------------------------------------------------------------
-# proc normalise_attr_del*(el: El, attr: string): ElAttrDel =
-#   assert el.kind == ElKind.el
-
-#   if el.tag == "input" and "value" == attr:
-#     if "type" in el and el["type"] == "checkbox":
-#       (attr, bool_prop)
-#     else:
-#       (attr, string_prop)
-#   else:
-#     (attr, string_attr)
-
 proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal] =
   assert el.kind == ElKind.el
   var attrs: Table[string, ElAttrVal]
   for k, v in el.attrs:
     if k != "c": attrs[k] = (v, string_attr)
 
-  sort:
-    if el.tag == "input" and "value" in attrs:
-      if "type" in el and el["type"] == "checkbox":
-        # Normalising value for checkbox
-        assert el.children.is_empty
-        case attrs["value"][0]
-        of "true":  attrs["checked"] = ("true", bool_prop)
-        of "false": discard
-        else:       throw "unknown input value"
-        attrs.del "value"
-        attrs
-      else:
-        attrs["value"] = (attrs["value"][0], string_prop)
-        attrs
+  if el.tag == "input" and "value" in attrs:
+    if "type" in el and el["type"] == "checkbox":
+      # Normalising value for checkbox
+      assert el.children.is_empty
+      case attrs["value"][0]
+      of "true":  attrs["checked"] = ("true", bool_prop)
+      of "false": discard
+      else:       throw "unknown input value"
+      attrs.del "value"
     else:
-      attrs
+      attrs["value"] = (attrs["value"][0], string_prop)
+
+  attrs.sort

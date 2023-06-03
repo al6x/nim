@@ -1,4 +1,90 @@
-function to_element(data: Record<string, unknown>): HTMLElement {
+FTableBlock* = ref object of FBlock
+    # table*: seq[seq[seq[FTextItem]]]
+    header: Table[string, seq[FTextItem]]
+    order:  seq[string]
+    rows:   seq[Table[string, seq[FTextItem]]]
+
+proc parse_table_as_table(pr: Parser) =
+  let is_row_delimiter = block:
+    let pr = pr.scopy
+    # Default delimiter is newline, but if there's double newline happens anywhere in table text, then
+    # the double newline used as delimiter.
+    pr.skip space_chars
+    proc is_double_newline: bool = pr.get == '\n' and pr.get(1) == '\n'
+    discard pr.consume_inline_text(is_double_newline) # need to skip text embed that may have newlines
+    if is_double_newline():
+      proc(pr: Parser): bool = pr.get == '\n' and pr.get(1) == '\n'
+    else:
+      proc(pr: Parser): bool = pr.get == '\n'
+
+  proc col_delimiter = if pr.find_without_embed((c) => c == '|'): '|' else: ','
+
+  var row = Table[string, seq[FTextItem]].init; var col_id: string; var is_first_row = true
+
+  proc is_header(): bool =
+    pr.starts_with("header") and pr.get(6) == '\n' or pr.get(6).is_none
+
+  proc stop(): bool =
+    pr.get in {col_delimiter, ':'} or pr.is_row_delimiter() or is_header()
+
+  template finish_row(code) =
+    if not col_id.is_empty:
+      row[col_id] = token
+      col_id = ""
+    if not row.is_empty:
+      code
+      row = Table[string, seq[FTextItem]].init
+    is_first_row = false
+
+  while pr.has:
+    pr.skip space_chars
+    let token = pr.consume_inline_text(stop, trim = true)
+    if   is_header(): # header
+      finish_row:
+        result.header = row
+      pr.skip "header".to_bitset
+    if   pr.is_row_delimiter(): # row delimiter
+      finish_row:
+        result.rows.add row
+    elif pr.get == ':': # id delimiter
+      # p "id delimiter"
+      if token.len == 1 and token[0].kind == FTextItemKind.text and col_id.is_empty:
+        col_id = token[0].text
+        assert col_id.trim == col_id
+        if is_first_row: result.order.add col_id
+      else:
+        pr.warns.add "Invalid column id"
+    elif pr.get == ',': # column delimiter
+      # p "col delimiter"
+      if not col_id.is_empty:
+        row[col_id] = token
+        col_id = ""
+      else:
+        pr.warns.add "No column id"
+    else:
+      # p "else"
+      unless col_id.is_empty:
+        row[col_id] = token
+        col_id = ""
+      unless row.is_empty:
+        result.rows.add row
+        row = Table[string, seq[FTextItem]].init
+      if pr.has: pr.warns.add "Unknown content in table: '" & pr.remainder & "'"
+      break
+    pr.inc
+
+proc parse_table*(raw: FRawBlock, doc: FDoc, config: FParseConfig): FTableBlock =
+  assert raw.kind == "table"
+  let pr = Parser.init raw.text
+  let (order, rows) = pr.parse_table_as_table
+  p order
+  p rows
+  p pr.warns
+  let blk = FTableBlock(warns: pr.warns)
+
+
+
+  function to_element(data: Record<string, unknown>): HTMLElement {
   let tag: string = "tag" in data ? data["tag"] as string : "div"
   let el = document.createElement(tag)
 

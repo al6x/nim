@@ -108,10 +108,11 @@ proc run_http_server*(
   port:                int,
   asset_paths        = seq[string].init,
   timer_event_ms     = 500,
-  pull_timeout_ms    = 2000,
-  session_timeout_ms = 6000,
+  pull_timeout_ms    = 40000, # Default HTTP timeout seems to be 100sec, just to be safer making it smaller,
+                              # to avoid potential problems if someone uses some HTTP proxy etc.
   sync_process: proc() = (proc = (discard)) # Add any additional periodic processing here
 ) =
+  let session_timeout_ms = 2 * pull_timeout_ms # session timeout should be greather than poll timeout
   # Files with same names will be taken from first path when found, this way system assets like `page.html`
   # could be overriden.
   var asset_paths = asset_paths & [current_source_path().parent_dir.parent_dir.absolute_path & "/browser"]

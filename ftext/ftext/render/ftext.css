@@ -1,15 +1,30 @@
 .ftext { @apply flex; @apply flex-col; @apply space-y-2; }
 .ftext > * { display: block; }
 
-.ftext > pre { @apply text-sm; @apply border; @apply rounded; @apply border-gray-300; @apply px-2; @apply py-1; }
-
-.ftext > ul > li > code,
-.ftext > p > code {
-  padding: 1px 4px; @apply border; @apply rounded; @apply border-gray-300;
-  @apply text-sm;
-}
+.ftext pre { @apply text-sm; @apply rounded; @apply px-2; @apply py-2; @apply bg-gray-50; }
+.ftext code { padding: 2px 5px; @apply rounded; @apply text-sm; @apply bg-gray-100; }
 
 .ftext a.tag, .ftext a.link, .ftext a.glink { @apply text-blue-800; }
 
 .ftext > ul { @apply flex; @apply flex-col; @apply space-y-2; }
 .ftext > ul > li { display: block; }
+
+.ftext_table_image_container {
+  @apply flex;
+  width: 100%; aspect-ratio: 1; /* making height same as width so cell will be square */
+  @apply rounded; @apply overflow-hidden; @apply bg-gray-50;
+}
+.ftext_table_image_container img {
+  @apply block; @apply mx-auto; /* centering horizontally */
+  object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto; /* Limiting image max height and width */
+}
+
+.ftext_images_image_container {
+  @apply flex;
+  width: 100%; aspect-ratio: 1; /* making height same as width so cell will be square */
+  @apply rounded; @apply overflow-hidden; @apply bg-gray-50;
+}
+.ftext_images_image_container img {
+  @apply block; @apply mx-auto; /* centering horizontally */
+  object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto; /* Limiting image max height and width */
+}

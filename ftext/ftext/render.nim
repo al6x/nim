@@ -4,11 +4,11 @@ export core, html
 
 type
   # Embed are things like `text image{some.png} text`
-  FContext* = tuple[doc: FDoc, space_id: string, config: FHtmlConfig]
+  RenderContext* = tuple[doc: Doc, space_id: string, config: RenderConfig]
 
-  FEmbedToHtml*  = proc(text: string, parsed: Option[JsonNode], context: FContext): SafeHtml
+  RenderEmbed*  = proc(text: string, parsed: Option[JsonNode], context: FContext): SafeHtml
 
-  FHtmlConfig* = ref object
+  RenderConfig* = ref object
     embeds*:     Table[string, FEmbedToHtml]
     link_path*:  proc (link: FLink, context: FContext): string
     tag_path*:   proc (tag: string, context: FContext): string
@@ -40,13 +40,19 @@ proc init*(_: type[FHtmlConfig]): FHtmlConfig =
 # to_html ------------------------------------------------------------------------------------------
 # base block
 method to_html*(blk: FBlock, context: FContext): El {.base.} =
-  el"":
-    it.text fmt"to_html not defined for {blk.raw.kind} block"
+  el".border-l-4.border-orange-800 .text-orange-800":
+    el".text-orange-800 .ml-2":
+      it.text fmt"to_html not defined for {blk.raw.kind} block"
 
 # section
 proc to_html*(section: FSection, context: FContext): El =
   el".text-xl":
     it.text section.title
+
+# subsection
+method to_html*(blk: FSubsection, context: FContext): El =
+  el".text-lg":
+    it.text blk.title
 
 # text items
 proc to_html*(text: seq[FTextItem], context: FContext): SafeHtml =
@@ -84,8 +90,8 @@ proc to_html*(text: seq[FTextItem], context: FContext): SafeHtml =
 
 # text
 method to_html*(blk: FTextBlock, context: FContext): El =
-  els:
-    for i, pr in blk.formatted_text:
+  list_el:
+    for i, pr in blk.ftext:
       case pr.kind
       of FParagraphKind.text:
         el "p":
@@ -98,7 +104,7 @@ method to_html*(blk: FTextBlock, context: FContext): El =
 
 # list
 method to_html*(blk: FListBlock, context: FContext): El =
-  els:
+  list_el:
     for list_item in blk.list:
       el "p":
         it.html list_item.to_html(context)
@@ -124,18 +130,12 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
       else:
         it.style "width: 24%; text-align: center; vertical-align: middle;"
         if i < images.len:
-          # flex needed to align vertically
-          el".flex .rounded.overflow-hidden.border.border-gray-300.bg-slate-50":
-            it.style "width: 100%; aspect-ratio: 1;" # making height same as width so cell will be square
-            el"img.block.ml-auto.mr-auto": # centering horizontally
-              # Limiting image max height and width
-              it.style "object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"
-              it.attr("src", images[i])
-              i.inc
+          el".ftext_images_image_container":
+            el("img", it.attr("src", images[i]))
+        i.inc
 
   if images.len <= 4:
     el"table cellspacing=0 cellpadding=0": # removing cell borders
-      # el"tdata":
       el"tr":
         var i = 0
         for col in 0..(images.high * 2 - 2):
@@ -144,12 +144,54 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
     el"table cellspacing=0 cellpadding=0":
       # setting margin after each row
       it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
-      # el"tdata":
       var i = 0
       for row in 0..(images.len / 4).floor.int:
         el"tr":
           for col in 0..6:
             render_td()
+
+# table
+method to_html*(blk: FTableBlock, context: FContext): El =
+  # If columns has only images or embeds, making it no more than 25%
+  var single_image_cols: seq[bool]
+  block:
+    proc has_single_image(text: FInlineText): bool =
+      text.len == 1 and text[0].kind == embed and text[0].embed_kind == "image"
+
+    for i in 0..(blk.cols - 1):
+      var has_at_least_one_image = false; var has_non_image_content = false
+      for row in blk.rows: #.allit(it[i].has_single_image):
+        if   row[i].has_single_image: has_at_least_one_image = true
+        elif row[i].len > 0:          has_non_image_content  = true
+      single_image_cols.add has_at_least_one_image and not has_non_image_content
+
+  el"table": # table
+    if blk.header.is_some: # header
+      el"tr .border-b.border-gray-200":
+        let hrow = blk.header.get
+        for i, hcell in hrow:
+          el"th .py-1":
+            if i < hrow.high: it.class "pr-4"
+            if single_image_cols[i]: # image header
+              it.style "width: 25%; text-align: center; vertical-align: middle;"
+            else: # non image header
+              it.style "text-align: left; vertical-align: middle;"
+            it.html hcell.to_html(context)
+
+    for i, row in blk.rows: # rows
+      el"tr":
+        if i < blk.rows.high: it.class "border-b border-gray-200"
+        for i, cell in row: # cols
+          el"td .py-1":
+            if i < row.high: it.class "pr-4"
+            if single_image_cols[i]: # cell with image
+              it.style "width: 25%; text-align: center; vertical-align: middle;"
+              el".ftext_table_image_container":
+                it.html cell.to_html(context)
+            else: # non image cell
+              it.style "vertical-align: middle;"
+              it.html cell.to_html(context)
+
 
 # to_html FDoc -------------------------------------------------------------------------------------
 template inline_warns(warns: seq[string]) =
@@ -201,7 +243,10 @@ proc to_html*(doc: FDoc, space_id: string, config = FHtmlConfig.init): El =
 proc static_page_styles: SafeHtml =
   let styles_path = current_source_path().parent_dir.absolute_path & "/render/static_page_build.css"
   let css = fs.read styles_path
-  css.replace(re"[\s\n]+", " ").replace(re"/\*.+?\*/", "").trim # minifying into oneline
+  # result.add "<style>"
+  # result.add css.replace(re"[\s\n]+", " ").replace(re"/\*.+?\*/", "").trim # minifying into oneline
+  # result.add "</style>"
+  result.add """<link rel="stylesheet" href="/render/static_page_build.css">"""
 
 proc to_html_page*(doc: FDoc, space_id: string, config = FHtmlConfig.init): string =
   let doc_html = doc.to_html(space_id, config).to_html
@@ -212,7 +257,8 @@ proc to_html_page*(doc: FDoc, space_id: string, config = FHtmlConfig.init): stri
     <html>
       <head>
         <title>{title}</title>
-        <style>{static_page_styles()}</style>
+        {static_page_styles()}
+        <meta charset="UTF-8">
       </head>
       <body class="bg-slate-50">
         <div class="mx-auto py-4 max-w-5xl bg-white">
