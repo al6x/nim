@@ -35,7 +35,8 @@ type
   CodeEmbed* = ref object of Embed
     code*: string
 
-  UnknownEmbed* = ref object of Embed
+  UnparsedEmbed* = ref object of Embed
+    kind*, body*: string
 
   TextItemKind* = enum text, link, glink, tag, embed
   TextItem* = object
@@ -46,9 +47,7 @@ type
     of link:  link*: Link
     of glink: glink*: string
     of tag:   discard
-    of embed:
-      embed_kind*: string
-      embed*:      Embed
+    of embed: embed*: Embed
   Text* = seq[TextItem]
 
   ParagraphKind* = enum text, list

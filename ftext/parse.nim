@@ -196,7 +196,7 @@ proc consume_text_embed*(pr: Parser, items: var Text) =
     ("code", body)
   else:
     throw "invalid text embed"
-  items.add TextItem(kind: embed, embed_kind: kind, text: body)
+  items.add TextItem(kind: embed, embed: UnparsedEmbed(kind: kind, body: body))
 
 # find_without_embed -------------------------------------------------------------------------------
 proc find_without_embed*(pr: Parser, fn: (char) -> bool): int =
@@ -399,12 +399,14 @@ proc post_process*(item: TextItem, blk: Block, doc: Doc, config: FParseConfig): 
   var item = item
   blk.add_text_item_data item # Extracting text
   if item.kind == embed: # Post processing embed items
-    if item.embed_kind in config.embed_parsers:
-      let eparser: FEmbedParser = config.embed_parsers[item.embed_kind]
-      item.embed = eparser(item.text, blk, doc, config)
+    assert item.embed of UnparsedEmbed, "internal error, UnparsedEmbed expected"
+    let up_embed = item.embed.UnparsedEmbed
+    let (kind, body) = (up_embed.kind, up_embed.body)
+    if kind in config.embed_parsers:
+      let eparser: FEmbedParser = config.embed_parsers[kind]
+      item.embed = eparser(body, blk, doc, config)
     else:
-      blk.warns.add fmt"Unknown embed: " & item.embed_kind
-      item.embed = UnknownEmbed()
+      blk.warns.add fmt"Unknown embed: " & kind
   item
 
 proc args_should_be_empty(source: FBlockSource, warns: var seq[string]) =
