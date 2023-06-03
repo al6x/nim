@@ -10,7 +10,7 @@ rm -rf tmp/releases
 mkdir -p tmp/releases
 
 nim_version="1.6"
-version="2.2.1"
+version="2.3.0"
 
 # base ---------------------------------------------------------------------------------------------
 cp -r base tmp/releases
