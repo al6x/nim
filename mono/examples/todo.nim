@@ -38,7 +38,7 @@ proc render*(self: TodoItemView): El =
     (if self.editing.is_some: ".editing" else: "")
 
   # Feature: compact HTML template syntax
-  el"li{class_modifier}":
+  el(fmt"li{class_modifier}"):
     el".view":
       el"input.toggle type=checkbox":
         # Feature: two way binding with autocast
@@ -128,15 +128,15 @@ proc render*(self: TodoView): El =
 
           el"ul.filters":
             el"li":
-              el"a{all.filter_class}":
+              el(fmt"a{all.filter_class}"):
                 it.text("All")
                 it.on_click(set_filter(all))
             el"li":
-              el"a{active.filter_class}":
+              el(fmt"a{active.filter_class}"):
                 it.text("Active")
                 it.on_click(set_filter(active))
             el"li":
-              el"a{completed.filter_class}":
+              el(fmt"a{completed.filter_class}"):
                 it.text("Completed")
                 it.on_click(set_filter(completed))
 
