@@ -1,5 +1,5 @@
 import base, mono/core, std/osproc
-import ../core/spacem, ./fdoc_head, ftext/[core, render], ./helpers, ../ui/palette as pl
+import ../model/spacem, ./fdoc_head, ftext/[core, render], ./helpers, ../ui/palette as pl
 
 type FDocView* = ref object of Component
   space*: Space

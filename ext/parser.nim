@@ -60,14 +60,28 @@ proc find*(pr: Parser, fn: (char) -> bool, shift = 0, limit = -1): int =
   var j = shift
   while true:
     if limit >= 0 and j > limit: break
-    let c = pr.get j
-    if c.is_none: break
-    if fn(c.get): return j
+    let i = pr.i + j
+    if i > pr.text.high: break
+    if fn(pr.text[i]): return j
     j.inc
   -1
 
 proc find*(pr: Parser, s: set[char], shift = 0, limit = -1): int =
   pr.find(((c) => c in s), shift = shift, limit = limit)
+
+proc rfind*(pr: Parser, fn: (char) -> bool, shift = 0, limit = -1): int =
+  var j = shift
+  while true:
+    if limit >= 0 and j > limit: break
+    let i = pr.i - j
+    if i < 0: break
+    if i < pr.text.high: # case when parser is finished
+      if fn(pr.text[i]): return j
+    j.inc
+  -1
+
+proc rfind*(pr: Parser, s: set[char], shift = 0, limit = -1): int =
+  pr.rfind(((c) => c in s), shift = shift, limit = limit)
 
 proc fget*(pr: Parser, fn: ((char) -> bool), shift = 0, limit = -1): Option[char] =
   let i = pr.find(fn, shift = shift, limit = limit)

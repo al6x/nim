@@ -40,6 +40,7 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= $nim_version"
+requires "yaml == 1.1.0"
 requires "https://github.com/al6x/nim?subdir=base == $version"
 EOL
 

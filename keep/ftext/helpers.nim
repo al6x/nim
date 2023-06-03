@@ -1,5 +1,5 @@
 import base, mono/core, std/osproc, ext/url, ftext/[core, render]
-import ../core/spacem, ../ui/palette as pl
+import ../model/spacem, ../ui/palette as pl
 
 proc build_ftext_context*(doc: FDoc, space_id: string): FContext =
   let mono_id = session.id

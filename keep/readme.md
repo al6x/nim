@@ -1,6 +1,5 @@
 # Todo
 
-- Remove fdochead
 - Proper list style
 - Options for ^token
 - Move render to keep

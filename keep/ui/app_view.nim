@@ -1,5 +1,5 @@
 import base, mono/[core, http], std/os
-import ../core/[spacem, dbm], ./location, ./palette
+import ../model/[spacem, dbm], ./location, ./palette
 
 type AppView* = ref object of Component
   location*: Location

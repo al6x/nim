@@ -1,61 +1,64 @@
-import base, ext/html, ./core, std/os
-
-export core, html
+import base, ext/html, ../model
 
 type
   # Embed are things like `text image{some.png} text`
   RenderContext* = tuple[doc: Doc, space_id: string, config: RenderConfig]
 
-  RenderEmbed*  = proc(text: string, parsed: Option[JsonNode], context: FContext): SafeHtml
+  RenderEmbed*  = proc(text: string, parsed: Option[JsonNode], context: RenderContext): SafeHtml
 
   RenderConfig* = ref object
-    embeds*:     Table[string, FEmbedToHtml]
-    link_path*:  proc (link: FLink, context: FContext): string
-    tag_path*:   proc (tag: string, context: FContext): string
-    image_path*: proc (path: string, context: FContext): string
+    embeds*:     Table[string, RenderEmbed]
+    link_path*:  proc (link: Link, context: RenderContext): string
+    tag_path*:   proc (tag: string, context: RenderContext): string
+    asset_path*: proc (path: string, context: RenderContext): string
+
+method render_block*(blk: Block, doc: Doc, space: Space): El {.base.} =
+  throw "not implemented"
 
 # config -------------------------------------------------------------------------------------------
-proc link_path(link: FLink, context: FContext): string =
-  "/" & (if link.space == ".": context.space_id else: link.space) & "/" & link.doc
+proc link_path(link: Link, context: RenderContext): string =
+  ("/" & (if link.sid == ".": context.space_id else: link.sid)) &
+  ("/" & link.did) &
+  (if link.bid.is_empty: "" else: "/" & link.bid)
 
-proc tag_path(tag: string, context: FContext): string =
-  fmt"/tags/{tag.escape_html}"
+proc tag_path(tag: string, context: RenderContext): string =
+  fmt"/tags/{tag}"
 
-proc embed_image(text: string, parsed: Option[JsonNode], context: FContext): SafeHtml =
+proc embed_image(text: string, parsed: Option[JsonNode], context: RenderContext): SafeHtml =
   let path = context.config.image_path(text, context)
   fmt"""<img src="{path.escape_html}"/>"""
 
-proc embed_code(text: string, parsed: Option[JsonNode], context: FContext): SafeHtml =
+proc embed_code(text: string, parsed: Option[JsonNode], context: RenderContext): SafeHtml =
   fmt"""<code>{text.escape_html}</code>"""
 
-proc image_path(path: string, context: FContext): string =
+proc asset_path(path: string, context: RenderContext): string =
   "/" & context.space_id & "/" & context.doc.id & "/" & path
 
-proc init*(_: type[FHtmlConfig]): FHtmlConfig =
+proc init*(_: type[RenderConfig]): RenderConfig =
   var embeds: Table[string, FEmbedToHtml]
   embeds["image"] = embed_image
   embeds["code"]  = embed_code
-  FHtmlConfig(embeds: embeds, link_path: link_path, tag_path: tag_path, image_path: image_path)
+  RenderConfig(embeds: embeds, link_path: link_path, tag_path: tag_path, image_path: image_path)
 
-# to_html ------------------------------------------------------------------------------------------
+# render -------------------------------------------------------------------------------------------
 # base block
-method to_html*(blk: FBlock, context: FContext): El {.base.} =
+method to_html*(blk: FBlock, context: RenderContext): El {.base.} =
   el".border-l-4.border-orange-800 .text-orange-800":
     el".text-orange-800 .ml-2":
       it.text fmt"to_html not defined for {blk.raw.kind} block"
 
 # section
-proc to_html*(section: FSection, context: FContext): El =
+proc to_html*(section: FSection, context: RenderContext): El =
   el".text-xl":
     it.text section.title
 
 # subsection
-method to_html*(blk: FSubsection, context: FContext): El =
+method to_html*(blk: FSubsection, context: RenderContext): El =
   el".text-lg":
     it.text blk.title
 
 # text items
-proc to_html*(text: seq[FTextItem], context: FContext): SafeHtml =
+proc to_html*(text: seq[FTextItem], context: RenderContext): SafeHtml =
   var html = ""; let config = context.config
 
   var em = false
@@ -89,7 +92,7 @@ proc to_html*(text: seq[FTextItem], context: FContext): SafeHtml =
   html
 
 # text
-method to_html*(blk: FTextBlock, context: FContext): El =
+method to_html*(blk: FTextBlock, context: RenderContext): El =
   list_el:
     for i, pr in blk.formatted_text:
       case pr.kind
@@ -103,25 +106,25 @@ method to_html*(blk: FTextBlock, context: FContext): El =
               it.html list_item.to_html(context)
 
 # list
-method to_html*(blk: FListBlock, context: FContext): El =
+method to_html*(blk: FListBlock, context: RenderContext): El =
   list_el:
     for list_item in blk.list:
       el "p":
         it.html list_item.to_html(context)
 
 # code
-method to_html*(blk: FCodeBlock, context: FContext): El =
+method to_html*(blk: FCodeBlock, context: RenderContext): El =
   el"pre":
     it.text blk.code.escape_html
 
 # image
-method to_html*(blk: FImageBlock, context: FContext): El =
+method to_html*(blk: FImageBlock, context: RenderContext): El =
   let path = context.config.image_path(blk.image, context)
   el"img":
     it.attr "src", path
 
 # images
-method to_html*(blk: FImagesBlock, context: FContext): El =
+method to_html*(blk: FImagesBlock, context: RenderContext): El =
   let images = blk.images.map((path) => context.config.image_path(path, context))
   template render_td =
     el"td":
@@ -151,7 +154,7 @@ method to_html*(blk: FImagesBlock, context: FContext): El =
             render_td()
 
 # table
-method to_html*(blk: FTableBlock, context: FContext): El =
+method to_html*(blk: FTableBlock, context: RenderContext): El =
   # If columns has only images or embeds, making it no more than 25%
   var single_image_cols: seq[bool]
   block:
@@ -202,7 +205,7 @@ template inline_warns(warns: seq[string]) =
         el".inline-block .text-orange-800 .ml-2":
           it.text warn
 
-template inline_tags(tags: seq[string], context: FContext) =
+template inline_tags(tags: seq[string], context: RenderContext) =
   let tagsv: seq[string] = tags
   unless tagsv.is_empty:
     el"ftags.block.flex.-mr-2":
@@ -211,15 +214,15 @@ template inline_tags(tags: seq[string], context: FContext) =
           it.text "#" & tag
           it.attr("href", (context.config.tag_path)(tag, context))
 
-template block_layout(tname: string, warns, tags: seq[string], context: FContext, code) =
+template block_layout(tname: string, warns, tags: seq[string], context: RenderContext, code) =
   el(".block.pblock.flex.flex-col.space-y-1 .ftext c"):
     it.tag = tname
     inline_warns(warns)
     code
     inline_tags(tags, context)
 
-proc to_html*(doc: FDoc, space_id: string, config = FHtmlConfig.init): El =
-  let context = (doc, space_id, config).FContext
+proc to_html*(doc: FDoc, space_id: string, config = RenderConfig.init): El =
+  let context = (doc, space_id, config).RenderContext
   el"fdoc.flex.flex-col .space-y-2":
     block_layout("ftitle", doc.warns, @[], context): # Title and warns
       el".text-xl":
@@ -248,7 +251,7 @@ proc static_page_styles: SafeHtml =
   # result.add "</style>"
   result.add """<link rel="stylesheet" href="/render/static_page_build.css">"""
 
-proc to_html_page*(doc: FDoc, space_id: string, config = FHtmlConfig.init): string =
+proc to_html_page*(doc: FDoc, space_id: string, config = RenderConfig.init): string =
   let doc_html = doc.to_html(space_id, config).to_html
   let title    = doc.title.escape_html
 

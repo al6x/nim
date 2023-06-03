@@ -1,5 +1,5 @@
 import base, mono/[core, http], ext/async, std/os
-import ./ui/app_view, ./core/[spacem, dbm], ui/palette as _
+import ./ui/app_view, ./model/[spacem, dbm], ui/palette as _
 import ./ftext/[fdoc_head, fdoc_view]
 
 palette = Palette.init

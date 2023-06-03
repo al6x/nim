@@ -1,5 +1,4 @@
-import base, ext/vcache
-import ./spacem
+import base, ext/vcache, ./docm, ./spacem
 
 var db* {.threadvar.}: Db
 
