@@ -21,7 +21,7 @@ test "el component":
   proc set_attrs(self: Panel, color: string) =
     self.color = color
   proc render(self: Panel, content: seq[El]): El = # Feature: render can have optional arg `content`
-    el"panel .{self.color}":
+    el(fmt"panel .{self.color}"):
       it.add content
 
   type Button = ref object of Component
@@ -29,7 +29,7 @@ test "el component":
   proc set_attrs(self: Button, color: string) =
     self.color = color
   proc render(self: Button): El =
-    el"button .{self.color}"
+    el(fmt"button .{self.color}")
 
   type App = ref object of Component
   proc set_attrs(self: App) =
@@ -50,11 +50,11 @@ test "el component":
 
 test "el proc component":
   proc Button(color: string): El =
-    el"button .{color}"
+    el(fmt"button .{color}")
 
   # Feature: proc component can have optional argument `content`
   proc Panel(color: string, size = "small", content: seq[El]): El =
-    el"panel .{color} .{size}":
+    el(fmt"panel .{color} .{size}"):
       it.add content
 
   type LRLayout = ref object of Component
@@ -75,7 +75,7 @@ test "el proc component":
       el(Panel, (color: "blue")):
         el(Button, (color: "blue"))
     el"app":
-      el(LRLayout, (left: left.children))
+      el(LRLayout, (left: left))
 
   let root_el = el(App, ())
   check root_el.to_html == """
@@ -97,7 +97,7 @@ test "el stateful component":
   proc set_attrs(self: Panel, color: string) =
     self.color = color
   proc render(self: Panel, content: seq[El]): El =
-    el"panel .{self.color}":
+    el(fmt"panel .{self.color}"):
       it.add content
 
   type Button = ref object of Component
@@ -105,7 +105,7 @@ test "el stateful component":
   proc set_attrs(self: Button, color: string) =
     self.color = color
   proc render(self: Button): El =
-    el"button .{self.color}"
+    el(fmt"button .{self.color}")
 
   type App = ref object of Component
   proc set_attrs(self: App) =

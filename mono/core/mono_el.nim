@@ -65,19 +65,21 @@ proc extras_get*(self: El): MonoElExtras =
 proc init*(_: type[SetValueHandler], handler: (proc(v: string)), delay: bool): SetValueHandler =
   SetValueHandler(handler: handler, delay: delay)
 
-template bind_to*(element: El, variable, delay) =
-  let el = element; let value_s = variable.serialize
-  el.value value_s
+template bind_to*(element: El, variable: untyped, delay: bool) =
+  let el = element
+  block:
+    let value_s = variable.serialize
+    el.value value_s
 
   el.extras_getset.set_value = SetValueHandler.init(
-    (proc(v: string) {.closure.} =
-      variable = typeof(variable).parse v
+    (proc(value_s: string) {.closure.} =
+      variable = typeof(variable).parse value_s
       el.value value_s # updating value on the element, to avoid it being detected by diff
     ),
     delay
   ).some
 
-template bind_to*(element: El, variable) =
+template bind_to*(element: El, variable: untyped) =
   bind_to(element, variable, false)
 
 proc on_click*(self: El, fn: proc(e: ClickEvent)) =

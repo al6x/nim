@@ -255,9 +255,13 @@ template els*(code): seq[El] =
 template add_or_return_el*(e_arg: El): auto =
   let e = e_arg
   assert not e.is_nil
-  when compiles(it.add(e)): it.add(e)
-  # when declared(it): it.add(e)
-  else:              e
+  when declared(it):
+    when typeof(it) is El or typeof(it) is seq[El]:
+      it.add(e)
+    else:
+      e
+  else:
+    e
 
 template build_el*(html: string, code): El =
   block:
@@ -266,8 +270,7 @@ template build_el*(html: string, code): El =
     it
 
 template build_el*(html: string): El =
-  build_el(html):
-    discard
+  El.init(html)
 
 template el*(html: string, code): auto =
   add_or_return_el build_el(html, code)
@@ -303,19 +306,16 @@ proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal] =
   for k, v in el.attrs:
     if k != "c": attrs[k] = (v, string_attr)
 
-  sort:
-    if el.tag == "input" and "value" in attrs:
-      if "type" in el and el["type"] == "checkbox":
-        # Normalising value for checkbox
-        assert el.children.is_empty
-        case attrs["value"][0]
-        of "true":  attrs["checked"] = ("true", bool_prop)
-        of "false": discard
-        else:       throw "unknown input value"
-        attrs.del "value"
-        attrs
-      else:
-        attrs["value"] = (attrs["value"][0], string_prop)
-        attrs
+  if el.tag == "input" and "value" in attrs:
+    if "type" in el and el["type"] == "checkbox":
+      # Normalising value for checkbox
+      assert el.children.is_empty
+      case attrs["value"][0]
+      of "true":  attrs["checked"] = ("true", bool_prop)
+      of "false": discard
+      else:       throw "unknown input value"
+      attrs.del "value"
     else:
-      attrs
+      attrs["value"] = (attrs["value"][0], string_prop)
+
+  attrs.sort

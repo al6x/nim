@@ -5,11 +5,11 @@ template check_diff(id, a, b, expected) =
 
 test "diff, simple":
   check_diff [],
-    el(".b c", it.text("t0")),
+    el(".b d", it.text("t0")),
     el("#i.a r", it.text("t1")),
     %[
       ["set_attrs",[], { class: "a", id: "i", r: "true" }],
-      ["del_attrs",[], ["c"]],
+      ["del_attrs",[], ["d"]],
       ["set_text", [], "t1"]
     ]
 
