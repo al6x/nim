@@ -1,6 +1,6 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
 import { p, el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal,
-  sleep } from "./helpers.js"
+  sleep, set_dot_favicon } from "./helpers.js"
 
 // Types -------------------------------------------------------------------------------------------
 // In events
@@ -65,6 +65,7 @@ export function run() {
   let mono_id         = mono_el.getAttribute("mono_id") || ""
   let window_location = mono_el.getAttribute("window_location")
 
+  mono.on_start()
   if (window_location) set_window_location(window_location)
   pull(mono_id)
 }
@@ -79,12 +80,12 @@ async function pull(mono_id: string): Promise<void> {
       res = await send<SessionPostPullEvent, SessionPullEvent>(
         "post", location.href, { kind: "pull", mono_id }, -1
       )
-      document.body.style.opacity = "1.0"
+      mono.on_success()
       last_call_was_retry = false
     } catch {
       last_call_was_retry = true
       if (!last_call_was_retry) log.warn("retrying...")
-      document.body.style.opacity = "0.7"
+      mono.on_fail()
       await sleep(1000)
       continue
     }
@@ -108,7 +109,7 @@ async function pull(mono_id: string): Promise<void> {
       case 'ignore':
         break
       case 'expired':
-        document.body.style.opacity = "0.4"
+        mono.on_expiry()
         log.info("expired")
         break main_loop
       case 'error':
@@ -117,6 +118,16 @@ async function pull(mono_id: string): Promise<void> {
     }
   }
 }
+
+// integrations ------------------------------------------------------------------------------------
+// Override to provide custom behavior
+let mono = {
+  on_start()   { set_dot_favicon("#1e40af") },
+  on_success() { set_dot_favicon("#1e40af") },
+  on_fail()    { set_dot_favicon("#991b1b") },
+  on_expiry()  { set_dot_favicon("#94a3b8") },
+}
+;(window as any).mono = mono
 
 // events ------------------------------------------------------------------------------------------
 function listen_to_dom_events() {

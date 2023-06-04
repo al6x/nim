@@ -77,6 +77,7 @@ let page: PageFn = proc(root_el: El): string =
         <title>{title}</title>
         <link rel="stylesheet" href="/assets/mono.css"/>
         <link rel="stylesheet" href="/assets/palette/build/palette.css"/>
+        <link rel="icon" mono>
       </head>
       <body>
 

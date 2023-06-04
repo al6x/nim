@@ -126,3 +126,22 @@ export function flash(
     delete update_timeouts[id]
   }, delay)
 }
+
+export function change_favicon(href: string) {
+  var link: HTMLLinkElement | null = document.head.querySelector("link[rel~='icon'][mono]")
+  if (link && link.href != href) link.href = href
+}
+
+export function svg_dot(color: string): string {
+  return `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <circle style="fill: ${color};" cx="50" cy="50" r="50"></circle>
+  </svg>`
+}
+
+export function svg_to_data_url(svg: string): string {
+  return "data:image/svg+xml;base64," + btoa(svg)
+}
+
+export function set_dot_favicon(color: string) {
+  change_favicon(svg_to_data_url(svg_dot(color)))
+}

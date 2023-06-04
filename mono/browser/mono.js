@@ -1,5 +1,5 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
-import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep } from "./helpers.js";
+import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_dot_favicon } from "./helpers.js";
 // run ---------------------------------------------------------------------------------------------
 export function run() {
     listen_to_dom_events();
@@ -11,6 +11,7 @@ export function run() {
     let mono_el = mono_els[0];
     let mono_id = mono_el.getAttribute("mono_id") || "";
     let window_location = mono_el.getAttribute("window_location");
+    mono.on_start();
     if (window_location)
         set_window_location(window_location);
     pull(mono_id);
@@ -23,14 +24,14 @@ async function pull(mono_id) {
         let last_call_was_retry = false;
         try {
             res = await send("post", location.href, { kind: "pull", mono_id }, -1);
-            document.body.style.opacity = "1.0";
+            mono.on_success();
             last_call_was_retry = false;
         }
         catch {
             last_call_was_retry = true;
             if (!last_call_was_retry)
                 log.warn("retrying...");
-            document.body.style.opacity = "0.7";
+            mono.on_fail();
             await sleep(1000);
             continue;
         }
@@ -54,7 +55,7 @@ async function pull(mono_id) {
             case 'ignore':
                 break;
             case 'expired':
-                document.body.style.opacity = "0.4";
+                mono.on_expiry();
                 log.info("expired");
                 break main_loop;
             case 'error':
@@ -63,6 +64,15 @@ async function pull(mono_id) {
         }
     }
 }
+// integrations ------------------------------------------------------------------------------------
+// Override to provide custom behavior
+let mono = {
+    on_start() { set_dot_favicon("#1e40af"); },
+    on_success() { set_dot_favicon("#1e40af"); },
+    on_fail() { set_dot_favicon("#991b1b"); },
+    on_expiry() { set_dot_favicon("#94a3b8"); },
+};
+window.mono = mono;
 // events ------------------------------------------------------------------------------------------
 function listen_to_dom_events() {
     let changed_inputs = {}; // Keeping track of changed inputs
