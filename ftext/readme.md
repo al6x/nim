@@ -37,6 +37,8 @@ etc.
 
 # Example
 
+Installation `nimble install https://github.com/al6x/nim?subdir=ftext`
+
 Example of FormalText
 
 ```
@@ -55,21 +57,7 @@ knots #bushcraft #knots ^images
 
 Note the last line with `knots` the images from the `knots` folder will be displayed as a gallery.
 
-Rendering Formal Text:
-
-```
-nimble install https://github.com/al6x/nim?subdir=ftext
-
-nim r --experimental:overloadable_enums ftext/render/example.nim
-
-# To serve images properly the static server needed
-# npm install -g node-static
-ftext/bin/serve_example_assets
-
-open http://localhost:3000/finance/about-forex.html
-```
-
-And you should see this page
+Will be rendered into
 
 ![](readme/static_page.png)
 
@@ -111,4 +99,18 @@ Install 'Highlight' by 'Fabio Spampinato' extension, and then add following to V
       ]
     }
   }
+```
+
+# Old stuff
+
+Rendering Formal Text:
+
+```
+nim r --experimental:overloadable_enums ftext/render/example.nim
+
+# To serve images properly the static server needed
+# npm install -g node-static
+ftext/bin/serve_example_assets
+
+open http://localhost:3000/finance/about-forex.html
 ```

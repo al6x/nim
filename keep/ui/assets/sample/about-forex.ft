@@ -43,6 +43,12 @@ Same images in 6 cols ^section
 
 knots #bushcraft #knots ^images cols: 6
 
+Image ^section
+
 knots/losa.jpg #knots ^image
+
+Embedded image ^section
+
+Some text image{knots/constrictor-carabine.jpg} another text. ^text
 
 #Forex #Margin #Fake
