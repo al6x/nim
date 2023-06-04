@@ -1,17 +1,14 @@
 import base
 
-# template import_keep =
-#   import keep/model/docm
+template import_keep =
+  import keep/model/docm3
 
-# when compiles(import_keep()):
-#   import keep/model/docm
-#   export docm
-# else:
-#   import ./model/fdoc
-#   export fdoc
-
-import keep/model/[docm, helpers]
-export docm, helpers
+when compiles(import_keep()):
+  import keep/model/docm
+  export docm
+else:
+  import ./model/fdoc
+  export fdoc
 
 type
   FBlockSource* = ref object of BlockSource

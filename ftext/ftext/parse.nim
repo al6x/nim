@@ -555,7 +555,7 @@ proc parse_code*(source: FBlockSource): CodeBlock =
 # image, images ------------------------------------------------------------------------------------
 proc parse_path_and_tags(text: string, warns: var seq[string]): tuple[path: string, tags: seq[string]] =
   let parts = text.split("#", maxsplit = 1)
-  var path = parts[0].trim; var warns, tags: seq[string]
+  var path = parts[0].trim; var tags: seq[string]
   path = normalize_asset_path(path, warns)
   if parts.len > 1:
     let pr = Parser.init("#" & parts[1])

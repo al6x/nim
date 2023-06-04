@@ -122,9 +122,9 @@ test "parse_text":
     check_i it, 5,  (kind: "text", text: " more ")
     check_i it, 6,  (kind: "tag", text: "tag1")
     check_i it, 7,  (kind: "text", text: " ")
-    check_i it, 8,  (kind: "embed", text: "", embed: (path: "img.png"))
+    check_i it, 8,  (kind: "embed", text: "", embed: (kind: "image", body: "img.png"))
     check_i it, 9,  (kind: "text", text: " some ")
-    check_i it, 10, (kind: "embed", text: "", embed: (code: "code 2"))
+    check_i it, 10, (kind: "embed", text: "", embed: (kind: "code", body: "code 2"))
     check_i it, 11, (kind: "text", text: " ")
     check_i it, 12, (kind: "embed", text: "", embed: (kind: "some", body: "some"))
 
@@ -138,7 +138,7 @@ test "parse_text":
     ]
     check_i it, 1, [
       %{ kind: "text", text: "Line 2 " },
-      %{ kind: "embed", text: "", embed: { path: "none.png"} }
+      %{ kind: "embed", text: "", embed: { kind: "image", body: "none.png"} }
     ]
 
   block: # Paragraph 3
@@ -167,7 +167,7 @@ test "parse list":
   ]
   check_i parsed, 1, [
     %{ kind: "text", text: "Line 2 " },
-    %{ kind: "embed", text: "", embed: { path: "some-img" } }
+    %{ kind: "embed", text: "", embed: { kind: "image", body: "some-img" } }
   ]
 
 test "parse_list, with warnings":
@@ -182,14 +182,14 @@ test "parse_list, with warnings":
   block: # Line 1
     var it = parsed[0]
     check_i it, 0,  (kind: "text", text: "Some ")
-    check_i it, 1,  (kind: "embed", text: "", embed: (path: "img.png"))
+    check_i it, 1,  (kind: "embed", text: "", embed: (kind: "image", body: "img.png"))
     check_i it, 2,  (kind: "text", text: " ")
     check_i it, 3,  (kind: "embed", text: "", embed: (kind: "some", body: "some"))
 
   block: # Line 2
     var it = parsed[1]
     check_i it, 0,  (kind: "text", text: "Another ")
-    check_i it, 1,  (kind: "embed", text: "", embed: (path: "none.png"))
+    check_i it, 1,  (kind: "embed", text: "", embed: (kind: "image", body: "none.png"))
 
 test "parse list, with paragraphs":
   let parsed = parse_list("""
@@ -207,7 +207,7 @@ test "parse list, with paragraphs":
   ]
   check_i parsed, 1, [
     %{ kind: "text", text: "Line 2 " },
-    %{ kind: "embed", text: "", embed: { path: "some-img" } }
+    %{ kind: "embed", text: "", embed: { kind: "image", body: "some-img" } }
   ]
 
 test "parse_list with tags":
@@ -337,9 +337,9 @@ test "parse_table":
     check (rows[0].len, rows[1].len) == (2, 2)
     check rows[0][0].to_json == %[{ kind: "text", text: "text" }]
     check rows[0][1].to_json == %[
-      { kind: "embed", text: "", embed: { path: "img.png" } }]
+      { kind: "embed", text: "", embed: { kind: "image", body: "img.png" } }]
 
-    check rows[1][0].to_json == %[{ kind: "embed", text: "",   embed: { code: ",|" } }]
+    check rows[1][0].to_json == %[{ kind: "embed", text: "",   embed: { kind: "code", body: ",|" } }]
     check rows[1][1].to_json == %[{ kind: "embed", text: "", embed: { kind: "some", body: "some" } }]
 
   test_table """
@@ -378,11 +378,11 @@ test "parse_table with header":
     check header.len == 2
     check header[0].to_json == %[{ kind: "text", text: "text" }]
     check header[1].to_json == %[
-      { kind: "embed", text: "", embed: { path: "img.png" } }]
+      { kind: "embed", text: "", embed: { kind: "image", body: "img.png" } }]
 
     check rows.len == 1
     check rows[0].len == 2
-    check rows[0][0].to_json == %[{ kind: "embed", text: "", embed: { code: ",|" } }]
+    check rows[0][0].to_json == %[{ kind: "embed", text: "", embed: { kind: "code", body: ",|" } }]
     check rows[0][1].to_json == %[{ kind: "text", text: "text2" }]
 
   test_table """
