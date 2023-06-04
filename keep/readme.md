@@ -1,9 +1,5 @@
 # Todo
 
-- Proper list style
-- Options for ^token
-- Move render to keep
-- Base ftext classes on keep/base classes
 - Use block or text table to display list of notes
 - "/misc ^images" - no warnings
 - Image on click open in new tab
