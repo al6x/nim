@@ -6,15 +6,15 @@ type
 
   BlockSource* = ref object of RootObj
     kind*: string
-    tags*: seq[string] # original tags, not merged
+
   DocSource* = ref object of RootObj
     kind*: string
-    tags*: seq[string] # original tags, not merged
 
   Block* = ref object of RootObj
     id*:     string
     hash*:   int
-    tags*:   seq[string] # merged tags
+    ntags*:  seq[string] # merged, normalised tags
+    tags*:   seq[string]
     links*:  seq[Link]
     assets*: seq[string]
     glinks*: seq[string]
@@ -29,6 +29,7 @@ type
     title*:       string
     blocks*:      seq[Block]
     blockids*:    Table[string, Block] # for quick access by id
+    ntags*:       seq[string]
     tags*:        seq[string] # merged tags
     warns*:       seq[string]
     source*:      DocSource

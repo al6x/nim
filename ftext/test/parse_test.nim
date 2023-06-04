@@ -279,7 +279,7 @@ test "parse":
     let doc = Doc.parse(text, "some.ft")
     check doc.blocks.len == 3
     check doc.tags == @["t", "t2"]
-    check doc.source.FDocSource.tags_line_n == (8, 8)
+    check doc.source.DocTextSource.tags_line_n == (8, 8)
 
   block:
     let text = """

@@ -14,7 +14,7 @@ proc on_location*(self: AppView, url: Url) =
 proc render_home(self: AppView): El =
   let h = db.home
   if h.is_none:
-    let text = "Home page not defined, add #home tag to any page you want to used as home page"
+    let text = "Home page not defined, add '#home-page' tag to any page you want to used as home page"
     el(PMessage, (text: text, top: true))
   else:
     render_doc(h.get.doc, h.get.space, parent = self)
@@ -24,6 +24,12 @@ proc render_doc_helper(self: AppView, sid, did: string): El =
   if found.is_none: return el(PMessage, (text: "Not found", top: true))
   let (space, doc) = found.get
   doc.render_doc(space, parent = self)
+
+proc render_shortcut_helper(self: AppView, did: string): El =
+  for _, space in db.spaces:
+    if did in space.docs:
+      return render_doc_helper(self, space.id, did)
+  el(PMessage, (text: "Not found", top: true))
 
 proc render_search(self: AppView): El =
   el("", it.text "Search not impl")
@@ -36,6 +42,7 @@ proc render*(self: AppView): El =
   case l.kind
   of LocationKind.home: self.render_home
   of doc:               self.render_doc_helper(l.sid, l.did)
+  of shortcut:          self.render_shortcut_helper(l.did)
   of search:            self.render_search
   of asset:             throw "asset should never happen in render"
   of unknown:           self.render_unknown

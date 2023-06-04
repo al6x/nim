@@ -25,7 +25,7 @@ proc home*(db: Db): Option[tuple[space: Space, doc: Doc]] =
   # Page that will be shown as home page, any page marked with "home" tag
   for sid, space in db.spaces:
     for did, doc in space.docs:
-      if "home" in doc.tags:
+      if "home-page" in doc.ntags:
         return (space, doc).some
 
 template build_db_process_cb*(db): auto =

@@ -5,6 +5,8 @@ type
     id*:           string
     version*:      int
     docs*:         Table[string, Doc]
+    ntags*:        seq[string] # lowercased
+    tags*:         seq[string]
     warnings*:     seq[string]
     processors*:   seq[proc()]
     allowed_tags*: HashSet[string]

@@ -1,5 +1,6 @@
 # Todo
 
+- make tags and text lowercase, make it tags, mtags, ltags
 - Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
 - merge tags doc -> section -> block, do it at keep
 - Turn alex/notes into space
@@ -15,8 +16,9 @@
   peformance and trigrams.
 - Add space/doc/block link for both embed and block display.
 
-# LTodo
+# Lodo
 
+- Allow requests only from "keep" domain
 - make editor configurable
 - Checkout M. Fowler BiKi
 - FText, long link reference, [N. Taleb Random](nt_random), [nt_random](http://ntaleb.org/random)

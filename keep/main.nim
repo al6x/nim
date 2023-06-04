@@ -16,7 +16,7 @@ block:
 
 run_http_server(
   build_app_view,
-  port         = 2000,
+  port         = 8080,
   asset_paths  = build_app_view_asset_paths(),
   sync_process = build_db_process_cb(db)
 )

@@ -212,7 +212,7 @@ proc PApp*(
   content: seq[El]
 ): El =
   let left =
-    el"pdoc .block.flex.flex-col .space-y-1.mt-2.mb-2 c":
+    el"pdoc .block.flex.flex-col .space-y-1.mt-2.mb-2 c flash":
       # el"a.block.absolute.left-2 .text-gray-300": # Anchor
       #   it.class "top-3.5"
       #   it.text "#"
