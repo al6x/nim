@@ -1,22 +1,17 @@
 # Todo
 
+- Turn alex/notes into space
+- Make search
 - Use block or text table to display list of notes
-- "/misc ^images" - no warnings
-- Image on click open in new tab
 - Add block and doc id to search index
-- Make list as list, slow rendering, probably for text
 - Refactor space, so it can have mixed content, ftext etc
 - Add space.config and parse editor code like "{path} {line}, each space has its own editor, could
   be local space or github space
-- Turn alex/notes into space
 - Make video about parser FText
-- Make search
 - Search with blackjack and hookers, index Wwar of the worlds, and libres, show query timing, tags facets with stats,
   show query and chunk trigrams, don't do separate app, use with notes, just add extra vidgets to display
   peformance and trigrams.
-
 - Add space/doc/block link for both embed and block display.
-- FText parser for: Table
 
 # LTodo
 
