@@ -100,10 +100,16 @@ method render_block*(blk: TextBlock, context: RenderContext): El =
 
 # list
 method render_block*(blk: ListBlock, context: RenderContext): El =
-  list_el:
-    for list_item in blk.list:
-      el "p":
-        it.html list_item.render_text(context)
+  if blk.ph:
+    list_el:
+      for list_item in blk.list:
+        el "p":
+          it.html list_item.render_text(context)
+  else:
+    el "ul":
+      for list_item in blk.list:
+        el "li":
+          it.html list_item.render_text(context)
 
 # code
 method render_block*(blk: CodeBlock, context: RenderContext): El =
@@ -113,8 +119,10 @@ method render_block*(blk: CodeBlock, context: RenderContext): El =
 # image
 method render_block*(blk: ImageBlock, context: RenderContext): El =
   let path = context.config.asset_path(blk.image, context)
-  el"img":
-    it.attr "src", path
+  el"a.block":
+    it.attr("href", path)
+    it.attr("target", "_blank")
+    el("img", it.attr("src", path))
 
 # images
 method render_block*(blk: ImagesBlock, context: RenderContext): El =
@@ -129,8 +137,11 @@ method render_block*(blk: ImagesBlock, context: RenderContext): El =
       else:
         it.style fmt"width: {image_width}%; text-align: center; vertical-align: middle;"
         if i < images.len:
-          el".ftext_images_image_container":
-            el("img", it.attr("src", images[i]))
+          let path = images[i]
+          el"a.ftext_images_image_container":
+            it.attr("target", "_blank")
+            it.attr("href", path)
+            el("img", it.attr("src", path))
         i.inc
 
   if images.len <= cols:

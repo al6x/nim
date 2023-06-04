@@ -34,6 +34,7 @@ type
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block
     list*: seq[Text]
+    ph*:   bool # display list as paragraphs
 
   CodeBlock* = ref object of Block
     code*: string
