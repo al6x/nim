@@ -223,7 +223,7 @@ proc is_local_link(link: string): bool =
   "://" notin link
 
 proc parse_local_link(link: string, pr: Parser): Link =
-  let parts = link.split("/")
+  let parts = link.split("/").reject(is_empty)
   case parts.len
   of 1:
     (".", parts[0], "")
@@ -232,7 +232,7 @@ proc parse_local_link(link: string, pr: Parser): Link =
   of 3:
     (parts[0], parts[1], parts[2])
   else:
-    pr.warns.add fmt"Invalid link: '{link}'"
+    pr.warns.add fmt"Invalid link, too many parts: '{link}'"
     (parts[0], parts[1], parts[2])
 
 let link_chars = {']', ')', '\n'}.complement
@@ -736,7 +736,7 @@ proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): D
   let (tags, tags_line_n) = pr.consume_tags
   let doc = init_fdoc location
   doc.warns.add pr.warns
-  let doc_source = FDocSource(kind: "ftext", tags: tags, tags_line_n: tags_line_n)
+  let doc_source = DocTextSource(kind: "ftext", tags: tags, location: location, tags_line_n: tags_line_n)
   doc.hash = text.hash.int; doc.tags = tags; doc.source = doc_source
   for source in source_blocks:
     if   source.kind == "title":

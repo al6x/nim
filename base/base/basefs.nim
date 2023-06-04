@@ -11,7 +11,10 @@ proc file_name*(path: string): string =
 
 proc file_name_ext*(path: string): tuple[name, ext: string] =
   let parts = path.last_path_part.rsplit('.', maxsplit = 1)
-  (parts[0], parts[1])
+  case parts.len
+  of 1: (parts[0], "")
+  of 2: (parts[0], parts[1])
+  else: throw "internal error"
 
 proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc (file: File): T)): T =
   var file: File

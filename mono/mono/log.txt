@@ -1,3 +1,10 @@
+method serve_asset*(doc: DocSource, doc: Doc, space: Space, asset: string): BinaryResponse {.base.} =
+  throw "not implemented"
+
+method render_doc*(doc: DocSource, space: Space): El {.base.} =
+  throw "not implemented"
+
+
 FTableBlock* = ref object of FBlock
     # table*: seq[seq[seq[FTextItem]]]
     header: Table[string, seq[FTextItem]]
