@@ -3,6 +3,7 @@
   <head>
     <title>Palette</title>
     <link rel="stylesheet" href="build/palette.css"/>
+    <meta charset="utf-8"/>
   </head>
   <body>
 
@@ -17,7 +18,7 @@
         <pdoc class="block flex flex-col space-y-1 mt-2 mb-2">
 
           <pblock-doc-title class="pblock flex flex-col space-y-1">
-            <div class="text-xl" flash="true" title="">About Forex</div>
+            <div class="text-2xl" flash="true" title="">About Forex</div>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
@@ -33,7 +34,7 @@
           </pblock-ftext>
 
           <pblock-fsection class="pblock flex flex-col space-y-1 pblock_hover">
-            <div class="ftext" flash="true" html="&lt;div class=&quot;text-xl&quot;&gt;Trends are down   &lt;/div&gt;"></div>
+            <div class="ftext" flash="true"><div class="text-2xl">Trends are down   </div></div>
             <pblock-tags class="block flex -mr-2" flash="true">
               <a class="mr-2 text-blue-800" href="/tags/Finance">#Finance</a>
               <a class="mr-2 text-blue-800" href="/tags/Trading">#Trading</a>
@@ -54,13 +55,13 @@
             </pblock-controls>
           </pblock-flist>
 
-          <pblock-fsection class="pblock flex flex-col space-y-1 pblock_hover">
-            <div class="ftext" flash="true" html="&lt;div class=&quot;text-xl&quot;&gt;Additional consequences of those 3 main issues&lt;/div&gt;"></div>
+          <pblock-fsubsection class="pblock flex flex-col space-y-1 pblock_hover">
+            <div class="ftext" flash="true"><div class="text-xl">Additional consequences of those, subsection</div></div>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
             </pblock-controls>
-          </pblock-fsection>
+          </pblock-fsubsection>
 
           <pblock-ftext class="pblock flex flex-col space-y-1 pblock_hover">
             <div class="ftext" flash="true"><ul>
@@ -99,71 +100,158 @@ mockup_section(&amp;quot;Text&amp;quot;):
           <pblock-fimages class="pblock flex flex-col space-y-1 pblock_hover">
             <div class="ftext" flash="true"><table cellpadding="0" cellspacing="0" style="border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;">
   <tr>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/begushii.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/begushii.jpg"></img>
       </div>
     </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/blakes-hitch.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/blakes-hitch.png"></img>
       </div>
     </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/bulin.jpg"></img>
       </div>
     </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/butterfly.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-      </div>
-    </td>
-  </tr>
-  <tr>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/constrictor-carabine.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-      </div>
-    </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/dvoynoy-bulin.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-      </div>
-    </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/eight-slow.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
-      </div>
-    </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/eight.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/butterfly.jpg"></img>
       </div>
     </td>
   </tr>
   <tr>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/kreplenie-palatki.png" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/constrictor-carabine.jpg"></img>
       </div>
     </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;">
-      <div class="flex rounded overflow-hidden border border-gray-300 bg-slate-50" style="width: 100%; aspect-ratio: 1;">
-        <img class="block ml-auto mr-auto" src="/sample/about-forex/knots/losa.jpg" style="object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto;"></img>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/dvoynoy-bulin.jpg"></img>
       </div>
     </td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
-    <td style="width: 1.33%;"></td>
-    <td style="width: 24%; text-align: center; vertical-align: middle;"></td>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/eight-slow.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/eight.jpg"></img>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/kreplenie-palatki.png"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/losa.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;"></td>
+    <td style="width: 1%;"></td>
+    <td style="width: 24.0%; text-align: center; vertical-align: middle;"></td>
+  </tr>
+</table></div>
+            <pblock-tags class="block flex -mr-2" flash="true">
+              <a class="mr-2 text-blue-800" href="/tags/bushcraft">#bushcraft</a>
+              <a class="mr-2 text-blue-800" href="/tags/knots">#knots</a>
+            </pblock-tags>
+            <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
+              <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
+              <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+            </pblock-controls>
+          </pblock-fimages>
+
+          <pblock-fsection class="pblock flex flex-col space-y-1 pblock_hover">
+            <div class="ftext" flash="true"><div class="text-2xl">Same images in 6 cols</div></div>
+            <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
+              <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
+              <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
+            </pblock-controls>
+          </pblock-fsection>
+
+          <pblock-fimages class="pblock flex flex-col space-y-1 pblock_hover">
+            <div class="ftext" flash="true"><table cellpadding="0" cellspacing="0" style="border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;">
+  <tr>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/begushii.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/blakes-hitch.png"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/bulin.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/butterfly.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/constrictor-carabine.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/dvoynoy-bulin.jpg"></img>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/eight-slow.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/eight.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/kreplenie-palatki.png"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;">
+      <div class="ftext_images_image_container">
+        <img src="/sample/about-forex/knots/losa.jpg"></img>
+      </div>
+    </td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;"></td>
+    <td style="width: 1%;"></td>
+    <td style="width: 15.66666666666667%; text-align: center; vertical-align: middle;"></td>
   </tr>
 </table></div>
             <pblock-tags class="block flex -mr-2" flash="true">
@@ -283,7 +371,7 @@ mockup_section(&amp;quot;Text&amp;quot;):
         <pdoc class="block flex flex-col space-y-1 mt-2 mb-2">
 
           <pblock-doc-title class="pblock flex flex-col space-y-1">
-            <div class="text-xl" flash="true" title="">Found</div>
+            <div class="text-2xl" flash="true" title="">Found</div>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/cross.svg);"></button>
             </pblock-controls>
@@ -384,7 +472,7 @@ mockup_section(&amp;quot;Text&amp;quot;):
         <pdoc class="block flex flex-col space-y-1 mt-2 mb-2">
 
           <pblock-doc-title class="pblock flex flex-col space-y-1">
-            <div class="text-xl" flash="true" title="">Misc</div>
+            <div class="text-2xl" flash="true" title="">Misc</div>
           </pblock-doc-title>
 
           <pblock-misc class="pblock flex flex-col space-y-1">

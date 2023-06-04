@@ -46,13 +46,13 @@ method render_block*(blk: Block, context: RenderContext): El {.base.} =
       it.text fmt"render_block not defined for {blk.source.kind}"
 
 # section
-proc render_block*(section: Section, context: RenderContext): El =
-  el".text-xl":
+method render_block*(section: SectionBlock, context: RenderContext): El =
+  el".text-2xl":
     it.text section.title
 
 # subsection
-method render_block*(blk: Subsection, context: RenderContext): El =
-  el".text-lg":
+method render_block*(blk: SubsectionBlock, context: RenderContext): El =
+  el".text-xl":
     it.text blk.title
 
 # text items
@@ -118,32 +118,35 @@ method render_block*(blk: ImageBlock, context: RenderContext): El =
 
 # images
 method render_block*(blk: ImagesBlock, context: RenderContext): El =
+  let cols = blk.cols.get(min(4, blk.images.len))
   let images = blk.images.map((path) => context.config.asset_path(path, context))
+  let image_width = (100 - cols).float / cols.float
+
   template render_td =
     el"td":
       if col.is_even:
-        it.style "width: 1.33%;"
+        it.style "width: 1%;"
       else:
-        it.style "width: 24%; text-align: center; vertical-align: middle;"
+        it.style fmt"width: {image_width}%; text-align: center; vertical-align: middle;"
         if i < images.len:
           el".ftext_images_image_container":
             el("img", it.attr("src", images[i]))
         i.inc
 
-  if images.len <= 4:
+  if images.len <= cols:
     el"table cellspacing=0 cellpadding=0": # removing cell borders
       el"tr":
         var i = 0
-        for col in 0..(images.high * 2 - 2):
+        for col in 0..(cols * 2 - 2):
           render_td()
   else:
     el"table cellspacing=0 cellpadding=0":
       # setting margin after each row
       it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
       var i = 0
-      for row in 0..(images.len / 4).floor.int:
+      for row in 0..(images.len / cols).floor.int:
         el"tr":
-          for col in 0..6:
+          for col in 0..(cols * 2 - 2):
             render_td()
 
 # table

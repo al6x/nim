@@ -1,5 +1,5 @@
-import base, mono/core, std/os, ftext/[core, parse, render]
-import std/macros
+import base, mono/core, std/os, ftext/parse, ../render/blocks, ../model/docm
+# import std/macros
 
 # Support ------------------------------------------------------------------------------------------
 type Palette* = ref object
@@ -12,6 +12,9 @@ var palette* {.threadvar.}: Palette
 
 proc nomockup*(class: string): string =
   if palette.mockup_mode: "" else: class
+
+proc keep_dir*(): string =
+  current_source_path().parent_dir.parent_dir.absolute_path
 
 # Elementary ---------------------------------------------------------------------------------------
 proc PIconButton*(icon: string, title = "", size = "w-5 h-5", color = "bg-gray-500"): El =
@@ -41,7 +44,7 @@ proc PMessage*(text: string, kind: PMessageKind = info, top = false): El =
     it.text text
 
 # Right --------------------------------------------------------------------------------------------
-proc PRBlock*(tname = "prblock", title = "", closed = false, content: seq[El]): El =
+proc PRBlock*(tname = "prblock", title = "", closed = false, content: seq[El] = @[]): El =
   el(tname & " .block.relative .m-2 .mb-3 flash c"):
     if closed:
       assert not title.is_empty, "can't have empty title on closed rsection"
@@ -151,23 +154,22 @@ template pblock_layout*(
     pblock_controls(controls, hover)
 
 # FBlocks ------------------------------------------------------------------------------------------
-proc with_path*(tags: seq[string], context: FContext): seq[(string, string)] =
+proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)] =
   tags.map((tag) => (tag, (context.config.tag_path)(tag, context)))
 
-proc PFSection*(section: FSection, context: FContext, controls: seq[El] = @[]): El =
-  let html = render.to_html(section.to_html(context))
-  pblock_layout("pblock-fsection", section.warns, controls, section.tags.with_path(context), true):
-    el".ftext flash":
-      it.html html
+# proc PSectionBlock*(section: SectionBlock, context: RenderContext, controls: seq[El] = @[]): El =
+#   let html = render.to_html(section.to_html(context))
+#   pblock_layout("pblock-fsection", section.warns, controls, section.tags.with_path(context), true):
+#     el".ftext flash":
+#       it.html html
 
-proc PFBlock*(blk: FBlock, context: FContext, controls: seq[El] = @[]): El =
-  let html = render.to_html(blk.to_html(context))
-  let tname = fmt"pblock-f{blk.raw.kind}"
-  let tags: seq[(string, string)] =
-    if blk of FTextBlock or blk of FListBlock: @[] else: blk.tags.with_path(context)
+proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[]): El =
+  let html = render_block(blk, context).to_html
+  let tname = fmt"pblock-f{blk.source.kind}"
+  var tags = blk.tags.with_path(context)
+  if blk of TextBlock or blk of ListBlock: tags = @[]
   pblock_layout(tname, blk.warns, controls, tags, true):
-    el".ftext flash":
-      it.html html
+    el(".ftext flash", it.html(html))
 
 # Search -------------------------------------------------------------------------------------------
 proc PSearchItem*(title, subtitle, before, match, after: string): El =
@@ -216,7 +218,7 @@ proc PApp*(
       #   it.text "#"
       #   it.location "#"
       pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
-        el".text-xl flash":
+        el".text-2xl flash":
           it.text title
           it.attr("title", title_hint)
 
@@ -245,16 +247,16 @@ template mockup_section(title_arg: string, code) =
       add_or_return_el built
 
 type StubData = object
-  links:     seq[(string, string)]
-  tags:      seq[CloudTag]
-  fdoc:      FDoc
+  links: seq[(string, string)]
+  tags:  seq[CloudTag]
+  doc:   Doc
 
 var data: StubData
 proc stub_data: StubData
 
 proc render_mockup: seq[El] =
   data = stub_data()
-  let fdoc = data.fdoc
+  let doc = data.doc
   palette = Palette.init(mockup_mode = true)
 
   let controls_stub = @[
@@ -262,7 +264,7 @@ proc render_mockup: seq[El] =
     el(PIconButton, (icon: "controls"))
   ]
 
-  let context: FContext = (fdoc, "sample", FHtmlConfig.init)
+  let context: RenderContext = (doc, "sample", RenderConfig.init)
 
   mockup_section("Note"):
     let right = els:
@@ -277,17 +279,13 @@ proc render_mockup: seq[El] =
       el(PRBlock, (title: "Other", closed: true))
 
     el(PApp, (
-      title: fdoc.title, title_controls: controls_stub,
-      warns: fdoc.warns,
-      tags: fdoc.tags.with_path(context), tags_controls: controls_stub,
+      title: doc.title, title_controls: controls_stub,
+      warns: doc.warns,
+      tags: doc.tags.with_path(context), tags_controls: controls_stub,
       right: right
     )):
-      for section in fdoc.sections: # Sections
-        unless section.title.is_empty:
-          el(PFSection, (section: section, context: context, controls: controls_stub))
-
-        for blk in section.blocks: # Blocks
-          el(PFBlock, (blk: blk, context: context, controls: controls_stub))
+      for blk in doc.blocks:
+        el(PBlock, (blk: blk, context: context, controls: controls_stub))
 
   mockup_section("Search"):
     let right = els:
@@ -323,26 +321,43 @@ proc render_mockup: seq[El] =
   mockup_section("Misc"):
     el(PMessage, (text: "Some top level message", top: true))
 
-when is_main_module:
-  let html = """
+proc html_page(title, content: string): string =
+  """
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Palette</title>
+        <title>{title}</title>
         <link rel="stylesheet" href="build/palette.css"/>
+        <meta charset="utf-8"/>
       </head>
       <body>
 
-    {html}
+    {content}
 
       </body>
     </html>
-  """.dedent.trim.replace("{html}", render_mockup().to_html)
-  let dir = current_source_path().parent_dir.absolute_path
-  let fname = fmt"{dir}/assets/palette/palette.html"
-  fs.write fname, html
-  p fmt"{fname} generated"
-  # say "done"
+  """.dedent.trim
+    .replace("{title}", title)
+    .replace("{content}", content)
+
+when is_main_module:
+  block: # Palette
+    let fname = fmt"{keep_dir()}/ui/assets/palette/palette.html"
+    let html = html_page("Palette", render_mockup().to_html)
+    fs.write fname, html
+    p fmt"{fname} generated"
+
+  block: # Forest
+    let doc = Doc.read(fmt"{keep_dir()}/ui/assets/sample/forest.ft")
+    let context: RenderContext = (doc, "sample", RenderConfig.init)
+    let app = el(PApp, (
+      title: doc.title, warns: doc.warns, tags: doc.tags.with_path(context)
+    )):
+      for blk in doc.blocks:
+        el(PBlock, (blk: blk, context: context))
+    let fname = fmt"{keep_dir()}/ui/assets/palette/forest.html"
+    fs.write fname, html_page("Forest, Palette", app.to_html)
+    p fmt"{fname} generated"
 
 proc stub_data: StubData =
   result.links = [
@@ -355,5 +370,4 @@ proc stub_data: StubData =
     "Strategy": 0, "Backtesting": 0
   }.map((t) => (t[0], "#", t[1]))
 
-  let ui_dir = current_source_path().parent_dir.absolute_path
-  result.fdoc = FDoc.read(fmt"{ui_dir}/assets/sample/about-forex.ft")
+  result.doc = Doc.read(fmt"{keep_dir()}/ui/assets/sample/about-forex.ft")

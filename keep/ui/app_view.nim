@@ -76,7 +76,7 @@ let page: PageFn = proc(root_el: El): string =
       </head>
       <body>
 
-    {html}
+    {app}
 
     <script type="module">
       import { run } from "/assets/mono.js"
@@ -87,7 +87,7 @@ let page: PageFn = proc(root_el: El): string =
     </html>
   """.dedent
     .replace("{title}", root_el.window_title.escape_html)
-    .replace("{html}", root_el.to_html)
+    .replace("{app}", root_el.to_html)
 
 proc build_app_view*(session: Session, url: Url) =
   let app_view = AppView()

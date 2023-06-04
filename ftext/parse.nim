@@ -509,16 +509,16 @@ proc parse_section[T](source: FBlockSource, section: T) =
   section.title = texts.join " "
   if section.title.is_empty: section.warns.add fmt"Empty {kind} title"
 
-proc parse_section*(source: FBlockSource): Section =
+proc parse_section*(source: FBlockSource): SectionBlock =
   assert source.kind == "section"
-  let blk = Section()
+  let blk = SectionBlock()
   source.args_should_be_empty blk.warns
   parse_section(source, blk)
   blk
 
-proc parse_subsection*(source: FBlockSource): Subsection =
+proc parse_subsection*(source: FBlockSource): SubsectionBlock =
   assert source.kind == "subsection"
-  let blk = Subsection()
+  let blk = SubsectionBlock()
   source.args_should_be_empty blk.warns
   parse_section(source, blk)
   unless blk.tags.is_empty: result.warns.add "tags not supported for subsection"
@@ -744,9 +744,9 @@ proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): D
         doc.warns.add fmt"Unknown block kind '{source.kind}'"
         UnknownBlock()
       blk.id = source.id; blk.hash = source.text.hash.int; blk.source = source
-      blk.blocksids = blk.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
       post_process_block(blk, doc, config)
       doc.blocks.add blk
+  doc.blockids = doc.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
   doc
 
 proc read*(_: type[Doc], location: string, config = FParseConfig.init): Doc =

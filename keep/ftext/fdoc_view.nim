@@ -29,7 +29,7 @@ proc render*(self: FDocView): El =
 
         for blk in section.blocks: # Blocks
           let edit_blk = edit_btn(fdoc.location, blk.raw.lines[0])
-          el(PFBlock, (blk: blk, context: context, controls: @[edit_blk]))
+          el(PBlock, (blk: blk, context: context, controls: @[edit_blk]))
 
   result.window_title fdoc.title
 
