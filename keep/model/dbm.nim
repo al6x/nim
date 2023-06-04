@@ -12,15 +12,14 @@ proc version*(db: Db): int =
   !$h
 
 proc process*(db: Db) =
-  db.cache.cached("process(db)", db.version):
+  db.db_cache.cached("process(db)", db.version):
     for sid, space in db.spaces:
       space.validate_tags
       space.validate_links db
       for fn in space.processors: fn()
 
-proc bgjobs*(db: Db) =
-  for sid, space in db.spaces:
-    for fn in space.bgjobs: fn()
+proc process_bgjobs*(db: Db) =
+  for fn in db.bgjobs: fn()
 
 proc home*(db: Db): Option[tuple[space: Space, doc: Doc]] =
   # Page that will be shown as home page, any page marked with "home" tag
@@ -31,7 +30,7 @@ proc home*(db: Db): Option[tuple[space: Space, doc: Doc]] =
 
 template build_db_process_cb*(db): auto =
   let db_process = build_sync_timer(100, () => db.process)
-  let db_bgjobs  = build_sync_timer(500, () => db.bgjobs)
+  let db_bgjobs  = build_sync_timer(500, () => db.process_bgjobs)
   proc =
     db_process()
     db_bgjobs()

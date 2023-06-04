@@ -1,5 +1,7 @@
 # Todo
 
+- Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
+- merge tags doc -> section -> block, do it at keep
 - Turn alex/notes into space
 - Make search
 - Use block or text table to display list of notes
@@ -15,6 +17,7 @@
 
 # LTodo
 
+- make editor configurable
 - Checkout M. Fowler BiKi
 - FText, long link reference, [N. Taleb Random](nt_random), [nt_random](http://ntaleb.org/random)
 

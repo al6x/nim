@@ -1,21 +1,7 @@
-import base
+import base, keep/model/docm
 
-template import_keep =
-  import keep/model/docm3
-
-when compiles(import_keep()):
-  import keep/model/docm
-  export docm
-else:
-  import ./model/fdoc
-  export fdoc
+export docm
 
 type
-  FBlockSource* = ref object of BlockSource
+  FBlockSource* = ref object of BlockTextSource
     text*, id*, args*: string
-    line_n*: (int, int) # block position in text
-    tags*: seq[string]
-
-  FDocSource* = ref object of DocSource
-    tags_line_n*: (int, int) # tags position in text
-    tags*: seq[string]

@@ -1,6 +1,8 @@
-import base, mono/[core, http], ext/async, std/os
-import ./ui/app_view, ./model/[spacem, dbm], ui/palette as _
-import ./ftext/[fdoc_head, fdoc_view]
+import base, mono/[core, http], ext/async, std/os, ftext/parse
+import ./ui/app/app_view, ./model/[spacem, dbm], ui/palette as _, ./model/load
+
+let parsers = DocFileParsers()
+parsers["ft"] = (path) => Doc.read path
 
 palette = Palette.init
 db = Db.init
@@ -9,8 +11,8 @@ block:
   let keep_dir = current_source_path().parent_dir.absolute_path
   let space = Space.init(id = "notes")
   db.spaces[space.id] = space
-  space.add_ftext_dir fmt"{keep_dir}/examples/finance"
-  space.add_ftext_dir fmt"/alex/notes"
+  add_dir db, space, parsers, fmt"/alex/notes"
+  add_dir db, space, parsers, fmt"{keep_dir}/examples/finance"
 
 run_http_server(
   build_app_view,

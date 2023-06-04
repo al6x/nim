@@ -1,12 +1,9 @@
 import base, mono/[core, http], std/os
-import ../model/[spacem, dbm], ./location, ./palette
+import ../../model/[spacem, dbm], ./location, ../palette, ./doc_view
 
 type AppView* = ref object of Component
   location*: Location
   on_timer_db_version: Option[int]
-
-proc init*(_: type[AppView]): AppView =
-  AppView()
 
 proc set_attrs*(self: AppView) =
   discard
@@ -99,5 +96,5 @@ proc build_app_view*(session: Session, url: Url) =
     app_view.on_binary(url)).some
 
 proc build_app_view_asset_paths*(): seq[string] =
-  let dir = current_source_path().parent_dir.absolute_path
-  @[fmt"{dir}/assets"]
+  let keep_dir = current_source_path().parent_dir.parent_dir.parent_dir.absolute_path
+  @[fmt"{keep_dir}/ui/assets"]

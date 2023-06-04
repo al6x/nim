@@ -6,13 +6,15 @@ type
 
   BlockSource* = ref object of RootObj
     kind*: string
+    tags*: seq[string] # original tags, not merged
   DocSource* = ref object of RootObj
     kind*: string
+    tags*: seq[string] # original tags, not merged
 
   Block* = ref object of RootObj
     id*:     string
     hash*:   int
-    tags*:   seq[string]
+    tags*:   seq[string] # merged tags
     links*:  seq[Link]
     assets*: seq[string]
     glinks*: seq[string]
@@ -20,14 +22,14 @@ type
     warns*:  seq[string]
     source*: BlockSource
 
-  Doc* = ref object
+  Doc* = ref object of RootObj
     id*:          string
     hash*:        int
     asset_path*:  Option[string]
     title*:       string
     blocks*:      seq[Block]
     blockids*:    Table[string, Block] # for quick access by id
-    tags*:        seq[string]
+    tags*:        seq[string] # merged tags
     warns*:       seq[string]
     source*:      DocSource
 
@@ -96,6 +98,14 @@ type
 
   TextBlock* = ref object of Block
     ftext*: seq[Paragraph]
+
+  # sources ----------------------------------------------------------------------------------------
+  BlockTextSource* = ref object of BlockSource
+    line_n*: (int, int)  # block position in text
+
+  DocTextSource* = ref object of DocSource
+    location*:    string
+    tags_line_n*: (int, int)  # tags position in text
 
 
 proc doc_asset_path*(doc_asset_path, relative_asset_path: string): string =

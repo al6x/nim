@@ -8,19 +8,16 @@ type
     tag_path*:   proc (tag: string, context: RenderContext): string
     asset_path*: proc (path: string, context: RenderContext): string
 
-method render_block*(blk: Block, doc: Doc, space: Space): El {.base.} =
-  throw "not implemented"
-
 # config -------------------------------------------------------------------------------------------
-proc link_path(link: Link, context: RenderContext): string =
+proc link_path*(link: Link, context: RenderContext): string =
   ("/" & (if link.sid == ".": context.space_id else: link.sid)) &
   ("/" & link.did) &
   (if link.bid.is_empty: "" else: "/" & link.bid)
 
-proc tag_path(tag: string, context: RenderContext): string =
+proc tag_path*(tag: string, context: RenderContext): string =
   fmt"/tags/{tag}"
 
-proc asset_path(path: string, context: RenderContext): string =
+proc asset_path*(path: string, context: RenderContext): string =
   "/" & context.space_id & "/" & context.doc.id & "/" & path
 
 proc init*(_: type[RenderConfig]): RenderConfig =
