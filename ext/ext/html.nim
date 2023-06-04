@@ -131,15 +131,11 @@ proc text_el*(text: string): El =
 proc `==`*(self, other: El): bool {.no_side_effect.} =
   if self.kind != other.kind: return false
   case self.kind
-  of ElKind.el:
-    self.tag == other.tag and self.attrs == other.attrs and self.children == other.children and
-      self.extras == self.extras
-  of ElKind.text:
-    self.text_data == other.text_data
-  of ElKind.html:
-    self.html_data == other.html_data
-  of ElKind.list:
-    self.children == other.children
+  of el:   self.tag == other.tag and self.attrs == other.attrs and self.children == other.children and
+             self.extras == self.extras
+  of text: self.text_data == other.text_data
+  of html: self.html_data == other.html_data
+  of list: self.children == other.children
 
 proc contains*(el: El, k: string): bool =
   k in el.attrs
@@ -155,16 +151,11 @@ proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal]
 proc to_json_hook*(el: El): JsonNode =
   case el.kind
   of ElKind.el:
-    if el.children.is_empty:
-      %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs }
-    else:
-      %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs, children: el.children }
-  of ElKind.text:
-    %{ kind: el.kind, text: el.text_data }
-  of ElKind.html:
-    %{ kind: el.kind, html: el.html_data }
-  of ElKind.list:
-    throw "json for el.list is not implemented"
+    if el.children.is_empty: %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs }
+    else:                    %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs, children: el.children }
+  of ElKind.text:            %{ kind: el.kind, text: el.text_data }
+  of ElKind.html:            %{ kind: el.kind, html: el.html_data }
+  of ElKind.list:            throw "json for el.list is not implemented"
 
 proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
   case el.kind

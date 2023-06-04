@@ -25,14 +25,16 @@ macro call_set_attrs*(self: typed, targs: tuple) =
   newCall(ident"set_attrs", args)
 
 template build_el*[T](ComponentT: type[T], attrs: tuple, code): El =
+  let attrsv = attrs
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
-  call_set_attrs(component, attrs)
+  call_set_attrs(component, attrsv)
   let content = els(code)
   render(component, content)
 
 template build_el*[T](ComponentT: type[T], attrs: tuple): El =
+  let attrsv = attrs
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
-  call_set_attrs(component, attrs)
+  call_set_attrs(component, attrsv)
   render(component)
 
 template el*[T](ComponentT: type[T], attrs: tuple, code): auto =
@@ -43,14 +45,16 @@ template el*[T](ComponentT: type[T], attrs: tuple): auto =
 
 # stateful component el ----------------------------------------------------------------------------
 template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, code): El =
+  let attrsv = attrs
   let component = parent.get_child_component(ChildT, id)
-  call_set_attrs(component, attrs)
+  call_set_attrs(component, attrsv)
   let content = els(code)
   render(component, content)
 
 template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): El =
+  let attrsv = attrs
   let component = parent.get_child_component(ChildT, id)
-  call_set_attrs(component, attrs)
+  call_set_attrs(component, attrsv)
   render(component)
 
 template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, code): auto =
@@ -91,14 +95,16 @@ macro call_fn_r*(f: proc, tuple_args: tuple, r: typed): typed =
     `r` = `call_expr`
 
 template build_el*(fn: proc, attrs: tuple, code): El =
+  let attrsv = attrs
   let content = els(code)
   var el: El
-  call_fn_with_content_r(fn, attrs, content, el)
+  call_fn_with_content_r(fn, attrsv, content, el)
   el
 
 template build_el*(fn: proc, attrs: tuple): El =
+  let attrsv = attrs
   var el: El
-  call_fn_r(fn, attrs, el)
+  call_fn_r(fn, attrsv, el)
   el
 
 template el*(fn: proc, attrs: tuple, code): auto =

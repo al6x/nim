@@ -71,10 +71,10 @@ type
   UnknownBlock* = ref object of Block
     discard
 
-  Section* = ref object of Block
+  SectionBlock* = ref object of Block
     title*: string
 
-  Subsection* = ref object of Block
+  SubsectionBlock* = ref object of Block
     title*: string
 
   TableBlock* = ref object of Block

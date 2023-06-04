@@ -475,10 +475,22 @@ proc parse_list_as_items*(raw: string, blk: ListBlock) =
         blk.warns.add "Unknown content in list: '" & pr.remainder & "'"
         break
 
+proc check_keys_in(data: JsonNode, keys: openarray[string], warns: var seq[string]) =
+  for k in data.keys:
+    if k notin keys: warns.add "Invalid arg: " & k
+
 proc parse_list*(source: FBlockSource, doc: Doc, config: FParseConfig): ListBlock =
   assert source.kind == "list"
   let blk = ListBlock()
-  source.args_should_be_empty blk.warns
+
+  unless source.args.is_empty: # parsing args
+    try:
+      let data = parse_yaml source.args
+      data.check_keys_in(["ph"], blk.warns)
+      if "ph" in data: blk.ph = data["ph"].get_bool
+    except:
+      blk.warns.add "Invalid args"
+
   parse_list_as_items(source.text, blk)
   proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, config)
   blk.list = map(blk.list, post_process)
@@ -509,16 +521,16 @@ proc parse_section[T](source: FBlockSource, section: T) =
   section.title = texts.join " "
   if section.title.is_empty: section.warns.add fmt"Empty {kind} title"
 
-proc parse_section*(source: FBlockSource): Section =
+proc parse_section*(source: FBlockSource): SectionBlock =
   assert source.kind == "section"
-  let blk = Section()
+  let blk = SectionBlock()
   source.args_should_be_empty blk.warns
   parse_section(source, blk)
   blk
 
-proc parse_subsection*(source: FBlockSource): Subsection =
+proc parse_subsection*(source: FBlockSource): SubsectionBlock =
   assert source.kind == "subsection"
-  let blk = Subsection()
+  let blk = SubsectionBlock()
   source.args_should_be_empty blk.warns
   parse_section(source, blk)
   unless blk.tags.is_empty: result.warns.add "tags not supported for subsection"
@@ -571,9 +583,8 @@ proc parse_images*(source: FBlockSource, doc: Doc): ImagesBlock =
   unless source.args.is_empty: # parsing args
     try:
       let data = parse_yaml source.args
+      data.check_keys_in(["cols"], blk.warns)
       if "cols" in data: blk.cols = data["cols"].get_int.some
-      for k in data.keys:
-        if k notin ["cols"]: blk.warns.add "Invalid arg: " & k
     except:
       blk.warns.add "Invalid args"
 
@@ -744,9 +755,9 @@ proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): D
         doc.warns.add fmt"Unknown block kind '{source.kind}'"
         UnknownBlock()
       blk.id = source.id; blk.hash = source.text.hash.int; blk.source = source
-      blk.blocksids = blk.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
       post_process_block(blk, doc, config)
       doc.blocks.add blk
+  doc.blockids = doc.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
   doc
 
 proc read*(_: type[Doc], location: string, config = FParseConfig.init): Doc =
