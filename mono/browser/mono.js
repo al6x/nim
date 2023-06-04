@@ -69,7 +69,7 @@ async function pull(mono_id) {
 let mono = {
     on_start() { set_dot_favicon("#1e40af"); },
     on_success() { set_dot_favicon("#1e40af"); },
-    on_fail() { set_dot_favicon("#991b1b"); },
+    on_fail() { set_dot_favicon("#94a3b8"); },
     on_expiry() { set_dot_favicon("#94a3b8"); },
 };
 window.mono = mono;
