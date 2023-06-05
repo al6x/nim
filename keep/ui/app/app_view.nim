@@ -1,5 +1,5 @@
 import base, mono/[core, http], std/os
-import ../../model/[spacem, dbm], ./location, ../palette, ./doc_view
+import ../../model/[spacem, dbm], ./location, ../palette, ./doc_view, ./helpers
 
 type AppView* = ref object of Component
   location*: Location
@@ -77,11 +77,15 @@ let page: PageFn = proc(root_el: El): string =
         <title>{title}</title>
         <link rel="stylesheet" href="/assets/mono.css"/>
         <link rel="stylesheet" href="/assets/palette/build/palette.css"/>
-        <link rel="icon" mono>
+        <link rel="icon">
       </head>
       <body>
 
     {app}
+
+    <template id="window_icon">{window_icon}</template>
+    <template id="window_icon_error">{window_icon_error}</template>
+    <template id="window_icon_expired">{window_icon_expired}</template>
 
     <script type="module">
       import { run } from "/assets/mono.js"
@@ -91,8 +95,13 @@ let page: PageFn = proc(root_el: El): string =
       </body>
     </html>
   """.dedent
-    .replace("{title}", root_el.window_title.escape_html)
-    .replace("{app}", root_el.to_html)
+    .multi_replace({
+      "{title}":               root_el.window_title.escape_html,
+      "{app}":                 root_el.to_html,
+      "{window_icon}":         svg_dot("#1e40af"),
+      "{window_icon_error}":   svg_dot("#991b1b"),
+      "{window_icon_expired}": svg_dot("#94a3b8")
+    })
 
 proc build_app_view*(session: Session, url: Url) =
   let app_view = AppView()

@@ -127,21 +127,24 @@ export function flash(
   }, delay)
 }
 
-export function change_favicon(href: string) {
-  var link: HTMLLinkElement | null = document.head.querySelector("link[rel~='icon'][mono]")
-  if (link && link.href != href) link.href = href
+export function set_window_title(title: string) {
+  if (document.title != title) document.title = title
 }
 
-export function svg_dot(color: string): string {
-  return `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <circle style="fill: ${color};" cx="50" cy="50" r="50"></circle>
-  </svg>`
+export function set_window_location(location: string) {
+  let current = window.location.pathname + window.location.search + window.location.hash
+  if (location != current) history.pushState({}, "", location)
 }
 
-export function svg_to_data_url(svg: string): string {
+export function set_favicon(href: string) {
+  var link: HTMLLinkElement | null = document.head.querySelector("link[rel~='icon']")
+  if (link) {
+    if (link.href != href) link.href = href
+  } else {
+    Log("mono").error("no favicon in html")
+  }
+}
+
+export function svg_to_base64_data_url(svg: string): string {
   return "data:image/svg+xml;base64," + btoa(svg)
-}
-
-export function set_dot_favicon(color: string) {
-  change_favicon(svg_to_data_url(svg_dot(color)))
 }

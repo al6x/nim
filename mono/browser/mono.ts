@@ -1,6 +1,6 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
 import { p, el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal,
-  sleep, set_dot_favicon } from "./helpers.js"
+  sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url } from "./helpers.js"
 
 // Types -------------------------------------------------------------------------------------------
 // In events
@@ -57,21 +57,24 @@ interface ApplyDiff {
 export function run() {
   listen_to_dom_events()
 
-  let mono_els = find_all('[mono_id]')
-  if (mono_els.length < 1) throw new Error("mono_id not found")
-  if (mono_els.length > 1) throw new Error("multiple mono_id not supported yet")
-  let mono_el = mono_els[0]
+  let mono_roots = find_all('[mono_id]')
+  if (mono_roots.length < 1) throw new Error("mono_id not found")
+  if (mono_roots.length > 1) throw new Error("multiple mono_id not supported yet")
+  let mono_root = mono_roots[0]
 
-  let mono_id         = mono_el.getAttribute("mono_id") || ""
-  let window_location = mono_el.getAttribute("window_location")
+  let mono_id = mono_root.getAttribute("mono_id")
+  if (!mono_id) throw new Error("mono_id can't be empty")
 
-  mono.on_start()
+  let window_location = mono_root.getAttribute("window_location")
   if (window_location) set_window_location(window_location)
+
+  set_window_icon(mono_id)
+
   pull(mono_id)
 }
 
 async function pull(mono_id: string): Promise<void> {
-  let log = Log("")
+  let log = Log("mono")
   log.info("started")
   main_loop: while (true) {
     let res: SessionPullEvent
@@ -80,12 +83,12 @@ async function pull(mono_id: string): Promise<void> {
       res = await send<SessionPostPullEvent, SessionPullEvent>(
         "post", location.href, { kind: "pull", mono_id }, -1
       )
-      mono.on_success()
+      if (last_call_was_retry) set_window_icon(mono_id)
       last_call_was_retry = false
     } catch {
       last_call_was_retry = true
+      set_window_icon_error(mono_id)
       if (!last_call_was_retry) log.warn("retrying...")
-      mono.on_fail()
       await sleep(1000)
       continue
     }
@@ -99,8 +102,7 @@ async function pull(mono_id: string): Promise<void> {
               eval("'use strict'; " + event.code)
               break
             case 'update':
-              let root = find_one(`[mono_id="${mono_id}"]`)
-              if (!root) throw new Error("can't find mono root")
+              let root = get_mono_root(mono_id)
               update(root, event.diffs)
               break
           }
@@ -109,7 +111,7 @@ async function pull(mono_id: string): Promise<void> {
       case 'ignore':
         break
       case 'expired':
-        mono.on_expiry()
+        set_window_icon_expired(mono_id)
         log.info("expired")
         break main_loop
       case 'error':
@@ -118,16 +120,6 @@ async function pull(mono_id: string): Promise<void> {
     }
   }
 }
-
-// integrations ------------------------------------------------------------------------------------
-// Override to provide custom behavior
-let mono = {
-  on_start()   { set_dot_favicon("#1e40af") },
-  on_success() { set_dot_favicon("#1e40af") },
-  on_fail()    { set_dot_favicon("#94a3b8") }, // #991b1b
-  on_expiry()  { set_dot_favicon("#94a3b8") },
-}
-;(window as any).mono = mono
 
 // events ------------------------------------------------------------------------------------------
 function listen_to_dom_events() {
@@ -236,7 +228,7 @@ function listen_to_dom_events() {
 
     for (const mono_id in batches) {
       let events = batches[mono_id]
-      Log("").info(">>", events)
+      Log("mono").info(">>", events)
       async function send_mono_x() {
         let data: SessionPostEvent = { kind: 'events', mono_id, events: [...input_events, ...events] }
         try   { await send("post", location.href, data) }
@@ -285,8 +277,11 @@ function set_attr(el: HTMLElement, k: string, v: ElAttrVal) {
   // Some attrs requiring special threatment
   let [value, kind]: [string, ElAttrKind] = Array.isArray(v) ? v : [v, "string_attr"]
 
-  if (k == "window_title")    return set_window_title(value)
-  if (k == "window_location") return set_window_location(value)
+  switch(k) {
+    case "window_title":    set_window_title(value); break
+    case "window_location": set_window_location(value); break
+    case "window_icon":     set_window_icon(value); break
+  }
 
   switch(kind) {
     case "bool_prop":
@@ -308,8 +303,11 @@ function del_attr(el: HTMLElement, attr: ElAttrVal) {
   // Some attrs requiring special threatment
   let [k, kind]: [string, ElAttrKind] = Array.isArray(attr) ? attr : [attr, "string_attr"]
 
-  if (k == "window_title") return set_window_title("")
-  if (k == "window_location") return
+  switch(k) {
+    case "window_title":    set_window_title(""); break
+    case "window_location": break
+    case "window_icon":     set_window_icon(""); break
+  }
 
   switch(kind) {
     case "bool_prop":
@@ -403,11 +401,35 @@ class ApplyDiffImpl implements ApplyDiff {
   }
 }
 
-function set_window_title(title: string) {
-  if (document.title != title) document.title = title
+// helpers -----------------------------------------------------------------------------------------
+function get_mono_root(mono_id: string): HTMLElement {
+  return find_one(`[mono_id="${mono_id}"]`)
 }
 
-function set_window_location(location: string) {
-  let current = window.location.pathname + window.location.search + window.location.hash
-  if (location != current) history.pushState({}, "", location)
+// window icon -------------------------------------------------------------------------------------
+function set_window_icon(mono_id: string, attr = "window_icon") {
+  let mono_root = get_mono_root(mono_id)
+  let href_or_id = mono_root.getAttribute(attr)
+  if (!href_or_id) {
+    // If attribute not set explicitly on root mono element, checking if there's template with such id
+    let id = "#" + attr
+    if (find_all(id).length > 0) href_or_id = id
+  }
+  if (!href_or_id) return
+  // Cold be the id of template with svg icon, or the image itself.
+  if (href_or_id.startsWith("#")) {
+    let template = find_one(href_or_id)
+    let svg = template.innerHTML
+    set_favicon(svg_to_base64_data_url(svg))
+  } else {
+    set_favicon(href_or_id)
+  }
+}
+
+function set_window_icon_expired(mono_id: string) {
+  set_window_icon(mono_id, "window_icon_expired")
+}
+
+function set_window_icon_error(mono_id: string) {
+  set_window_icon(mono_id, "window_icon_error")
 }

@@ -12,7 +12,7 @@ proc render*(self: DocView): El =
   let (doc, space) = (self.doc, self.space)
   let context = RenderContext.init(doc, space.id)
 
-  result =
+  let view =
     el(PApp, ( # App
       title: doc.title, title_hint: doc.title_hint, title_controls: doc.edit_title_btn.to_seq,
       warns: doc.warns,
@@ -21,7 +21,9 @@ proc render*(self: DocView): El =
       for blk in doc.blocks: # Blocks
         el(PBlock, (blk: blk, context: context, controls: edit_btn(blk, doc).to_seq))
 
-  result.window_title doc.title
+  view.window_title doc.title
+  view
+
 
 method render_doc*(doc: Doc, space: Space, parent: Component): El {.base.} =
   parent.el(DocView, fmt"{space.id}/{doc.id}", (space: space, doc: doc))
