@@ -106,7 +106,7 @@ when is_main_module:
         </head>
         <body>
 
-      {html}
+      {app}
 
       <script type="module">
         import { run } from "/assets/mono.js"
@@ -115,11 +115,12 @@ when is_main_module:
 
         </body>
       </html>
-    """.dedent
+    """.dedent.replace({
       # Feature: Setting title in initial HTML to improve SEO. Could be omited, as
       # it will be set automatically by JS.
-      .replace("{title}", root_el.window_title.escape_html)
-      .replace("{html}", root_el.to_html)
+      "{title}": root_el.window_title.escape_html,
+      "{app}":   root_el.to_html
+    })
 
   let blog = Blog(posts: @[
     Post(id: "1", title: "Title 1", text: "Text 1"),
