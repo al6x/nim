@@ -723,8 +723,6 @@ proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
     unless fs.exist(asset_path(doc, rpath)):
       blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
 
-  (blk.source.FBlockSource).tags = blk.tags
-
 proc init_fdoc*(location: string): Doc =
   assert location.ends_with ".ft"
   let id = location.file_name.file_name_ext.name
@@ -736,7 +734,7 @@ proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): D
   let (tags, tags_line_n) = pr.consume_tags
   let doc = init_fdoc location
   doc.warns.add pr.warns
-  let doc_source = DocTextSource(kind: "ftext", tags: tags, location: location, tags_line_n: tags_line_n)
+  let doc_source = DocTextSource(kind: "ftext", location: location, tags_line_n: tags_line_n)
   doc.hash = text.hash.int; doc.tags = tags; doc.source = doc_source
   for source in source_blocks:
     if   source.kind == "title":

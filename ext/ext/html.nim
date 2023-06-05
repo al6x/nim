@@ -18,6 +18,10 @@ proc escape_js*(js: string): SafeHtml =
 test "escape_js":
   assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
 
+proc svg_to_url_data*(svg: string): SafeHtml =
+  ("data:image/svg+xml,").escape_html
+    .replace("&#39;", "'") # not necessary, but makes it more nice and shorter
+
 # parse_tag ----------------------------------------------------------------------------------------
 proc parse_tag*(s: string): tuple[tag: string, attrs: Table[string, string]] =
   const special = {'#', '.', '$'}

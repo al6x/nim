@@ -118,3 +118,25 @@ before_delete_timeout = 400 // should be same as in CSS animation
         delete update_timeouts[id];
     }, delay);
 }
+export function set_window_title(title) {
+    if (document.title != title)
+        document.title = title;
+}
+export function set_window_location(location) {
+    let current = window.location.pathname + window.location.search + window.location.hash;
+    if (location != current)
+        history.pushState({}, "", location);
+}
+export function set_favicon(href) {
+    var link = document.head.querySelector("link[rel~='icon']");
+    if (link) {
+        if (link.href != href)
+            link.href = href;
+    }
+    else {
+        Log("mono").error("no favicon in html");
+    }
+}
+export function svg_to_base64_data_url(svg) {
+    return "data:image/svg+xml;base64," + btoa(svg);
+}

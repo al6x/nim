@@ -46,13 +46,27 @@ proc get*(self: El, el_path: seq[int]): El =
 
 # window el ----------------------------------------------------------------------------------------
 proc window_title*(self: El, title: string) =
+  # Title will be set dynamically
   self.attr("window_title", title)
 
 proc window_location*(self: El, location: string | Url) =
+  # Location will be set dynamically
   self.attr("window_location", location.to_s)
 
 proc window_title*(el: El): string =
   if "window_title" in el: el["window_title"] else: ""
+
+proc window_icon*(self: El, icon_href: string) =
+  # Icon will be set dynamically
+  self.attr("window_icon", icon_href)
+
+proc window_icon_expired*(self: El, icon_href: string) =
+  # Will be shown when mono session expired
+  self.attr("window_icon_expired", icon_href)
+
+proc window_icon_error*(self: El, icon_href: string) =
+  # Will be shown when networking errors and mono disconnected
+  self.attr("window_icon_error", icon_href)
 
 # events -------------------------------------------------------------------------------------------
 proc extras_getset*(self: El): MonoElExtras =

@@ -1,36 +1,40 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
-import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep } from "./helpers.js";
+import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url } from "./helpers.js";
 // run ---------------------------------------------------------------------------------------------
 export function run() {
     listen_to_dom_events();
-    let mono_els = find_all('[mono_id]');
-    if (mono_els.length < 1)
+    let mono_roots = find_all('[mono_id]');
+    if (mono_roots.length < 1)
         throw new Error("mono_id not found");
-    if (mono_els.length > 1)
+    if (mono_roots.length > 1)
         throw new Error("multiple mono_id not supported yet");
-    let mono_el = mono_els[0];
-    let mono_id = mono_el.getAttribute("mono_id") || "";
-    let window_location = mono_el.getAttribute("window_location");
+    let mono_root = mono_roots[0];
+    let mono_id = mono_root.getAttribute("mono_id");
+    if (!mono_id)
+        throw new Error("mono_id can't be empty");
+    let window_location = mono_root.getAttribute("window_location");
     if (window_location)
         set_window_location(window_location);
+    set_window_icon(mono_id);
     pull(mono_id);
 }
 async function pull(mono_id) {
-    let log = Log("");
+    let log = Log("mono");
     log.info("started");
     main_loop: while (true) {
         let res;
         let last_call_was_retry = false;
         try {
             res = await send("post", location.href, { kind: "pull", mono_id }, -1);
-            document.body.style.opacity = "1.0";
+            if (last_call_was_retry)
+                set_window_icon(mono_id);
             last_call_was_retry = false;
         }
         catch {
             last_call_was_retry = true;
+            set_window_icon_error(mono_id);
             if (!last_call_was_retry)
                 log.warn("retrying...");
-            document.body.style.opacity = "0.7";
             await sleep(1000);
             continue;
         }
@@ -43,9 +47,7 @@ async function pull(mono_id) {
                             eval("'use strict'; " + event.code);
                             break;
                         case 'update':
-                            let root = find_one(`[mono_id="${mono_id}"]`);
-                            if (!root)
-                                throw new Error("can't find mono root");
+                            let root = get_mono_root(mono_id);
                             update(root, event.diffs);
                             break;
                     }
@@ -54,7 +56,7 @@ async function pull(mono_id) {
             case 'ignore':
                 break;
             case 'expired':
-                document.body.style.opacity = "0.4";
+                set_window_icon_expired(mono_id);
                 log.info("expired");
                 break main_loop;
             case 'error':
@@ -171,7 +173,7 @@ function listen_to_dom_events() {
         post_batches = {};
         for (const mono_id in batches) {
             let events = batches[mono_id];
-            Log("").info(">>", events);
+            Log("mono").info(">>", events);
             async function send_mono_x() {
                 let data = { kind: 'events', mono_id, events: [...input_events, ...events] };
                 try {
@@ -221,10 +223,17 @@ function get_value(el) {
 function set_attr(el, k, v) {
     // Some attrs requiring special threatment
     let [value, kind] = Array.isArray(v) ? v : [v, "string_attr"];
-    if (k == "window_title")
-        return set_window_title(value);
-    if (k == "window_location")
-        return set_window_location(value);
+    switch (k) {
+        case "window_title":
+            set_window_title(value);
+            break;
+        case "window_location":
+            set_window_location(value);
+            break;
+        case "window_icon":
+            set_window_icon(value);
+            break;
+    }
     switch (kind) {
         case "bool_prop":
             assert(["true", "false"].includes(value), "invalid bool_prop value: " + value);
@@ -243,10 +252,15 @@ function set_attr(el, k, v) {
 function del_attr(el, attr) {
     // Some attrs requiring special threatment
     let [k, kind] = Array.isArray(attr) ? attr : [attr, "string_attr"];
-    if (k == "window_title")
-        return set_window_title("");
-    if (k == "window_location")
-        return;
+    switch (k) {
+        case "window_title":
+            set_window_title("");
+            break;
+        case "window_location": break;
+        case "window_icon":
+            set_window_icon("");
+            break;
+    }
     switch (kind) {
         case "bool_prop":
             ;
@@ -338,12 +352,35 @@ class ApplyDiffImpl {
             this.flash_els.add(flasheable);
     }
 }
-function set_window_title(title) {
-    if (document.title != title)
-        document.title = title;
+// helpers -----------------------------------------------------------------------------------------
+function get_mono_root(mono_id) {
+    return find_one(`[mono_id="${mono_id}"]`);
 }
-function set_window_location(location) {
-    let current = window.location.pathname + window.location.search + window.location.hash;
-    if (location != current)
-        history.pushState({}, "", location);
+// window icon -------------------------------------------------------------------------------------
+function set_window_icon(mono_id, attr = "window_icon") {
+    let mono_root = get_mono_root(mono_id);
+    let href_or_id = mono_root.getAttribute(attr);
+    if (!href_or_id) {
+        // If attribute not set explicitly on root mono element, checking if there's template with such id
+        let id = "#" + attr;
+        if (find_all(id).length > 0)
+            href_or_id = id;
+    }
+    if (!href_or_id)
+        return;
+    // Cold be the id of template with svg icon, or the image itself.
+    if (href_or_id.startsWith("#")) {
+        let template = find_one(href_or_id);
+        let svg = template.innerHTML;
+        set_favicon(svg_to_base64_data_url(svg));
+    }
+    else {
+        set_favicon(href_or_id);
+    }
+}
+function set_window_icon_expired(mono_id) {
+    set_window_icon(mono_id, "window_icon_expired");
+}
+function set_window_icon_error(mono_id) {
+    set_window_icon(mono_id, "window_icon_error");
 }

@@ -126,3 +126,25 @@ export function flash(
     delete update_timeouts[id]
   }, delay)
 }
+
+export function set_window_title(title: string) {
+  if (document.title != title) document.title = title
+}
+
+export function set_window_location(location: string) {
+  let current = window.location.pathname + window.location.search + window.location.hash
+  if (location != current) history.pushState({}, "", location)
+}
+
+export function set_favicon(href: string) {
+  var link: HTMLLinkElement | null = document.head.querySelector("link[rel~='icon']")
+  if (link) {
+    if (link.href != href) link.href = href
+  } else {
+    Log("mono").error("no favicon in html")
+  }
+}
+
+export function svg_to_base64_data_url(svg: string): string {
+  return "data:image/svg+xml;base64," + btoa(svg)
+}
