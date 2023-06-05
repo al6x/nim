@@ -87,7 +87,7 @@ async function pull(mono_id: string): Promise<void> {
       last_call_was_retry = false
     } catch {
       last_call_was_retry = true
-      set_window_icon_error(mono_id)
+      set_window_icon_disabled(mono_id)
       if (!last_call_was_retry) log.warn("retrying...")
       await sleep(1000)
       continue
@@ -111,7 +111,7 @@ async function pull(mono_id: string): Promise<void> {
       case 'ignore':
         break
       case 'expired':
-        set_window_icon_expired(mono_id)
+        set_window_icon_disabled(mono_id)
         log.info("expired")
         break main_loop
       case 'error':
@@ -426,10 +426,6 @@ function set_window_icon(mono_id: string, attr = "window_icon") {
   }
 }
 
-function set_window_icon_expired(mono_id: string) {
-  set_window_icon(mono_id, "window_icon_expired")
-}
-
-function set_window_icon_error(mono_id: string) {
-  set_window_icon(mono_id, "window_icon_error")
+function set_window_icon_disabled(mono_id: string) {
+  set_window_icon(mono_id, "window_icon_disabled")
 }
