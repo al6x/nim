@@ -1,6 +1,6 @@
 Nim UI/Web/Desktop/Mobile Framework
 
-**High productivity, simple and clean code** are main priorities.
+High productivity, simple, short and clean code.
 
 Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) or [Todo Example](mono/examples/todo.nim)
 
@@ -13,11 +13,10 @@ nim r --experimental:overloadable_enums --threads:off todo.nim
 
 # Features
 
-- Reactive, like Svelte, with compact and clean code.
-- Works on Nim Server, or Compile to JS in Browser.
+- Reactive, like Svelte or React.
 - Stateful Components and bidirectional data binding.
-- Multiple UI instances with shared memory updated automatically.
 - Fast initial page load and SEO friendly.
+- Works on Nim Server, or Compile to JS in Browser.
 
 # Component Templates
 

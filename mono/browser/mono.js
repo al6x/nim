@@ -32,7 +32,7 @@ async function pull(mono_id) {
         }
         catch {
             last_call_was_retry = true;
-            set_window_icon_error(mono_id);
+            set_window_icon_disabled(mono_id);
             if (!last_call_was_retry)
                 log.warn("retrying...");
             await sleep(1000);
@@ -56,7 +56,7 @@ async function pull(mono_id) {
             case 'ignore':
                 break;
             case 'expired':
-                set_window_icon_expired(mono_id);
+                set_window_icon_disabled(mono_id);
                 log.info("expired");
                 break main_loop;
             case 'error':
@@ -378,9 +378,6 @@ function set_window_icon(mono_id, attr = "window_icon") {
         set_favicon(href_or_id);
     }
 }
-function set_window_icon_expired(mono_id) {
-    set_window_icon(mono_id, "window_icon_expired");
-}
-function set_window_icon_error(mono_id) {
-    set_window_icon(mono_id, "window_icon_error");
+function set_window_icon_disabled(mono_id) {
+    set_window_icon(mono_id, "window_icon_disabled");
 }

@@ -60,13 +60,9 @@ proc window_icon*(self: El, icon_href: string) =
   # Icon will be set dynamically
   self.attr("window_icon", icon_href)
 
-proc window_icon_expired*(self: El, icon_href: string) =
-  # Will be shown when mono session expired
-  self.attr("window_icon_expired", icon_href)
-
-proc window_icon_error*(self: El, icon_href: string) =
-  # Will be shown when networking errors and mono disconnected
-  self.attr("window_icon_error", icon_href)
+proc window_icon_disabled*(self: El, icon_href: string) =
+  # Will be shown when no connection
+  self.attr("window_icon_disabled", icon_href)
 
 # events -------------------------------------------------------------------------------------------
 proc extras_getset*(self: El): MonoElExtras =

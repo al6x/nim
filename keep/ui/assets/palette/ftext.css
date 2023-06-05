@@ -1,4 +1,4 @@
-.ftext { @apply flex; @apply flex-col; @apply space-y-2; }
+.ftext { @apply flex; @apply flex-col; @apply space-y-3; }
 .ftext > * { display: block; }
 
 .ftext pre { @apply text-sm; @apply rounded; @apply px-2; @apply py-2; @apply bg-gray-50; }
