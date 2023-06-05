@@ -1,5 +1,6 @@
 # Todo
 
+- Hierarchical tags
 - make tags and text lowercase, make it tags, mtags, ltags
 - Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
 - merge tags doc -> section -> block, do it at keep
@@ -15,6 +16,7 @@
   show query and chunk trigrams, don't do separate app, use with notes, just add extra vidgets to display
   peformance and trigrams.
 - Add space/doc/block link for both embed and block display.
+- Spaces have different colors of favicon, favicon set on top level compponent as window_icon
 
 # Lodo
 
@@ -51,6 +53,7 @@ Use two todos, first organised in Keep, and log like buffer on mobile.
 - Git for collaboration, updates, conflict resolution
 - Any file hosting for sharing
 - Ftext format is almost the same as Nim ftext DSL
+- Hierarchical tags, colored
 
 # Forward 80 to 8080 on Mac OS
 
