@@ -25,7 +25,7 @@ proc init*(_: type[RenderConfig]): RenderConfig =
 
 # render_embed -------------------------------------------------------------------------------------
 method render_embed*(embed: Embed, context: RenderContext): SafeHtml {.base.} =
-  "<code>" & embed.kind.escape_html & "{" & embed.body.escape_html & "}</code>"
+  "<code>" & embed.kind.escape_html(quotes = false) & "{" & embed.body.escape_html(quotes = false) & "}</code>"
 
 method render_embed*(embed: ImageEmbed, context: RenderContext): SafeHtml =
   let path = context.config.asset_path(embed.path, context)
@@ -65,15 +65,15 @@ proc render_text*(text: Text, context: RenderContext): SafeHtml =
 
     case item.kind
     of TextItemKind.text:
-      html.add item.text.escape_html
+      html.add item.text.escape_html(quotes = false)
     of TextItemKind.link:
       let path = config.link_path(item.link, context)
-      html.add fmt"""<a class="link" href="{path.escape_html}">{item.text.escape_html}</a>"""
+      html.add fmt"""<a class="link" href="{path.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.glink:
-      html.add fmt"""<a class="glink" href="{item.glink.escape_html}">{item.text.escape_html}</a>"""
+      html.add fmt"""<a class="glink" href="{item.glink.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.tag:
       let path = config.tag_path(item.text, context)
-      html.add fmt"""<a class="tag" href="/tags/{item.text.escape_html}">#{item.text.escape_html}</a>"""
+      html.add fmt"""<a class="tag" href="/tags/{item.text.escape_html}">#{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.embed:
       html.add: render_embed(item.embed, context)
 
@@ -111,7 +111,7 @@ method render_block*(blk: ListBlock, context: RenderContext): El =
 # code
 method render_block*(blk: CodeBlock, context: RenderContext): El =
   el"pre":
-    it.text blk.code.escape_html
+    it.text blk.code.escape_html(quotes = false)
 
 # image
 method render_block*(blk: ImageBlock, context: RenderContext): El =

@@ -107,3 +107,6 @@ proc `len=`*(s: var string, n: int) =
 proc fill*(_: type[string], len: int, c: char): string =
   result.len = len
   for i in 0..<len: result[i] = c
+
+proc replace*(s: string, reps: openarray[(string, string)]): string =
+  s.multi_replace(reps)

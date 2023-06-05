@@ -166,7 +166,7 @@ when is_main_module:
         <body>
           <section class="todoapp">
 
-      {html}
+      {app}
 
       <script type="module">
         import { run } from "/assets/mono.js"
@@ -176,9 +176,10 @@ when is_main_module:
           </section>
         </body>
       </html>
-    """.dedent
-      .replace("{title}", root_el.window_title.escape_html)
-      .replace("{html}", root_el.to_html)
+    """.dedent.replace({
+      "{title}": root_el.window_title.escape_html,
+      "{app}":   root_el.to_html
+    })
 
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk"), TodoItem(text: "Buy Beef")])

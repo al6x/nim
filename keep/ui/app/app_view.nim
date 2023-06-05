@@ -95,7 +95,7 @@ let page: PageFn = proc(root_el: El): string =
       </body>
     </html>
   """.dedent
-    .multi_replace({
+    .replace({
       "{title}":               root_el.window_title.escape_html,
       "{app}":                 root_el.to_html,
       "{window_icon}":         svg_dot("#1e40af"),

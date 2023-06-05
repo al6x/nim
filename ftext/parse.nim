@@ -726,7 +726,7 @@ proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
 proc init_fdoc*(location: string): Doc =
   assert location.ends_with ".ft"
   let id = location.file_name.file_name_ext.name
-  Doc(id: id, title: id, asset_path: location[0..^4].some)
+  Doc(id: id, asset_path: location[0..^4].some)
 
 proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): Doc =
   let pr = Parser.init(text)

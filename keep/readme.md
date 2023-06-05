@@ -1,11 +1,9 @@
 # Todo
 
-- Hierarchical tags
 - make tags and text lowercase, make it tags, mtags, ltags
-- Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
-- merge tags doc -> section -> block, do it at keep
 - Turn alex/notes into space
 - Make search
+- Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
 - Use block or text table to display list of notes
 - Add block and doc id to search index
 - Refactor space, so it can have mixed content, ftext etc
@@ -17,6 +15,8 @@
   peformance and trigrams.
 - Add space/doc/block link for both embed and block display.
 - Spaces have different colors of favicon, favicon set on top level compponent as window_icon
+- Hierarchical tags
+- Mozaic images gallery
 
 # Lodo
 

@@ -4,10 +4,14 @@ import base
 type SafeHtml* = string
 # type SafeHtml* = distinct string # not working, Nim crashes https://github.com/nim-lang/Nim/issues/21800
 
-const ESCAPE_HTML_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }.to_table
+proc escape_html*(html: string, quotes = true): SafeHtml =
+  let escape_map {.global.} = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }.to_table
+  let escape_re {.global.} = re"""([&<>'"])"""
+  let partial_map {.global.} = { "&": "&amp;", "<": "&lt;", ">": "&gt;" }.to_table
+  let partial_re {.global.} = re"""([&<>])"""
 
-proc escape_html*(html: string): SafeHtml =
-  html.replace(re"""([&<>'"])""", (c) => ESCAPE_HTML_MAP[c])
+  if quotes: html.replace(escape_re, (c) => escape_map[c])
+  else:      html.replace(partial_re, (c) => partial_map[c])
 
 test "escape_html":
   check escape_html("""<div attr="val">""").to_s == "&lt;div attr=&quot;val&quot;&gt;"
@@ -19,8 +23,8 @@ test "escape_js":
   assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
 
 proc svg_to_url_data*(svg: string): SafeHtml =
-  ("data:image/svg+xml,").escape_html
-    .replace("&#39;", "'") # not necessary, but makes it more nice and shorter
+  ("data:image/svg+xml,").escape_html(quotes = false)
+    .replace("\"", "'") # not necessary, but makes it more nice and shorter
 
 # parse_tag ----------------------------------------------------------------------------------------
 proc parse_tag*(s: string): tuple[tag: string, attrs: Table[string, string]] =
@@ -196,7 +200,7 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
     html.add "</" & el.tag & ">"
     # if newlines: html.add "\n"
   of ElKind.text:
-    html.add el.text_data.escape_html
+    html.add el.text_data.escape_html(quotes = false)
   of ElKind.html:
     html.add el.html_data
   of ElKind.list:

@@ -217,10 +217,11 @@ proc PApp*(
       #   it.class "top-3.5"
       #   it.text "#"
       #   it.location "#"
-      pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
-        el".text-2xl flash":
-          it.text title
-          it.attr("title", title_hint)
+      unless title.is_empty:
+        pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
+          el".text-2xl flash":
+            it.text title
+            it.attr("title", title_hint)
 
       it.add content
 
