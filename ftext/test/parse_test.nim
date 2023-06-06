@@ -76,7 +76,7 @@ test "consume_blocks, consume_tags":
     some text ^text
   """, @[("text", "", "some text", (1, 1))], (seq[string].init, (1, 1))
 
-test "consume_blocks, consume_tags, with multiblocks":
+test "consume_blocks, consume_tags, with implicit text block":
   test_blocks """
     Some text
 
@@ -98,6 +98,15 @@ test "consume_blocks, consume_tags, with multiblocks":
     ("text",    "",   "some text\n\n#T", (10, 12)),
   ],
     (@["dt"], (14, 14)
+  )
+
+test "implicit text block, from error":
+  test_blocks """
+    Something
+  """, @[
+    ("text",    "",   "Something", (1, 1)),
+  ],
+    (@[], (-1, -1)
   )
 
 test "text_embed":
@@ -497,4 +506,5 @@ test "doc, from error":
 
     Some
   """.dedent.trim, "some.ft")
-  check doc.warns == @["Unknown text in tags: Some"]
+  check doc.blocks.len == 1
+  check doc.warns.is_empty
