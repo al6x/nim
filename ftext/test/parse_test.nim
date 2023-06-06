@@ -505,6 +505,9 @@ test "doc, from error":
     Algorithms ^title
 
     Some
+
+    Another
   """.dedent.trim, "some.ft")
   check doc.blocks.len == 1
+  check doc.blocks[0].text == "Some Another"
   check doc.warns.is_empty

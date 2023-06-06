@@ -93,7 +93,7 @@ proc add_text(sentence: var string, text: string) =
 let tag_delimiter_chars  = space_chars + {','}
 let quoted_tag_end_chars = {'\n', '"'}
 proc is_tag*(pr: Parser): bool =
-  pr.get == '#'
+  pr.get == '#' and pr.get(1) notin tag_delimiter_chars
 
 proc consume_tag*(pr: Parser): Option[string] =
   assert pr.get == '#'
@@ -748,7 +748,15 @@ proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[s
   # Doc tags may have implicittext
   pr.skip space_chars
   let tags_text = pr.remainder
-  if tags_text.has_implicittext:
+  if pr.find_without_embed((_) => pr.is_tag) < 0 and pr.find_without_embed((c) => c notin space_chars) >= 0:
+    # No tags only text block
+    let text = pr.remainder.trim
+    let blk = FBlockSource(text: text, kind: "text", line_n: (
+      pr.text.line_n(pr.i),
+      pr.text.line_n(pr.i + text.high)
+    ))
+    (blk.some, @[], (-1, -1))
+  elif tags_text.has_implicittext:
     let (atext, alines, btext, blines) = tags_text.parse_block_with_implicittext
 
     let blk = FBlockSource(text: atext.trim, kind: "text", line_n: (
@@ -758,18 +766,12 @@ proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[s
 
     let tpr = Parser.init btext
     let (tags, _, tags_pos_n) = tpr.consume_tags
+    pr.warns.add tpr.warns
+
     (blk.some, tags, (
       pr.text.line_n(pr.i + tags_pos_n[0] + blines[0]),
       pr.text.line_n(pr.i + tags_pos_n[1] + blines[1])
     ))
-  elif pr.find_without_embed((c) => c == '#') < 0 and pr.find_without_embed((c) => c notin space_chars) >= 0:
-    # No tags only text block
-    let text = pr.remainder.trim
-    let blk = FBlockSource(text: text, kind: "text", line_n: (
-      pr.text.line_n(pr.i),
-      pr.text.line_n(pr.i + text.high)
-    ))
-    (blk.some, @[], (-1, -1))
   else:
     let (tags, lines, _) = pr.consume_tags
     (FBlockSource.none, tags, lines)
