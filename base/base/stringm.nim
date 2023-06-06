@@ -110,3 +110,9 @@ proc fill*(_: type[string], len: int, c: char): string =
 
 proc replace*(s: string, reps: openarray[(string, string)]): string =
   s.multi_replace(reps)
+
+proc reverse*(s: string): string =
+  var i = s.high
+  while i >= 0:
+    result.add s[i]
+    i.dec

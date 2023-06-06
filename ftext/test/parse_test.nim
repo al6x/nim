@@ -16,7 +16,8 @@ template check_i(list, i, expected) =
 test "consume_tags":
   template t(a, b) =
     let pr = Parser.init(a.dedent)
-    check pr.consume_tags == b
+    let (tags, lines, _) = pr.consume_tags
+    check (tags, lines ) == b
 
   t """
     #"a a"  #b, #д
@@ -30,16 +31,18 @@ test "consume_tags":
     #a ^text #b
   """, (@["a", "b"], (1, 1))
 
-test "consume_blocks, consume_tags":
-  template t(a, expected, tags) =
-    let pr = Parser.init(a.dedent.trim)
-    var parsed = pr.consume_blocks
-    check parsed.len == expected.len
-    for i, parsed_i in parsed:
-      check (parsed_i.kind, parsed_i.id, parsed_i.text, parsed_i.line_n) == expected[i]
-    check pr.consume_tags == tags
+template test_blocks(a, expected, tags) =
+  let pr = Parser.init(a.dedent.trim)
+  var parsed = pr.consume_blocks(@["section"])
+  let (blk, parsed_tags, tag_lines) = pr.consume_doc_tags
+  if blk.is_some: parsed.add blk.get
+  check parsed.len == expected.len
+  for i, parsed_i in parsed:
+    check (parsed_i.kind, parsed_i.id, parsed_i.text, parsed_i.line_n) == expected[i]
+  check (parsed_tags, tag_lines) == tags
 
-  t """
+test "consume_blocks, consume_tags":
+  test_blocks """
     S t [s l](http://site.com) an t,
     same ^ par.
 
@@ -54,24 +57,48 @@ test "consume_blocks, consume_tags":
 
     second line ^list
 
-    k: 1 ^config.data
+    k: 1 ^id.data
 
     some text
     #tag #another ^text
 
     #tag #another tag
   """, @[
-    ("text", "",     "S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", (1, 4)),
-    ("list", "",     "- first m{2^a} line\n- second line", (6, 7)),
-    ("text", "",     "", (9, 9)),
-    ("list", "",     "first line\n\nsecond line", (11, 13)),
-    ("data", "config", "k: 1", (15, 15)),
-    ("text", "",     "some text\n#tag #another", (17, 18))
+    ("text", "",   "S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", (1, 4)),
+    ("list", "",   "- first m{2^a} line\n- second line", (6, 7)),
+    ("text", "",   "", (9, 9)),
+    ("list", "",   "first line\n\nsecond line", (11, 13)),
+    ("data", "id", "k: 1", (15, 15)),
+    ("text", "",   "some text\n#tag #another", (17, 18))
   ], (@["tag", "another"], (20, 20))
 
-  t """
+  test_blocks """
     some text ^text
   """, @[("text", "", "some text", (1, 1))], (seq[string].init, (1, 1))
+
+test "consume_blocks, consume_tags, with multiblocks":
+  test_blocks """
+    Some text
+
+    Another
+
+    #T
+
+    Section
+    #st ^id.section
+
+    some text
+
+    #T
+
+    #dt
+  """, @[
+    ("text",    "",   "Some text\n\nAnother\n\n#T", (1, 5)),
+    ("section", "id", "Section\n#st", (7, 8)),
+    ("text",    "",   "some text\n\n#T", (10, 12)),
+  ],
+    (@["dt"], (14, 14)
+  )
 
 test "text_embed":
   template t(a, i, b) =

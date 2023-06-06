@@ -29,8 +29,8 @@ proc has*(pr: Parser, shift = 0): bool =
 proc has_next*(pr: Parser): bool =
   pr.has(1)
 
-proc inc*(pr: Parser) =
-  if pr.i < pr.text.len: pr.i.inc
+proc inc*(pr: Parser, by = 1) =
+  pr.i = min(pr.text.len, pr.i + by)
 
 proc skip*(pr: Parser, fn: (char) -> bool, shift = 0) =
   pr.i += shift

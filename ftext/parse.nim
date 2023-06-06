@@ -10,6 +10,7 @@ type # Config
   FEmbedParser* = proc (raw: string, blk: Block, doc: Doc, config: FParseConfig): Embed
 
   FParseConfig* = ref object
+    multiblocks*:   seq[string] # Blocks that may contain not clearly defined block of text
     block_parsers*: Table[string, FBlockParser]
     embed_parsers*: Table[string, FEmbedParser]
 
@@ -109,7 +110,7 @@ proc consume_tag*(pr: Parser): Option[string] =
   else:
     pr.warns.add "Empty tag"
 
-proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tuple[tags: seq[string], line_n: (int, int)] =
+proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tuple[tags: seq[string], line_n: (int, int), pos_n: (int, int)] =
   var unknown = ""; var tags: seq[string];
   pr.skip space_chars
   let tags_start_pos = min(pr.i, pr.text.high)
@@ -127,17 +128,29 @@ proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tup
   let tags_end_pos = block:
     let i = pr.rfind(not_space_chars)
     max(tags_start_pos, pr.i - i)
-  (tags, (pr.text.line_n(tags_start_pos), pr.text.line_n(tags_end_pos)))
+  (tags, (pr.text.line_n(tags_start_pos), pr.text.line_n(tags_end_pos)), (tags_start_pos, tags_end_pos))
 
 # blocks -------------------------------------------------------------------------------------------
 let not_tick_chars           = {'^'}.complement
 let not_allowed_in_block_ext = {'}'}
 let block_id_type_chars      = alphanum_chars + {'.'}
 
-proc consume_block*(pr: Parser, blocks: var seq[FBlockSource]) =
+proc has_multiblock(text: string): bool =
+  re"\n\s*\n" =~ text
+
+proc parse_multiblock(text: string): (string, (int, int), string, (int, int)) =
+  let split_re {.global.} = re"\n\s*\n"
+  let parts = text.reverse.broken_split(split_re, maxsplit = 2)
+  assert parts.len == 2, "invalid multiblock"
+  let (text_blk, blk) = (parts[1].reverse, parts[0].reverse)
+  let blk_i = text.findi(re"[^\n\s]", start = text_blk.len)
+  assert blk_i > text_blk.len, "internal error, can't get second block start"
+  (text_blk, (0, text_blk.high), blk, (blk_i, blk_i + blk.high))
+
+proc consume_block*(pr: Parser, blocks: var seq[FBlockSource], multiblocks: seq[string]) =
   let start = pr.i
   let non_empty_start = pr.i + pr.find(not_space_chars)
-  let body = pr.consume(proc (c: auto): bool =
+  var body = pr.consume(proc (c: auto): bool =
     if c == '^' and (pr.get(1) in alpha_chars):
       for v in pr.items(1): # Looking ahead for newline but not allowing some special characters
         if   v in not_allowed_in_block_ext: return true
@@ -147,7 +160,7 @@ proc consume_block*(pr: Parser, blocks: var seq[FBlockSource]) =
   )
   pr.inc
   let id_and_kind = pr.consume block_id_type_chars
-  let (id, kind) = if '.' in id_and_kind:
+  var (id, kind) = if '.' in id_and_kind:
     let parts = id_and_kind.split '.'
     if parts.len > 2: pr.warns.add fmt"Wrong block id or kind: '{id_and_kind}'"
     (parts[0], parts[1])
@@ -157,20 +170,59 @@ proc consume_block*(pr: Parser, blocks: var seq[FBlockSource]) =
 
   if not kind.is_empty:
     # ignoring trailing spaces and newlines to get correct block end line position
-    let prc = pr.deep_copy
-    while prc.i > 0 and prc.get in space_chars: prc.i.dec
+    # let prc = pr.deep_copy
+    # while prc.i > 0 and prc.get in space_chars: prc.i.dec
 
-    blocks.add FBlockSource(text: body.trim, kind: kind.trim, id: id, args: args.trim,
-      line_n: (pr.text.line_n(non_empty_start), prc.text.line_n(prc.i)))
+    # Processing multiblocks
+    kind = kind.trim; body = body.trim
+    if kind in multiblocks and body.has_multiblock:
+      let (atext, alines, btext, blines) = body.parse_multiblock
+
+      blocks.add FBlockSource(text: atext.trim, kind: "text", line_n: (
+        pr.text.line_n(non_empty_start + alines[0]),
+        pr.text.line_n(non_empty_start + alines[1])
+      ))
+
+      blocks.add FBlockSource(text: btext.trim, kind: kind.trim, id: id, args: args.trim, line_n: (
+        pr.text.line_n(non_empty_start + blines[0]),
+        pr.text.line_n(non_empty_start + blines[1])
+      ))
+    else:
+      blocks.add FBlockSource(text: body.trim, kind: kind.trim, id: id, args: args.trim, line_n: (
+        pr.text.line_n(non_empty_start),
+        pr.text.line_n(non_empty_start + body.trim.len)
+      ))
   else:
     pr.i = start # rolling back
 
-proc consume_blocks*(pr: Parser): seq[FBlockSource] =
+proc consume_blocks*(pr: Parser, multiblocks: seq[string]): seq[FBlockSource] =
   var prev_i = -1
   while true:
-    pr.consume_block result
+    pr.consume_block(result, multiblocks)
     if pr.i == prev_i: break
     prev_i = pr.i
+
+proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[string], line_n: (int, int)] =
+  # Doc tags may have multiblock
+  pr.skip space_chars
+  let tags_text = pr.remainder
+  if tags_text.has_multiblock:
+    let (atext, alines, btext, blines) = tags_text.parse_multiblock
+
+    let blk = FBlockSource(text: atext.trim, kind: "text", line_n: (
+      pr.text.line_n(pr.i + alines[0]),
+      pr.text.line_n(pr.i + alines[1])
+    ))
+
+    let tpr = Parser.init btext
+    let (tags, _, tags_pos_n) = tpr.consume_tags
+    (blk.some, tags, (
+      pr.text.line_n(pr.i + tags_pos_n[0] + blines[0]),
+      pr.text.line_n(pr.i + tags_pos_n[1] + blines[1])
+    ))
+  else:
+    let (tags, lines, _) = pr.consume_tags
+    (FBlockSource.none, tags, lines)
 
 # text_embedding -----------------------------------------------------------------------------------
 proc is_text_embed*(pr: Parser): bool =
@@ -440,7 +492,7 @@ proc parse_tags_on_last_line_if_present(raw: string, not_tags: (proc(lines: seq[
     let starts_with_tag_character = lines.last.trim.starts_with("#")
     if starts_with_tag_character and not not_tags(lines):
       let lpr = Parser.init(lines.last.trim)
-      let (tags, _) = lpr.consume_tags
+      let tags = lpr.consume_tags.tags
       blk.tags.add tags
       blk.warns.add lpr.warns
       lines.len = lines.len - 1
@@ -708,7 +760,9 @@ proc init*(_: type[FParseConfig]): FParseConfig =
   embed_parsers["image"] = (raw, blk, doc, config) => parse_embed_image(raw, blk).Embed
   embed_parsers["code"]  = (raw, blk, doc, config) => parse_embed_code(raw, blk).Embed
 
-  FParseConfig(block_parsers: block_parsers, embed_parsers: embed_parsers)
+  let multiblocks = @["image", "images", "section", "subsection"]
+
+  FParseConfig(block_parsers: block_parsers, embed_parsers: embed_parsers, multiblocks: multiblocks)
 
 # parse --------------------------------------------------------------------------------------------
 proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
@@ -730,8 +784,10 @@ proc init_fdoc*(location: string): Doc =
 
 proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): Doc =
   let pr = Parser.init(text)
-  let source_blocks = pr.consume_blocks
-  let (tags, tags_line_n) = pr.consume_tags
+  var source_blocks = pr.consume_blocks(config.multiblocks)
+  let (blk, tags, tags_line_n) = pr.consume_doc_tags
+  if blk.is_some: source_blocks.add blk.get
+
   let doc = init_fdoc location
   doc.warns.add pr.warns
   let doc_source = DocTextSource(kind: "ftext", location: location, tags_line_n: tags_line_n)
