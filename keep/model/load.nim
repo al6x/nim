@@ -34,16 +34,33 @@ proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string)
   proc check_for_changed_files =
     for entry in get_changed():
       if entry.kind == file:
-        let (name, ext) = entry.path.file_name_ext
-        if ext in parsers:
-          let parser = parsers[ext]
-          case entry.change
-          of created, updated:
-            let doc = parser(entry.path)
+        let rpath = entry.path.replace space_path & "/"
+        let parts = rpath.split("/")
+        if   parts.len == 1: # top level file in space
+          let (name, ext) = rpath.file_name_ext
+          if ext in parsers:
+            let parser = parsers[ext]
+            case entry.change
+            of created, updated:
+              let doc = parser(entry.path)
+              post_process_doc(doc, name, space)
+              space.docs[doc.id] = doc
+            of deleted:
+              space.docs.del name
+            space.version.inc
+            space.log.with((doc: entry.path.file_name)).info entry.change.to_s
+        elif parts.len > 1: # file in space subdir
+          let subdir = parts[0]
+          if subdir in space.docs: # doc asset changed
+            var doc = space.docs[subdir]
+            let location = doc.source.DocTextSource.location
+            let (name, ext) = location.file_name_ext
+            let parser = parsers[ext]
+            doc = parser(location)
             post_process_doc(doc, name, space)
             space.docs[doc.id] = doc
-          of deleted:
-            space.docs.del name
-          space.version.inc
-          space.log.with((doc: entry.path.file_name)).info entry.change.to_s
+            space.version.inc
+            space.log.with((doc: location.file_name)).info "updated"
+        else:
+          throw "error"
   db.bgjobs.add check_for_changed_files
