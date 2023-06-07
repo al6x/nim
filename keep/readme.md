@@ -20,6 +20,7 @@
 
 # Lodo
 
+- Expand asset extensions, like img into img.png or jpg
 - Allow requests only from "keep" domain
 - make editor configurable
 - Checkout M. Fowler BiKi

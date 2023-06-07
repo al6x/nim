@@ -454,7 +454,7 @@ proc parse_text*(source: FBlockSource, doc: Doc, config: FParseConfig): TextBloc
 
 proc parse_embed_image*(path: string, blk: Block): ImageEmbed =
   let path = normalize_asset_path(path, blk.warns)
-  blk.assets.add path
+  unless path.is_empty: blk.assets.add path
   blk.text.add_text path
   ImageEmbed(path: path)
 
@@ -595,7 +595,6 @@ proc parse_path_and_tags(text: string, warns: var seq[string]): tuple[path: stri
   (path, tags)
 
 proc parse_image*(source: FBlockSource, doc: Doc): ImageBlock =
-  assert source.kind == "image"
   var warns: seq[string]
   let (path, tags) = parse_path_and_tags(source.text, warns)
   var assets: seq[string]
@@ -686,7 +685,7 @@ proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBl
   var has_header = false
   unless source.args.is_empty: # parsing args
     try:
-      let data = parse_yaml source.args
+      let data = parse_yaml "{ " & source.args & " }"
       data.check_keys_in(["style", "header", "card_cols"], blk.warns)
       if "style"     in data: data["style"].json_to blk.style
       if "header"    in data: data["header"].json_to has_header
@@ -741,6 +740,7 @@ proc init*(_: type[FParseConfig]): FParseConfig =
   block_parsers["data"]   = (blk, doc, config) => parse_data(blk)
   block_parsers["code"]   = (blk, doc, config) => parse_code(blk)
   block_parsers["image"]  = (blk, doc, config) => parse_image(blk, doc)
+  block_parsers["img"] = block_parsers["image"]
   block_parsers["images"] = (blk, doc, config) => parse_images(blk, doc)
   block_parsers["table"]  = (blk, doc, config) => parse_table(blk, doc, config)
 
@@ -749,6 +749,7 @@ proc init*(_: type[FParseConfig]): FParseConfig =
 
   var embed_parsers: Table[string, FEmbedParser]
   embed_parsers["image"] = (raw, blk, doc, config) => parse_embed_image(raw, blk).Embed
+  embed_parsers["img"] = embed_parsers["image"]
   embed_parsers["code"]  = (raw, blk, doc, config) => parse_embed_code(raw, blk).Embed
 
   let can_have_implicittext = @["image", "images", "section", "subsection"]
@@ -796,6 +797,7 @@ proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
   normalise links
   normalise glinks
   normalise warns
+  normalise tags
 
   for rpath in blk.assets:
     assert not rpath.is_empty, "asset can't be empty"

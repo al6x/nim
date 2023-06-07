@@ -174,9 +174,11 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
           el".flex.flex-col.space-y-1.py-1.overflow-hidden .rounded.border.border-gray-200":
             for j, cell in row:
               if single_image_cols[j]:
-                el"": # Image had to be nested in div, otherwise it's not scaled properly
-                  el".ftext_image_container":
-                    it.html cell.render_text(context)
+                # el"": # Image had to be nested in div, otherwise it's not scaled properly
+                #   el".ftext_image_container":
+                #     it.html cell.render_text(context)
+                el"":
+                  it.html cell.render_text(context)
               else:
                 el".px-2":
                   if j == 0: it.class "font-bold"
@@ -186,7 +188,7 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
   el"": # It has to be nested in div otherwise `table-layout: fixed` doesn't work
     el"table cellspacing=0 cellpadding=0":
       # setting margin after each row
-      it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
+      it.style "border-spacing: 0 1rem; margin: -1rem 0; border-collapse: separate;"
       var i = 0
       for row in 0..(rows.len / cols).floor.int:
         el"tr":
