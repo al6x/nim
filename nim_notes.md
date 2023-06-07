@@ -64,3 +64,5 @@ template with_session*(s: Session, code) =
   session = s
   defer: session = nil
   code
+
+Checkout strscans

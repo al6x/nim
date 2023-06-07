@@ -43,4 +43,44 @@ knots/losa.jpg #knots ^image
 
 knots/bulin.jpg #knots ^image
 
+Tables ^section
+
+**Negative trend**. Odds are against you. Stock market on average goes up, but the currencies on
+average going down. | image{knots/begushii.jpg}
+
+**Leverage**. Insane leverage. The minimal transaction on Forex is one lot equal to 100k$. If you
+don't have such [money](/money) - you will be using leverage, sometimes very huge leverage. Small market
+fluctuation - and the margin call would wipe you out. | image{knots/bulin.jpg}
+
+**No intrinsic value**. Unlike #stocks that has intrinsic [value](value), currencies doesn't have it.
+Currencies are based on belief in those who controls it. And `believes` and actions of those who
+controls it can change suddently and because it doesn't has any bottom value, it can fell all the
+way down [to zero](http://some.com). | image{knots/blakes-hitch.png}
+
+#medkit #antibiotics ^table
+
+More tables ^section
+
+Negative trend. | image{knots/begushii.jpg}
+
+Insane leverage. | image{knots/bulin.jpg}
+
+No intrinsic value. | image{knots/blakes-hitch.png}
+
+#medkit #antibiotics ^table
+
+Cards ^section
+
+Negative trend. | Odds are against you. Stock market on average goes up. | image{knots/begushii.jpg}
+
+Insane leverage. | Up. | image{knots/bulin.jpg}
+
+No intrinsic value. | Unlike #stocks that has intrinsic [value](value), currencies doesn't have it. Currencies are based on belief in those who controls it. | image{knots/blakes-hitch.png}
+
+Negative trend. | And `believes` and actions of those who controls it. | image{knots/begushii.jpg}
+
+Insane leverage. | Odds are against you. Stock market on average goes up. | image{knots/bulin.jpg}
+
+#medkit #antibiotics ^table style: cards
+
 #Forex #Margin #Fake

@@ -17,6 +17,9 @@ proc to_s*(json: JsonNode, pretty = true): string =
   if pretty: pretty(json) else: $json
 
 
+proc json_to*[T](json: JsonNode, v: var T) =
+  from_json(v, json, Joptions(allow_extra_keys: true))
+
 proc json_to*(json: JsonNode, T: typedesc): T =
   from_json(result, json, Joptions(allow_extra_keys: true))
 
@@ -133,6 +136,12 @@ when is_main_module:
   type SomeEnum* = enum some_name
   check SomeEnum.some_name.to_json.to_s == "\"some_name\""
   check parse_json("\"some_name\"").json_to(SomeEnum) == SomeEnum.some_name
+
+  block: # json_to should support two ways
+    var v: int
+    1.to_json.json_to(v)
+    check v == 1
+    check 1.to_json.json_to(int) == 1
 
   # From bugs
   check @[(a: 1.0.some)].to_json.to_s(false) == """[{"a":1.0}]"""

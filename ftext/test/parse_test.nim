@@ -356,14 +356,14 @@ test "parse_ftext, missing assets":
   check blocks[1].warns == @["Asset don't exist some/missing2.png"]
   check blocks[2].warns == @["Asset don't exist some/missing_dir"]
 
-proc parse_table(text: string): TableBlock =
+proc parse_table(has_header: bool, text: string): TableBlock =
   let config = FParseConfig.init
-
-  parse_table(block_source("table", text), test_fdoc(), config)
+  let args = if has_header: "header: true" else: ""
+  parse_table(block_source("table", text, args), test_fdoc(), config)
 
 test "parse_table":
   proc test_table(text: string) =
-    let blk = parse_table text
+    let blk = parse_table(false, text)
     check blk.warns == @["Unknown embed: some"]
     check blk.assets == @["img.png"]
     let rows = blk.rows
@@ -405,7 +405,7 @@ test "parse_table":
 
 test "parse_table with header":
   proc test_table(text: string) =
-    let blk = parse_table text
+    let blk = parse_table(true, text)
     check blk.assets == @["img.png"]
     check blk.cols == 2
     let rows = blk.rows
@@ -422,20 +422,12 @@ test "parse_table with header":
     check rows[0][1].to_json == %[{ kind: "text", text: "text2" }]
 
   test_table """
-    text, image{img.png} header
+    text, image{img.png}
     code{,|}, text2
   """.dedent
 
   test_table """
-    text, image{img.png} header
-
-    code{,|},
-    text2
-  """.dedent
-
-  test_table """
-    text,
-    image{img.png} header
+    text, image{img.png}
 
     code{,|},
     text2
@@ -444,20 +436,27 @@ test "parse_table with header":
   test_table """
     text,
     image{img.png}
-    header
 
     code{,|},
     text2
   """.dedent
 
   test_table """
-    text | image{img.png} header
+    text,
+    image{img.png}
+
+    code{,|},
+    text2
+  """.dedent
+
+  test_table """
+    text | image{img.png}
     code{,|} | text2
   """.dedent
 
 test "parse_table with tags":
   proc test_table(text: string, rows: int) =
-    let blk = parse_table text
+    let blk = parse_table(false, text)
     check blk.warns.is_empty
     check blk.rows.len == rows
     check blk.header.is_none

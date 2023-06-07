@@ -62,10 +62,13 @@ type
   SubsectionBlock* = ref object of Block
     title*: string
 
+  TableBlockStyle* = enum table, cards
   TableBlock* = ref object of Block
-    header*: Option[seq[Text]]
-    rows*:   seq[seq[Text]]
-    cols*:   int # number of cols
+    header*:    Option[seq[Text]]
+    rows*:      seq[seq[Text]]
+    cols*:      int # number of cols
+    style*:     TableBlockStyle
+    card_cols*: Option[int]
 
   # embed ------------------------------------------------------------------------------------------
   Embed* = ref object of RootObj

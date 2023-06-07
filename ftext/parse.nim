@@ -614,7 +614,7 @@ proc parse_images*(source: FBlockSource, doc: Doc): ImagesBlock =
     try:
       let data = parse_yaml source.args
       data.check_keys_in(["cols"], blk.warns)
-      if "cols" in data: blk.cols = data["cols"].get_int.some
+      if "cols" in data: data["cols"].json_to blk.cols # blk.cols = data["cols"].get_int.some
     except:
       blk.warns.add "Invalid args"
 
@@ -629,7 +629,7 @@ proc parse_images*(source: FBlockSource, doc: Doc): ImagesBlock =
   blk
 
 # table --------------------------------------------------------------------------------------------
-proc parse_table_as_table(pr: Parser, col_delimiter: char, blk: TableBlock) =
+proc parse_table_as_table(pr: Parser, col_delimiter: char, has_header: bool, blk: TableBlock) =
   let is_row_delimiter = block:
     let pr = pr.deep_copy
     # Default delimiter is newline, but if there's double newline happens anywhere in table text, then
@@ -642,35 +642,38 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, blk: TableBlock) =
     else:
       proc(pr: Parser): bool = pr.get == '\n'
 
-  proc is_header(): bool =
-    pr.starts_with("header") and (pr.get(6) == '\n' or pr.get(6).is_none)
+  # proc is_header(): bool =
+  #   pr.starts_with("header") and (pr.get(6) == '\n' or pr.get(6).is_none)
 
   proc stop(): bool =
-    pr.get in {col_delimiter, ':'} or pr.is_row_delimiter() or is_header()
+    pr.get in {col_delimiter, ':'} or pr.is_row_delimiter() #or is_header()
 
   var row = seq[Text].init; var is_first_row = true
-  template finish_row(code) =
+  var first_row = true
+  template finish_row() =
     row.add token
     if not row.is_empty:
-      code
+      if first_row and has_header:
+        blk.header = row.some
+        first_row = false
+      else:
+        blk.rows.add row
       row = seq[Text].init
     is_first_row = false
 
   while pr.has:
     pr.skip space_chars
     let token = pr.consume_inline_text(stop)
-    if   is_header(): # header
-      finish_row:
-        blk.header = row.some
-      pr.skip "header".to_bitset
-    elif pr.is_row_delimiter(): # row delimiter
-      finish_row:
-        blk.rows.add row
+    # if   is_header(): # header
+    #   finish_row:
+    #     blk.header = row.some
+    #   pr.skip "header".to_bitset
+    if pr.is_row_delimiter(): # row delimiter
+      finish_row()
     elif pr.get == col_delimiter: # column delimiter
       row.add token
     else:
-      finish_row:
-        blk.rows.add row
+      finish_row()
       if pr.has: pr.warns.add "Unknown content in table: '" & pr.remainder & "'"
       break
     pr.inc
@@ -678,6 +681,18 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, blk: TableBlock) =
 
 proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBlock =
   assert source.kind == "table"
+  let blk = TableBlock()
+
+  var has_header = false
+  unless source.args.is_empty: # parsing args
+    try:
+      let data = parse_yaml source.args
+      data.check_keys_in(["style", "header", "card_cols"], blk.warns)
+      if "style"     in data: data["style"].json_to blk.style
+      if "header"    in data: data["header"].json_to has_header
+      if "card_cols" in data: data["card_cols"].json_to blk.card_cols
+    except:
+      blk.warns.add "Invalid args"
 
   let col_delimiter: char = block:
     let pr = Parser.init source.text
@@ -692,12 +707,10 @@ proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBl
       lines[^2].trim.ends_with(col_delimiter)
     last_line_has_col_delimiter or before_last_line_ending_with_col_delimiter
 
-  let blk = TableBlock()
-  source.args_should_be_empty blk.warns
   let text_without_tags = parse_tags_on_last_line_if_present(source.text, not_tags, blk)
 
   let pr = Parser.init(text_without_tags)
-  pr.parse_table_as_table(col_delimiter, blk)
+  pr.parse_table_as_table(col_delimiter, has_header, blk)
 
   block: # normalizing cols count
     var cols = 0

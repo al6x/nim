@@ -9,22 +9,11 @@
 .ftext > ul { @apply space-y-1; position: relative; left: 15px; margin-right: 15px; }
 .ftext > ul > li { list-style-type: disc; }
 
-.ftext_table_image_container {
+.ftext_image_container {
   @apply flex;
   width: 100%; aspect-ratio: 1; /* making height same as width so cell will be square */
-  @apply rounded; @apply overflow-hidden; @apply bg-gray-50;
 }
-.ftext_table_image_container img {
-  @apply block; @apply mx-auto; /* centering horizontally */
-  object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto; /* Limiting image max height and width */
-}
-
-.ftext_images_image_container {
-  @apply flex;
-  width: 100%; aspect-ratio: 1; /* making height same as width so cell will be square */
-  @apply rounded; @apply overflow-hidden; @apply bg-gray-50;
-}
-.ftext_images_image_container img {
+.ftext_image_container img {
   @apply block; @apply mx-auto; /* centering horizontally */
   object-fit: contain; max-width: 100%; max-height: 100%; width: auto; height: auto; /* Limiting image max height and width */
 }

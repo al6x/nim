@@ -123,7 +123,7 @@ method render_block*(blk: ImageBlock, context: RenderContext): El =
 
 # images
 method render_block*(blk: ImagesBlock, context: RenderContext): El =
-  let cols = blk.cols.get(min(4, blk.images.len))
+  let cols = blk.cols.get(4)
   let images = blk.images.map((path) => context.config.asset_path(path, context))
   let image_width = (100 - cols).float / cols.float
 
@@ -135,43 +135,65 @@ method render_block*(blk: ImagesBlock, context: RenderContext): El =
         it.style fmt"width: {image_width}%; text-align: center; vertical-align: middle;"
         if i < images.len:
           let path = images[i]
-          el"a.ftext_images_image_container":
+          el"a.ftext_image_container.overflow-hidden .rounded.border.border-gray-200":
             it.attr("target", "_blank")
             it.attr("href", path)
             el("img", it.attr("src", path))
         i.inc
 
-  if images.len <= cols:
-    el"table cellspacing=0 cellpadding=0": # removing cell borders
+  # if images.len <= cols:
+  #   el"table cellspacing=0 cellpadding=0": # removing cell borders
+  #     el"tr":
+  #       var i = 0
+  #       for col in 0..(cols * 2 - 2):
+  #         render_td()
+  # else:
+  el"table cellspacing=0 cellpadding=0":
+    # setting margin after each row
+    it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
+    var i = 0
+    for row in 0..(images.len / cols).floor.int:
       el"tr":
-        var i = 0
         for col in 0..(cols * 2 - 2):
           render_td()
-  else:
+
+# table
+proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], context: RenderContext): El =
+  let cols = blk.card_cols.get(4)
+  let rows = blk.rows
+  let card_width = (100 - cols).float / cols.float
+
+  template render_td =
+    el"td":
+      if col.is_even:
+        it.style "width: 1%;"
+      else:
+        it.style fmt"width: {card_width}%; vertical-align: top;" # vertical-align: middle
+        if i < rows.len:
+          let row = rows[i]
+          el".flex.flex-col.space-y-1.py-1.overflow-hidden .rounded.border.border-gray-200":
+            for j, cell in row:
+              if single_image_cols[j]:
+                el"": # Image had to be nested in div, otherwise it's not scaled properly
+                  el".ftext_image_container":
+                    it.html cell.render_text(context)
+              else:
+                el".px-2":
+                  if j == 0: it.class "font-bold"
+                  it.html cell.render_text(context)
+        i.inc
+
+  el"": # It has to be nested in div otherwise `table-layout: fixed` doesn't work
     el"table cellspacing=0 cellpadding=0":
       # setting margin after each row
       it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
       var i = 0
-      for row in 0..(images.len / cols).floor.int:
+      for row in 0..(rows.len / cols).floor.int:
         el"tr":
           for col in 0..(cols * 2 - 2):
             render_td()
 
-# table
-method render_block*(blk: TableBlock, context: RenderContext): El =
-  # If columns has only images or embeds, making it no more than 25%
-  var single_image_cols: seq[bool]
-  block:
-    proc has_single_image(text: Text): bool =
-      text.len == 1 and text[0].kind == embed and text[0].embed of ImageEmbed
-
-    for i in 0..(blk.cols - 1):
-      var has_at_least_one_image = false; var has_non_image_content = false
-      for row in blk.rows: #.allit(it[i].has_single_image):
-        if   row[i].has_single_image: has_at_least_one_image = true
-        elif row[i].len > 0:          has_non_image_content  = true
-      single_image_cols.add has_at_least_one_image and not has_non_image_content
-
+proc render_table_as_table*(blk: TableBlock, single_image_cols: seq[bool], context: RenderContext): El =
   el"table": # table
     if blk.header.is_some: # header
       el"tr .border-b.border-gray-200":
@@ -193,11 +215,28 @@ method render_block*(blk: TableBlock, context: RenderContext): El =
             if i < row.high: it.class "pr-4"
             if single_image_cols[i]: # cell with image
               it.style "width: 25%; text-align: center; vertical-align: middle;"
-              el".ftext_table_image_container":
+              el".ftext_image_container.overflow-hidden .rounded":
                 it.html cell.render_text(context)
             else: # non image cell
               it.style "vertical-align: middle;"
               it.html cell.render_text(context)
+
+method render_block*(blk: TableBlock, context: RenderContext): El =
+  # If columns has only images or embeds, making it no more than 25%
+  var single_image_cols: seq[bool]
+  block:
+    proc has_single_image(text: Text): bool =
+      text.len == 1 and text[0].kind == embed and text[0].embed of ImageEmbed
+
+    for i in 0..(blk.cols - 1):
+      var has_at_least_one_image = false; var has_non_image_content = false
+      for row in blk.rows: #.allit(it[i].has_single_image):
+        if   row[i].has_single_image: has_at_least_one_image = true
+        elif row[i].len > 0:          has_non_image_content  = true
+      single_image_cols.add has_at_least_one_image and not has_non_image_content
+
+  if blk.style == cards: render_table_as_cards(blk, single_image_cols, context)
+  else:                  render_table_as_table(blk, single_image_cols, context)
 
 
 # # to_html FDoc -------------------------------------------------------------------------------------
