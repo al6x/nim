@@ -32,6 +32,8 @@ proc `!~`*(r: Regex, s: string): bool = s !~ r
 
 proc split*(s: string, r: Regex): seq[string] = nre.split(s, r)
 
+proc broken_split*(s: string, r: Regex, maxsplit = -1): seq[string] = nre.split(s, r, max_split = maxsplit)
+
 test "split":
   check "abcde".split(re"[bcd]+") == @["a", "e"]
 
@@ -64,8 +66,8 @@ test "replace":
 
 
 
-proc find*(s: string, r: Regex): Option[string] =
-  let found = nre.find(s, r)
+proc find*(s: string, r: Regex, start = 0): Option[string] =
+  let found = nre.find(s, r, start)
   if stdoptions.is_some(found): nre.match(stdoptions.get(found)).some else: return
 
 test "find":
@@ -74,6 +76,12 @@ test "find":
     "abcde".find(re"[x]").is_none
 
 
+proc findi*(s: string, r: Regex, start = 0): int =
+  let found = nre.find(s, r, start)
+  if stdoptions.is_some(found): nre.match_bounds(stdoptions.get(found)).a else: -1
+
+test "findi":
+  check: "abcde".findi(re"[bcd]") == 1
 
 proc parse*(r: Regex, s: string): Option[seq[string]] =
   let found = nre.match(s, r)

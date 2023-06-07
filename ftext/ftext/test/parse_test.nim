@@ -16,7 +16,8 @@ template check_i(list, i, expected) =
 test "consume_tags":
   template t(a, b) =
     let pr = Parser.init(a.dedent)
-    check pr.consume_tags == b
+    let (tags, lines, _) = pr.consume_tags
+    check (tags, lines ) == b
 
   t """
     #"a a"  #b, #д
@@ -30,16 +31,18 @@ test "consume_tags":
     #a ^text #b
   """, (@["a", "b"], (1, 1))
 
-test "consume_blocks, consume_tags":
-  template t(a, expected, tags) =
-    let pr = Parser.init(a.dedent.trim)
-    var parsed = pr.consume_blocks
-    check parsed.len == expected.len
-    for i, parsed_i in parsed:
-      check (parsed_i.kind, parsed_i.id, parsed_i.text, parsed_i.line_n) == expected[i]
-    check pr.consume_tags == tags
+template test_blocks(a, expected, tags) =
+  let pr = Parser.init(a.dedent.trim)
+  var parsed = pr.consume_blocks(@["section"])
+  let (blk, parsed_tags, tag_lines) = pr.consume_doc_tags
+  if blk.is_some: parsed.add blk.get
+  check parsed.len == expected.len
+  for i, parsed_i in parsed:
+    check (parsed_i.kind, parsed_i.id, parsed_i.text, parsed_i.line_n) == expected[i]
+  check (parsed_tags, tag_lines) == tags
 
-  t """
+test "consume_blocks, consume_tags":
+  test_blocks """
     S t [s l](http://site.com) an t,
     same ^ par.
 
@@ -54,24 +57,57 @@ test "consume_blocks, consume_tags":
 
     second line ^list
 
-    k: 1 ^config.data
+    k: 1 ^id.data
 
     some text
     #tag #another ^text
 
     #tag #another tag
   """, @[
-    ("text", "",     "S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", (1, 4)),
-    ("list", "",     "- first m{2^a} line\n- second line", (6, 7)),
-    ("text", "",     "", (9, 9)),
-    ("list", "",     "first line\n\nsecond line", (11, 13)),
-    ("data", "config", "k: 1", (15, 15)),
-    ("text", "",     "some text\n#tag #another", (17, 18))
+    ("text", "",   "S t [s l](http://site.com) an t,\nsame ^ par.\n\nSecond 2^2 paragraph", (1, 4)),
+    ("list", "",   "- first m{2^a} line\n- second line", (6, 7)),
+    ("text", "",   "", (9, 9)),
+    ("list", "",   "first line\n\nsecond line", (11, 13)),
+    ("data", "id", "k: 1", (15, 15)),
+    ("text", "",   "some text\n#tag #another", (17, 18))
   ], (@["tag", "another"], (20, 20))
 
-  t """
+  test_blocks """
     some text ^text
   """, @[("text", "", "some text", (1, 1))], (seq[string].init, (1, 1))
+
+test "consume_blocks, consume_tags, with implicit text block":
+  test_blocks """
+    Some text
+
+    Another
+
+    #T
+
+    Section
+    #st ^id.section
+
+    some text
+
+    #T
+
+    #dt
+  """, @[
+    ("text",    "",   "Some text\n\nAnother\n\n#T", (1, 5)),
+    ("section", "id", "Section\n#st", (7, 8)),
+    ("text",    "",   "some text\n\n#T", (10, 12)),
+  ],
+    (@["dt"], (14, 14)
+  )
+
+test "implicit text block, from error":
+  test_blocks """
+    Something
+  """, @[
+    ("text",    "",   "Something", (1, 1)),
+  ],
+    (@[], (-1, -1)
+  )
 
 test "text_embed":
   template t(a, i, b) =
@@ -320,14 +356,14 @@ test "parse_ftext, missing assets":
   check blocks[1].warns == @["Asset don't exist some/missing2.png"]
   check blocks[2].warns == @["Asset don't exist some/missing_dir"]
 
-proc parse_table(text: string): TableBlock =
+proc parse_table(has_header: bool, text: string): TableBlock =
   let config = FParseConfig.init
-
-  parse_table(block_source("table", text), test_fdoc(), config)
+  let args = if has_header: "header: true" else: ""
+  parse_table(block_source("table", text, args), test_fdoc(), config)
 
 test "parse_table":
   proc test_table(text: string) =
-    let blk = parse_table text
+    let blk = parse_table(false, text)
     check blk.warns == @["Unknown embed: some"]
     check blk.assets == @["img.png"]
     let rows = blk.rows
@@ -369,7 +405,7 @@ test "parse_table":
 
 test "parse_table with header":
   proc test_table(text: string) =
-    let blk = parse_table text
+    let blk = parse_table(true, text)
     check blk.assets == @["img.png"]
     check blk.cols == 2
     let rows = blk.rows
@@ -386,20 +422,12 @@ test "parse_table with header":
     check rows[0][1].to_json == %[{ kind: "text", text: "text2" }]
 
   test_table """
-    text, image{img.png} header
+    text, image{img.png}
     code{,|}, text2
   """.dedent
 
   test_table """
-    text, image{img.png} header
-
-    code{,|},
-    text2
-  """.dedent
-
-  test_table """
-    text,
-    image{img.png} header
+    text, image{img.png}
 
     code{,|},
     text2
@@ -408,20 +436,27 @@ test "parse_table with header":
   test_table """
     text,
     image{img.png}
-    header
 
     code{,|},
     text2
   """.dedent
 
   test_table """
-    text | image{img.png} header
+    text,
+    image{img.png}
+
+    code{,|},
+    text2
+  """.dedent
+
+  test_table """
+    text | image{img.png}
     code{,|} | text2
   """.dedent
 
 test "parse_table with tags":
   proc test_table(text: string, rows: int) =
-    let blk = parse_table text
+    let blk = parse_table(false, text)
     check blk.warns.is_empty
     check blk.rows.len == rows
     check blk.header.is_none
@@ -469,5 +504,9 @@ test "doc, from error":
     Algorithms ^title
 
     Some
+
+    Another
   """.dedent.trim, "some.ft")
-  check doc.warns == @["Unknown text in tags: Some"]
+  check doc.blocks.len == 1
+  check doc.blocks[0].text == "Some Another"
+  check doc.warns.is_empty

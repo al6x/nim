@@ -12,6 +12,7 @@ I'm using it for Notebook App (screenshot below), but it also could be used sepa
 
 # Todo
 
+- Araq suggested to use `strscans`, check it out.
 - Text above section/subsection and page tags turn into text automatically.
 - Autolinks and text{text with special characters}
 - Hash of doc should also include hash of its assets
