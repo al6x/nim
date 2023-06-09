@@ -18,11 +18,9 @@ proc render(self: Counter): El =
       it.bind_to(self.a, true) # skipping render on input change
     el"input type=text":
       it.bind_to(self.b)
-    el"button":
-      it.text("+")
+    el("button", (text: "+")):
       it.on_click(proc = (self.count += 1))
-    el"":
-      it.text(fmt"{self.a} {self.b} {self.count}")
+    el("", (text: fmt"{self.a} {self.b} {self.count}"))
 
 type CounterParent = ref object of Component
 
