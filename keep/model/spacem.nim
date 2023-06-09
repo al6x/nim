@@ -37,6 +37,11 @@ iterator blocks*(db: Db): Block =
       for blk in doc.blocks:
         yield blk
 
+iterator docs*(db: Db): Doc =
+  for _, space in db.spaces:
+    for _, doc in space.docs:
+      yield doc
+
 proc validate_tags*(space: Space) =
   if not space.allowed_tags.is_empty:
     for blk in space.blocks:
@@ -61,3 +66,12 @@ proc ntags*(db: Db): Table[string, int] =
 
 proc ntags_cached*(db: Db): Table[string, int] =
   db.cache.get_into("ntags", db.version, result, db.ntags)
+
+proc warns_count*(db: Db): int =
+  for doc in db.docs:
+    result.inc doc.warns.len
+    for blk in doc.blocks:
+      result.inc blk.warns.len
+
+proc warns_count_cached*(db: Db): int =
+  db.cache.get_into("nwarns", db.version, result, db.warns_count)

@@ -45,7 +45,7 @@ proc PMessage*(text: string, kind: PMessageKind = info, top = false): El =
 
 # Right --------------------------------------------------------------------------------------------
 proc PRBlock*(tname = "prblock", title = "", closed = false, content: seq[El] = @[]): El =
-  el(tname & " .block.relative .m-2 .mb-3 flash c"):
+  el(tname & " .block.relative flash c"):
     if closed:
       assert not title.is_empty, "can't have empty title on closed rsection"
       el".text-gray-300":
@@ -113,6 +113,15 @@ proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
             it.text text
             it.attr("href", link)
 
+proc PWarnings*(warns: openarray[(string, string)], closed = false): El =
+  el(PRBlock, (tname: "prblock-warnings", title: "Warnings", closed: closed)):
+    if not warns.is_empty:
+      el".border-l-2.border-orange-800 flex":
+        for (text, link) in warns:
+          el"a.block.ml-2 .text-sm .text-orange-800":
+            it.text text
+            it.attr("href", link)
+
 # Blocks -------------------------------------------------------------------------------------------
 template pblock_controls*(controls: seq[El], hover: bool) =
   unless controls.is_empty:
@@ -135,11 +144,11 @@ template pblock_tags*(tags: seq[(string, string)]) =
     el"pblock-tags .block.-mr-1 flash":
       for (tag, link) in tagsv:
         el"a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100":
-          it.text tag
+          it.text tag.to_lower
           it.attr("href", link)
 
 template pblock_layout*(tname: string, code: untyped): auto =
-  el(tname & " .pblock.flex.flex-col.space-y-1 c"):
+  el(tname & " .pblock.flex.flex-col.space-y-1 c flash"):
     code
 
 template pblock_layout*(
@@ -167,7 +176,7 @@ proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)
 proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[]): El =
   let html = render_block(blk, context).to_html
   let tname = fmt"pblock-f{blk.source.kind}"
-  var tags = blk.tags.with_path(context)
+  var tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
   if blk of TextBlock or blk of ListBlock: tags = @[]
   pblock_layout(tname, blk.warns, controls, tags, true):
     el(".ftext flash", it.html(html))
@@ -202,7 +211,7 @@ proc papp_layout*(left, right: seq[El]): El =
     el(".w-3/12 .relative " & nomockup".right-panel-hidden-icon" & " .border-gray-300 .border-l .bg-slate-50"):
       # el".absolute .top-0 .right-0 .m-2 .mt-4":
       #   el(PIconButton, (icon: "controls"))
-      el("papp-right .block " & nomockup".right-panel-content" & " .pt-2 c"):
+      el("papp-right .flex.flex-col.space-y-2.m-2 " & nomockup".right-panel-content" & " c"):
         it.add right
 
 proc PApp*(
@@ -277,7 +286,7 @@ proc render_mockup: seq[El] =
         el(PSearchField, ())
       el(PFavorites, (links: data.links))
       el(PTags, (tags: data.tags.with_path(context)))
-      el(PSpaceInfo, (warns: @[("12 warns", "/warns")]))
+      el(PWarnings, (warns: @[("12 warns", "/warns")]))
       el(PBacklinks, (links: data.links))
       el(PRBlock, (title: "Other", closed: true))
 

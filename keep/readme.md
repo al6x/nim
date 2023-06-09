@@ -1,5 +1,7 @@
 # Todo
 
+- Add warnings page
+- Hide panel by default, show setting button on doc right
 - Create db config
 - Show space with list of documents, control sorting etc in db config
 - make tags and text lowercase, make it tags, mtags, ltags
@@ -34,6 +36,7 @@ Use two todos, first organised in Keep, and log like buffer on mobile.
 
 # Features
 
+- Invisible and smart, same as `echo "Hello World"`.
 - It's a rendering and search engine, any data following doc and blocks structure could be rendered and searched.
 - Extensible, different spaces, docs, blocks, actions
 - Integrates other tools and data

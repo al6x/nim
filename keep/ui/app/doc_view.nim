@@ -12,10 +12,10 @@ proc render*(self: DocView): El =
   let (doc, space) = (self.doc, self.space)
   let context = RenderContext.init(doc, space.id)
 
-  let all_tags = db.ntags_cached.keys
+  let all_tags = db.ntags_cached.keys; let all_warns_count = db.warns_count_cached
   let right = els:
     el(PTags, (tags: all_tags.with_path(context)))
-
+    el(PWarnings, (warns: @[(fmt"{all_warns_count} warns", "/warns")]))
 
   let view =
     el(PApp, ( # App

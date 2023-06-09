@@ -34,6 +34,10 @@ method render_embed*(embed: ImageEmbed, context: RenderContext): SafeHtml =
 method render_embed*(embed: CodeEmbed, context: RenderContext): SafeHtml =
   fmt"""<code>{embed.code.escape_html}</code>"""
 
+# show_tags ----------------------------------------------------------------------------------------
+method show_tags*(blk: Block): bool {.base.} = true
+method show_tags*(blk: TextBlock): bool = false
+method show_tags*(blk: TableBlock): bool = false
 
 # render_block -------------------------------------------------------------------------------------
 # base block
@@ -73,7 +77,8 @@ proc render_text*(text: Text, context: RenderContext): SafeHtml =
       html.add fmt"""<a class="glink" href="{item.glink.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.tag:
       let path = config.tag_path(item.text, context)
-      html.add fmt"""<a class="tag" href="/tags/{item.text.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
+      let ntag = item.text.to_lower
+      html.add fmt"""<a class="tag" href="/tags/{ntag.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.embed:
       html.add: render_embed(item.embed, context)
 

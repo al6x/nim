@@ -7,9 +7,12 @@ proc post_process_doc(doc: Doc, fname: string, space: Space) =
   assert doc.id == fname, "doc id shall be same as file name"
 
   # Merging and normalising tags
-  doc.ntags = (doc.tags.map(to_lower) & space.ntags).sort
+  let doc_ntags = (doc.tags.map(to_lower) & space.ntags).sort
   for blk in doc.blocks:
-    blk.ntags = (blk.tags.map(to_lower) & doc.ntags).sort
+    let block_ntags = blk.tags.map(to_lower)
+    blk.ntags = (block_ntags & doc_ntags).unique.sort
+    doc.ntags.add block_ntags
+  doc.ntags = doc.ntags.unique.sort
 
 proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string) =
   unless fs.exist space_path: throw fmt"Space path don't exist: {space_path}"
