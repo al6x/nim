@@ -1,4 +1,4 @@
-import base, ext/[vcache, watch_dir], ./docm, ./spacem, ./dbm
+import base, ext/watch_dir, ./docm, ./spacem, ./dbm
 
 type DocFileParser* = proc (path: string): Doc
 type DocFileParsers* = ref Table[string, DocFileParser]

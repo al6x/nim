@@ -1,22 +1,32 @@
-import base, ext/vcache, ./docm, ./spacem
+import base, ext/vcache, ./docm, ./spacem, ./configm
 
 var db* {.threadvar.}: Db
 
-proc init*(_: type[Db]): Db =
-  Db()
+proc log*(db: Db): Log =
+  Log.init("Db")
 
-proc version*(db: Db): int =
-  var h: Hash
+proc init*(_: type[Db], config = Config()): Db =
+  Db(config: config)
+
+proc non_processed_version*(db: Db): int =
+  var h: Hash = db.config.version.hash
   for sid, space in db.spaces:
     h = h !& sid.hash !& space.version.hash
   !$h
 
 proc process*(db: Db) =
-  db.db_cache.cached("process(db)", db.version):
+  db.cache.process("process(db)", db.non_processed_version):
+    db.log.info "process"
     for sid, space in db.spaces:
       space.validate_tags
       space.validate_links db
-      for fn in space.processors: fn()
+      # for fn in space.processors: fn()
+    # Processing changes version of the database, so the db.version should be used for calculations
+    # that depends on processing.
+    db.version = db.non_processed_version
+
+# proc get*[T](db: Db, fn: (proc(db: Db): T)): T =
+#   db.cache.get("proc/" & fn.repr)
 
 proc process_bgjobs*(db: Db) =
   for fn in db.bgjobs: fn()

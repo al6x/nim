@@ -1,5 +1,7 @@
 # Todo
 
+- Create db config
+- Show space with list of documents, control sorting etc in db config
 - make tags and text lowercase, make it tags, mtags, ltags
 - Turn alex/notes into space
 - Make search

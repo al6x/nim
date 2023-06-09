@@ -78,24 +78,24 @@ proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
         it.attr("href", link)
 
 type CloudTag* = tuple[text, link: string, size: int]
-proc PTags*(tags: openarray[CloudTag], closed = false): El =
+proc PTags*(tags: seq[(string, string)] = @[], closed = false): El =
   el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
     el".-mr-1 flash":
-      for (text, link, size) in tags:
-        let size_class = case size
-          of 0: "text-sm"
-          of 1: ""
-          of 2: "text-xl"
-          else: throw "unknown size"
+      for (text, link) in tags:
+        # let size_class = case size
+        #   of 0: "text-sm"
+        #   of 1: ""
+        #   of 2: "text-xl"
+        #   else: throw "unknown size"
 
         el"a .mr-1 .align-middle .text-center .leading-4 .text-blue-800":
-          it.class size_class
+          # it.class size_class
           it.text text
-          it.attr("href", "#")
+          it.attr("href", link)
 
 proc PSearchField*(text = ""): El =
-  el("input .border .rounded .border-gray-300 .px-1 .w-full " &
-    ".focus:outline-none .placeholder-gray-500 type=text"):
+  el("textarea .border .rounded .border-gray-300 .px-1 .w-full " &
+    ".focus:outline-none .placeholder-gray-500 .resize-none rows=2"):
     it.attr("placeholder", "Search...")
     if not text.is_empty: it.value text
 
@@ -269,12 +269,12 @@ proc render_mockup: seq[El] =
 
   mockup_section("Note"):
     let right = els:
-      el(PRBlock, ()):
-        el(PIconButton, (icon: "edit"))
+      # el(PRBlock, ()):
+      #   el(PIconButton, (icon: "edit"))
       el(PRBlock, ()):
         el(PSearchField, ())
       el(PFavorites, (links: data.links))
-      el(PTags, (tags: data.tags))
+      # el(PTags, (tags: data.tags))
       el(PSpaceInfo, (warns: @[("12 warns", "/warns")]))
       el(PBacklinks, (links: data.links))
       el(PRBlock, (title: "Other", closed: true))
