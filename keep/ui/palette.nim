@@ -209,7 +209,9 @@ proc papp_layout*(left, right: seq[El]): El =
   el("papp .block.w-full .flex " & nomockup".min-h-screen" & " c"):
     el"papp-left .block.w-9/12 c":
       it.add left
-    el(".w-3/12 .relative " & nomockup".right-panel-hidden-icon" & " .border-gray-300 .border-l .bg-slate-50"):
+    let class = nomockup"fixed right-0 top-0 bottom-0 overflow-y-scroll"
+    # nomockup".right-panel-hidden-icon"
+    el(".w-3/12 .border-gray-300 .border-l .bg-slate-50", (class: class)):
       # el".absolute .top-0 .right-0 .m-2 .mt-4":
       #   el(PIconButton, (icon: "controls"))
       el("papp-right .flex.flex-col.space-y-2.m-2 " & nomockup".right-panel-content" & " c"):
