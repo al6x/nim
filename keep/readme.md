@@ -1,5 +1,6 @@
 # Todo
 
+- Live Tutorial
 - Add warnings page
 - Hide panel by default, show setting button on doc right
 - Create db config

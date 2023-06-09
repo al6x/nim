@@ -205,23 +205,27 @@ proc PSearchItem*(title, subtitle, before, match, after: string): El =
         el("a .text-blue-800", (text: title, href: "#"))
 
 # PApp ---------------------------------------------------------------------------------------------
-proc papp_layout*(left, right: seq[El]): El =
+proc papp_layout*(left, right, right_down: seq[El]): El =
   el("papp .block.w-full .flex " & nomockup".min-h-screen" & " c"):
     el"papp-left .block.w-9/12 c":
       it.add left
     let class = nomockup"fixed right-0 top-0 bottom-0 overflow-y-scroll"
     # nomockup".right-panel-hidden-icon"
-    el(".w-3/12 .border-gray-300 .border-l .bg-slate-50", (class: class)):
+    el(".w-3/12.flex.flex-col.justify-between .border-gray-300.border-l.bg-slate-50", (class: class)):
       # el".absolute .top-0 .right-0 .m-2 .mt-4":
       #   el(PIconButton, (icon: "controls"))
-      el("papp-right .flex.flex-col.space-y-2.m-2 " & nomockup".right-panel-content" & " c"):
+      # el("papp-right .flex.flex-col.space-y-2.m-2 " & nomockup".right-panel-content" & " c"):
+      # el("papp-right .flex.flex-col" & nomockup".right-panel-content" & " c"):
+      el("papp-right-down .flex.flex-col.space-y-2.m-2 c"):
         it.add right
+      el("papp-right-down .flex.flex-col.space-y-2.m-2 c"):
+        it.add right_down
 
 proc PApp*(
   title: string, title_hint = "", title_controls = seq[El].init,
   warns = seq[string].init,
   tags: seq[(string, string)] = @[], tags_controls = seq[El].init, tags_warns = seq[string].init,
-  right: seq[El] = @[],
+  right: seq[El] = @[], right_down: seq[El] = @[],
   content: seq[El]
 ): El =
   let left =
@@ -240,7 +244,7 @@ proc PApp*(
         pblock_layout("pblock-doc-tags", tags_warns, tags_controls, tags, true): # Tags
           discard
 
-  papp_layout(@[left], right)
+  papp_layout(@[left], right, right_down)
 
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
@@ -286,16 +290,18 @@ proc render_mockup: seq[El] =
         el(PSearchField, ())
       el(PFavorites, (links: data.links))
       el(PTags, (tags: data.tags.with_path(context)))
-      el(PRBlock, (tname: "prblock-warnings")):
-        el(PWarnings, (warns: @[("12 warns", "/warns")]))
       el(PBacklinks, (links: data.links))
       el(PRBlock, (title: "Other", closed: true))
+
+    let right_down = els:
+      el(PRBlock, (tname: "prblock-warnings")):
+        el(PWarnings, (warns: @[("12 warns", "/warns")]))
 
     el(PApp, (
       title: doc.title, title_controls: controls_stub,
       warns: doc.warns,
       tags: doc.tags.with_path(context), tags_controls: controls_stub,
-      right: right
+      right: right, right_down: right_down
     )):
       for blk in doc.blocks:
         el(PBlock, (blk: blk, context: context, controls: controls_stub))

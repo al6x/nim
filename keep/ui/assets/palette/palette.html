@@ -454,9 +454,9 @@ mockup_section("Text"):
 
       </papp-left>
 
-      <div class="w-3/12 fixed right-0 top-0 bottom-0 overflow-y-scroll border-gray-300 border-l bg-slate-50 ">
+      <div class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
 
-        <papp-right class="flex flex-col space-y-2 m-2">
+        <papp-right-down class="flex flex-col space-y-2 m-2">
 
           <prblock class="block relative" flash="true">
             <textarea class="border rounded border-gray-300 px-1 w-full focus:outline-none placeholder-gray-500 resize-none" placeholder="Search..." rows="2"></textarea>
@@ -488,12 +488,6 @@ mockup_section("Text"):
             </div>
           </prblock-tags>
 
-          <prblock-warnings class="block relative" flash="true">
-            <div class="border-l-2 border-orange-800" flex="true">
-              <a class="block ml-2 text-sm text-orange-800" href="/warns">12 warns</a>
-            </div>
-          </prblock-warnings>
-
           <prblock-backlinks class="block relative" flash="true">
             <div class="text-gray-300">Backlinks</div>
             <a class="block text-sm text-blue-800" href="#">How to trade safely</a>
@@ -509,7 +503,17 @@ mockup_section("Text"):
             </div>
           </prblock>
 
-        </papp-right>
+        </papp-right-down>
+
+        <papp-right-down class="flex flex-col space-y-2 m-2">
+
+          <prblock-warnings class="block relative" flash="true">
+            <div class="border-l-2 border-orange-800" flex="true">
+              <a class="block ml-2 text-sm text-orange-800" href="/warns">12 warns</a>
+            </div>
+          </prblock-warnings>
+
+        </papp-right-down>
 
       </div>
 
@@ -598,9 +602,9 @@ mockup_section("Text"):
 
       </papp-left>
 
-      <div class="w-3/12 relative border-gray-300 border-l bg-slate-50">
+      <div class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
 
-        <papp-right class="flex flex-col space-y-2 m-2">
+        <papp-right-down class="flex flex-col space-y-2 m-2">
 
           <prblock class="block relative" flash="true">
 
@@ -610,7 +614,9 @@ mockup_section("Text"):
 
           </prblock>
 
-        </papp-right>
+        </papp-right-down>
+
+        <papp-right-down class="flex flex-col space-y-2 m-2"></papp-right-down>
 
       </div>
 
@@ -640,9 +646,11 @@ mockup_section("Text"):
 
       </papp-left>
 
-      <div class="w-3/12 relative border-gray-300 border-l bg-slate-50">
+      <div class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
 
-        <papp-right class="flex flex-col space-y-2 m-2"></papp-right>
+        <papp-right-down class="flex flex-col space-y-2 m-2"></papp-right-down>
+
+        <papp-right-down class="flex flex-col space-y-2 m-2"></papp-right-down>
 
       </div>
 
