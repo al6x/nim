@@ -4,6 +4,7 @@ from std/random as random import nil
 import ./option, ./test
 
 export sequtils except zip
+export algorithm
 
 template throw(message: string) = raise Exception.new_exception(message)
 
@@ -139,6 +140,9 @@ proc map*[V, R](list: openarray[V], op: (v: V, i: int) -> R): seq[R] {.inline.} 
 
 proc sort*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
 # proc sort_by*[T, C](list: openarray[T], op: (T) -> C): seq[T] {.inline.} = list.sortedByIt(op(it))
+
+template sortit*[T](list: openarray[T], expr: untyped): seq[T] = list.sortedByIt(expr)
+
 
 test "sort_by":
   check @[(3, 2), (1, 3)].sort((v) => v) == @[(1, 3), (3, 2)]

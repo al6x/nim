@@ -19,43 +19,38 @@ proc keep_dir*(): string =
 # Elementary ---------------------------------------------------------------------------------------
 proc PIconButton*(icon: string, title = "", size = "w-5 h-5", color = "bg-gray-500"): El =
   let asset_root = if palette.mockup_mode: "" else: "/assets/palette/"
-  el"button .block.svg-icon":
-    it.class size & " " & color
+  el("button .block.svg-icon", (class: size & " " & color)):
     unless title.is_empty: it.attr("title", title)
     it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
 
 proc PSymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
-  el"button.block":
-    it.class size & " " & color
-    it.text sym.to_s
+  el("button.block", (class: size & " " & color, text: sym.to_s))
 
 proc PTextButton*(text: string, color = "text-blue-800"): El =
-  el"button":
-    it.class color
-    it.text text
+  el("button", (class: color, text: text))
 
 type PMessageKind* = enum info, warn
 proc PMessage*(text: string, kind: PMessageKind = info, top = false): El =
-  el"pmessage .block.p-2.rounded.bg-slate-50":
+  el("pmessage .block.p-2.rounded.bg-slate-50", (text: text)):
     if top: it.class "m-5"
     case kind
     of info: discard
     of warn: it.class "text-orange-800"
-    it.text text
+
+proc PLink*(text: string, link: string): El =
+  el("a.text-blue-800", (text: text, href: link))
 
 # Right --------------------------------------------------------------------------------------------
 proc PRBlock*(tname = "prblock", title = "", closed = false, content: seq[El] = @[]): El =
   el(tname & " .block.relative flash c"):
     if closed:
       assert not title.is_empty, "can't have empty title on closed rsection"
-      el".text-gray-300":
-        it.text title
+      el(".text-gray-300", (text: title))
       el".absolute .top-0 .right-0 .pt-1":
         el(PIconButton, (icon: "left", size: "w-4 h-4", color: "bg-gray-300"))
     else:
       if not title.is_empty:
-        el".text-gray-300":
-          it.text title
+        el(".text-gray-300", (text: title))
       if content.is_empty:
         # Adding invisible button to keep height of control panel the same as with buttons
         alter_el(el(PIconButton, (icon: "edit"))):
@@ -66,16 +61,12 @@ proc PRBlock*(tname = "prblock", title = "", closed = false, content: seq[El] = 
 proc PFavorites*(links: openarray[(string, string)], closed = false): El =
   el(PRBlock, (tname: "prblock-favorites", title: "Favorites", closed: closed)):
     for (text, link) in links:
-      el"a.block.text-blue-800":
-        it.text text
-        it.attr("href", link)
+      el("a.block.text-blue-800", (text: text, href: link))
 
 proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
   el(PRBlock, (tname: "prblock-backlinks", title: "Backlinks", closed: closed)):
     for (text, link) in links:
-      el"a .block .text-sm .text-blue-800":
-        it.text text
-        it.attr("href", link)
+      el("a .block .text-sm .text-blue-800", (text: text, href: link))
 
 type CloudTag* = tuple[text, link: string, size: int]
 proc PTags*(tags: seq[(string, string)] = @[], closed = false): El =
@@ -89,45 +80,64 @@ proc PTags*(tags: seq[(string, string)] = @[], closed = false): El =
         #   else: throw "unknown size"
 
         # el"a .mr-1 .align-middle .text-center .leading-4 .text-blue-800":
-        el"a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100":
-          # it.class size_class
-          it.text text
-          it.attr("href", link)
+        el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100", (text: text, href: link))
 
 proc PSearchField*(text = ""): El =
   el("textarea .border .rounded .border-gray-300 .px-1 .w-full " &
-    ".focus:outline-none .placeholder-gray-500 .resize-none rows=2"):
-    it.attr("placeholder", "Search...")
+    ".focus:outline-none .placeholder-gray-500 .resize-none rows=2", (placeholder: "Search...")):
     if not text.is_empty: it.value text
 
 proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
   el(PRBlock, (tname: "prblock-space-info", title: "Space", closed: closed)):
-    el"a .text-blue-800":
-      it.text "Finance"
-      it.attr("href", "#")
+    el("a .text-blue-800", (text: "Finance", href: "#"))
 
     if not warns.is_empty:
       el".border-l-2.border-orange-800 flex":
         for (text, link) in warns:
-          el"a.block.ml-2 .text-sm .text-orange-800":
-            it.text text
-            it.attr("href", link)
+          el("a.block.ml-2 .text-sm .text-orange-800", (text: text, href: link))
 
 proc PWarnings*(warns: openarray[(string, string)], closed = false): El =
-  el(PRBlock, (tname: "prblock-warnings", title: "Warnings", closed: closed)):
+  el(PRBlock, (tname: "prblock-warnings", closed: closed)):
     if not warns.is_empty:
       el".border-l-2.border-orange-800 flex":
         for (text, link) in warns:
-          el"a.block.ml-2 .text-sm .text-orange-800":
-            it.text text
-            it.attr("href", link)
+          el("a.block.ml-2 .text-sm .text-orange-800", (text: text, href: link))
+
+# Components ---------------------------------------------------------------------------------------
+proc PTable*(header = Option[seq[El]](), rows: seq[seq[El]]): El =
+  el"table": # table
+    if header.is_some: # header
+      el"tr .border-b.border-gray-200":
+        let hrow = header.get
+        for i, hcell in hrow:
+          el"th .py-1":
+            if i < hrow.high: it.class "pr-4"
+            # if single_image_cols[i]: # image header
+            #   it.style "width: 25%; text-align: center; vertical-align: middle;"
+            # else: # non image header
+            it.style "text-align: left; vertical-align: middle;"
+            # it.text hcell
+            it.add hcell
+
+    for i, row in rows: # rows
+      el"tr":
+        if i < rows.high: it.class "border-b border-gray-200"
+        for i, cell in row: # cols
+          el"td .py-1":
+            if i < row.high: it.class "pr-4"
+            # if single_image_cols[i]: # cell with image
+            #   it.style "width: 25%; text-align: center; vertical-align: middle;"
+            #   el".image_container.overflow-hidden .rounded":
+            #     it.html cell.render_text(context)
+            # else: # non image cell
+            it.style "vertical-align: middle;"
+            it.add cell
 
 # Blocks -------------------------------------------------------------------------------------------
 template pblock_controls*(controls: seq[El], hover: bool) =
   unless controls.is_empty:
-    el"pblock-controls .block.absolute.right-0.top-1.flex.bg-white .rounded.p-1":
+    el("pblock-controls .block.absolute.right-0.top-1.flex.bg-white .rounded.p-1", (style: "margin-top: 0;")):
       if hover and not palette.mockup_mode: it.class "hidden_controls"
-      it.style "margin-top: 0;"
       for c in controls: it.add(c)
 
 template pblock_warns*(warns: seq[string]) =
@@ -135,17 +145,16 @@ template pblock_warns*(warns: seq[string]) =
   unless warnsv.is_empty:
     el"pblock-warns .block.border-l-4.border-orange-800 flash":
       for warn in warnsv:
-        el".inline-block .text-orange-800 .ml-2":
-          it.text warn
+        el(".inline-block .text-orange-800 .ml-2", (text: warn))
 
 template pblock_tags*(tags: seq[(string, string)]) =
   let tagsv: seq[(string, string)] = tags
   unless tagsv.is_empty:
     el"pblock-tags .block.-mr-1 flash":
       for (tag, link) in tagsv:
-        el"a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100":
-          it.text tag.to_lower
+        el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100"):
           it.attr("href", link)
+          it.text(tag.to_lower)
 
 template pblock_layout*(tname: string, code: untyped): auto =
   el(tname & " .pblock.flex.flex-col.space-y-1 c flash"):
@@ -179,29 +188,21 @@ proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[]): El =
   var tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
   if blk of TextBlock or blk of ListBlock: tags = @[]
   pblock_layout(tname, blk.warns, controls, tags, true):
-    el(".ftext flash", it.html(html))
+    el(".ftext flash", (html: html))
 
 # Search -------------------------------------------------------------------------------------------
 proc PSearchItem*(title, subtitle, before, match, after: string): El =
   pblock_layout("psearch-item"):
   # el".pl-8.pr-8 .mb-2":
     el"psearch-item .text-gray-500":
-      el"span":
-        it.text before
-      el"span .font-bold.text-black":
-        it.text match
-      el"span":
-        it.text after
+      el("span", (text: before))
+      el("span .font-bold.text-black", (text: match))
+      el("span", (text: after))
       # el"span .mr-2"
-      el"a .text-blue-800":
-        it.text title
-        it.attr("href", "#")
+      el("a .text-blue-800", (text: title, href: "#"))
       if not subtitle.is_empty:
-        el"span":
-          it.text "/"
-        el"a .text-blue-800":
-          it.text title
-          it.attr("href", "#")
+        el("span", (text: "/"))
+        el("a .text-blue-800", (text: title, href: "#"))
 
 # PApp ---------------------------------------------------------------------------------------------
 proc papp_layout*(left, right: seq[El]): El =
@@ -229,9 +230,7 @@ proc PApp*(
       #   it.location "#"
       unless title.is_empty:
         pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
-          el".text-2xl flash":
-            it.text title
-            it.attr("title", title_hint)
+          el(".text-2xl flash", (text: title, title: title_hint))
 
       it.add content
 
@@ -244,8 +243,7 @@ proc PApp*(
 # Other --------------------------------------------------------------------------------------------
 proc MockupSection*(title: string, content: seq[El]): El =
   el"pmockup .block c":
-    el".relative.ml-5 .text-2xl":
-      it.text title
+    el(".relative.ml-5 .text-2xl", (text: title))
     # el".absolute.right-5.top-3":
     #   el(PIconButton, (icon: "code"))
     el".border .border-gray-300 .rounded .m-5 .mt-1":

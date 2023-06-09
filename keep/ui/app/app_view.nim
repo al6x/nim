@@ -1,5 +1,6 @@
 import base, mono/[core, http], std/os
-import ../../model/[spacem, dbm], ./location, ../palette, ./doc_view, ./helpers
+import ../../model/[spacem, dbm], ./location, ../palette, ./helpers
+import ./doc_view, ./warns_view
 
 type AppView* = ref object of Component
   location*: Location
@@ -32,10 +33,10 @@ proc render_shortcut_helper(self: AppView, did: string): El =
   el(PMessage, (text: "Not found", top: true))
 
 proc render_search(self: AppView): El =
-  el("", it.text "Search not impl")
+  el("", (text: "Search not impl"))
 
 proc render_unknown(self: AppView): El =
-  el("", it.text "Unknown not impl")
+  el("", (text: "Unknown not impl"))
 
 proc render*(self: AppView): El =
   let l = self.location
@@ -44,6 +45,7 @@ proc render*(self: AppView): El =
   of doc:               self.render_doc_helper(l.sid, l.did)
   of shortcut:          self.render_shortcut_helper(l.did)
   of search:            self.render_search
+  of warns:             el(WarnsView, ())
   of asset:             throw "asset should never happen in render"
   of unknown:           self.render_unknown
 

@@ -67,11 +67,18 @@ proc ntags*(db: Db): Table[string, int] =
 proc ntags_cached*(db: Db): Table[string, int] =
   db.cache.get_into("ntags", db.version, result, db.ntags)
 
-proc warns_count*(db: Db): int =
-  for doc in db.docs:
-    result.inc doc.warns.len
-    for blk in doc.blocks:
-      result.inc blk.warns.len
+proc docs_with_warns*(db: Db): seq[tuple[sid, did: string]] =
+  for sid, space in db.spaces:
+    for did, doc in space.docs:
+      unless doc.warns.is_empty:
+        result.add (sid, did)
+        continue
+      block blocks_loop:
+        for blk in doc.blocks:
+          unless blk.warns.is_empty:
+            result.add (sid, did)
+            break blocks_loop
+  result = result.sortit(it[1])
 
-proc warns_count_cached*(db: Db): int =
-  db.cache.get_into("nwarns", db.version, result, db.warns_count)
+proc docs_with_warns_cached*(db: Db): seq[tuple[sid, did: string]] =
+  db.cache.get_into("docs_with_warns", db.version, result, db.docs_with_warns)

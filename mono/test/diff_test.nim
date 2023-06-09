@@ -5,8 +5,8 @@ template check_diff(id, a, b, expected) =
 
 test "diff, simple":
   check_diff [],
-    el(".b d", it.text("t0")),
-    el("#i.a r", it.text("t1")),
+    el(".b d", (text: "t0")),
+    el("#i.a r", (text: "t1")),
     %[
       ["set_attrs",[], { class: "a", id: "i", r: "true" }],
       ["del_attrs",[], ["d"]],
@@ -35,8 +35,8 @@ test "diff, del":
 
 test "diff, html":
   check_diff [],
-    el("", it.html("<a/>")),
-    el("", it.html("<img/>")),
+    el("", (html: "<a/>")),
+    el("", (html: "<img/>")),
     %[
       ["set_html",[],"<img/>"]
     ]
@@ -44,20 +44,18 @@ test "diff, html":
 test "diff, html with structure change replaced with parent":
   check_diff [],
     el("", el""),
-    el("", it.html("<img/>")),
+    el("", (html: "<img/>")),
     %[
       ["replace", [], "<div><img/></div>"]
     ]
 
 test "diff, nested":
   let a = el".a1 aa1":
-    el".b1 bb1":
-      it.text("bbb1")
+    el(".b1 bb1", (text: "bbb1"))
     el"span.c1"
     el"d1"
   let b = el".a2":
-    el".b2":
-      it.text("bbb2")
+    el(".b2", (text: "bbb2"))
     el".c2"
   check_diff [], a, b, %[
     ["set_attrs", [], { class: "a2" }],
@@ -74,15 +72,15 @@ test "diff, nested":
 
 test "diff, bool_prop":
   check_diff [],
-    el("input type=checkbox", it.value(false)),
-    el("input type=checkbox some", it.value(true)),
+    el("input type=checkbox", (value: false)),
+    el("input type=checkbox some", (value: true)),
     %[
       ["set_attrs", [], { checked: ["true", "bool_prop"], some: "true" }]
     ]
 
   check_diff [],
-    el("input type=checkbox some", it.value(true)),
-    el("input type=checkbox", it.value(false)),
+    el("input type=checkbox some", (value: true)),
+    el("input type=checkbox", (value: false)),
     %[
       ["del_attrs", [], [["checked", "bool_prop"], "some"]]
     ]

@@ -1,5 +1,5 @@
 import base, mono/core
-import ../../model, ../../render/blocks, ./helpers, ../palette as pl
+import ../../model, ../../render/blocks, ./helpers, ../palette as pl, ./location
 
 type DocView* = ref object of Component
   space*: Space
@@ -12,10 +12,14 @@ proc render*(self: DocView): El =
   let (doc, space) = (self.doc, self.space)
   let context = RenderContext.init(doc, space.id)
 
-  let all_tags = db.ntags_cached.keys; let all_warns_count = db.warns_count_cached
-  let right = els:
-    el(PTags, (tags: all_tags.with_path(context)))
-    el(PWarnings, (warns: @[(fmt"{all_warns_count} warns", "/warns")]))
+  var right: seq[El]
+  let all_tags = db.ntags_cached.keys
+  right.add el(PTags, (tags: all_tags.with_path(context)))
+
+  let warns_count = db.docs_with_warns_cached.len
+  if warns_count > 0:
+    let message = fmt"""{warns_count} {warns_count.pluralize("doc")} with warns"""
+    right.add el(PWarnings, (warns: @[(message, warns_url())]))
 
   let view =
     el(PApp, ( # App

@@ -1,6 +1,6 @@
 import base, mono/core
 
-type LocationKind* = enum home, doc, shortcut, search, asset, unknown
+type LocationKind* = enum home, doc, shortcut, search, warns, asset, unknown
 type Location* = object
   sid*, did*: string
   case kind*:  LocationKind
@@ -8,6 +8,7 @@ type Location* = object
   of doc:      discard # sid, did
   of shortcut: discard # sid
   of search:   text*: string
+  of warns:    discard
   of asset:    asset*: string # sid, did
   of unknown:  url*: Url
 
@@ -17,6 +18,7 @@ proc to_url*(l: Location): Url =
   of doc:      [l.sid, l.did].to_url
   of shortcut: [l.did].to_url
   of search:   ["search", l.text].to_url
+  of warns:    ["warns"].to_url
   of asset:    ([l.sid, l.did] & l.asset.split("/")).to_url
   of unknown:  l.url
 
@@ -28,10 +30,14 @@ proc parse*(_: type[Location], u: Url): Location =
   elif u.path.len == 1:
     case u.path[0]
     of "search":        Location(kind: search, text: u.params.get("q", ""))
+    of "warns":         Location(kind: warns)
     else:               Location(kind: shortcut, did: u.path[0])
   elif u.path.len == 2: Location(kind: doc, sid: u.path[0], did: u.path[1])
   elif u.path.len > 2:  Location(kind: asset, sid: u.path[0], did: u.path[1], asset: u.path[2..^1].join("/"))
   else:                 Location(kind: unknown, url: u)
+
+proc warns_url*(): string =
+  Location(kind: warns).to_s
 
 proc home_url*(): string =
   Location(kind: home).to_s

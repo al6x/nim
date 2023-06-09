@@ -44,25 +44,17 @@ proc post_url(id: string): string =
 # post_view ----------------------------------------------------------------------------------------
 # Feature: fuctional component, for simple components function could be used
 proc PostView*(post: Post): El =
-  el"post-view.block":
-    it.window_title post.title
-    el"a.block":
-      it.attr("href", posts_url())
-      it.text "All Posts"
+  el("post-view.block", (window_title: post.title)):
+    el("a.block", (href: posts_url(), text: "All Posts"))
     el"post.block":
-      el"post-title.block":
-        it.text post.title
-      el"post-text.block":
-        it.text post.text
+      el("post-title.block", (text: post.title))
+      el("post-text.block", (text: post.text))
 
 # posts_view ---------------------------------------------------------------------------------------
 proc PostsView*(blog: Blog): El =
-  el"posts-view.block":
-    it.window_title "Posts"
+  el("posts-view.block", (window_title: "Posts")):
     for post in blog.posts:
-      el"a.block":
-        it.attr("href", post_url(post.id))
-        it.text post.title
+      el("a.block", (href: post_url(post.id), text: post.title))
 
 
 # BlogView -----------------------------------------------------------------------------------------

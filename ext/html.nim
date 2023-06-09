@@ -234,6 +234,13 @@ proc class*(self: El, class: string) =
   let class = if "class" in self: self["class"] & " " & class else: class
   self.attr "class", class
 
+template set_attrs*(self: El, attrs: tuple) =
+  for k, v in attrs.field_pairs:
+    when k == "class": self.class v
+    elif k == "text":  self.text  v
+    elif k == "html":  self.html  v
+    else:              self.attr(k, v)
+
 proc add*(parent: El, child: El) =
   if child.kind == list: parent.children.add child.children
   else:                  parent.children.add child
@@ -242,10 +249,24 @@ proc add*(parent: El, list: seq[El]) =
   parent.children.add list
 
 # template -----------------------------------------------------------------------------------------
-template build_el*(html: string, code): El =
+# template build_el*(expr: string, attrs_or_code): El =
+#   block:
+#     let it {.inject.} = El.init(expr) # El.init(fmt(html, '{', '}'))
+#     attrs_or_code
+#     it
+
+template build_el*(expr: string, attrs: untyped, code: untyped): El =
   block:
-    let it {.inject.} = El.init(html) # El.init(fmt(html, '{', '}'))
+    let it {.inject.} = El.init(expr)
+    it.set_attrs(attrs)
     code
+    it
+
+template build_el*(expr: string, attrs_or_code: untyped): El =
+  block:
+    let it {.inject.} = El.init(expr)
+    when compiles(it.set_attrs(attrs_or_code)): it.set_attrs(attrs_or_code)
+    else:                                       attrs_or_code
     it
 
 template build_el*(html: string): El =
@@ -269,24 +290,30 @@ template add_or_return_el*(e_arg: El): auto =
     else:                       e
   else:                         e
 
-template el*(html: string, code): auto =
-  add_or_return_el build_el(html, code)
+# template el*(html: string, attrs: tuple, code): auto =
+#   add_or_return_el build_el(html, attrs, code)
+
+template el*(html: string, attrs, code): auto =
+  add_or_return_el build_el(html, attrs, code)
+
+template el*(html: string, attrs_or_code): auto =
+  add_or_return_el build_el(html, attrs_or_code)
 
 template el*(html: string): auto =
   add_or_return_el build_el(html)
 
 test "el, basics":
   check el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
+  check el("ul.todos", (class: "editing")).to_html  == """<ul class="todos editing"></ul>"""
+  check el("ul.todos", (class: "a"), it.class("b")).to_html == """<ul class="todos a b"></ul>"""
 
   discard els(el("a", el("b"))) # should work
 
   let h =
     el".parent":
       el".counter":
-        el"input type=text":
-          it.value "some"
-        el"button":
-          it.text "+"
+        el("input type=text", (value: "some"))
+        el("button", (text: "+"))
   let html = """
     <div class="parent">
       <div class="counter">

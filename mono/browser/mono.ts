@@ -127,12 +127,16 @@ function listen_to_dom_events() {
 
   async function on_click(raw_event: MouseEvent) {
     let el = raw_event.target as HTMLElement, location = "" + (el as any).href
+    let current_location = window.location.pathname + window.location.search
+    if (location == current_location) return
     if (el.tagName.toLowerCase() == "a" && location != "") {
       // Click with redirect
       let found = find_el_with_listener(el)
       if (!found) return
       raw_event.preventDefault()
       history.pushState({}, "", location)
+
+      get_mono_root(found.mono_id).setAttribute("skip_flash", "true") // Skipping flash on redirect, it's annoying
       await post_event(found.mono_id, { kind: 'location', location, el: [] })
     } else {
       // Click without redirect
@@ -346,7 +350,8 @@ class ApplyDiffImpl implements ApplyDiff {
       ;((this as any)[fname] as Function).apply(this, args)
     }
 
-    for (const el of this.flash_els) flash(el) // Flashing
+    if (!this.root.hasAttribute("skip_flash")) for (const el of this.flash_els) flash(el) // Flashing
+    this.root.removeAttribute("skip_flash")
   }
 
   replace(id: number[], html: SafeHtml): void {

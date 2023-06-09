@@ -43,18 +43,15 @@ method show_tags*(blk: TableBlock): bool = false
 # base block
 method render_block*(blk: Block, context: RenderContext): El {.base.} =
   el".border-l-4.border-orange-800 .text-orange-800":
-    el".text-orange-800 .ml-2":
-      it.text fmt"render_block not defined for {blk.source.kind}"
+    el(".text-orange-800 .ml-2", (text: fmt"render_block not defined for {blk.source.kind}"))
 
 # section
 method render_block*(section: SectionBlock, context: RenderContext): El =
-  el".text-2xl":
-    it.text section.title
+  el(".text-2xl", (text: section.title))
 
 # subsection
 method render_block*(blk: SubsectionBlock, context: RenderContext): El =
-  el".text-xl":
-    it.text blk.title
+  el(".text-xl", (text: blk.title))
 
 # text items
 proc render_text*(text: Text, context: RenderContext): SafeHtml =
@@ -76,9 +73,9 @@ proc render_text*(text: Text, context: RenderContext): SafeHtml =
     of TextItemKind.glink:
       html.add fmt"""<a class="glink" href="{item.glink.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.tag:
-      let path = config.tag_path(item.text, context)
       let ntag = item.text.to_lower
-      html.add fmt"""<a class="tag" href="/tags/{ntag.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
+      let path = config.tag_path(ntag, context)
+      html.add fmt"""<a class="tag" href="/tags/{path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
     of TextItemKind.embed:
       html.add: render_embed(item.embed, context)
 
@@ -92,39 +89,32 @@ method render_block*(blk: TextBlock, context: RenderContext): El =
     for i, pr in blk.ftext:
       case pr.kind
       of ParagraphKind.text:
-        el "p":
-          it.html pr.text.render_text(context)
+        el("p", (html: pr.text.render_text(context)))
       of ParagraphKind.list:
         el "ul":
           for list_item in pr.list:
-            el "li":
-              it.html list_item.render_text(context)
+            el("li", (html: list_item.render_text(context)))
 
 # list
 method render_block*(blk: ListBlock, context: RenderContext): El =
   if blk.ph:
     list_el:
       for list_item in blk.list:
-        el "p":
-          it.html list_item.render_text(context)
+        el("p", (html: list_item.render_text(context)))
   else:
     el "ul":
       for list_item in blk.list:
-        el "li":
-          it.html list_item.render_text(context)
+        el("li", (html: list_item.render_text(context)))
 
 # code
 method render_block*(blk: CodeBlock, context: RenderContext): El =
-  el"pre":
-    it.text blk.code.escape_html(quotes = false)
+  el("pre", (text: blk.code.escape_html(quotes = false)))
 
 # image
 method render_block*(blk: ImageBlock, context: RenderContext): El =
   let path = context.config.asset_path(blk.image, context)
-  el"a.block":
-    it.attr("href", path)
-    it.attr("target", "_blank")
-    el("img", it.attr("src", path))
+  el("a.block", (href: path, target: "_blank")):
+    el("img", (src: path))
 
 # images
 method render_block*(blk: ImagesBlock, context: RenderContext): El =
@@ -140,10 +130,8 @@ method render_block*(blk: ImagesBlock, context: RenderContext): El =
         it.style fmt"width: {image_width}%; text-align: center; vertical-align: middle;"
         if i < images.len:
           let path = images[i]
-          el"a.ftext_image_container.overflow-hidden .rounded.border.border-gray-200":
-            it.attr("target", "_blank")
-            it.attr("href", path)
-            el("img", it.attr("src", path))
+          el("a.image_container.overflow-hidden .rounded.border.border-gray-200", (href: path, target: "_blank")):
+            el("img", (src: path))
         i.inc
 
   # if images.len <= cols:
@@ -180,7 +168,7 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
             for j, cell in row:
               if single_image_cols[j]:
                 # el"": # Image had to be nested in div, otherwise it's not scaled properly
-                #   el".ftext_image_container":
+                #   el".image_container":
                 #     it.html cell.render_text(context)
                 el"":
                   it.html cell.render_text(context)
@@ -206,13 +194,12 @@ proc render_table_as_table*(blk: TableBlock, single_image_cols: seq[bool], conte
       el"tr .border-b.border-gray-200":
         let hrow = blk.header.get
         for i, hcell in hrow:
-          el"th .py-1":
+          el("th .py-1", (html: hcell.render_text(context))):
             if i < hrow.high: it.class "pr-4"
             if single_image_cols[i]: # image header
               it.style "width: 25%; text-align: center; vertical-align: middle;"
             else: # non image header
               it.style "text-align: left; vertical-align: middle;"
-            it.html hcell.render_text(context)
 
     for i, row in blk.rows: # rows
       el"tr":
@@ -222,7 +209,7 @@ proc render_table_as_table*(blk: TableBlock, single_image_cols: seq[bool], conte
             if i < row.high: it.class "pr-4"
             if single_image_cols[i]: # cell with image
               it.style "width: 25%; text-align: center; vertical-align: middle;"
-              el".ftext_image_container.overflow-hidden .rounded":
+              el".image_container.overflow-hidden .rounded":
                 it.html cell.render_text(context)
             else: # non image cell
               it.style "vertical-align: middle;"
