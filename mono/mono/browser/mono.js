@@ -1,8 +1,9 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
-import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url } from "./helpers.js";
+import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url, get_window_location } from "./helpers.js";
 // run ---------------------------------------------------------------------------------------------
-export function run() {
-    listen_to_dom_events();
+function get_main_mono_root() {
+    // Theoretically, mono supports multiple mono_root elements on the page, but currently only one
+    // supported.
     let mono_roots = find_all('[mono_id]');
     if (mono_roots.length < 1)
         throw new Error("mono_id not found");
@@ -12,6 +13,11 @@ export function run() {
     let mono_id = mono_root.getAttribute("mono_id");
     if (!mono_id)
         throw new Error("mono_id can't be empty");
+    return { mono_id, mono_root };
+}
+export function run() {
+    listen_to_dom_events();
+    let { mono_id, mono_root } = get_main_mono_root();
     let window_location = mono_root.getAttribute("window_location");
     if (window_location)
         set_window_location(window_location);
@@ -68,10 +74,15 @@ async function pull(mono_id) {
 // events ------------------------------------------------------------------------------------------
 function listen_to_dom_events() {
     let changed_inputs = {}; // Keeping track of changed inputs
+    // Watching back and forward buttons
+    window.addEventListener('popstate', function (event) {
+        let { mono_root, mono_id } = get_main_mono_root();
+        mono_root.setAttribute("skip_flash", "true"); // Skipping flash on redirect, it's annoying
+        post_event(mono_id, { kind: 'location', location: get_window_location(), el: [] });
+    });
     async function on_click(raw_event) {
         let el = raw_event.target, location = "" + el.href;
-        let current_location = window.location.pathname + window.location.search;
-        if (location == current_location)
+        if (location == get_window_location())
             return;
         if (el.tagName.toLowerCase() == "a" && location != "") {
             // Click with redirect

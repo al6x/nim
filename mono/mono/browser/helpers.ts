@@ -136,6 +136,10 @@ export function set_window_location(location: string) {
   if (location != current) history.pushState({}, "", location)
 }
 
+export function get_window_location(): string {
+  return window.location.pathname + window.location.search
+}
+
 export function set_favicon(href: string) {
   var link: HTMLLinkElement | null = document.head.querySelector("link[rel~='icon']")
   if (link) {

@@ -127,6 +127,9 @@ export function set_window_location(location) {
     if (location != current)
         history.pushState({}, "", location);
 }
+export function get_window_location() {
+    return window.location.pathname + window.location.search;
+}
 export function set_favicon(href) {
     var link = document.head.querySelector("link[rel~='icon']");
     if (link) {
