@@ -17,14 +17,14 @@ test "consume_tags":
   template t(a, b) =
     let pr = Parser.init(a.dedent)
     let (tags, lines, _) = pr.consume_tags
-    check (tags, lines ) == b
+    check (tags, lines) == b
 
   t """
     #"a a"  #b, #д
   """, (@["a a", "b", "д"], (1, 1))
 
   t """
-    some #a ^text
+    some #a /link#hash ^text
   """, (@["a"], (1, 1))
 
   t """

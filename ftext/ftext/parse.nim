@@ -90,10 +90,11 @@ proc add_text(sentence: var string, text: string) =
   sentence.add text
 
 # tags ---------------------------------------------------------------------------------------------
+let non_tag_chars = """!@#$%^&*()-=_+{}\|:;'",.<>?/""".to_bitset
 let tag_delimiter_chars  = space_chars + {','}
 let quoted_tag_end_chars = {'\n', '"'}
 proc is_tag*(pr: Parser): bool =
-  pr.get == '#' and pr.get(1) notin tag_delimiter_chars
+  pr.get == '#' and pr.get(1) notin tag_delimiter_chars and pr.get(1) notin non_tag_chars and (pr.get(-1).is_none or pr.get(-1) in tag_delimiter_chars)
 
 proc consume_tag*(pr: Parser): Option[string] =
   assert pr.get == '#'
@@ -104,13 +105,14 @@ proc consume_tag*(pr: Parser): Option[string] =
     tag = pr.consume((c) => c notin quoted_tag_end_chars).trim
     if pr.get == '"': pr.inc
   else:
-    tag = pr.consume((c) => c notin tag_delimiter_chars).trim
+    tag = pr.consume((c) => c notin tag_delimiter_chars and c notin non_tag_chars).trim
   if not tag.is_empty:
     result = tag.some
   else:
     pr.warns.add "Empty tag"
 
 proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tuple[tags: seq[string], line_n: (int, int), pos_n: (int, int)] =
+  let i = pr.i
   var unknown = ""; var tags: seq[string];
   pr.skip space_chars
   let tags_start_pos = min(pr.i, pr.text.high)
@@ -124,6 +126,8 @@ proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tup
       if pr.get.is_some: unknown.add pr.get.get
       pr.inc
   if not unknown.is_empty:
+    p "-------"
+    p pr.text[i..pr.text.high]
     pr.warns.add fmt"Unknown text in tags: {unknown}"
   let tags_end_pos = block:
     let i = pr.rfind(not_space_chars)
