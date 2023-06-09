@@ -73,7 +73,7 @@ proc render_text*(text: Text, context: RenderContext): SafeHtml =
       html.add fmt"""<a class="glink" href="{item.glink.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.tag:
       let path = config.tag_path(item.text, context)
-      html.add fmt"""<a class="tag" href="/tags/{item.text.escape_html}">#{item.text.escape_html(quotes = false)}</a>"""
+      html.add fmt"""<a class="tag" href="/tags/{item.text.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.embed:
       html.add: render_embed(item.embed, context)
 

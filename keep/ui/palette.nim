@@ -88,7 +88,8 @@ proc PTags*(tags: seq[(string, string)] = @[], closed = false): El =
         #   of 2: "text-xl"
         #   else: throw "unknown size"
 
-        el"a .mr-1 .align-middle .text-center .leading-4 .text-blue-800":
+        # el"a .mr-1 .align-middle .text-center .leading-4 .text-blue-800":
+        el"a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100":
           # it.class size_class
           it.text text
           it.attr("href", link)
@@ -131,10 +132,10 @@ template pblock_warns*(warns: seq[string]) =
 template pblock_tags*(tags: seq[(string, string)]) =
   let tagsv: seq[(string, string)] = tags
   unless tagsv.is_empty:
-    el"pblock-tags .block.flex.-mr-2 flash":
+    el"pblock-tags .block.-mr-1 flash":
       for (tag, link) in tagsv:
-        el"a .mr-2 .text-blue-800":
-          it.text "#" & tag
+        el"a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100":
+          it.text tag
           it.attr("href", link)
 
 template pblock_layout*(tname: string, code: untyped): auto =
@@ -248,9 +249,10 @@ template mockup_section(title_arg: string, code) =
       add_or_return_el built
 
 type StubData = object
-  links: seq[(string, string)]
-  tags:  seq[CloudTag]
-  doc:   Doc
+  links:      seq[(string, string)]
+  tags:       seq[string]
+  tags_cloud: seq[CloudTag]
+  doc:        Doc
 
 var data: StubData
 proc stub_data: StubData
@@ -274,7 +276,7 @@ proc render_mockup: seq[El] =
       el(PRBlock, ()):
         el(PSearchField, ())
       el(PFavorites, (links: data.links))
-      # el(PTags, (tags: data.tags))
+      el(PTags, (tags: data.tags.with_path(context)))
       el(PSpaceInfo, (warns: @[("12 warns", "/warns")]))
       el(PBacklinks, (links: data.links))
       el(PRBlock, (title: "Other", closed: true))
@@ -365,10 +367,12 @@ proc stub_data: StubData =
     "How to trade safely", "Stock Option Insurance", "Simulating Risk", "Math Modelling"
   ].map((text) => (text, "#"))
 
-  result.tags = {
+  result.tags_cloud = {
     "Stock": 1, "Trading": 0, "Market": 2, "Dollar": 0, "Euro": 1,
     "Taxes": 1, "Currency": 0, "Profit": 0, "Loss": 2, "Option": 1,
     "Strategy": 0, "Backtesting": 0
   }.map((t) => (t[0], "#", t[1]))
+
+  result.tags = result.tags_cloud.mapit(it[0])
 
   result.doc = Doc.read(fmt"{keep_dir()}/ui/assets/sample/about-forex.ft")

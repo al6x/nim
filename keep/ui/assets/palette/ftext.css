@@ -4,7 +4,11 @@
 .ftext pre { @apply text-sm; @apply rounded; @apply px-2; @apply py-2; @apply bg-gray-50; }
 .ftext code { padding: 2px 5px; @apply rounded; @apply text-sm; @apply bg-gray-100; }
 
-.ftext a.tag, .ftext a.link, .ftext a.glink { @apply text-blue-800; }
+.ftext a.link, .ftext a.glink { @apply text-blue-800; }
+
+.ftext a.tag, .ftext a.link, .ftext a.glink {
+  @apply px-1; @apply rounded; @apply border; @apply text-blue-800; @apply bg-blue-100; @apply border-blue-100;
+}
 
 .ftext > ul { @apply space-y-1; position: relative; left: 15px; margin-right: 15px; }
 .ftext > ul > li { list-style-type: disc; }
