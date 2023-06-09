@@ -19,7 +19,9 @@ proc render*(self: DocView): El =
   let warns_count = db.docs_with_warns_cached.len
   if warns_count > 0:
     let message = fmt"""{warns_count} {warns_count.pluralize("doc")} with warns"""
-    right.add el(PWarnings, (warns: @[(message, warns_url())]))
+    right.add:
+      el(PRBlock, (tname: "prblock-warnings")):
+        el(PWarnings, (warns: @[(message, warns_url())]))
 
   let view =
     el(PApp, ( # App

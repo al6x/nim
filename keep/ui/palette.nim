@@ -97,11 +97,11 @@ proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
           el("a.block.ml-2 .text-sm .text-orange-800", (text: text, href: link))
 
 proc PWarnings*(warns: openarray[(string, string)], closed = false): El =
-  el(PRBlock, (tname: "prblock-warnings", closed: closed)):
-    if not warns.is_empty:
-      el".border-l-2.border-orange-800 flex":
-        for (text, link) in warns:
-          el("a.block.ml-2 .text-sm .text-orange-800", (text: text, href: link))
+  el".border-l-2.border-orange-800 flex":
+    let class = ".block.ml-2 .text-sm .text-orange-800"
+    for (text, link) in warns:
+      if link.is_empty: el(class,         (text: text))
+      else:             el(fmt"a{class}", (text: text, href: link))
 
 # Components ---------------------------------------------------------------------------------------
 proc PTable*(header = Option[seq[El]](), rows: seq[seq[El]]): El =
@@ -284,7 +284,8 @@ proc render_mockup: seq[El] =
         el(PSearchField, ())
       el(PFavorites, (links: data.links))
       el(PTags, (tags: data.tags.with_path(context)))
-      el(PWarnings, (warns: @[("12 warns", "/warns")]))
+      el(PRBlock, (tname: "prblock-warnings")):
+        el(PWarnings, (warns: @[("12 warns", "/warns")]))
       el(PBacklinks, (links: data.links))
       el(PRBlock, (title: "Other", closed: true))
 

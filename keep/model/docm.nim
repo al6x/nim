@@ -122,3 +122,8 @@ proc asset_path*(doc: Doc, asset_path: string): string =
 
 proc `$`*(link: Link): string =
   "/" & link.sid & "/" & link.did & (if link.bid.is_empty: "" else: "/" & link.bid)
+
+proc nwarns*(doc: Doc): seq[string] =
+  result.add doc.warns
+  for blk in doc.blocks: result.add blk.warns
+  result.unique.sort

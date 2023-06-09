@@ -17,6 +17,7 @@ nim r --experimental:overloadable_enums --threads:off todo.nim
 - Stateful Components and bidirectional data binding.
 - Fast initial page load and SEO friendly.
 - Works on Nim Server, or Compile to JS in Browser.
+- Support for Browser Title, Location, Favicon, Back/Forward Buttons.
 
 # Component Templates
 
