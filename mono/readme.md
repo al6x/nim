@@ -71,7 +71,7 @@ keep the code size small, to have fast Nim compilation. You can change that and 
 
 # Todo
 
-- Move current_tree from component to session.
+- Move current_tree from component to session. And replace get_initial_el with session.current_tree.get
 - Twitter Example
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Better Async/Actor/Networking code.
