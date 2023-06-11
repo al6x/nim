@@ -71,6 +71,7 @@ keep the code size small, to have fast Nim compilation. You can change that and 
 
 # Todo
 
+- style in attrs tuple doesn't work
 - Flash doesn't work on todo and hello properly
 - Add hello world and twitter example
 - Move current_tree from component to session. And replace get_initial_el with session.current_tree.get

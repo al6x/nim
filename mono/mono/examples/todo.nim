@@ -149,16 +149,14 @@ when is_main_module:
     # Feature: content and title in initial HTML page to improve SEO.
     default_html_page(app_el, styles = @["/assets/todo.css"])
 
-  define_session TodoSession, TodoView
-
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk"), TodoItem(text: "Buy Beef")])
 
-  proc build_session(url: Url): Session =
+  proc build_session(url: Url): auto =
     let app = TodoView()
     app.set_attrs(todo = todo)
-    TodoSession.init app
+    Session.init app
 
   # Path to folder with CSS styles and images
   let assets_path = current_source_path().parent_dir.absolute_path
-  run_http_server(build_session, port = 2000, asset_paths = @[assets_path])
+  run_http_server(build_session, asset_paths = @[assets_path])

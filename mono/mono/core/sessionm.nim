@@ -32,28 +32,28 @@ type
   # Browser events are collected in indbox via async http handler, and then processed separatelly via
   # sync process. Result of processing stored in outbox, which periodically checked by async HTTP handler
   # and sent to Browser if needed.
-  Session* = ref object of RootObj
+  Session*[T] = ref object of RootObj
     id*:     string
     inbox*:  seq[InEvent]
     outbox*: seq[OutEvent]
-    app*:    Component
+    app*:    T
     el*:     Option[El] # UI tree from the last app render
     last_accessed_ms*: TimerMs
 
-method forward_process*(self: Session, events: openarray[InEvent]): Option[El] {.base.} = throw "Not implemented"
-method forward_page*(self: Session, el: El): SafeHtml {.base.} = throw "Not implemented"
-method forward_on_binary*(self: Session, url: Url): BinaryResponse {.base.} = throw "Not implemented"
-
-proc log*(self: Session): Log =
+proc log*[T](self: Session[T]): Log =
   Log.init("Session", self.id)
 
-method process*(self: Session): bool {.base.} =
+method process*[T](self: Session[T]): bool {.base.} =
+  when compiles(self.before_processing_session):
+    self.before_processing_session
+    defer: self.after_processing_session
+
   if self.inbox.is_empty: return
 
   let inbox = self.inbox.copy
   self.inbox.clear
 
-  let oel = self.forward_process(inbox)
+  let oel = self.app.process(self.el, inbox)
   if oel.is_none: return
   let el = oel.get
 
@@ -64,16 +64,20 @@ method process*(self: Session): bool {.base.} =
   self.el = el.some
   true
 
-type Sessions* = ref Table[string, Session]
+proc init*[T](_: type[Session[T]], app: T): Session[T] =
+  Session[T](id: secure_random_token(6), last_accessed_ms: timer_ms(), app: app)
 
-proc process*(sessions: Sessions) =
+# Sessions -----------------------------------------------------------------------------------------
+type Sessions*[T] = ref Table[string, Session[T]]
+
+proc process*[T](sessions: Sessions[T]) =
   for _, s in sessions: discard s.process
 
-proc collect_garbage*(self: Sessions, session_timeout_ms: int) =
+proc collect_garbage*[T](self: Sessions[T], session_timeout_ms: int) =
   let deleted = self[].delete (_, s) => s.last_accessed_ms() > session_timeout_ms
   for session in deleted.values: session.log.info("closed")
 
-proc add_timer_event*(self: Sessions) =
+proc add_timer_event*[T](self: Sessions[T]) =
   for id, session in self: session.inbox.add(InEvent(kind: timer))
 
 proc file_response*(path: string): BinaryResponse =
@@ -81,37 +85,3 @@ proc file_response*(path: string): BinaryResponse =
 
 proc http_response*(content: string, code = 200, headers = seq[(string, string)].init): BinaryResponse =
   BinaryResponse(kind: http, content: content, code: code, headers: headers)
-
-# Helpers ------------------------------------------------------------------------------------------
-template define_session*(SessionType, ComponentType) =
-  # Magical code to overcome Nim inability to store generics in collection and autocast to subclass.
-  # Defining methods on Session, forwarding calls to Component subclass.
-  type SessionType* = ref object of Session
-
-  proc init*(_: type[SessionType], app: ComponentType): SessionType =
-    SessionType(id: secure_random_token(6), last_accessed_ms: timer_ms(), app: app)
-
-  method forward_process*(self: SessionType, events: openarray[InEvent]): Option[El] =
-    let app: ComponentType = self.app.ComponentType
-    app.process(self.el, events)
-
-  method forward_page*(self: SessionType, app_el: El): SafeHtml =
-    let app: ComponentType = self.app.ComponentType
-    when compiles(app.page(app_el)): app.page(app_el)
-    else:                            default_html_page(app_el)
-
-  method forward_on_binary*(self: SessionType, url: Url): BinaryResponse =
-    let app: ComponentType = self.app.ComponentType
-    when compiles(app.on_binary url): app.on_binary url
-    else:                             http_response "app.on_binary not defined", 400
-
-when is_main_module:
-  # Testing
-  proc default_html_page*(el: El): SafeHtml = discard
-
-  type App = ref object of Component
-  proc render*(self: App): El = discard
-  # proc page*(self: App, session: Session, el: El): SafeHtml = discard
-
-  define_session(AppSession, App)
-  p AppSession()

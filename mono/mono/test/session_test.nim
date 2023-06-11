@@ -1,5 +1,5 @@
 import base, ext/url
-import ../core/[mono_el, component, tmpl, sessionm, helpers]
+import ../core/[mono_el, component, tmpl, sessionm]
 
 # counter ------------------------------------------------------------------------------------------
 type Counter = ref object of Component
@@ -32,10 +32,8 @@ proc render(self: CounterParent): El =
   el".parent":
     self.el(Counter, "counter", ())
 
-define_session CounterSession, CounterParent
-
 test "counter":
-  let session: Session = CounterSession.init(app = CounterParent())
+  let session = Session.init(CounterParent())
   session.id = "mid"
 
   block: # Rendering initial HTML
