@@ -71,6 +71,7 @@ proc render*(self: BlogView): El =
     e.window_location(posts_url())
     e
 
+# Deployment ---------------------------------------------------------------------------------------
 when is_main_module:
   import mono/http
 

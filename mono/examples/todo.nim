@@ -139,6 +139,7 @@ proc on_timer*(self: TodoView): bool =
   # Could be optimised, by checking if version of shared data has been changed and responding with false if not
   true
 
+# Deployment ---------------------------------------------------------------------------------------
 when is_main_module:
   # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView.
   # In the code below deploying to Nim Server
