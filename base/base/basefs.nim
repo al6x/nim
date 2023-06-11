@@ -91,18 +91,20 @@ proc exist*(fs: FS, path: string): bool =
 type FsEntryKind* = enum file, dir
 type FsEntry* = tuple[kind: FsEntryKind, name, path: string]
 
+proc to_fs_entry_kind(kind: PathComponent): FsEntryKind =
+  case kind
+  of pcFile:       FsEntryKind.file
+  of pcLinkToFile: FsEntryKind.file
+  of pcDir:        FsEntryKind.dir
+  of pcLinkToDir:  FsEntryKind.dir
+
 proc read_dir*(fs: FS, path: string, hidden = false): seq[FsEntry] =
   for entry in walk_dir(path, relative = true):
-    let kind =
-      case entry.kind
-      of pcFile:       FsEntryKind.file
-      of pcLinkToFile: FsEntryKind.file
-      of pcDir:        FsEntryKind.dir
-      of pcLinkToDir:  FsEntryKind.dir
     if hidden or not entry.path.starts_with("."):
-      result.add (kind, entry.path, path & "/" & entry.path)
+      result.add (entry.kind.to_fs_entry_kind, entry.path, path & "/" & entry.path)
 
-
+proc kind*(fs: FS, path: string): FsEntryKind =
+  get_file_info(path).kind.to_fs_entry_kind
 
 
 # type FsEntryKind* = enum file, file_link, dir, dir_link

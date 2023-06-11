@@ -9,7 +9,7 @@ proc render(self: Explorer): El =
     let path = self.path
     if not path.is_empty:
       if fs.exist path:
-        if get_file_info(path).kind == pc_file:
+        if fs.kind(path) == file:
           el("pre", (text: fs.read(path)))
         else:
           for entry in fs.read_dir(path):
