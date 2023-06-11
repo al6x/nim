@@ -230,6 +230,11 @@ proc html*(self: El, html: SafeHtml) =
 proc style*(self: El, style: string) =
   self.attr("style", style)
 
+proc style*(self: El, style: tuple) =
+  var buff: seq[string]
+  for k, v in style.field_pairs: buff.add fmt"{k}: {v.to_s};"
+  self.style buff.join(" ")
+
 proc class*(self: El, class: string) =
   let class = if "class" in self: self["class"] & " " & class else: class
   self.attr "class", class
@@ -239,6 +244,7 @@ template set_attrs*(self: El, attrs: tuple) =
     when k == "class": self.class v
     elif k == "text":  self.text  v
     elif k == "html":  self.html  v
+    elif k == "style": self.style v
     else:              self.attr(k, v)
 
 proc add*(parent: El, child: El) =
@@ -249,15 +255,9 @@ proc add*(parent: El, list: seq[El]) =
   parent.children.add list
 
 # template -----------------------------------------------------------------------------------------
-# template build_el*(expr: string, attrs_or_code): El =
-#   block:
-#     let it {.inject.} = El.init(expr) # El.init(fmt(html, '{', '}'))
-#     attrs_or_code
-#     it
-
 template build_el*(expr: string, attrs: untyped, code: untyped): El =
   block:
-    let it {.inject.} = El.init(expr)
+    let it {.inject.} = El.init(expr) # El.init(fmt(html, '{', '}'))
     it.set_attrs(attrs)
     code
     it

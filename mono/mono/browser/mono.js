@@ -44,30 +44,28 @@ async function pull(mono_id) {
             await sleep(1000);
             continue;
         }
-        switch (res.kind) {
-            case 'events':
-                for (const event of res.events) {
+        let events = Array.isArray(res) ? res : [res];
+        for (let event of events) {
+            switch (event.kind) {
+                case 'eval':
                     log.info("<<", event);
-                    switch (event.kind) {
-                        case 'eval':
-                            eval("'use strict'; " + event.code);
-                            break;
-                        case 'update':
-                            let root = get_mono_root(mono_id);
-                            update(root, event.diffs);
-                            break;
-                    }
-                }
-                break;
-            case 'ignore':
-                break;
-            case 'expired':
-                set_window_icon_disabled(mono_id);
-                log.info("expired");
-                break main_loop;
-            case 'error':
-                log.error(res.message);
-                throw new Error(res.message);
+                    eval("'use strict'; " + event.code);
+                    break;
+                case 'update':
+                    log.info("<<", event);
+                    let root = get_mono_root(mono_id);
+                    update(root, event.diffs);
+                    break;
+                case 'ignore':
+                    break;
+                case 'expired':
+                    set_window_icon_disabled(mono_id);
+                    log.info("expired");
+                    break main_loop;
+                case 'error':
+                    log.error(event.message);
+                    throw new Error(event.message);
+            }
         }
     }
 }

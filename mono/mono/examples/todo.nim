@@ -92,95 +92,72 @@ proc render*(self: TodoView): El =
   proc set_filter(filter: TodoViewFilter): auto =
     proc = self.filter = filter
 
-  el"header .header":
-    it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
-    el("h1", (text: "todos"))
-    el("input.new-todo autofocus", (placeholder: "What needs to be done?")):
-      it.bind_to(self.new_todo, true)
-      it.on_keydown(create_new)
+  el"section .todoapp":
+    el"header .header":
+      it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
+      el("h1", (text: "todos"))
+      el("input.new-todo autofocus", (placeholder: "What needs to be done?")):
+        it.bind_to(self.new_todo, true)
+        it.on_keydown(create_new)
 
-    if not self.todo.items.is_empty:
-      el"section.main":
-        el("input#toggle-all.toggle-all type=checkbox", (value: all_completed)):
-          it.on_change(toggle_all)
-        el("label for=toggle-all", (text: "Mark all as complete"))
+      if not self.todo.items.is_empty:
+        el"section.main":
+          el("input#toggle-all.toggle-all type=checkbox", (value: all_completed)):
+            it.on_change(toggle_all)
+          el("label for=toggle-all", (text: "Mark all as complete"))
 
-        el"ul.todo-list":
-          for item in filtered:
-            # Feature: statefull componenets, attr names and values are typesafe
-            let item = item
-            self.el(TodoItemView, item.id, (on_delete: on_delete, item: item))
+          el"ul.todo-list":
+            for item in filtered:
+              # Feature: statefull componenets, attr names and values are typesafe
+              let item = item
+              self.el(TodoItemView, item.id, (on_delete: on_delete, item: item))
 
-        el"footer.footer":
-          el"span.todo-count":
-            el("strong", (text: active_count))
-            el("span", (text: active_count.pluralize("item") & " left"))
+          el"footer.footer":
+            el"span.todo-count":
+              el("strong", (text: active_count))
+              el("span", (text: active_count.pluralize("item") & " left"))
 
-          proc filter_class(filter: TodoViewFilter): string =
-            if self.filter == filter: ".selected"  else: ""
+            proc filter_class(filter: TodoViewFilter): string =
+              if self.filter == filter: ".selected"  else: ""
 
-          el"ul.filters":
-            el"li":
-              el(fmt"a{all.filter_class}", (text: "All")):
-                it.on_click(set_filter(all))
-            el"li":
-              el(fmt"a{active.filter_class}", (text: "Active")):
-                it.on_click(set_filter(active))
-            el"li":
-              el(fmt"a{completed.filter_class}", (text: "Completed")):
-                it.on_click(set_filter(completed))
+            el"ul.filters":
+              el"li":
+                el(fmt"a{all.filter_class}", (text: "All")):
+                  it.on_click(set_filter(all))
+              el"li":
+                el(fmt"a{active.filter_class}", (text: "Active")):
+                  it.on_click(set_filter(active))
+              el"li":
+                el(fmt"a{completed.filter_class}", (text: "Completed")):
+                  it.on_click(set_filter(completed))
 
-          if all_completed:
-            el("button.clear-completed", (text: "Delete completed")):
-              it.on_click(proc = self.todo.items.delete((item) => item.completed))
+            if all_completed:
+              el("button.clear-completed", (text: "Delete completed")):
+                it.on_click(proc = self.todo.items.delete((item) => item.completed))
 
 proc on_timer*(self: TodoView): bool =
   # Could be optimised, by checking if version of shared data has been changed and responding with false if not
   true
 
 when is_main_module:
-  # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView
+  # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView.
+  # In the code below deploying to Nim Server
   import mono/http, std/os
 
-  let page: PageFn = proc(root_el: El): SafeHtml =
+  proc page*(self: TodoView, app_el: El): SafeHtml =
     # Feature: content and title in initial HTML page to improve SEO.
-    """
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>{title}</title>
-          <link rel="stylesheet" href="/assets/mono.css"/>
-          <link rel="stylesheet" href="/assets/todo.css"/>
-        </head>
-        <body>
-          <section class="todoapp">
+    default_html_page(app_el, styles = @["/assets/todo.css"])
 
-      {app}
-
-      <script type="module">
-        import { run } from "/assets/mono.js"
-        run()
-      </script>
-
-          </section>
-        </body>
-      </html>
-    """.dedent.replace({
-      "{title}": root_el.window_title.escape_html,
-      "{app}":   root_el.to_html
-    })
+  define_session TodoSession, TodoView
 
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk"), TodoItem(text: "Buy Beef")])
 
-  proc build_app(session: Session, url: Url) =
-    let todo_view = TodoView()
-    todo_view.set_attrs(todo = todo)
-
-    session.page = page
-    session.app  = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
-      todo_view.process(events, mono_id)
+  proc build_session(url: Url): Session =
+    let app = TodoView()
+    app.set_attrs(todo = todo)
+    TodoSession.init app
 
   # Path to folder with CSS styles and images
   let assets_path = current_source_path().parent_dir.absolute_path
-  run_http_server(build_app, port = 2000, asset_paths = @[assets_path])
+  run_http_server(build_session, port = 2000, asset_paths = @[assets_path])

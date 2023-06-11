@@ -21,20 +21,16 @@ type InEvent =
   { kind: 'blur',     el: number[], blur:     BlurEvent } |
   { kind: 'input',    el: number[], input:    InputEvent }
 
-// Out events
 type OutEvent =
   { kind: 'eval',   code: string } |
-  { kind: 'update', diffs: Diff[] }
-
-// Session events
-type SessionPostEvent = { kind: 'events', mono_id: string, events: InEvent[] }
-type SessionPostPullEvent = { kind: 'pull',   mono_id: string }
-
-type SessionPullEvent =
-  { kind: 'events', events: OutEvent[] } |
+  { kind: 'update', diffs: Diff[] } |
   { kind: 'ignore' } |
   { kind: 'expired' } |
   { kind: 'error', message: string }
+
+type InEventEnvelope =
+  { kind: 'events', mono_id: string, events: InEvent[] } |
+  { kind: 'pull', mono_id: string }
 
 // Diff
 type SafeHtml = string
@@ -84,10 +80,10 @@ async function pull(mono_id: string): Promise<void> {
   let log = Log("mono")
   log.info("started")
   main_loop: while (true) {
-    let res: SessionPullEvent
+    let res: OutEvent | OutEvent[]
     let last_call_was_retry = false
     try {
-      res = await send<SessionPostPullEvent, SessionPullEvent>(
+      res = await send<InEventEnvelope, OutEvent | OutEvent[]>(
         "post", location.href, { kind: "pull", mono_id }, -1
       )
       if (last_call_was_retry) set_window_icon(mono_id)
@@ -99,31 +95,28 @@ async function pull(mono_id: string): Promise<void> {
       await sleep(1000)
       continue
     }
-
-    switch (res.kind) {
-      case 'events':
-        for (const event of res.events) {
+    let events: OutEvent[] = Array.isArray(res) ? res : [res]
+    for (let event of events) {
+      switch (event.kind) {
+        case 'eval':
           log.info("<<", event)
-          switch(event.kind) {
-            case 'eval':
-              eval("'use strict'; " + event.code)
-              break
-            case 'update':
-              let root = get_mono_root(mono_id)
-              update(root, event.diffs)
-              break
-          }
-        }
-        break
-      case 'ignore':
-        break
-      case 'expired':
-        set_window_icon_disabled(mono_id)
-        log.info("expired")
-        break main_loop
-      case 'error':
-        log.error(res.message)
-        throw new Error(res.message)
+          eval("'use strict'; " + event.code)
+          break
+        case 'update':
+          log.info("<<", event)
+          let root = get_mono_root(mono_id)
+          update(root, event.diffs)
+          break
+        case 'ignore':
+          break
+        case 'expired':
+          set_window_icon_disabled(mono_id)
+          log.info("expired")
+          break main_loop
+        case 'error':
+          log.error(event.message)
+          throw new Error(event.message)
+      }
     }
   }
 }
@@ -247,7 +240,7 @@ function listen_to_dom_events() {
       let events = batches[mono_id]
       Log("mono").info(">>", events)
       async function send_mono_x() {
-        let data: SessionPostEvent = { kind: 'events', mono_id, events: [...input_events, ...events] }
+        let data: InEventEnvelope = { kind: 'events', mono_id, events: [...input_events, ...events] }
         try   { await send("post", location.href, data) }
         catch { Log("http").error("can't send event") }
       }

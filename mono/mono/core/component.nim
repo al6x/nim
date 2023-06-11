@@ -1,5 +1,5 @@
 import base, std/macros, ext/url
-import ./mono_el, ./diff
+import ./mono_el
 
 type
   InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer
@@ -16,26 +16,14 @@ type
     of input:    input*: InputEvent
     of timer:    discard # Triggered periodically, to check and pick any background changes in state
 
-  OutEventKind* = enum eval, initial_el, update
-
-  OutEvent* = object
-    case kind*: OutEventKind
-    of eval:       code*: string
-    of initial_el: el*: El
-    of update:     diffs*: seq[Diff]
-
   Component* = ref object of RootObj
-    current_tree:   Option[El]
     children:       Table[string, Component]
     children_built: HashSet[string] # Needed to track and destroy old children
-
-method after_create*(self: Component) {.base.} =
-  discard
 
 method before_destroy*(self: Component) {.base.} =
   discard
 
-proc after_render*(self: Component) =
+proc after_render(self: Component) =
   # Removing old child components
   self.children.values.each(after_render)
   let old = self.children.delete((id, child) => id notin self.children_built)
@@ -47,13 +35,14 @@ proc get_child_component*[T](self: Component, _: type[T], id: string): T =
   self.children_built.add full_id
   if full_id notin self.children:
     let child = when compiles(T.init): T.init else: T()
-    child.after_create
+    when compiles(child.after_create): child.after_create
     self.children[full_id] = child
   self.children[full_id].T
 
-template process_in_event*[C](self: C, event: InEvent): bool =
+template process_in_event[C](self: C, current_tree: Option[El], event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
-    let el = self.current_tree.get.get event.el
+    assert current_tree.is_some, "UI tree should be present at this stage"
+    let el = current_tree.get.get event.el
     if el.extras.is_some and el.extras_get.`handler_name`.is_some:
       let handler {.inject.} = el.extras_get.`handler_name`.get
       code
@@ -81,7 +70,8 @@ template process_in_event*[C](self: C, event: InEvent): bool =
   of input:
     # Setting value on binded variable
     let render_for_input_change = block:
-      let el = self.current_tree.get.get event.el
+      assert current_tree.is_some, "UI tree should be present at this stage"
+      let el = current_tree.get.get event.el
       if el.extras.is_some and el.extras_get.set_value.is_some:
         let set_value = el.extras_get.set_value.get
         set_value.handler event.input.value
@@ -99,23 +89,11 @@ template process_in_event*[C](self: C, event: InEvent): bool =
     else:
       false
 
-proc process*[C](self: C, events: seq[InEvent], mono_id = ""): seq[OutEvent] =
-  let state_changed_maybe = events.map((event) => self.process_in_event event).any
-  # Optimisation, skipping render if there's no changes
-  if (not state_changed_maybe) and self.current_tree.is_some: return @[]
+proc process*[C](self: C, current_el: Option[El], events: openarray[InEvent]): Option[El] =
+  let state_changed_maybe = events.mapit(self.process_in_event(current_el, it)).any
+  if current_el.is_some and not state_changed_maybe: return # Optimisation, skipping render if there's no changes
 
   # when compiles(self.act): self.act # Do something before render
-  let new_tree = self.render
-  new_tree.attrs["mono_id"] = mono_id
+  let el = self.render
   self.after_render
-
-  if self.current_tree.is_some:
-    let diffs = diff(@[], self.current_tree.get, new_tree)
-    unless diffs.is_empty: result.add OutEvent(kind: update, diffs: diffs)
-  else:
-    result.add OutEvent(kind: initial_el, el: new_tree)
-  self.current_tree = new_tree.some
-
-proc get_initial_el*(outbox: seq[OutEvent]): El =
-  assert outbox.len == 1 and outbox[0].kind == OutEventKind.initial_el, "initial_el required"
-  outbox[0].el
+  el.some

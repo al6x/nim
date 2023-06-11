@@ -1,4 +1,4 @@
-version     = "2.6.0"
+version     = "2.7.0"
 author      = "Alex Craft https://github.com/al6x"
 description = "Mono UI Web Framework"
 license     = "MIT"
@@ -6,4 +6,4 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= 1.6"
-requires "https://github.com/al6x/nim?subdir=ext == 2.6.0"
+requires "https://github.com/al6x/nim?subdir=ext == 2.7.0"
