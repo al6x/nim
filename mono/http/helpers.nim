@@ -1,4 +1,4 @@
-import base, ext/[url, async]
+import base, ext/[url, async], ../core
 import std/[deques, httpcore, asynchttpserver, asyncnet, os]
 
 type Mime* = ref Table[string, string]
@@ -39,23 +39,10 @@ proc get_for_path*(mime: Mime, path: string): string =
 
 proc serve_asset_file*(req: Request, asset_paths: seq[string], url: Url): Future[void] {.async.} =
   let data = read_asset_file(asset_paths, url.path_as_s.replace("/assets/", "/"))
-  if data.is_some:
-    await req.respond(data.get, mime.get_for_path(url.path_as_s))
-  else:
-    await req.respond(Http404, "Not found")
+  if data.is_some: await req.respond(data.get, mime.get_for_path(url.path_as_s))
+  else:            await req.respond(Http404, "Not found")
 
 proc serve_file*(req: Request, path: string): Future[void] {.async.} =
   assert path.starts_with "/", "path should be absolute"
-  if fs.exist(path):
-    await req.respond(fs.read(path), mime.get_for_path(path))
-  else:
-    await req.respond(Http404, "Not found")
-
-# proc serve_app_html*(
-#   req: Request, asset_paths: seq[string], page_fname: string, mono_id, html: string, meta: string
-# ): Future[void] {.async.} =
-#   let data = read_asset_file(asset_paths, "/" & page_fname)
-#     .replace("{mono_id}", mono_id)
-#     .replace("{html}", html)
-#     .replace("{meta}", meta)
-#   await req.respond(data, "text/html")
+  if fs.exist(path): await req.respond(fs.read(path), mime.get_for_path(path))
+  else:              await req.respond(Http404, "Not found")

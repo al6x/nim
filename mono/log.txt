@@ -1,3 +1,18 @@
+proc serve_app_html*(
+  req: Request, asset_paths: seq[string], page_fname: string, mono_id, html: string, meta: string
+): Future[void] {.async.} =
+  let data = read_asset_file(asset_paths, "/" & page_fname)
+    .replace("{mono_id}", mono_id)
+    .replace("{html}", html)
+    .replace("{meta}", meta)
+  await req.respond(data, "text/html")
+
+
+    AppFn*    = proc(events: seq[InEvent], mono_id: string): seq[OutEvent]
+  PageFn*   = proc(initial_el: El): SafeHtml
+  OnBinary* = proc(url: Url): BinaryResponse
+
+
 method serve_asset*(doc: DocSource, doc: Doc, space: Space, asset: string): BinaryResponse {.base.} =
   throw "not implemented"
 

@@ -1,4 +1,5 @@
-import base, mono/core, ../../model, ../../render/blocks, std/osproc, ../palette
+import base, mono/core, std/osproc
+import ./support, ../../model, ../../render/blocks, ../palette
 
 proc init*(_: type[RenderContext], doc: Doc, space_id: string): RenderContext =
   proc asset_path_with_mono_id(path: string, context: RenderContext): string =
@@ -43,10 +44,3 @@ proc edit_btn*(blk: Block, doc: Doc): Option[El] =
   if_doc_with_text_source doc.source:
     if_block_with_text_source blk.source:
       return edit_text_source_btn(dsource.location, bsource.line_n[0]).some
-
-proc svg_dot*(color: string): string =
-  fmt"""
-    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-      <circle style="fill: {color};" cx="50" cy="50" r="50"></circle>
-    </svg>
-  """.dedent.trim

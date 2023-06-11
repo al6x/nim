@@ -1,5 +1,5 @@
 import base, mono/[core, http], std/os
-import ../../model/[spacem, dbm], ./location, ../palette, ./helpers
+import ../../model/[spacem, dbm], ./location, ../palette, ./helpers, ./support
 import ./doc_view, ./warns_view
 
 type AppView* = ref object of Component
@@ -71,47 +71,20 @@ proc on_binary*(self: AppView, url: Url): BinaryResponse =
   else:
     http_response "Invalid asset path", 400
 
-let page: PageFn = proc(root_el: El): string =
-  """
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>{title}</title>
-        <link rel="stylesheet" href="/assets/mono.css"/>
-        <link rel="stylesheet" href="/assets/palette/build/palette.css"/>
-        <link rel="icon">
-      </head>
-      <body>
+proc page*(self: AppView, app_el: El): SafeHtml =
+  default_html_page(app_el, styles = @["/assets/palette/build/palette.css"])
 
-    {app}
+define_session AppSession, AppView
 
-    <template id="window_icon">{window_icon}</template>
-    <template id="window_icon_disabled">{window_icon_disabled}</template>
+method process*(s: AppSession): bool =
+  session = s
+  defer: session = nil
+  proc_call s.Session.process
 
-    <script type="module">
-      import { run } from "/assets/mono.js"
-      run()
-    </script>
+proc build_session*(url: Url): Session =
+  let app = AppView()
+  AppSession.init app
 
-      </body>
-    </html>
-  """.dedent
-    .replace({
-      "{title}":               root_el.window_title.escape_html,
-      "{app}":                 root_el.to_html,
-      "{window_icon}":         svg_dot("#1e40af"),
-      "{window_icon_disabled}": svg_dot("#94a3b8")
-    })
-
-proc build_app_view*(session: Session, url: Url) =
-  let app_view = AppView()
-
-  session.page = page
-  session.app  = proc(events: seq[InEvent], mono_id: string): seq[OutEvent] =
-    app_view.process(events, mono_id)
-  session.on_binary = (proc(url: Url): BinaryResponse =
-    app_view.on_binary(url)).some
-
-proc build_app_view_asset_paths*(): seq[string] =
+proc app_view_asset_paths*(): seq[string] =
   let keep_dir = current_source_path().parent_dir.parent_dir.parent_dir.absolute_path
   @[fmt"{keep_dir}/ui/assets"]

@@ -1,4 +1,5 @@
 import base, mono/core
+import ./support
 
 type LocationKind* = enum home, doc, shortcut, search, warns, asset, unknown
 type Location* = object

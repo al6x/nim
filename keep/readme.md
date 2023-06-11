@@ -1,5 +1,6 @@
 # Todo
 
+- Categories - urgent, high, lindy, archive.
 - Live Tutorial
 - Add warnings page
 - Hide panel by default, show setting button on doc right
