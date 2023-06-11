@@ -9,5 +9,5 @@ proc render(self: Hello): El =
     if not self.name.is_empty:
       el("span", (text: "Hello " & self.name))
 
-define_session HelloSession, Hello
-run_http_server (url) => HelloSession.init(Hello())
+when is_main_module:
+  run_http_server(proc (url: Url): auto = Session.init(Hello()))

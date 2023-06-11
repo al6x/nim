@@ -1,5 +1,5 @@
 import base, mono/[core, http], ext/async, std/os, ftext/parse
-import ./ui/app/app_view, ./model/[spacem, dbm], ui/palette as _, ./model/load
+import ./ui/app/[app_view, support], ./model/[spacem, dbm], ui/palette as _, ./model/load
 
 let parsers = DocFileParsers()
 parsers["ft"] = (path) => Doc.read path

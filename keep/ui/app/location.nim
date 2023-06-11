@@ -51,5 +51,5 @@ proc search_url*(text: string): string =
 
 proc asset_url*(sid, did, asset: string): string =
   var url = Location(kind: LocationKind.asset, sid: sid, did: did, asset: asset).to_url
-  url.params["mono_id"] = session.id
+  url.params["mono_id"] = mono_id
   url.to_s

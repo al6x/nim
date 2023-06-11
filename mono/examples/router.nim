@@ -78,17 +78,15 @@ when is_main_module:
   proc page*(self: BlogView, app_el: El): SafeHtml =
     default_html_page(app_el, styles = @[".block { display: block; }"])
 
-  define_session BlogSession, BlogView
-
   let blog = Blog(posts: @[
     Post(id: "1", title: "Title 1", text: "Text 1"),
     Post(id: "2", title: "Title 2", text: "Text 2"),
     Post(id: "3", title: "Title 3", text: "Text 3"),
   ])
 
-  proc build_session(url: Url): Session =
+  proc build_session(url: Url): auto =
     let app = BlogView()
     app.set_attrs(blog = blog)
-    BlogSession.init app
+    Session.init app
 
-  run_http_server(build_session, port = 2000)
+  run_http_server(build_session)

@@ -3,14 +3,14 @@ import ./support, ../../model, ../../render/blocks, ../palette
 
 proc init*(_: type[RenderContext], doc: Doc, space_id: string): RenderContext =
   proc asset_path_with_mono_id(path: string, context: RenderContext): string =
-    Url.init(blocks.asset_path(path, context), { "mono_id": session.id }).to_s
+    Url.init(blocks.asset_path(path, context), { "mono_id": mono_id }).to_s
   let config = RenderConfig(link_path: blocks.link_path, tag_path: blocks.tag_path,
     asset_path: asset_path_with_mono_id)
   (doc, space_id, config)
 
 proc open_editor*(location: string, line = 1) =
   let cmd = fmt"code -g {location}:{line}"
-  session.log.with((cmd: cmd)).info "edit"
+  session_log().with((cmd: cmd)).info "edit"
   let output = exec_cmd_ex(command = cmd)
   if output.exit_code != 0: throw fmt"Can't open editor: '{cmd}'"
 

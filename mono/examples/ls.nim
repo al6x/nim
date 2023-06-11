@@ -13,5 +13,5 @@ proc render(self: Ls): El =
       else:
         el("", (text: fmt"Path '{self.path}' doesn't exist"))
 
-define_session LsSession, Ls
-run_http_server (url) => LsSession.init(Ls())
+when is_main_module:
+  run_http_server(proc (url: Url): auto = Session.init(Ls()))

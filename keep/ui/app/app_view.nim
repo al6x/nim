@@ -74,16 +74,8 @@ proc on_binary*(self: AppView, url: Url): BinaryResponse =
 proc page*(self: AppView, app_el: El): SafeHtml =
   default_html_page(app_el, styles = @["/assets/palette/build/palette.css"])
 
-define_session AppSession, AppView
-
-method process*(s: AppSession): bool =
-  session = s
-  defer: session = nil
-  proc_call s.Session.process
-
-proc build_session*(url: Url): Session =
-  let app = AppView()
-  AppSession.init app
+proc build_session*(url: Url): auto =
+  Session.init AppView()
 
 proc app_view_asset_paths*(): seq[string] =
   let keep_dir = current_source_path().parent_dir.parent_dir.parent_dir.absolute_path
