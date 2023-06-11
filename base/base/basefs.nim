@@ -6,6 +6,10 @@ const fs* = FS()
 
 export parent_dir
 
+proc split*(fs: FS, path: string): tuple[dir, name, ext: string] =
+  let (dir, name, ext) = path.split_file
+  (dir, name, if not ext.is_empty and ext[0] == '.': ext[1..^1] else: ext)
+
 proc file_name*(path: string): string =
   path.last_path_part
 

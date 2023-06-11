@@ -72,7 +72,8 @@ proc each*(paragraphs: seq[Paragraph], fn: (proc (item: TextItem))) =
       of ParagraphKind.list:
         ph.list.each(fn)
 
-proc normalize_asset_path(path: string, warns: var seq[string]): string =
+var dir_paths_without_extensions_cache: Table[string, Table[string, string]]
+proc normalize_asset_path(path: string, warns: var seq[string], doc: Doc): string =
   if path.is_empty:
     warns.add fmt"Empty path"
     ""
@@ -83,14 +84,32 @@ proc normalize_asset_path(path: string, warns: var seq[string]): string =
     warns.add "Path can't have '..'"
     ""
   else:
-    path
+    let full_path = asset_path(doc, path)
+    if fs.exist full_path:
+      path
+    else:
+      let (dir, name, ext) = fs.split full_path
+      if ext.is_empty:
+        # Resolving path without extension like 'some_img' to path with extension 'some_img.jpg'
+        proc dir_paths_without_extensions: Table[string, string] =
+          for entry in fs.read_dir(dir).to_seq.sort.reverse:
+            result[entry.path.replace(re"\.[^\.]+", "")] = fs.split(entry.name).ext
+        let paths_we = dir_paths_without_extensions_cache.get(dir, dir_paths_without_extensions)
+        if full_path in paths_we:
+          path & "." & paths_we[full_path]
+        else:
+          warns.add "Asset doesn't exist: " & path
+          path
+      else:
+        warns.add "Asset doesn't exist: " & path
+        path
 
 proc add_text(sentence: var string, text: string) =
   if not sentence.is_empty: sentence.add " "
   sentence.add text
 
 # tags ---------------------------------------------------------------------------------------------
-let non_tag_chars = """!@#$%^&*()-=_+{}\|:;'",.<>?/""".to_bitset
+let non_tag_chars = """!@#$%^&*()-=_+{}\|:;,.<>?/""".to_bitset
 let tag_delimiter_chars  = space_chars + {','}
 let quoted_tag_end_chars = {'\n', '"'}
 proc is_tag*(pr: Parser): bool =
@@ -126,8 +145,6 @@ proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tup
       if pr.get.is_some: unknown.add pr.get.get
       pr.inc
   if not unknown.is_empty:
-    p "-------"
-    p pr.text[i..pr.text.high]
     pr.warns.add fmt"Unknown text in tags: {unknown}"
   let tags_end_pos = block:
     let i = pr.rfind(not_space_chars)
@@ -456,8 +473,8 @@ proc parse_text*(source: FBlockSource, doc: Doc, config: FParseConfig): TextBloc
   blk.ftext = map(ftext, post_process)
   blk
 
-proc parse_embed_image*(path: string, blk: Block): ImageEmbed =
-  let path = normalize_asset_path(path, blk.warns)
+proc parse_embed_image*(path: string, blk: Block, doc: Doc): ImageEmbed =
+  let path = normalize_asset_path(path, blk.warns, doc)
   unless path.is_empty: blk.assets.add path
   blk.text.add_text path
   ImageEmbed(path: path)
@@ -587,10 +604,10 @@ proc parse_code*(source: FBlockSource): CodeBlock =
   blk
 
 # image, images ------------------------------------------------------------------------------------
-proc parse_path_and_tags(text: string, warns: var seq[string]): tuple[path: string, tags: seq[string]] =
+proc parse_path_and_tags(text: string, warns: var seq[string], doc: Doc): tuple[path: string, tags: seq[string]] =
   let parts = text.split("#", maxsplit = 1)
   var path = parts[0].trim; var tags: seq[string]
-  path = normalize_asset_path(path, warns)
+  path = normalize_asset_path(path, warns, doc)
   if parts.len > 1:
     let pr = Parser.init("#" & parts[1])
     tags = pr.consume_tags.tags
@@ -600,7 +617,7 @@ proc parse_path_and_tags(text: string, warns: var seq[string]): tuple[path: stri
 
 proc parse_image*(source: FBlockSource, doc: Doc): ImageBlock =
   var warns: seq[string]
-  let (path, tags) = parse_path_and_tags(source.text, warns)
+  let (path, tags) = parse_path_and_tags(source.text, warns, doc)
   var assets: seq[string]
   unless path.is_empty: assets.add path
   let blk = ImageBlock(image: path, tags: tags, warns: warns, text: source.text, assets: assets)
@@ -610,7 +627,7 @@ proc parse_image*(source: FBlockSource, doc: Doc): ImageBlock =
 proc parse_images*(source: FBlockSource, doc: Doc): ImagesBlock =
   assert source.kind == "images"
   var warns: seq[string]
-  let (path, tags) = parse_path_and_tags(source.text, warns)
+  let (path, tags) = parse_path_and_tags(source.text, warns, doc)
   let blk = ImagesBlock(images_dir: path, tags: tags, warns: warns, text: source.text)
 
   unless source.args.is_empty: # parsing args
@@ -752,7 +769,7 @@ proc init*(_: type[FParseConfig]): FParseConfig =
   block_parsers["subsection"] = (blk, doc, config) => parse_subsection(blk)
 
   var embed_parsers: Table[string, FEmbedParser]
-  embed_parsers["image"] = (raw, blk, doc, config) => parse_embed_image(raw, blk).Embed
+  embed_parsers["image"] = (raw, blk, doc, config) => parse_embed_image(raw, blk, doc).Embed
   embed_parsers["img"] = embed_parsers["image"]
   embed_parsers["code"]  = (raw, blk, doc, config) => parse_embed_code(raw, blk).Embed
 
@@ -803,10 +820,10 @@ proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
   normalise warns
   normalise tags
 
-  for rpath in blk.assets:
-    assert not rpath.is_empty, "asset can't be empty"
-    unless fs.exist(asset_path(doc, rpath)):
-      blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
+  # for rpath in blk.assets:
+  #   assert not rpath.is_empty, "asset can't be empty"
+  #   unless fs.exist(asset_path(doc, rpath)):
+  #     blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
 
 proc init_fdoc*(location: string): Doc =
   assert location.ends_with ".ft"
