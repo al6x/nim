@@ -1,5 +1,24 @@
 import base, ../core
 
+type
+  BuildSession*[T] = proc (url: Url): Session[T]
+
+  BinaryResponseKind* = enum file, http
+  BinaryResponse* = object
+    case kind*: BinaryResponseKind
+    of file:
+      path*: string
+    of http:
+      content*: string
+      code*:    int
+      headers*: seq[(string, string)]
+
+proc file_response*(path: string): BinaryResponse =
+  BinaryResponse(kind: file, path: path)
+
+proc http_response*(content: string, code = 200, headers = seq[(string, string)].init): BinaryResponse =
+  BinaryResponse(kind: http, content: content, code: code, headers: headers)
+
 proc svg_dot*(color: string): SafeHtml =
   fmt"""
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">

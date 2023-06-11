@@ -4,9 +4,7 @@ import ./support, ./helpers, ../core
 
 let http_log = Log.init "http"
 
-# Apps ---------------------------------------------------------------------------------------------
-type BuildSession*[T] = proc (url: Url): Session[T]
-
+# Server -------------------------------------------------------------------------------------------
 proc get_page[T](self: Session[T], app_el: El): SafeHtml =
   when compiles(self.app.page(app_el)): self.app.page(app_el)
   else:                                 default_html_page(app_el)
@@ -99,6 +97,11 @@ proc build_http_handler[T](sessions: Sessions[T], build_session: BuildSession[T]
       # await req.respond "Unknown request"
       req.respond_json((error: "Unknown request"))
 
+proc mono_assets_path(): seq[string] =
+  # It had to be non-generic proc, otherwise it will be resolved as template from another file and
+  # pahts will be wrong
+  @[current_source_path().parent_dir.parent_dir.absolute_path & "/browser"]
+
 proc run_http_server*[T](
   build_session:       BuildSession[T],
   port               = 2000,
@@ -111,10 +114,9 @@ proc run_http_server*[T](
   let session_timeout_ms = 2 * pull_timeout_ms # session timeout should be greather than poll timeout
   # Files with same names will be taken from first path when found, this way system assets like `page.html`
   # could be overriden.
-  var asset_paths = asset_paths & [current_source_path().parent_dir.parent_dir.absolute_path & "/browser"]
-
   let sessions = Sessions[T]()
   var server = new_async_http_server()
+  let asset_paths = asset_paths & mono_assets_path()
   let handler = build_http_handler(sessions, build_session, asset_paths, pull_timeout_ms)
   spawn_async server.serve(Port(port), handler, "localhost")
 

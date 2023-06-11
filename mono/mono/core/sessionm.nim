@@ -18,17 +18,8 @@ type
     of expired: discard
     of error:   message*: string
 
-  BinaryResponseKind* = enum file, http
-  BinaryResponse* = object
-    case kind*: BinaryResponseKind
-    of file:
-      path*: string
-    of http:
-      content*: string
-      code*:    int
-      headers*: seq[(string, string)]
-
-  # Processing Browser events decoupled from the HTTP networking, to avoid async complications.
+  # Processing Browser events decoupled from the HTTP networking, to a) avoid async complications and
+  # messy stack traces and b) debounce events and process the whole inbox queue at once.
   # Browser events are collected in indbox via async http handler, and then processed separatelly via
   # sync process. Result of processing stored in outbox, which periodically checked by async HTTP handler
   # and sent to Browser if needed.
@@ -79,9 +70,3 @@ proc collect_garbage*[T](self: Sessions[T], session_timeout_ms: int) =
 
 proc add_timer_event*[T](self: Sessions[T]) =
   for id, session in self: session.inbox.add(InEvent(kind: timer))
-
-proc file_response*(path: string): BinaryResponse =
-  BinaryResponse(kind: file, path: path)
-
-proc http_response*(content: string, code = 200, headers = seq[(string, string)].init): BinaryResponse =
-  BinaryResponse(kind: http, content: content, code: code, headers: headers)
