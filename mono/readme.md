@@ -2,6 +2,10 @@ Nim UI/Web/Desktop/Mobile Framework
 
 High productivity, simple, short and clean code.
 
+No Network, no JS, no "compile-to-JS", no Client, no Server, no API.
+
+Write Plain Nim code and use plain Nim C-runtime, Mono turns it into fluid interactive web UI.
+
 Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) and [Hello](mono/examples/hello.nim) and [Todo](mono/examples/todo.nim) examples.
 
 ```
