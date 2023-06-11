@@ -140,7 +140,7 @@ test "parse_text":
   """.dedent
 
   let blk = parse_text(block_source("text", ftext), test_fdoc(), config)
-  check blk.warns == @["Unknown embed: some"]
+  check blk.warns == @["Unknown embed: some", "Asset doesn't exist: none.png"]
 
   let parsed = blk.ftext
   check parsed.len == 3
@@ -340,7 +340,7 @@ test "parse":
     check doc.title == "Some title"
     check doc.blocks.len == 5
 
-test "parse_ftext, missing assets":
+test "should check for missing assets":
   let text = """
     image{missing1.png} ^text
 
@@ -352,9 +352,25 @@ test "parse_ftext, missing assets":
   let doc = Doc.parse(text, fmt"{test_space_location()}/some.ft")
   let blocks = doc.blocks
   check blocks.len == 3
-  check blocks[0].warns == @["Asset don't exist some/missing1.png"]
-  check blocks[1].warns == @["Asset don't exist some/missing2.png"]
-  check blocks[2].warns == @["Asset don't exist some/missing_dir"]
+  check blocks[0].warns == @["Asset doesn't exist: missing1.png"]
+  check blocks[1].warns == @["Asset doesn't exist: missing2.png"]
+  check blocks[2].warns == @["Asset doesn't exist: missing_dir"]
+
+test "should guess asset extensions":
+  let text = """
+    image{img} ^text
+
+    img ^image
+
+    image{missing} ^text
+  """.dedent
+
+  let doc = Doc.parse(text, fmt"{test_space_location()}/some.ft")
+  let blocks = doc.blocks
+  check blocks.len == 3
+  check (blocks[0].assets, blocks[0].warns) == (@["img.png"], @[])
+  check (blocks[1].assets, blocks[1].warns) == (@["img.png"], @[])
+  check (blocks[2].assets, blocks[2].warns) == (@["missing"], @["Asset doesn't exist: missing"])
 
 proc parse_table(has_header: bool, text: string): TableBlock =
   let config = FParseConfig.init
