@@ -5,7 +5,7 @@ type Explorer = ref object of Component
 
 proc render(self: Explorer): El =
   el"":
-    el("input", (autofocus: true, placeholder: "Path..."), it.bind_to(self.path))
+    el("input", it.bind_to(self.path))
     let path = self.path
     if not path.is_empty:
       if fs.exist path:
