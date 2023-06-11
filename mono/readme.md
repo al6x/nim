@@ -8,7 +8,24 @@ Write Plain Nim code and use plain Nim C-runtime, Mono turns it into fluid inter
 
 How it works: the UI is created and operates within the Nim C-process, the Mono binds it to Web UI. Similarly to remote desktop, with high efficiency, as only UI changes are transmitted. It could be used for Desktop App or Web Sites with user auth etc.
 
-Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) and [Hello](mono/examples/hello.nim) and [Todo](mono/examples/todo.nim) examples.
+Sample code, the Hello World, the form and greeting message updated dynamically:
+
+```Nim
+import base, mono/[core, http]
+
+type Hello = ref object of Component
+  name: string
+
+proc render(self: Hello): El =
+  el"":
+    el("input", it.bind_to(self.name))
+    if not self.name.is_empty:
+      el("span", (text: "Hello " & self.name))
+
+run_http_server(() => Hello())
+```
+
+Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4), [Hello](mono/examples/hello.nim) and [Todo](mono/examples/todo.nim) examples.
 
 ```
 nimble install https://github.com/al6x/nim?subdir=mono
