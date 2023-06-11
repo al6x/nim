@@ -1,9 +1,9 @@
 import base, mono/[core, http], std/os
 
-type Ls = ref object of Component
+type Explorer = ref object of Component
   path: string
 
-proc render(self: Ls): El =
+proc render(self: Explorer): El =
   el"":
     el("input", (autofocus: true, placeholder: "Path..."), it.bind_to(self.path))
     let path = self.path
@@ -18,4 +18,4 @@ proc render(self: Ls): El =
         el("", (text: fmt"File '{path}' doesn't exist"))
 
 when is_main_module:
-  run_http_server(() => Ls())
+  run_http_server(() => Explorer())
