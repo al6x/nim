@@ -96,7 +96,7 @@ proc build_http_handler(sessions: Sessions, build_session: BuildSession, asset_p
 
 proc run_http_server*(
   build_session:       BuildSession,
-  port:                int,
+  port               = 2000,
   asset_paths        = seq[string].init,
   timer_event_ms     = 500,
   pull_timeout_ms    = 40000, # Default HTTP timeout seems to be 100sec, just to be safer making it smaller,
