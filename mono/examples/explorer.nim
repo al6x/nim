@@ -1,4 +1,4 @@
-import base, mono/[core, http], std/os
+import base, mono/[core, http]
 
 type Explorer = ref object of Component
   path: string
