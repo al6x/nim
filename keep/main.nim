@@ -15,7 +15,7 @@ block:
   add_dir db, space, parsers, fmt"{keep_dir}/examples/finance"
 
 run_http_server(
-  build_session,
+  () => AppView(),
   port         = 8080,
   asset_paths  = app_view_asset_paths(),
   sync_process = build_db_process_cb(db)
