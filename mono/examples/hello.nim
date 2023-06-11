@@ -5,7 +5,7 @@ type Hello = ref object of Component
 
 proc render(self: Hello): El =
   el"":
-    el("input", (autofocus: true, placeholder: "Name..."), it.bind_to(self.name))
+    el("input", (autofocus: true), it.bind_to(self.name))
     if not self.name.is_empty:
       el("span", (text: "Hello " & self.name))
 
