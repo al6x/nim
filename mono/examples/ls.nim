@@ -3,7 +3,7 @@ import base, mono/[core, http]
 type Ls = ref object of Component
   path: string
 
-proc render*(self: Ls): El =
+proc render(self: Ls): El =
   el"":
     el("input", (autofocus: true, placeholder: "Path..."), it.bind_to(self.path))
     if not self.path.is_empty:
