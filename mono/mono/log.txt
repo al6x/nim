@@ -1,3 +1,27 @@
+macro define_session_for*(ComponentType) =
+  # Magical code to overcome Nim inability to store generics in collection and autocast to subclass.
+  # Defining methods on Session, forwarding calls to Component subclass.
+  let SessionType = ident $(ComponentType) & "Session"
+  quote do:
+    type `SessionType`* = ref object of Session
+
+    proc init*(_: type[`SessionType`], app: `ComponentType`): `SessionType` =
+      `SessionType`(id: secure_random_token(6), last_accessed_ms: timer_ms(), app: app)
+
+    method forward_process*(self: `SessionType`, events: openarray[InEvent]): Option[El] =
+      let app: `ComponentType` = self.app.`ComponentType`
+      app.process(self.el, events)
+
+    method forward_page*(self: `SessionType`, app_el: El): SafeHtml =
+      let app: `ComponentType` = self.app.`ComponentType`
+      when compiles(app.page(app_el)): app.page(app_el)
+      else:                            default_html_page(app_el)
+
+    method forward_on_binary*(self: `SessionType`, url: Url): BinaryResponse =
+      let app: `ComponentType` = self.app.`ComponentType`
+      when compiles(app.on_binary url): app.on_binary url
+      else:                             http_response "app.on_binary not defined", 400
+
 proc serve_app_html*(
   req: Request, asset_paths: seq[string], page_fname: string, mono_id, html: string, meta: string
 ): Future[void] {.async.} =

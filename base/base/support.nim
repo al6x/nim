@@ -13,8 +13,10 @@ from std/times as nt import nil
 type None = object # For optional arguments `proc somefn(v: int | None = none)`
 const none = None()
 
-proc alter*[T](self: T, fn: (proc(v: T): void)): T =
-  fn(self)
+template alterit*[T](self: T, expr): T =
+  block:
+    let it {.inject.} = self
+    expr
   self
 
 proc is_empty*[T](self: T): bool =
