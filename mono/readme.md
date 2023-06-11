@@ -6,7 +6,7 @@ No Network, no JS, no "compile-to-JS", no Client, no Server, no API.
 
 Write Plain Nim code and use plain Nim C-runtime, Mono turns it into fluid interactive UI.
 
-How it works: the UI is created and operates within the Nim C-process, the Mono binds it to Web UI. Similarly to remote desktop, with high efficiency, as only UI changes are transmitted.
+How it works: the UI is created and operates within the Nim C-process, the Mono binds it to Web UI. Similarly to remote desktop, with high efficiency, as only UI changes are transmitted. It could be used for Desktop App or Web Sites with user auth etc.
 
 Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) and [Hello](mono/examples/hello.nim) and [Todo](mono/examples/todo.nim) examples.
 
