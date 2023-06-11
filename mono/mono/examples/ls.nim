@@ -14,4 +14,4 @@ proc render(self: Ls): El =
         el("", (text: fmt"Path '{self.path}' doesn't exist"))
 
 when is_main_module:
-  run_http_server(proc (url: Url): auto = Session.init(Ls()))
+  run_http_server(() => Ls())

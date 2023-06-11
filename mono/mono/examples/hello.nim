@@ -10,4 +10,4 @@ proc render(self: Hello): El =
       el("span", (text: "Hello " & self.name))
 
 when is_main_module:
-  run_http_server(proc (url: Url): auto = Session.init(Hello()))
+  run_http_server(() => Hello())

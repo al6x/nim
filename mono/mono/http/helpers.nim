@@ -1,7 +1,7 @@
 import base, ../core
 
 type
-  BuildSession*[T] = proc (url: Url): Session[T]
+  BuildApp*[T] = proc(): T
 
   BinaryResponseKind* = enum file, http
   BinaryResponse* = object

@@ -13,9 +13,10 @@ proc get_binary[T](self: Session[T], url: Url): BinaryResponse =
   when compiles(self.app.on_binary url): self.app.on_binary url
   else:                                  http_response "app.on_binary not defined", 400
 
-proc handle_app_load[T](req: Request, sessions: Sessions[T], url: Url, build_session: BuildSession[T]): Future[void] {.async.} =
+proc handle_app_load[T](req: Request, sessions: Sessions[T], url: Url, build_app: BuildApp[T]): Future[void] {.async.} =
   # Creating session
-  let session = build_session url
+  let app = build_app()
+  let session = Session.init app
   sessions[][session.id] = session
   session.log.info "created"
 
@@ -66,7 +67,7 @@ proc handle_on_binary[T](req: Request, mono_id: string, url: Url, sessions: Sess
     of BinaryResponseKind.http:
       await req.respond(HttpCode(binary.code), binary.content, new_http_headers(binary.headers))
 
-proc build_http_handler[T](sessions: Sessions[T], build_session: BuildSession[T], asset_paths: seq[string], pull_timeout_ms: int): auto =
+proc build_http_handler[T](sessions: Sessions[T], build_app: BuildApp[T], asset_paths: seq[string], pull_timeout_ms: int): auto =
   return proc (req: Request): Future[void] {.gcsafe.} =
 
     let url = Url.init(req); let path_s = url.path_as_s
@@ -76,7 +77,7 @@ proc build_http_handler[T](sessions: Sessions[T], build_session: BuildSession[T]
       elif "mono_id" in url.params:
         req.handle_on_binary(url.params["mono_id"], url, sessions)
       else:
-        req.handle_app_load(sessions, url, build_session)
+        req.handle_app_load(sessions, url, build_app)
     elif req.req_method == HttpPost: # POST
       let post_event = req.body.parse_json.json_to InEventEnvelope
       if post_event.mono_id notin sessions[]:
@@ -103,12 +104,12 @@ proc mono_assets_path(): seq[string] =
   @[current_source_path().parent_dir.parent_dir.absolute_path & "/browser"]
 
 proc run_http_server*[T](
-  build_session:       BuildSession[T],
-  port               = 2000,
-  asset_paths        = seq[string].init,
-  timer_event_ms     = 500,
-  pull_timeout_ms    = 40000, # Default HTTP timeout seems to be 100sec, just to be safer making it smaller,
-                              # to avoid potential problems if someone uses some HTTP proxy etc.
+  build_app:             BuildApp[T],
+  port                 = 2000,
+  asset_paths          = seq[string].init,
+  timer_event_ms       = 500,
+  pull_timeout_ms      = 40000, # Default HTTP timeout seems to be 100sec, just to be safer making it smaller,
+                                # to avoid potential problems if someone uses some HTTP proxy etc.
   sync_process: proc() = (proc = (discard)) # Add any additional periodic processing here
 ) =
   let session_timeout_ms = 2 * pull_timeout_ms # session timeout should be greather than poll timeout
@@ -117,7 +118,7 @@ proc run_http_server*[T](
   let sessions = Sessions[T]()
   var server = new_async_http_server()
   let asset_paths = asset_paths & mono_assets_path()
-  let handler = build_http_handler(sessions, build_session, asset_paths, pull_timeout_ms)
+  let handler = build_http_handler(sessions, build_app, asset_paths, pull_timeout_ms)
   spawn_async server.serve(Port(port), handler, "localhost")
 
   add_timer((session_timeout_ms/2).int, () => sessions.collect_garbage(session_timeout_ms))

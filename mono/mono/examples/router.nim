@@ -84,9 +84,4 @@ when is_main_module:
     Post(id: "3", title: "Title 3", text: "Text 3"),
   ])
 
-  proc build_session(url: Url): auto =
-    let app = BlogView()
-    app.set_attrs(blog = blog)
-    Session.init app
-
-  run_http_server(build_session)
+  run_http_server(() => BlogView(blog: blog))
