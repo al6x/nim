@@ -97,6 +97,7 @@ function listen_to_dom_events() {
             let found = find_el_with_listener(el, "on_click");
             if (!found)
                 return;
+            raw_event.preventDefault();
             await post_event(found.mono_id, { kind: 'click', el: found.path,
                 click: { special_keys: get_keys(raw_event) }
             });
@@ -227,6 +228,9 @@ function get_value(el) {
     let tag = el.tagName.toLowerCase();
     if (tag == "input" && el.type == "checkbox") {
         return "" + el.checked;
+    }
+    else if (tag == "textarea") {
+        return "" + el.value;
     }
     else {
         return "" + el.value;

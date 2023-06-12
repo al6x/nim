@@ -13,7 +13,7 @@ type
   Block* = ref object of RootObj
     id*:     string
     hash*:   int
-    ntags*:  seq[string] # merged, normalised tags
+    ntags*:  seq[string] # merged, normalized tags
     tags*:   seq[string]
     links*:  seq[Link]
     assets*: seq[string]

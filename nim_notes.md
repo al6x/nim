@@ -66,3 +66,8 @@ template with_session*(s: Session, code) =
   code
 
 Checkout strscans
+
+var procs: seq[proc()]
+for i, v in [0, 1]:
+  capture i, v:
+    procs.add proc: echo i

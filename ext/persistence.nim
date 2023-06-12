@@ -1,22 +1,11 @@
-import sugar
-import base/json, base/option, base/time, base/fs
+import base
 
-
-proc read_from_optional*[T](t: type[T], path: string): Option[T] =
+proc read_from*[T](_: type[T], path: string): Option[T] =
   try:
     let json = fs.read path
     json.parse_json.json_to(T).some
   except:
     T.none
-
-proc read_from*[T](t: type[T], path: string): T =
-  let v = read_from_optional(t, path)
-  if v.is_some: v.get else: T.init
-
-proc read_from*[T](t: type[T], path: string, default: () -> T): T =
-  let v = read_from_optional(t, path)
-  if v.is_some: v.get else: default()
-
 
 proc write_to*[T](v: T, path: string): void =
   fs.write(path, v.to_json.to_s)

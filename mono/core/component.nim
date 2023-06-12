@@ -30,8 +30,8 @@ proc after_render(self: Component) =
   self.children_built.clear
   old.values.each(before_destroy) # triggering :before_destroy
 
-proc get_child_component*[T](self: Component, _: type[T], id: string): T =
-  let full_id = $(T) & "/" & id
+proc get_child_component*[T](self: Component, _: type[T], id: string | int): T =
+  let full_id = $(T) & "/" & id.to_s
   self.children_built.add full_id
   if full_id notin self.children:
     let child = when compiles(T.init): T.init else: T()

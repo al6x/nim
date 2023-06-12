@@ -641,10 +641,10 @@ proc parse_images*(source: FBlockSource, doc: Doc): ImagesBlock =
   unless path.is_empty:
     blk.assets = @[path]
     let images_path = asset_path(doc, path)
-    proc normalise_asset_path(fname: string): string =
+    proc normalize_asset_path(fname: string): string =
       if path == ".": fname else: path & "/" & fname
     blk.images = fs.read_dir(images_path)
-      .filter((entry) => entry.kind == file).pick(name).map(normalise_asset_path).sort
+      .filter((entry) => entry.kind == file).pick(name).map(normalize_asset_path).sort
     blk.assets.add blk.images
   blk
 
@@ -813,12 +813,12 @@ proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[s
 
 # parse --------------------------------------------------------------------------------------------
 proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
-  template normalise(term) = blk.term = blk.term.unique.sort
-  normalise assets
-  normalise links
-  normalise glinks
-  normalise warns
-  normalise tags
+  template normalize(term) = blk.term = blk.term.unique.sort
+  normalize assets
+  normalize links
+  normalize glinks
+  normalize warns
+  normalize tags
 
   # for rpath in blk.assets:
   #   assert not rpath.is_empty, "asset can't be empty"

@@ -26,7 +26,6 @@
 
 # Lodo
 
-- Expand asset extensions, like img into img.png or jpg
 - Allow requests only from "keep" domain
 - make editor configurable
 - Checkout M. Fowler BiKi
@@ -62,6 +61,7 @@ Use two todos, first organised in Keep, and log like buffer on mobile.
 - Any file hosting for sharing
 - Ftext format is almost the same as Nim ftext DSL
 - Hierarchical tags, colored
+- Auto asset extensions, the 'img{picture}' will be expanded into 'img{picture.png}' pr 'img{picture.jpg}'
 
 # Forward 80 to 8080 on Mac OS
 
