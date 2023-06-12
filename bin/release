@@ -12,6 +12,9 @@ mkdir -p tmp/releases
 nim_version="1.6"
 version="2.8.0"
 
+# readme -------------------------------------------------------------------------------------------
+cp -r readme.md tmp/releases
+
 # base ---------------------------------------------------------------------------------------------
 cp -r base tmp/releases
 
@@ -96,6 +99,9 @@ EOL
 
 # Switching to releases branch ---------------------------------------------------------------------
 git checkout main
+
+rm -rf ./readme.md
+mv tmp/releases/readme.md .
 
 rm -rf ./base
 mv tmp/releases/base .
