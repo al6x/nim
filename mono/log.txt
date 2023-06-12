@@ -1,3 +1,9 @@
+macro set_attr_with_fn*(self: El, k: string, v: untyped): auto =
+  let fn = ident k.str_val
+  quote do:
+    `fn`(`self`, `v`)
+
+
 template define_session*(SessionType, ComponentType) =
   # Magical code to overcome Nim inability to store generics in collection and autocast to subclass.
   # Defining methods on Session, forwarding calls to Component subclass.

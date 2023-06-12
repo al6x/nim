@@ -235,13 +235,16 @@ proc text*[T](self: El, text: T) =
 proc html*(self: El, html: SafeHtml) =
   self.children.add html_el(html)
 
-proc style*(self: El, style: string) =
-  self.attr("style", style)
-
-proc style*(self: El, style: tuple) =
-  var buff: seq[string]
-  for k, v in style.field_pairs: buff.add fmt"{k}: {v.to_s};"
-  self.style buff.join(" ")
+proc style*(self: El, style: string | tuple) =
+  when typeof(style) is tuple:
+    var buff: string; var first = true
+    for k, v in style.field_pairs:
+      if first: first = false
+      else:     buff.add " "
+      buff.add k.replace("_", "-") & ": " & v.to_s & ";"
+    self.attr("style", buff)
+  else:
+    self.attr("style", style)
 
 proc class*(self: El, class: string) =
   let class = if "class" in self: self["class"] & " " & class else: class
@@ -270,11 +273,14 @@ template build_el*(expr: string, attrs: untyped, code: untyped): El =
     code
     it
 
+template try_assign_untyped_to_variable*(body: untyped) =
+  let tmp = body
+
 template build_el*(expr: string, attrs_or_code: untyped): El =
   block:
     let it {.inject.} = El.init(expr)
-    when compiles(it.set_attrs(attrs_or_code)): it.set_attrs(attrs_or_code)
-    else:                                       attrs_or_code
+    when compiles(try_assign_untyped_to_variable(attrs_or_code)): it.set_attrs(attrs_or_code)
+    else:                                                         attrs_or_code
     it
 
 template build_el*(html: string): El =
@@ -314,6 +320,7 @@ test "el, basics":
   check el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
   check el("ul.todos", (class: "editing")).to_html  == """<ul class="todos editing"></ul>"""
   check el("ul.todos", (class: "a"), it.class("b")).to_html == """<ul class="todos a b"></ul>"""
+  check el("", (style: (bg_color: "block"))).to_html == """<div style="bg-color: block;"></div>"""
 
   discard els(el("a", el("b"))) # should work
 
