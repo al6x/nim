@@ -28,10 +28,7 @@ proc render(self: TwitterView): El =
     self.edit.clear
 
   proc delete(i: int): auto =
-    proc =
-      self.db.messages.delete(i);
-      p self.db
-      self.db.save
+    proc = self.db.messages.delete(i); self.db.save
 
   proc edit(i: int, text: string): auto =
     proc = self.edit = (i, text).some
