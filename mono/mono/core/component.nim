@@ -84,10 +84,8 @@ template process_in_event[C](self: C, current_tree: Option[El], event: InEvent):
 
     render_for_input_change or render_for_input_handler
   of timer:
-    when compiles(self.on_timer):
-      self.on_timer
-    else:
-      false
+    when compiles(self.on_timer): self.on_timer
+    else:                         true
 
 proc process*[C](self: C, current_el: Option[El], events: openarray[InEvent]): Option[El] =
   let state_changed_maybe = events.mapit(self.process_in_event(current_el, it)).any

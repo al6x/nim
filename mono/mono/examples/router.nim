@@ -75,13 +75,10 @@ proc render*(self: BlogView): El =
 when is_main_module:
   import mono/http
 
-  proc page*(self: BlogView, app_el: El): SafeHtml =
-    default_html_page(app_el, styles = @[".block { display: block; }"])
-
   let blog = Blog(posts: @[
     Post(id: "1", title: "Title 1", text: "Text 1"),
     Post(id: "2", title: "Title 2", text: "Text 2"),
     Post(id: "3", title: "Title 3", text: "Text 3"),
   ])
 
-  run_http_server(() => BlogView(blog: blog))
+  run_http_server(() => BlogView(blog: blog), styles = @[".block { display: block; }"])

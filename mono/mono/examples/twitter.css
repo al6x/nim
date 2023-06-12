@@ -1385,7 +1385,7 @@ striping:
 
 /* Custom ------------------------------------------------------------------------------ */
 
-app, message, message-text { display: block; }
+app, message { display: block; }
 
 body {
   width: 30rem;

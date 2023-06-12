@@ -135,23 +135,15 @@ proc render*(self: TodoView): El =
               el("button.clear-completed", (text: "Delete completed")):
                 it.on_click(proc = self.todo.items.delete((item) => item.completed))
 
-proc on_timer*(self: TodoView): bool =
-  # Could be optimised, by checking if version of shared data has been changed and responding with false if not
-  true
-
 # Deployment ---------------------------------------------------------------------------------------
 when is_main_module:
   # Featue: flexible deployment, Nim Server, or compile to JS in Brower, or Desktop App with WebView.
   # In the code below deploying to Nim Server
   import mono/http, std/os
 
-  proc page*(self: TodoView, app_el: El): SafeHtml =
-    # Feature: content and title in initial HTML page to improve SEO.
-    default_html_page(app_el, styles = @["/assets/todo.css"])
-
   # Feature: model could be shared, UI will be updated with changes
   let todo = Todo(items: @[TodoItem(text: "Buy Milk"), TodoItem(text: "Buy Beef")])
 
   # Path to folder with CSS styles and images
   let asset_path = current_source_path().parent_dir.absolute_path
-  run_http_server((() => TodoView(todo: todo)), asset_paths = @[asset_path])
+  run_http_server((() => TodoView(todo: todo)), asset_paths = @[asset_path], styles = @["/assets/todo.css"])

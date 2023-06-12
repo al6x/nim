@@ -5,15 +5,19 @@ import ./support, ./helpers, ../core
 let http_log = Log.init "http"
 
 # Server -------------------------------------------------------------------------------------------
-proc get_page[T](self: Session[T], app_el: El): SafeHtml =
-  when compiles(self.app.page(app_el)): self.app.page(app_el)
-  else:                                 default_html_page(app_el)
+proc get_page[T](self: Session[T], app_el: El, styles: seq[string], scripts: seq[string]): SafeHtml =
+  when compiles(self.app.page(app_el)):
+    assert styles.is_empty and scripts.is_empty,
+      "styles and scripts passed to server should be empty if custom page is used"
+    self.app.page(app_el)
+  else:
+    default_html_page(app_el, styles = styles, scripts = scripts)
 
 proc get_binary[T](self: Session[T], url: Url): BinaryResponse =
   when compiles(self.app.on_binary url): self.app.on_binary url
   else:                                  http_response "app.on_binary not defined", 400
 
-proc handle_app_load[T](req: Request, sessions: Sessions[T], url: Url, build_app: BuildApp[T]): Future[void] {.async.} =
+proc handle_app_load[T](req: Request, sessions: Sessions[T], url: Url, build_app: BuildApp[T], styles: seq[string], scripts: seq[string]): Future[void] {.async.} =
   # Creating session
   let app = build_app()
   let session = Session.init app
@@ -30,7 +34,7 @@ proc handle_app_load[T](req: Request, sessions: Sessions[T], url: Url, build_app
   assert session.outbox.is_empty
 
   session.log.info ">> initial html"
-  let page = get_page(session, session.el.get)
+  let page = get_page(session, session.el.get, styles = styles, scripts = scripts)
   await req.respond(page, "text/html; charset=UTF-8")
 
 proc handle_app_in_event[T](req: Request, session: Session[T], events: seq[InEvent]): Future[void] {.async.} =
@@ -67,7 +71,7 @@ proc handle_on_binary[T](req: Request, mono_id: string, url: Url, sessions: Sess
     of BinaryResponseKind.http:
       await req.respond(HttpCode(binary.code), binary.content, new_http_headers(binary.headers))
 
-proc build_http_handler[T](sessions: Sessions[T], build_app: BuildApp[T], asset_paths: seq[string], pull_timeout_ms: int): auto =
+proc build_http_handler[T](sessions: Sessions[T], build_app: BuildApp[T], asset_paths: seq[string], styles: seq[string], scripts: seq[string], pull_timeout_ms: int): auto =
   return proc (req: Request): Future[void] {.gcsafe.} =
 
     let url = Url.init(req); let path_s = url.path_as_s
@@ -77,7 +81,7 @@ proc build_http_handler[T](sessions: Sessions[T], build_app: BuildApp[T], asset_
       elif "mono_id" in url.params:
         req.handle_on_binary(url.params["mono_id"], url, sessions)
       else:
-        req.handle_app_load(sessions, url, build_app)
+        req.handle_app_load(sessions, url, build_app, styles, scripts)
     elif req.req_method == HttpPost: # POST
       let post_event = req.body.parse_json.json_to InEventEnvelope
       if post_event.mono_id notin sessions[]:
@@ -107,6 +111,8 @@ proc run_http_server*[T](
   build_app:             BuildApp[T],
   port                 = 2000,
   asset_paths          = seq[string].init,
+  styles               = seq[string].init,
+  scripts              = seq[string].init,
   timer_event_ms       = 500,
   pull_timeout_ms      = 40000, # Default HTTP timeout seems to be 100sec, just to be safer making it smaller,
                                 # to avoid potential problems if someone uses some HTTP proxy etc.
@@ -118,7 +124,7 @@ proc run_http_server*[T](
   let sessions = Sessions[T]()
   var server = new_async_http_server()
   let asset_paths = asset_paths & mono_asset_path()
-  let handler = build_http_handler(sessions, build_app, asset_paths, pull_timeout_ms)
+  let handler = build_http_handler(sessions, build_app, asset_paths, styles, scripts, pull_timeout_ms)
   spawn_async server.serve(Port(port), handler, "localhost")
 
   add_timer((session_timeout_ms/2).int, () => sessions.collect_garbage(session_timeout_ms))
