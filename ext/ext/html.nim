@@ -145,6 +145,13 @@ proc `==`*(self, other: El): bool {.no_side_effect.} =
   of html: self.html_data == other.html_data
   of list: self.children == other.children
 
+proc dcopy*(self: El): El =
+  case self.kind
+  of el:   El(kind: el, tag: self.tag, attrs: self.attrs, children: self.children, extras: self.extras)
+  of text: El(kind: text, text_data: self.text_data, extras: self.extras)
+  of html: El(kind: html, html_data: self.html_data, extras: self.extras)
+  of list: El(kind: list, children: self.children, extras: self.extras)
+
 proc contains*(el: El, k: string): bool =
   k in el.attrs
 
@@ -154,24 +161,25 @@ proc `[]`*(el: El, k: string): string =
 proc `[]=`*(el: El, k: string, v: string | int | bool) =
   el.attrs[k] = v.to_s
 
-proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal]
+proc normalize*(el: El): (El, OrderedTable[string, ElAttrVal])
 
 proc to_json_hook*(el: El): JsonNode =
   case el.kind
   of ElKind.el:
-    if el.children.is_empty: %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs }
-    else:                    %{ kind: el.kind, tag: el.tag, attrs: el.normalise_attrs, children: el.children }
-  of ElKind.text:            %{ kind: el.kind, text: el.text_data }
-  of ElKind.html:            %{ kind: el.kind, html: el.html_data }
+    let (nel, nattrs) = el.normalize
+    if nel.children.is_empty: %{ kind: el.kind, tag: el.tag, attrs: nattrs }
+    else:                     %{ kind: el.kind, tag: el.tag, attrs: nattrs, children: nel.children }
+  of ElKind.text:             %{ kind: el.kind, text: el.text_data }
+  of ElKind.html:             %{ kind: el.kind, html: el.html_data }
   of ElKind.list:            throw "json for el.list is not implemented"
 
 proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
   case el.kind
   of ElKind.el:
     # if newlines: html.add "\n"
-    let attrs = el.normalise_attrs
-    html.add indent & "<" & el.tag
-    for k, (v, attr_kind) in attrs:
+    let (nel, nattrs) = el.normalize
+    html.add indent & "<" & nel.tag
+    for k, (v, attr_kind) in nattrs:
       if attr_kind == bool_prop:
         case v
         of "true":  html.add " " & k
@@ -180,24 +188,24 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
       else:
         html.add " " & k & "=\"" & v.escape_html & "\""
 
-    # if el.tag.is_self_closing_tag:
+    # if nel.tag.is_self_closing_tag:
     #   result.add "/>"
     # else:
     html.add ">"
-    unless el.children.is_empty:
-      if el.children.len == 1 and el.children[0].kind in [ElKind.text, ElKind.html]:
+    unless nel.children.is_empty:
+      if nel.children.len == 1 and nel.children[0].kind in [ElKind.text, ElKind.html]:
         # Single text or html content
-        el.children[0].to_html(html, comments = comments)
+        nel.children[0].to_html(html, comments = comments)
       else:
         html.add "\n"
-        let newlines = "c" in el.children[0]
-        for child in el.children:
+        let newlines = "c" in nel.children[0]
+        for child in nel.children:
           if newlines: html.add "\n"
           child.to_html(html, indent = indent & "  ", comments = comments)
           html.add "\n"
         if newlines: html.add "\n"
         html.add indent
-    html.add "</" & el.tag & ">"
+    html.add "</" & nel.tag & ">"
     # if newlines: html.add "\n"
   of ElKind.text:
     html.add el.text_data.escape_html(quotes = false)
@@ -323,14 +331,15 @@ test "el, basics":
     </div>""".dedent
   check h.to_html == html
 
-# normalise_attrs ----------------------------------------------------------------------------------
-proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal] =
+# normalize ----------------------------------------------------------------------------------------
+proc normalize*(el: El): (El, OrderedTable[string, ElAttrVal]) =
   assert el.kind == ElKind.el
+  var el = el
   var attrs: Table[string, ElAttrVal]
   for k, v in el.attrs:
     if k != "c": attrs[k] = (v, string_attr)
 
-  if el.tag == "input" and "value" in attrs:
+  if el.tag == "input" and "value" in attrs: # input
     if "type" in el and el["type"] == "checkbox":
       # Normalising value for checkbox
       assert el.children.is_empty
@@ -341,5 +350,9 @@ proc normalise_attrs*(el: El): OrderedTable[string, ElAttrVal] =
       attrs.del "value"
     else:
       attrs["value"] = (attrs["value"][0], string_prop)
+  elif el.tag == "textarea" and "value" in attrs: # textarea
+    el = el.dcopy
+    el.html attrs["value"][0].SafeHtml
+    attrs.del "value"
 
-  attrs.sort
+  (el, attrs.sort)

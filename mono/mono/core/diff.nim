@@ -46,8 +46,16 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
     diffs.add replace(id, nel)
     return
 
+  var oel = oel; var nel = nel
   if oel.attrs != nel.attrs: # attrs
-    let (oattrs, nattrs) = (oel.normalise_attrs, nel.normalise_attrs) # oattrs could be cached
+    # Normalization needed only if attrs has been changed
+    # Normalization may change content, for example replace attr value into html content for textarea,
+    # so oel and nel needs to be replaced with normalized versions.
+    let oel_norm = oel.normalize # (oel_norm, oattrs) could be cached
+    oel = oel_norm[0]; let oattrs = oel_norm[1]
+
+    let nel_norm = nel.normalize
+    nel = nel_norm[0]; let nattrs = nel_norm[1]
 
     var set_attrs: Table[string, ElAttrVal]
     for k, v in nattrs:
@@ -65,7 +73,7 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
     # text, html children
     if same_len_and_kind(oel.children, nel.children):
       # Updating text, html
-      let ocontent = oel.get_single_content_child; let ncontent = nel.get_single_content_child;
+      let ocontent = oel.get_single_content_child; let ncontent = nel.get_single_content_child
       case ncontent.kind
       of ElKind.text:
         assert ocontent.kind == ElKind.text

@@ -43,7 +43,7 @@ proc render*(self: TodoItemView): El =
       el"input.toggle type=checkbox":
         # Feature: two way binding with autocast
         it.bind_to(self.item.completed)
-      el("label flash", (text: self.item.text)):
+      el("label", (text: self.item.text)):
         it.on_dblclick(proc = self.editing = self.item.text.some)
       el"button.destroy":
         it.on_click(proc = self.on_delete(self.item.id))
@@ -153,5 +153,5 @@ when is_main_module:
   let todo = Todo(items: @[TodoItem(text: "Buy Milk"), TodoItem(text: "Buy Beef")])
 
   # Path to folder with CSS styles and images
-  let assets_path = current_source_path().parent_dir.absolute_path
-  run_http_server((() => TodoView(todo = todo)), asset_paths = @[assets_path])
+  let asset_path = current_source_path().parent_dir.absolute_path
+  run_http_server((() => TodoView(todo: todo)), asset_paths = @[asset_path])

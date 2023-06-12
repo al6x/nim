@@ -44,23 +44,23 @@ template el*[T](ComponentT: type[T], attrs: tuple): auto =
   add_or_return_el build_el(ComponentT, attrs)
 
 # stateful component el ----------------------------------------------------------------------------
-template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, code): El =
+template build_el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): El =
   let attrsv = attrs
   let component = parent.get_child_component(ChildT, id)
   call_set_attrs(component, attrsv)
   let content = els(code)
   render(component, content)
 
-template build_el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): El =
+template build_el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple): El =
   let attrsv = attrs
   let component = parent.get_child_component(ChildT, id)
   call_set_attrs(component, attrsv)
   render(component)
 
-template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple, code): auto =
+template el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): auto =
   add_or_return_el build_el(parent, ChildT, id, attrs, code)
 
-template el*[T](parent: Component, ChildT: type[T], id: string, attrs: tuple): auto =
+template el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple): auto =
   add_or_return_el build_el(parent, ChildT, id, attrs)
 
 # proc component el --------------------------------------------------------------------------------

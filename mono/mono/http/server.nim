@@ -98,7 +98,7 @@ proc build_http_handler[T](sessions: Sessions[T], build_app: BuildApp[T], asset_
       # await req.respond "Unknown request"
       req.respond_json((error: "Unknown request"))
 
-proc mono_assets_path(): seq[string] =
+proc mono_asset_path(): seq[string] =
   # It had to be non-generic proc, otherwise it will be resolved as template from another file and
   # pahts will be wrong
   @[current_source_path().parent_dir.parent_dir.absolute_path & "/browser"]
@@ -117,7 +117,7 @@ proc run_http_server*[T](
   # could be overriden.
   let sessions = Sessions[T]()
   var server = new_async_http_server()
-  let asset_paths = asset_paths & mono_assets_path()
+  let asset_paths = asset_paths & mono_asset_path()
   let handler = build_http_handler(sessions, build_app, asset_paths, pull_timeout_ms)
   spawn_async server.serve(Port(port), handler, "localhost")
 
