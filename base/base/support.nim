@@ -1,4 +1,4 @@
-import std/[sugar, strutils]
+import std/[sugar, strutils, macros]
 from std/times as nt import nil
 
 # import std/[strformat, sugar, strutils, unicode, tables, macros]
@@ -98,6 +98,30 @@ template unless*(cond, code): auto =
   if not cond:
     code
 
+
+macro capt1*(a: typed, body: untyped): untyped =
+  let a_name = ident(a.str_val); let a_type = get_type_inst a
+  quote do:
+    block:
+      proc create_scope(a_arg: `a_type`) =
+        let `a_name` = a_arg
+        `body`
+      create_scope(`a`)
+
+macro capt2*(a: typed, b: typed, body: untyped): untyped =
+  let a_name = ident(a.str_val); let a_type = get_type_inst a
+  let b_name = ident(b.str_val); let b_type = get_type_inst b
+  quote do:
+    block:
+      proc create_scope(a_arg: `a_type`, b_arg: `b_type`) =
+        let `a_name` = a_arg; let `b_name` = b_arg
+        `body`
+      create_scope(`a`, `b`)
+
+# Because sugar/capture doesn't work https://github.com/nim-lang/Nim/issues/22081
+template capt*(a: typed, b: untyped, c: untyped = "undefined") =
+  when compiles(capt2(a, b, c)): capt2(a, b, c)
+  else:                          capt1(a, b)
 
 # proc to_shared_ptr*[T](v: T): ptr T =
 #   result = create_shared(T)
