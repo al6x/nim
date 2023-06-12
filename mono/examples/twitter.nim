@@ -1,4 +1,4 @@
-import base, mono/[core, http], ext/persistence, std/os
+import base, mono/[core, http], ext/persistence, std/os, std/macros
 
 # Model --------------------------------------------------------------------------------------------
 type
@@ -30,21 +30,19 @@ proc render(self: TwitterView): El =
   proc delete(i: int): auto =
     proc = self.db.messages.delete(i); self.db.save
 
-  proc edit(i: int, text: string): auto =
-    proc = self.edit = (i, text).some
-
   el"app":
     for i, message in self.db.messages:
-      if self.edit.is_some and i == self.edit.get[0]:
-        el"form.edit_form":
-          el("textarea", it.bind_to(self.edit.get[1]))
-          el("button", (text: "Cancel"), it.on_click(proc = self.edit.clear))
-          el("button.primary", (text: "Update"), it.on_click(update))
-      else:
-        el"message":
-          el("", (text: message.text))
-          el("button", (text: "Delete"), it.on_click(delete(i)))
-          el("button", (text: "Edit"), it.on_click(edit(i, message.text)))
+      capt i, message:
+        if self.edit.is_some and i == self.edit.get[0]:
+          el"form.edit_form":
+            el("textarea", it.bind_to(self.edit.get[1]))
+            el("button", (text: "Cancel"), it.on_click(proc = self.edit.clear))
+            el("button.primary", (text: "Update"), it.on_click(update))
+        else:
+          el"message":
+            el("", (text: message.text))
+            el("button", (text: "Delete"), it.on_click(delete(i)))
+            el("button", (text: "Edit"), it.on_click(proc = self.edit = (i, message.text).some))
     el"form.add_form":
       el("textarea", (placeholder: "Write something..."), it.bind_to(self.add))
       el("button.primary", (text: "Add"), it.on_click(add))
