@@ -1,3 +1,1 @@
 - [mono](mono) Nim UI/Web/Desktop/Mobile Framework.
-- [ftext](ftext) Formal Text, Text as Data.
-- [nodem](nodem) Call remote function as local (old, not supported anymore).
