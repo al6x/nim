@@ -1,4 +1,4 @@
-import base, mono/[core, http], ext/persistence, std/os, std/macros
+import base, mono/[core, http], ext/persistence, std/os
 
 # Model --------------------------------------------------------------------------------------------
 type
