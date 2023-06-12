@@ -25,7 +25,7 @@ proc render(self: Hello): El =
 run_http_server(() => Hello())
 ```
 
-Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4), [Hello](mono/examples/hello.nim) and [Todo](mono/examples/todo.nim) examples.
+Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4), [Hello](mono/examples/hello.nim), [Twitter](mono/examples/twitter.nim) and [Todo](mono/examples/todo.nim) examples.
 
 ```
 nimble install https://github.com/al6x/nim?subdir=mono
