@@ -56,8 +56,7 @@ proc render(self: AddForm): El =
 type TwitterView = ref object of Component
 
 proc render(self: TwitterView): El =
-  el"app": # Initial page will also have
-    it.window_title fmt"{db.messages.len} messages" # Title will be changed dynamically
+  el("app", (window_title: fmt"{db.messages.len} messages")):
     for i, message in db.messages:
       self.el(MessageView, i, (i: i, message: message)) # Using components
     self.el(AddForm, ())
