@@ -27,6 +27,8 @@ run_http_server(() => Hello())
 
 Checkout [Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4), [Hello](mono/examples/hello.nim), [Twitter](mono/examples/twitter.nim) and [Todo](mono/examples/todo.nim) examples.
 
+Note the difference between [Twitter](mono/examples/twitter.nim) and [Twitter Comp](mono/examples/twitter_comp.nim) the second version structured into components.
+
 ```
 nimble install https://github.com/al6x/nim?subdir=mono
 nim r --experimental:overloadable_enums --threads:off todo.nim
