@@ -97,7 +97,7 @@ srcDir = "."
 requires "nim >= 1.4.2"
 EOL
 
-# Switching to releases branch ---------------------------------------------------------------------
+# Mergin to main -----------------------------------------------------------------------------------
 git checkout main
 
 rm -rf ./readme.md
@@ -121,5 +121,10 @@ mv tmp/releases/nodem .
 git add .
 git commit -m "version $version"
 git push
+
+# Mergin to v3 -------------------------------------------------------------------------------------
+git checkout v3
+git merge main
+
 git checkout dev
 echo "release done, switched back to dev"
