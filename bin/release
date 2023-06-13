@@ -125,6 +125,7 @@ git push
 # Mergin to v3 -------------------------------------------------------------------------------------
 git checkout v3
 git merge main
+git push
 
 git checkout dev
 echo "release done, switched back to dev"
