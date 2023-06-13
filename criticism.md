@@ -1,3 +1,15 @@
+# Questions
+
+Use component.set_attrs when present
+
+when not compiles(try_define_overloadable_enums()):
+
+template try_assign_untyped_to_variable*(body: untyped) =
+
+when compiles(T.init): T.init else: T()
+
+# Criticism
+
 The bottleneck for the most code is not performance, but productivity: the speed it can be written
 and the monetary cost of the developers. It's the biggest downside of Nim that it optimises what's
 cheap and abundant - the performance, by spending what's costly and rare - developer time needed

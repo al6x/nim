@@ -17,7 +17,7 @@ type
     of timer:    discard # Triggered periodically, to check and pick any background changes in state
 
   Component* = ref object of RootObj
-    children:       Table[string, Component]
+    children*:      Table[string, Component]
     children_built: HashSet[string] # Needed to track and destroy old children
 
 method before_destroy*(self: Component) {.base.} =
@@ -30,8 +30,9 @@ proc after_render(self: Component) =
   self.children_built.clear
   old.values.each(before_destroy) # triggering :before_destroy
 
-proc get_child_component*[T](self: Component, _: type[T], id: string | int): T =
+proc get_child_component*[T: Component](self: Component, _: type[T], id: string | int): T =
   let full_id = $(T) & "/" & id.to_s
+  if full_id in self.children_built: throw fmt"Two components have same id: {full_id}"
   self.children_built.add full_id
   if full_id notin self.children:
     let child = when compiles(T.init): T.init else: T()
@@ -39,7 +40,7 @@ proc get_child_component*[T](self: Component, _: type[T], id: string | int): T =
     self.children[full_id] = child
   self.children[full_id].T
 
-template process_in_event[C](self: C, current_tree: Option[El], event: InEvent): bool =
+template process_in_event[T: Component](self: T, current_tree: Option[El], event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
     assert current_tree.is_some, "UI tree should be present at this stage"
     let el = current_tree.get.get event.el
@@ -87,7 +88,7 @@ template process_in_event[C](self: C, current_tree: Option[El], event: InEvent):
     when compiles(self.on_timer): self.on_timer
     else:                         true
 
-proc process*[C](self: C, current_el: Option[El], events: openarray[InEvent]): Option[El] =
+proc process*[T: Component](self: T, current_el: Option[El], events: openarray[InEvent]): Option[El] =
   let state_changed_maybe = events.mapit(self.process_in_event(current_el, it)).any
   if current_el.is_some and not state_changed_maybe: return # Optimisation, skipping render if there's no changes
 

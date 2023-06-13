@@ -48,6 +48,9 @@ template set_from_tuple*(obj: object, attrs: tuple) =
           ov = tv
           break field_found
 
+template set_from_tuple*(obj: ref object, attrs: tuple) =
+  set_from_tuple obj[], attrs
+
 test "set_from_tuple":
   type Button = object
     color: string
@@ -55,7 +58,6 @@ test "set_from_tuple":
   var b = Button()
   b.set_from_tuple (color: "red")
   check b.color == "red"
-
 
 # func map*[V, R](t: (V, V, V, V), op: (v: V) -> R): (R, R, R, R) =
 #   (op(t[0]), op(t[1]), op(t[2]), op(t[3]))

@@ -1,3 +1,22 @@
+template build_el*[T: Component](ComponentT: type[T], attrs: tuple, code): El =
+  let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
+  component_set_attrs(component, attrs)
+  let content = els(code)
+  render(component, content)
+
+template build_el*[T: Component](ComponentT: type[T], attrs: tuple): El =
+  let attrsv = attrs
+  let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
+  component_set_attrs(component, attrs)
+  render(component)
+
+template el*[T: Component](ComponentT: type[T], attrs: tuple, code): auto =
+  add_or_return_el build_el(ComponentT, attrs, code)
+
+template el*[T: Component](ComponentT: type[T], attrs: tuple): auto =
+  add_or_return_el build_el(ComponentT, attrs)
+
+
 macro set_attr_with_fn*(self: El, k: string, v: untyped): auto =
   let fn = ident k.str_val
   quote do:

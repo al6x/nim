@@ -94,6 +94,7 @@ keep the code size small, to have fast Nim compilation. You can change that and 
 
 # Todo
 
+- Maybe use buit_el
 - Flash doesn't work on todo and hello and twitter properly
 - Add hello world and twitter example
 - Move current_tree from component to session. And replace get_initial_el with session.current_tree.get

@@ -37,9 +37,8 @@ proc render*(self: TodoItemView): El =
     (if self.item.completed: ".completed" else: "") &
     (if self.editing.is_some: ".editing" else: "")
 
-  # Feature: compact HTML template syntax
   el(fmt"li{class_modifier}"):
-    el".view":
+    el".view": # Class shortcut, the `.view` will be set as class.
       el"input.toggle type=checkbox":
         # Feature: two way binding with autocast
         it.bind_to(self.item.completed)

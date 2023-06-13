@@ -24,44 +24,42 @@ macro call_set_attrs*(self: typed, targs: tuple) =
     args.add(nparam)
   newCall(ident"set_attrs", args)
 
-template build_el*[T](ComponentT: type[T], attrs: tuple, code): El =
+template component_set_attrs*[T: Component](component: T, attrs: untyped) =
   let attrsv = attrs
-  let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
-  call_set_attrs(component, attrsv)
+  when compiles(call_set_attrs(component, attrsv)): call_set_attrs(component, attrsv)
+  else:                                             set_from_tuple(component, attrsv)
+
+template build_el*[T: Component](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): El =
+  let attrsv = attrs
+  let component = parent.get_child_component(ChildT, id)
+  component_set_attrs(component, attrs)
   let content = els(code)
   render(component, content)
 
-template build_el*[T](ComponentT: type[T], attrs: tuple): El =
-  let attrsv = attrs
-  let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
-  call_set_attrs(component, attrsv)
-  render(component)
-
-template el*[T](ComponentT: type[T], attrs: tuple, code): auto =
-  add_or_return_el build_el(ComponentT, attrs, code)
-
-template el*[T](ComponentT: type[T], attrs: tuple): auto =
-  add_or_return_el build_el(ComponentT, attrs)
-
-# stateful component el ----------------------------------------------------------------------------
-template build_el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): El =
+template build_el*[T: Component](parent: Component, ChildT: type[T], id: string | int, attrs: tuple): El =
   let attrsv = attrs
   let component = parent.get_child_component(ChildT, id)
-  call_set_attrs(component, attrsv)
-  let content = els(code)
-  render(component, content)
-
-template build_el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple): El =
-  let attrsv = attrs
-  let component = parent.get_child_component(ChildT, id)
-  call_set_attrs(component, attrsv)
+  component_set_attrs(component, attrs)
   render(component)
 
-template el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): auto =
+template build_el*[T: Component](parent: Component, ChildT: type[T], attrs: tuple, code): El =
+  build_el(parent, ChildT, "", attrs, code)
+
+template build_el*[T: Component](parent: Component, ChildT: type[T], attrs: tuple): El =
+  build_el(parent, ChildT, "", attrs)
+
+
+template el*[T: Component](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): auto =
   add_or_return_el build_el(parent, ChildT, id, attrs, code)
 
-template el*[T](parent: Component, ChildT: type[T], id: string | int, attrs: tuple): auto =
+template el*[T: Component](parent: Component, ChildT: type[T], id: string | int, attrs: tuple): auto =
   add_or_return_el build_el(parent, ChildT, id, attrs)
+
+template el*[T: Component](parent: Component, ChildT: type[T], attrs: tuple, code): auto =
+  add_or_return_el build_el(parent, ChildT, attrs, code)
+
+template el*[T: Component](parent: Component, ChildT: type[T], attrs: tuple): auto =
+  add_or_return_el build_el(parent, ChildT, attrs)
 
 # proc component el --------------------------------------------------------------------------------
 macro call_fn_with_content_r*(f: proc, tuple_args: tuple, content_arg: typed, r: typed): typed =

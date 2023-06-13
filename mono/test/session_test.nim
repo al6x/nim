@@ -56,14 +56,14 @@ test "counter":
     session.outbox.clear
     check:
       session.process == false # the input changed, but the render will be skipped
-      session.app.get_child_component(Counter, "counter").Counter.a == "a2" # binded variable shold be updated
+      session.app.children["Counter/counter"].Counter.a == "a2" # binded variable shold be updated
 
   block: # Changing input, with render
     session.inbox = @[InEvent(kind: input, el: @[0, 1], input: InputEvent(value: "b2"))]
     session.outbox.clear
     check:
       session.process == true
-      session.app.get_child_component(Counter, "counter").Counter.b == "b2" # binded variable shold be updated
+      session.app.children["Counter/counter"].Counter.b == "b2" # binded variable shold be updated
       session.outbox.to_json == %[{ kind: "update", diffs: [
         ["set_text", [0, 3], "a2 b2 0"]
       ]}]
