@@ -14,40 +14,6 @@ test "el html":
     </ul>
   """.dedent.trim
 
-
-test "el component":
-  type Panel = ref object of Component
-    color: string
-  proc set_attrs(self: Panel, color: string) =
-    self.color = color
-  proc render(self: Panel, content: seq[El]): El = # Feature: render can have optional arg `content`
-    el(fmt"panel .{self.color}"):
-      it.add content
-
-  type Button = ref object of Component
-    color: string
-  proc set_attrs(self: Button, color: string) =
-    self.color = color
-  proc render(self: Button): El =
-    el(fmt"button .{self.color}")
-
-  type App = ref object of Component
-  proc set_attrs(self: App) =
-    discard
-  proc render(self: App): El =
-    el"app":
-      el(Panel, (color: "blue")):
-        el(Button, (color: "blue"))
-
-  let root_el = el(App, ())
-  check root_el.to_html == """
-    <app>
-      <panel class="blue">
-        <button class="blue"></button>
-      </panel>
-    </app>
-  """.dedent.trim
-
 test "el proc component":
   proc Button(color: string): El =
     el(fmt"button .{color}")
@@ -70,15 +36,17 @@ test "el proc component":
         el"right":
           it.add self.right
 
-  proc App: El =
+  type App = ref object of Component
+  proc set_attrs(self: App) =
+    discard
+  proc render(self: App): El =
     let left = els:
       el(Panel, (color: "blue")):
         el(Button, (color: "blue"))
     el"app":
-      el(LRLayout, (left: left))
+      self.el(LRLayout, (left: left))
 
-  let root_el = el(App, ())
-  check root_el.to_html == """
+  check App().render.to_html == """
     <app>
       <layout>
         <left>
@@ -96,16 +64,12 @@ test "el stateful component":
     color: string
   proc set_attrs(self: Panel, color: string) =
     self.color = color
-  proc render(self: Panel, content: seq[El]): El =
+  proc render(self: Panel, content: seq[El]): El = # Feature: render can have optional arg `content`
     el(fmt"panel .{self.color}"):
       it.add content
 
-  type Button = ref object of Component
-    color: string
-  proc set_attrs(self: Button, color: string) =
-    self.color = color
-  proc render(self: Button): El =
-    el(fmt"button .{self.color}")
+  proc Button(color: string): El =
+    el(fmt"button .{color}")
 
   type App = ref object of Component
   proc set_attrs(self: App) =
@@ -115,8 +79,7 @@ test "el stateful component":
       self.el(Panel, "panel", (color: "blue")):
         el(Button, (color: "blue"))
 
-  let root_el = el(App, ())
-  check root_el.to_html == """
+  check App().render.to_html == """
     <app>
       <panel class="blue">
         <button class="blue"></button>

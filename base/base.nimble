@@ -1,4 +1,4 @@
-version     = "3.0.0"
+version     = "3.1.0"
 author      = "Alex Craft https://github.com/al6x"
 description = "Extensions for Nim std"
 license     = "MIT"
