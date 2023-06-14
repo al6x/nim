@@ -172,8 +172,11 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
                 # el"": # Image had to be nested in div, otherwise it's not scaled properly
                 #   el".image_container":
                 #     it.html cell.render_text(context)
-                el(".card_fixed_height_image", (style: (aspect_ratio: img_aspect_ratio))):
-                  it.html cell.render_text(context)
+
+                # The aspect ratio style had to be set on both image and container
+                let style = "aspect-ratio: " & img_aspect_ratio.to_s & ";"
+                el(".card_fixed_height_image", (style: style)):
+                  it.html cell.render_text(context).replace("<img", "<img style=\"" & style & "\"")
               else:
                 el".px-2":
                   if j == 0: it.class "font-bold"
