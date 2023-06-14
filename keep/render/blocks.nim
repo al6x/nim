@@ -142,9 +142,9 @@ method render_block*(blk: ImagesBlock, context: RenderContext): El =
   #         render_td()
   # else:
   el"table cellspacing=0 cellpadding=0":
+    # setting margin after each row
+    it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
     el"tbody":
-      # setting margin after each row
-      it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
       var i = 0
       for row in 0..(images.len / cols).floor.int:
         el"tr":
@@ -154,7 +154,7 @@ method render_block*(blk: ImagesBlock, context: RenderContext): El =
 # table
 proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], context: RenderContext): El =
   let options = blk.cards.get(CardsViewOptions())
-  let cols = options.cols.get(4)
+  let (cols, img_aspect_ratio) = (options.cols.get(4), options.img_aspect_ratio.get(1.5))
   let rows = blk.rows
   let card_width = (100 - cols).float / cols.float
 
@@ -172,10 +172,7 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
                 # el"": # Image had to be nested in div, otherwise it's not scaled properly
                 #   el".image_container":
                 #     it.html cell.render_text(context)
-                el"":
-                  if options.img_height.is_some:
-                    it.class "card_fixed_height_image"
-                    it.style (height: options.img_height.get)
+                el(".card_fixed_height_image", (style: (aspect_ratio: img_aspect_ratio))):
                   it.html cell.render_text(context)
               else:
                 el".px-2":
@@ -185,9 +182,9 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
 
   el"": # It has to be nested in div otherwise `table-layout: fixed` doesn't work
     el"table cellspacing=0 cellpadding=0":
+      # setting margin after each row
+      it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
       el"tbody":
-        # setting margin after each row
-        it.style "border-spacing: 0 1rem; margin: -1rem 0; border-collapse: separate;"
         var i = 0
         for row in 0..(rows.len / cols).floor.int:
           el"tr":

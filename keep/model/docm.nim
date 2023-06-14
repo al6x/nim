@@ -63,8 +63,8 @@ type
     title*: string
 
   CardsViewOptions* = object
-    cols*:       Option[int]
-    img_height*: Option[string]
+    cols*:             Option[int]
+    img_aspect_ratio*: Option[float]
 
   TableBlockStyle* = enum table, cards
   TableBlock* = ref object of Block
