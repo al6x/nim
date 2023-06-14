@@ -62,13 +62,17 @@ type
   SubsectionBlock* = ref object of Block
     title*: string
 
+  CardsViewOptions* = object
+    cols*:       Option[int]
+    img_height*: Option[string]
+
   TableBlockStyle* = enum table, cards
   TableBlock* = ref object of Block
-    header*:    Option[seq[Text]]
-    rows*:      seq[seq[Text]]
-    cols*:      int # number of cols
-    style*:     TableBlockStyle
-    card_cols*: Option[int]
+    header*: Option[seq[Text]]
+    rows*:   seq[seq[Text]]
+    cols*:   int # number of cols
+    style*:  TableBlockStyle
+    cards*:  Option[CardsViewOptions]
 
   # embed ------------------------------------------------------------------------------------------
   Embed* = ref object of RootObj

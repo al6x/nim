@@ -7,9 +7,6 @@ type Counter = ref object of Component
   a: string
   b: string
 
-proc set_attrs(self: Counter) =
-  discard
-
 proc init(_: type[Counter]): Counter =
   Counter(a: "a1", b: "b1")
 
@@ -24,9 +21,6 @@ proc render(self: Counter): El =
     el("", (text: fmt"{self.a} {self.b} {self.count}"))
 
 type CounterParent = ref object of Component
-
-proc set_attrs(self: CounterParent) =
-  discard
 
 proc render(self: CounterParent): El =
   el".parent":

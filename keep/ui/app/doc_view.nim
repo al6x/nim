@@ -5,9 +5,6 @@ type DocView* = ref object of Component
   space*: Space
   doc*:   Doc
 
-proc set_attrs*(self: DocView, space: Space, doc: Doc) =
-  self.space = space; self.doc = doc
-
 proc render*(self: DocView): El =
   let (doc, space) = (self.doc, self.space)
   let context = RenderContext.init(doc, space.id)

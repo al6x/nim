@@ -6,9 +6,6 @@ type AppView* = ref object of Component
   location*: Location
   on_timer_db_version: Option[int]
 
-proc set_attrs*(self: AppView) =
-  discard
-
 proc on_location*(self: AppView, url: Url) =
   self.location = Location.parse url
 
@@ -44,8 +41,8 @@ proc render*(self: AppView): El =
   of LocationKind.home: self.render_home
   of doc:               self.render_doc_helper(l.sid, l.did)
   of shortcut:          self.render_shortcut_helper(l.did)
-  of search:            self.render_search
-  of warns:             el(WarnsView, ())
+  of LocationKind.find: self.render_search
+  of warns:             self.el(WarnsView, ())
   of asset:             throw "asset should never happen in render"
   of unknown:           self.render_unknown
 

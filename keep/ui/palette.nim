@@ -106,32 +106,33 @@ proc PWarnings*(warns: openarray[(string, string)], closed = false): El =
 # Components ---------------------------------------------------------------------------------------
 proc PTable*(header = Option[seq[El]](), rows: seq[seq[El]]): El =
   el"table": # table
-    if header.is_some: # header
-      el"tr .border-b.border-gray-200":
-        let hrow = header.get
-        for i, hcell in hrow:
-          el"th .py-1":
-            if i < hrow.high: it.class "pr-4"
-            # if single_image_cols[i]: # image header
-            #   it.style "width: 25%; text-align: center; vertical-align: middle;"
-            # else: # non image header
-            it.style "text-align: left; vertical-align: middle;"
-            # it.text hcell
-            it.add hcell
+    el"tbody":
+      if header.is_some: # header
+        el"tr .border-b.border-gray-200":
+          let hrow = header.get
+          for i, hcell in hrow:
+            el"th .py-1":
+              if i < hrow.high: it.class "pr-4"
+              # if single_image_cols[i]: # image header
+              #   it.style "width: 25%; text-align: center; vertical-align: middle;"
+              # else: # non image header
+              it.style "text-align: left; vertical-align: middle;"
+              # it.text hcell
+              it.add hcell
 
-    for i, row in rows: # rows
-      el"tr":
-        if i < rows.high: it.class "border-b border-gray-200"
-        for i, cell in row: # cols
-          el"td .py-1":
-            if i < row.high: it.class "pr-4"
-            # if single_image_cols[i]: # cell with image
-            #   it.style "width: 25%; text-align: center; vertical-align: middle;"
-            #   el".image_container.overflow-hidden .rounded":
-            #     it.html cell.render_text(context)
-            # else: # non image cell
-            it.style "vertical-align: middle;"
-            it.add cell
+      for i, row in rows: # rows
+        el"tr":
+          if i < rows.high: it.class "border-b border-gray-200"
+          for i, cell in row: # cols
+            el"td .py-1":
+              if i < row.high: it.class "pr-4"
+              # if single_image_cols[i]: # cell with image
+              #   it.style "width: 25%; text-align: center; vertical-align: middle;"
+              #   el".image_container.overflow-hidden .rounded":
+              #     it.html cell.render_text(context)
+              # else: # non image cell
+              it.style "vertical-align: middle;"
+              it.add cell
 
 # Blocks -------------------------------------------------------------------------------------------
 template pblock_controls*(controls: seq[El], hover: bool) =

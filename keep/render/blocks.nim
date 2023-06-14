@@ -142,17 +142,19 @@ method render_block*(blk: ImagesBlock, context: RenderContext): El =
   #         render_td()
   # else:
   el"table cellspacing=0 cellpadding=0":
-    # setting margin after each row
-    it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
-    var i = 0
-    for row in 0..(images.len / cols).floor.int:
-      el"tr":
-        for col in 0..(cols * 2 - 2):
-          render_td()
+    el"tbody":
+      # setting margin after each row
+      it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
+      var i = 0
+      for row in 0..(images.len / cols).floor.int:
+        el"tr":
+          for col in 0..(cols * 2 - 2):
+            render_td()
 
 # table
 proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], context: RenderContext): El =
-  let cols = blk.card_cols.get(4)
+  let options = blk.cards.get(CardsViewOptions())
+  let cols = options.cols.get(4)
   let rows = blk.rows
   let card_width = (100 - cols).float / cols.float
 
@@ -171,6 +173,9 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
                 #   el".image_container":
                 #     it.html cell.render_text(context)
                 el"":
+                  if options.img_height.is_some:
+                    it.class "card_fixed_height_image"
+                    it.style (height: options.img_height.get)
                   it.html cell.render_text(context)
               else:
                 el".px-2":
@@ -180,40 +185,42 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
 
   el"": # It has to be nested in div otherwise `table-layout: fixed` doesn't work
     el"table cellspacing=0 cellpadding=0":
-      # setting margin after each row
-      it.style "border-spacing: 0 1rem; margin: -1rem 0; border-collapse: separate;"
-      var i = 0
-      for row in 0..(rows.len / cols).floor.int:
-        el"tr":
-          for col in 0..(cols * 2 - 2):
-            render_td()
+      el"tbody":
+        # setting margin after each row
+        it.style "border-spacing: 0 1rem; margin: -1rem 0; border-collapse: separate;"
+        var i = 0
+        for row in 0..(rows.len / cols).floor.int:
+          el"tr":
+            for col in 0..(cols * 2 - 2):
+              render_td()
 
 proc render_table_as_table*(blk: TableBlock, single_image_cols: seq[bool], context: RenderContext): El =
   el"table": # table
-    if blk.header.is_some: # header
-      el"tr .border-b.border-gray-200":
-        let hrow = blk.header.get
-        for i, hcell in hrow:
-          el("th .py-1", (html: hcell.render_text(context))):
-            if i < hrow.high: it.class "pr-4"
-            if single_image_cols[i]: # image header
-              it.style "width: 25%; text-align: center; vertical-align: middle;"
-            else: # non image header
-              it.style "text-align: left; vertical-align: middle;"
+    el"tbody":
+      if blk.header.is_some: # header
+        el"tr .border-b.border-gray-200":
+          let hrow = blk.header.get
+          for i, hcell in hrow:
+            el("th .py-1", (html: hcell.render_text(context))):
+              if i < hrow.high: it.class "pr-4"
+              if single_image_cols[i]: # image header
+                it.style "width: 25%; text-align: center; vertical-align: middle;"
+              else: # non image header
+                it.style "text-align: left; vertical-align: middle;"
 
-    for i, row in blk.rows: # rows
-      el"tr":
-        if i < blk.rows.high: it.class "border-b border-gray-200"
-        for i, cell in row: # cols
-          el"td .py-1":
-            if i < row.high: it.class "pr-4"
-            if single_image_cols[i]: # cell with image
-              it.style "width: 25%; text-align: center; vertical-align: middle;"
-              el".image_container.overflow-hidden .rounded":
+      for i, row in blk.rows: # rows
+        el"tr":
+          if i < blk.rows.high: it.class "border-b border-gray-200"
+          for i, cell in row: # cols
+            el"td .py-1":
+              if i < row.high: it.class "pr-4"
+              if single_image_cols[i]: # cell with image
+                it.style "width: 25%; text-align: center; vertical-align: middle;"
+                el".image_container.overflow-hidden .rounded":
+                  it.html cell.render_text(context)
+              else: # non image cell
+                it.style "vertical-align: middle;"
                 it.html cell.render_text(context)
-            else: # non image cell
-              it.style "vertical-align: middle;"
-              it.html cell.render_text(context)
 
 method render_block*(blk: TableBlock, context: RenderContext): El =
   # If columns has only images or embeds, making it no more than 25%

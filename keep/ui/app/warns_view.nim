@@ -3,8 +3,6 @@ import ../../model, ./helpers, ../palette as pl, ./location
 
 type WarnsView* = ref object of Component
 
-proc set_attrs*(self: WarnsView) = discard
-
 proc render*(self: WarnsView): El =
   var rows: seq[seq[El]]
   for (sid, did) in db.docs_with_warns:
