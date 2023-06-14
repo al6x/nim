@@ -84,7 +84,7 @@ proc PTags*(tags: seq[(string, string)] = @[], closed = false): El =
 
 proc PSearchField*(text = ""): El =
   el("textarea .border .rounded .border-gray-300 .px-1 .w-full " &
-    ".focus:outline-none .placeholder-gray-500 .resize-none rows=2", (placeholder: "Search...")):
+    ".focus:outline-none .placeholder-gray-500 .resize-none rows=2", (placeholder: "Find...")):
     if not text.is_empty: it.value text
 
 proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =

@@ -146,7 +146,7 @@ method render_block*(blk: ImagesBlock, context: RenderContext): El =
     it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
     el"tbody":
       var i = 0
-      for row in 0..(images.len / cols).floor.int:
+      for row in 0..((images.len / cols).ceil.int - 1):
         el"tr":
           for col in 0..(cols * 2 - 2):
             render_td()
@@ -178,18 +178,19 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
                 el(".card_fixed_height_image", (style: style)):
                   it.html cell.render_text(context).replace("<img", "<img style=\"" & style & "\"")
               else:
-                el".px-2":
+                el".px-2.whitespace-nowrap":
                   if j == 0: it.class "font-bold"
                   it.html cell.render_text(context)
         i.inc
 
   el"": # It has to be nested in div otherwise `table-layout: fixed` doesn't work
     el"table cellspacing=0 cellpadding=0":
-      # setting margin after each row
-      it.style "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;"
+      it.style:
+        "border-spacing: 0 0.6rem; margin: -0.6rem 0; border-collapse: separate;" & # setting margin after each row
+        "table-layout: fixed; width: 100%" # Preventing table cell to get wider with `white-space: nowrap`:
       el"tbody":
         var i = 0
-        for row in 0..(rows.len / cols).floor.int:
+        for row in 0..((rows.len / cols).ceil.int - 1):
           el"tr":
             for col in 0..(cols * 2 - 2):
               render_td()
