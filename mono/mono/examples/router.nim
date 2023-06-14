@@ -50,9 +50,6 @@ type BlogView* = ref object of Component
   blog*:     Blog
   location*: Location
 
-proc set_attrs*(self: BlogView, blog: Blog) =
-  self.blog = blog
-
 # Feature: called on location event, there's always at least one location event for the initial url.
 proc on_location*(self: BlogView, url: Url) =
   self.location = Location.parse url

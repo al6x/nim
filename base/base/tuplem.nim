@@ -40,24 +40,24 @@ func map*[V, R](t: (V, V, V), op: (v: V) -> R): (R, R, R) =
   (op(t[0]), op(t[1]), op(t[2]))
 
 
-template set_from_tuple*(obj: object, attrs: tuple) =
-  for tk, tv in field_pairs(attrs):
-    block field_found:
-      for ok, ov in field_pairs(obj):
-        when ok == tk:
-          ov = tv
-          break field_found
+# template set_from_tuple*(obj: ref object, attrs: tuple) =
+#   for tk, tv in field_pairs(attrs):
+#     block field_found:
+#       for ok, ov in field_pairs(obj[]):
+#         when ok == tk:
+#           ov = tv
+#           break field_found
 
-template set_from_tuple*(obj: ref object, attrs: tuple) =
-  set_from_tuple obj[], attrs
+# template set_from_tuple*(obj: ref object, attrs: tuple) =
+#   set_from_tuple obj[], attrs
 
-test "set_from_tuple":
-  type Button = object
-    color: string
-    another: int
-  var b = Button()
-  b.set_from_tuple (color: "red")
-  check b.color == "red"
+# test "set_from_tuple":
+#   type Button = object
+#     color: string
+#     another: int
+#   var b = Button()
+#   b.set_from_tuple (color: "red")
+#   check b.color == "red"
 
 # func map*[V, R](t: (V, V, V, V), op: (v: V) -> R): (R, R, R, R) =
 #   (op(t[0]), op(t[1]), op(t[2]), op(t[3]))

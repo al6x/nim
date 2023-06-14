@@ -24,10 +24,32 @@ macro call_set_attrs*(self: typed, targs: tuple) =
     args.add(nparam)
   newCall(ident"set_attrs", args)
 
+template set_attrs_from_tuple*[T: Component](obj: T, attrs: tuple) =
+  for tk, tv in field_pairs(attrs):
+    block field_found:
+      for ok, ov in field_pairs(obj[]):
+        when ok == tk:
+          ov = tv
+          break field_found
+
+template is_attrs_equal*[T: Component](obj: T, attrs: tuple): bool =
+  var r = true
+  block is_attrs_equal_block:
+    for tk, tv in field_pairs(attrs):
+      for ok, ov in field_pairs(obj[]):
+        when ok == tk:
+          if ov != tv:
+            r = false
+            break is_attrs_equal_block
+  r
+
 template component_set_attrs*[T: Component](component: T, attrs: untyped) =
   let attrsv = attrs
-  when compiles(call_set_attrs(component, attrsv)): call_set_attrs(component, attrsv)
-  else:                                             set_from_tuple(component, attrsv)
+  if not is_attrs_equal(component, attrsv):
+    # Performance optimisation, setting attributes only if they changed, as `c.set_attrs` may contain
+    # expensive calculations.
+    when compiles(call_set_attrs(component, attrsv)): call_set_attrs(component, attrsv)
+    else:                                             set_attrs_from_tuple(component, attrsv)
 
 template build_el*[T: Component](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): El =
   let attrsv = attrs

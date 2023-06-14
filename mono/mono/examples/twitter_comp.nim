@@ -52,7 +52,6 @@ proc render(self: AddForm): El =
     el("textarea", (placeholder: "Write something..."), it.bind_to(self.add))
     el("button.primary", (text: "Add"), it.on_click(add))
 
-
 type TwitterView = ref object of Component
 
 proc render(self: TwitterView): El =

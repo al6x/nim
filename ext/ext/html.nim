@@ -173,11 +173,16 @@ proc to_json_hook*(el: El): JsonNode =
   of ElKind.html:             %{ kind: el.kind, html: el.html_data }
   of ElKind.list:            throw "json for el.list is not implemented"
 
-proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
+proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false, parent_tag = string.none) =
   case el.kind
   of ElKind.el:
     # if newlines: html.add "\n"
     let (nel, nattrs) = el.normalize
+
+    if nel.tag == "tr" and parent_tag.is_some and parent_tag.get notin ["tbody", "thead"]:
+      # Checking correct HTML structure for tables, it's important for dynamic updates with diff
+      throw "tr must have tbody or thead parent, not: " & parent_tag.get
+
     html.add indent & "<" & nel.tag
     for k, (v, attr_kind) in nattrs:
       if attr_kind == bool_prop:
@@ -201,7 +206,7 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
         let newlines = "c" in nel.children[0]
         for child in nel.children:
           if newlines: html.add "\n"
-          child.to_html(html, indent = indent & "  ", comments = comments)
+          child.to_html(html, indent = indent & "  ", comments = comments, parent_tag = el.tag.some)
           html.add "\n"
         if newlines: html.add "\n"
         html.add indent

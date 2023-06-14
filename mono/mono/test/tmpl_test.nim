@@ -25,8 +25,6 @@ test "el proc component":
 
   type LRLayout = ref object of Component
     left*, right*: seq[El]
-  proc set_attrs(self: LRLayout, left = seq[El].init, right = seq[El].init) =
-    self.left = left; self.right = right
   proc render(self: LRLayout): El =
     el"layout":
       if not self.left.is_empty:
@@ -37,8 +35,6 @@ test "el proc component":
           it.add self.right
 
   type App = ref object of Component
-  proc set_attrs(self: App) =
-    discard
   proc render(self: App): El =
     let left = els:
       el(Panel, (color: "blue")):
@@ -62,8 +58,6 @@ test "el proc component":
 test "el stateful component":
   type Panel = ref object of Component
     color: string
-  proc set_attrs(self: Panel, color: string) =
-    self.color = color
   proc render(self: Panel, content: seq[El]): El = # Feature: render can have optional arg `content`
     el(fmt"panel .{self.color}"):
       it.add content
@@ -72,8 +66,6 @@ test "el stateful component":
     el(fmt"button .{color}")
 
   type App = ref object of Component
-  proc set_attrs(self: App) =
-    discard
   proc render(self: App): El =
     el"app":
       self.el(Panel, "panel", (color: "blue")):

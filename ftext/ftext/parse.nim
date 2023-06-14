@@ -23,6 +23,7 @@ let text_chars           = (special_chars + space_chars).complement
 let alpha_chars          = {'a'..'z', 'A'..'Z'}
 let not_alpha_chars      = alpha_chars.complement
 let alphanum_chars       = alpha_chars + {'0'..'9'}
+let not_alphanum_chars   = alphanum_chars.complement
 
 const lookahead_limit = 32 # How much to look ahead, if it's too large parsing will be slow
 
@@ -151,9 +152,50 @@ proc consume_tags*(pr: Parser, stop: (proc: bool) = (proc(): bool = false)): tup
     max(tags_start_pos, pr.i - i)
   (tags, (pr.text.line_n(tags_start_pos), pr.text.line_n(tags_end_pos)), (tags_start_pos, tags_end_pos))
 
+# text_embedding -----------------------------------------------------------------------------------
+proc is_text_embed*(pr: Parser): bool =
+  (pr.get in alpha_chars and pr.fget(not_alphanum_chars, limit = lookahead_limit) == '{') or pr.get == '`'
+
+proc consume_text_embed*(pr: Parser, items: var Text) =
+  # Consumes `some{text}` or `text`
+  let (kind, body) = if pr.get in alphanum_chars:
+    let kind = pr.consume alphanum_chars
+    assert pr.get == '{'
+    var brackets = 0; var body = ""
+    while pr.has:
+      if   pr.get == '{': brackets.inc
+      elif pr.get == '}': brackets.dec
+      body.add pr.get.get
+      pr.inc
+      if brackets == 0: break
+    (kind, body.replace(re"^\{|\}$", ""))
+  elif pr.get == '`':
+    pr.inc
+    let body = pr.consume((c) => c != '`')
+    pr.inc
+    ("code", body)
+  else:
+    throw "invalid text embed"
+  items.add TextItem(kind: embed, embed: Embed(kind: kind, body: body))
+
+# find_without_embed -------------------------------------------------------------------------------
+proc find_without_embed*(pr: Parser, fn: (char) -> bool): int =
+  let i = pr.i
+  defer: pr.i = i
+  var tmp: Text
+  while true:
+    if pr.is_text_embed:
+      pr.consume_text_embed(tmp)
+    else:
+      let c = pr.get
+      if c.is_none: break
+      if fn(c.get): return pr.i - pr.i
+    pr.inc
+  -1
+
 # blocks -------------------------------------------------------------------------------------------
 let not_tick_chars           = {'^'}.complement
-let not_allowed_in_block_ext = {'}'}
+# let not_allowed_in_block_ext = {'}'}
 let block_id_type_chars      = alphanum_chars + {'.'}
 
 proc has_implicittext(text: string): bool =
@@ -172,10 +214,18 @@ proc consume_block*(pr: Parser, blocks: var seq[FBlockSource], can_have_implicit
   let start = pr.i
   let non_empty_start = pr.i + pr.find(not_space_chars)
   var body = pr.consume(proc (c: auto): bool =
+    # if c == '^' and (pr.get(1) in alpha_chars):
+    #   for v in pr.items(1): # Looking ahead for newline but not allowing some special characters
+    #     if   v in not_allowed_in_block_ext: return true
+    #     elif v == '\n':                     return false
+    #   return false
+    # true
     if c == '^' and (pr.get(1) in alpha_chars):
-      for v in pr.items(1): # Looking ahead for newline but not allowing some special characters
-        if   v in not_allowed_in_block_ext: return true
-        elif v == '\n':                     return false
+      var prev_v = '_'
+      for v in pr.items(1): # Looking ahead for newline but not allowing embed
+        if   v == '}' and prev_v in alphanum_chars: return true
+        elif v == '\n':                             return false
+        prev_v = v
       return false
     true
   )
@@ -216,53 +266,12 @@ proc consume_block*(pr: Parser, blocks: var seq[FBlockSource], can_have_implicit
   else:
     pr.i = start # rolling back
 
-proc consume_blocks*(pr: Parser, can_have_implicittext: seq[string]): seq[FBlockSource] =
+proc consume_blocks*(pr: Parser, can_have_implicittext: seq[string] = @[]): seq[FBlockSource] =
   var prev_i = -1
   while true:
     pr.consume_block(result, can_have_implicittext)
     if pr.i == prev_i: break
     prev_i = pr.i
-
-# text_embedding -----------------------------------------------------------------------------------
-proc is_text_embed*(pr: Parser): bool =
-  (pr.get in alpha_chars and pr.fget(not_alpha_chars, limit = lookahead_limit) == '{') or pr.get == '`'
-
-proc consume_text_embed*(pr: Parser, items: var Text) =
-  # Consumes `some{text}` or `text`
-  let (kind, body) = if pr.get in alpha_chars:
-    let kind = pr.consume alpha_chars
-    assert pr.get == '{'
-    var brackets = 0; var body = ""
-    while pr.has:
-      if   pr.get == '{': brackets.inc
-      elif pr.get == '}': brackets.dec
-      body.add pr.get.get
-      pr.inc
-      if brackets == 0: break
-    (kind, body.replace(re"^\{|\}$", ""))
-  elif pr.get == '`':
-    pr.inc
-    let body = pr.consume((c) => c != '`')
-    pr.inc
-    ("code", body)
-  else:
-    throw "invalid text embed"
-  items.add TextItem(kind: embed, embed: Embed(kind: kind, body: body))
-
-# find_without_embed -------------------------------------------------------------------------------
-proc find_without_embed*(pr: Parser, fn: (char) -> bool): int =
-  let i = pr.i
-  defer: pr.i = i
-  var tmp: Text
-  while true:
-    if pr.is_text_embed:
-      pr.consume_text_embed(tmp)
-    else:
-      let c = pr.get
-      if c.is_none: break
-      if fn(c.get): return pr.i - pr.i
-    pr.inc
-  -1
 
 # text_link ----------------------------------------------------------------------------------------
 proc is_text_link*(pr: Parser): bool =
@@ -707,12 +716,14 @@ proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBl
   unless source.args.is_empty: # parsing args
     try:
       let data = parse_yaml "{ " & source.args & " }"
-      data.check_keys_in(["style", "header", "card_cols"], blk.warns)
-      if "style"     in data: data["style"].json_to blk.style
-      if "header"    in data: data["header"].json_to has_header
-      if "card_cols" in data: data["card_cols"].json_to blk.card_cols
+      data.check_keys_in(["style", "header", "cards"], blk.warns)
+      if "style"  in data: data["style"].json_to blk.style
+      if "header" in data: data["header"].json_to has_header
+      if "cards"  in data: data["cards"].json_to blk.cards
     except:
       blk.warns.add "Invalid args"
+    if blk.cards.is_some and blk.style != cards:
+      blk.warns.add "cards option could be used only with style: card"
 
   let col_delimiter: char = block:
     let pr = Parser.init source.text
@@ -813,12 +824,12 @@ proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[s
 
 # parse --------------------------------------------------------------------------------------------
 proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
-  template normalize(term) = blk.term = blk.term.unique.sort
-  normalize assets
-  normalize links
-  normalize glinks
-  normalize warns
-  normalize tags
+  template normalizeit(term: untyped) = blk.term = blk.term.unique.sort
+  normalizeit assets
+  normalizeit links
+  normalizeit glinks
+  normalizeit warns
+  normalizeit tags
 
   # for rpath in blk.assets:
   #   assert not rpath.is_empty, "asset can't be empty"

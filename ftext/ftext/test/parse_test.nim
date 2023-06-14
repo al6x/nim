@@ -76,6 +76,16 @@ test "consume_blocks, consume_tags":
     some text ^text
   """, @[("text", "", "some text", (1, 1))], (seq[string].init, (1, 1))
 
+test "consume_blocks with json attrs":
+  check Parser.init("some ^text cards: { cols: 4 }").consume_blocks.to_json == %[
+    { text: "some", id: "", args: "cards: { cols: 4 }", line_n: (1, 1), kind: "text"}
+  ]
+
+test "consume_blocks, should not consume embed as block attrs":
+  check Parser.init("some ^text img{path}\nanother ^text").consume_blocks.to_json == %[
+    { text: "some ^text img{path}\nanother", id: "", args: "", line_n: (1, 2), kind: "text" }
+  ]
+
 test "consume_blocks, consume_tags, with implicit text block":
   test_blocks """
     Some text
@@ -120,6 +130,9 @@ test "text_embed":
 
   t "math{2^{2} } other", 0, %{ text: "", kind: "embed", embed: { kind: "math", body: "2^{2} " } }
   t "`2^{2} ` other",     0, %{ text: "", kind: "embed", embed: { kind: "code", body: "2^{2} " } }
+
+  check     Parser.init("i2{some}").is_text_embed # embed can have numbers
+  check not Parser.init("2{some}").is_text_embed  # but can't start with number
 
 test "consume_inline_text, space":
   check consume_inline_text("**a**b ").mapit(it.text) == @["a", "b"]
