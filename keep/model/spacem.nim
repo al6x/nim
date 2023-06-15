@@ -1,24 +1,16 @@
-import base, ext/vcache, ./docm, ./configm
+import base, ext/vcache, ./docm, ./configm, ./trigrams
 
 type
   Space* = ref object
     id*:           string
     version*:      int
     docs*:         Table[string, Doc]
-    ntags*:        seq[string] # lowercased
     tags*:         seq[string]
     warnings*:     seq[string]
-    # processors*:   seq[proc()]
-    allowed_tags*: HashSet[string]
+    # processors*:   seq[proc()
     # cache*:        Table[string, JsonNode]
 
-  Db* = ref object
-    version*:     int
-    config*:      Config
-    spaces*:      Table[string, Space]
-    cache*:       VCache
-    # space_cache*: Table[(string, string), VCacheContainer]
-    bgjobs*:      seq[proc()]
+    ntags*:        seq[string] # lowercased
 
 proc log*(self: Space): Log =
   Log.init("Space", self.id)
@@ -31,54 +23,35 @@ iterator blocks*(space: Space): Block =
     for blk in doc.blocks:
       yield blk
 
-iterator blocks*(db: Db): Block =
-  for _, space in db.spaces:
-    for _, doc in space.docs:
-      for blk in doc.blocks:
-        yield blk
+proc post_process*(space: Space, doc: Doc) =
+  block: # Merging and normalising tags
+    let doc_ntags = (doc.tags.map(to_lower) & space.ntags).sort
+    for blk in doc.blocks:
+      let block_ntags = blk.tags.map(to_lower)
+      blk.ntags = (block_ntags & doc_ntags).unique.sort
+      doc.ntags.add block_ntags
+    doc.ntags = doc.ntags.unique.sort
 
-iterator docs*(db: Db): Doc =
-  for _, space in db.spaces:
-    for _, doc in space.docs:
-      yield doc
+  block: # Trigrams
+    for blk in doc.blocks:
+      blk.text.to_lower.to_trigrams doc.trigrams
+      for tag in blk.ntags: tag.to_trigrams blk.trigrams
+      blk.trigrams_us = blk.trigrams.unique.sort
+      doc.trigrams_us.add blk.trigrams_us
+    doc.trigrams_us = doc.trigrams.unique.sort
 
-proc validate_tags*(space: Space) =
-  if not space.allowed_tags.is_empty:
-    for blk in space.blocks:
-      for tag in blk.tags:
-        if tag notin space.allowed_tags:
-          blk.warns.add fmt"Invalid tag: {tag}"
+iterator docs*(space: Space): Doc =
+  for _, doc in space.docs: yield doc
 
-proc validate_links*(space: Space, db: Db) =
-  for blk in space.blocks:
-    for link in blk.links:
-      let (sid, did, bid) = link
-      try:
-        let doc = (if sid == ".": space else: db.spaces[sid]).docs[did]
-        unless bid.is_empty: discard doc.blockids[bid]
-      except:
-        blk.warns.add fmt"Invalid link: {link.to_s}"
+proc `[]`*(space: Space, doc_id: string): Doc =
+  space.docs[doc_id]
 
-proc ntags*(db: Db): Table[string, int] =
-  for blk in db.blocks:
-    for ntag in blk.ntags:
-      result.inc ntag
+proc contains*(space: Space, doc_id: string): bool =
+  doc_id in space.docs
 
-proc ntags_cached*(db: Db): Table[string, int] =
-  db.cache.get_into("ntags", db.version, result, db.ntags)
+proc apdate*(space: Space, doc: Doc) =
+  space.post_process doc
+  space.docs[doc.id] = doc
 
-proc docs_with_warns*(db: Db): seq[tuple[sid, did: string]] =
-  for sid, space in db.spaces:
-    for did, doc in space.docs:
-      unless doc.warns.is_empty:
-        result.add (sid, did)
-        continue
-      block blocks_loop:
-        for blk in doc.blocks:
-          unless blk.warns.is_empty:
-            result.add (sid, did)
-            break blocks_loop
-  result = result.sortit(it[1])
-
-proc docs_with_warns_cached*(db: Db): seq[tuple[sid, did: string]] =
-  db.cache.get_into("docs_with_warns", db.version, result, db.docs_with_warns)
+proc del*(space: Space, doc_id: string) =
+  space.docs.del doc_id

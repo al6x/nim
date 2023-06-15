@@ -1,3 +1,42 @@
+import std/[tables, hashes, strutils]
+
+type SSlice = object
+  s:    ptr string
+  i, l: int
+
+proc sslice*(s: ptr string, i: int, l: int): SSlice =
+  SSlice(s: s, i: i, l: l)
+
+proc `$`*(s: SSlice): string =
+  for j in 0..(s.l - 1): result.add s.s[s.i + j]
+
+proc `==`(a, b: SSlice): bool =
+  if a.l != b.l: return false
+  for j in 0.int..(a.l - 1):
+    if a.s[a.i + j] != b.s[b.i + j]: return false
+  true
+
+proc hash*(s: SSlice): Hash =
+  result = 0
+  for j in 0..(s.l - 1):
+    result = result !& s.s[s.i + j].hash
+  result = !$result
+
+
+test "to_trigrams":
+codes.clear
+check "b".to_trigrams  == @[0].mapit(it.uint16)
+check "ab".to_trigrams == @[1, 0].mapit(it.uint16)
+
+proc to_trigrams*(text: string): seq[uint16] =
+  if text.len < 3: return text.align_left(3).to_trigrams
+  for i in 0..(text.len - 3):
+    result.add sslice(unsafe_addr text, i, 3).encode_trigram
+  let last_two = text[^2..^1] & " "
+  result.add sslice(unsafe_addr last_two,  0, 3).encode_trigram
+  let last_one = text[^1..^1] & "  "
+  result.add sslice(unsafe_addr last_one, 0, 3).encode_trigram
+
 template build_el*[T: Component](ComponentT: type[T], attrs: tuple, code): El =
   let component = when compiles(ComponentT.init): ComponentT.init else: ComponentT()
   component_set_attrs(component, attrs)

@@ -13,7 +13,6 @@ type
   Block* = ref object of RootObj
     id*:     string
     hash*:   int
-    ntags*:  seq[string] # merged, normalized tags
     tags*:   seq[string]
     links*:  seq[Link]
     assets*: seq[string]
@@ -22,6 +21,11 @@ type
     warns*:  seq[string]
     source*: BlockSource
 
+    # Special fields used for fast db indexing etc.
+    ntags*:       seq[string] # merged, normalized tags
+    trigrams*:    seq[uint16]
+    trigrams_us*: seq[uint16] # unique and sorted trigrams
+
   Doc* = ref object of RootObj
     id*:          string
     hash*:        int
@@ -29,10 +33,13 @@ type
     title*:       string
     blocks*:      seq[Block]
     blockids*:    Table[string, Block] # for quick access by id
-    ntags*:       seq[string]
     tags*:        seq[string] # merged tags
     warns*:       seq[string]
     source*:      DocSource
+
+    # Special fields used for fast db indexing etc.
+    ntags*:       seq[string]
+    trigrams_us*: seq[uint16] # unique and sorted trigrams
 
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block

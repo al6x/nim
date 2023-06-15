@@ -8,6 +8,10 @@ template try_assign_untyped_to_variable*(body: untyped) =
 
 when compiles(T.init): T.init else: T()
 
+How to encode trigrams efficiently, wtring slice?
+
+table.mgetOrPut("a", 2) why no proc or template version? table.mgetOrPutIt("a", 2)
+
 # Criticism
 
 The bottleneck for the most code is not performance, but productivity: the speed it can be written

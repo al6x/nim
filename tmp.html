@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cartoon Face</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+</head>
+<body>
+  <script>
+let smile = false;
+
+function setup() {
+  createCanvas(400, 400);
+  frameRate(1);  // Change the expression every second
+}
+
+function draw() {
+  background(220);
+
+  // Face
+  fill(255, 204, 0);
+  ellipse(width / 2, height / 2, 200, 200);
+
+  // Eyes
+  fill(0);
+  ellipse(width / 2 - 50, height / 2 - 50, 25, 50);
+  ellipse(width / 2 + 50, height / 2 - 50, 25, 50);
+
+  // Mouth
+  if (smile) {
+    arc(width / 2, height / 2 + 50, 75, 50, 0, PI);
+  } else {  // Sad
+    arc(width / 2, height / 2 + 75, 75, 50, PI, TWO_PI);
+  }
+
+  // Eyebrows
+  if (smile) {
+    line(width / 2 - 75, height / 2 - 75, width / 2 - 25, height / 2 - 75);
+    line(width / 2 + 25, height / 2 - 75, width / 2 + 75, height / 2 - 75);
+  } else {  // Sad
+    line(width / 2 - 75, height / 2 - 85, width / 2 - 25, height / 2 - 65);
+    line(width / 2 + 25, height / 2 - 65, width / 2 + 75, height / 2 - 85);
+  }
+
+  smile = !smile;  // Change the expression
+}
+
+  </script>
+</body>
+</html>
