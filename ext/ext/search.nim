@@ -65,8 +65,10 @@ proc score*[T](q: CountTable[T], q_len: int, qnorm: float, text: seq[T], config 
     if (same_count / q.len) >= config.matching_tokens_treshold:
       let score = cosine_similarity(q, w, qnorm)
       if score > config.score_treshold:
-        if (not result.is_empty) and (h - 1 == result[^1].h):
-          result[^1].h = h # Merging with previous match it's the the next step window
+        # if (not result.is_empty) and (h - 1 == result[^1].h): # If windows are interesected
+          # result[^1].h = h # Merging with previous match it's the the next step window
+        if (not result.is_empty) and (l < result[^1].h): # If windows are interesected choosing the best one
+          if score > result[^1].score: result[^1] = (score, l, h).Match
         else:
           result.add (score, l, h).Match
 
@@ -137,7 +139,7 @@ proc test_score_tg(text, query: string, config = ScoreConfig.init): seq[tuple[sc
 
 test "score":
   check:
-    "this is some text message".test_score_tg("smme te").pick(match) == @["some text"]
+    "this is some text message".test_score_tg("smme te").pick(match) == @["some te"]
 
 # Use case -----------------------------------------------------------------------------------------
 when is_main_module:
@@ -160,11 +162,12 @@ when is_main_module:
     )
 
   let db = Db(docs: [
+    "this is smme text message",
     "this is some text message",
     "another message"
   ].mapit(Doc.init(it)))
 
-  let score_fn: ScoreFn[Doc] = build_score[Doc]("smme te")
+  let score_fn: ScoreFn[Doc] = build_score[Doc]("some te")
   var found: seq[(Match, Doc)]
   for doc in db.docs: score_fn(doc, found)
-  p found.mapit(match(it[0], it[1].text)) # => @["some text"]
+  p found.sortit(-it[0].score).mapit(match(it[0], it[1].text)) # => @["some text"]
