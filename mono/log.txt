@@ -1,3 +1,16 @@
+proc cosine_similarity(a: seq[int], al, ah: int, b: seq[int], bl, bh: int, norm_a = -1.0): float =
+  var dot_prod = 0
+  var i = al; var j = bl
+  while i <= ah and j <= bh:
+    if   a[i] < b[j]: i.inc
+    elif a[i] > b[j]: j.inc
+    else:             dot_prod.inc a[i] * b[j]; i.inc; j.inc
+
+  var norm_a = if norm_a == -1.0: norm2(a, al, ah) else: norm_a
+  var norm_b = norm2(b, bl, bh)
+
+  dot_prod.float / (norm_a * norm_b)
+
 import std/[tables, hashes, strutils]
 
 type SSlice = object
