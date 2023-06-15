@@ -675,7 +675,8 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, has_header: bool, blk
   #   pr.starts_with("header") and (pr.get(6) == '\n' or pr.get(6).is_none)
 
   proc stop(): bool =
-    pr.get in {col_delimiter, ':'} or pr.is_row_delimiter() #or is_header()
+    # pr.get in {col_delimiter, ':'} or pr.is_row_delimiter() or is_header()
+    pr.get == col_delimiter or pr.is_row_delimiter()
 
   var row = seq[Text].init; var is_first_row = true
   var first_row = true
