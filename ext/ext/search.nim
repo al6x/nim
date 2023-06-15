@@ -30,21 +30,21 @@ proc cosine_similarity[T](a, b: seq[T]): float {.inject.} =
 type
   Match* = tuple[score: float, l, h: int]
   ScoreConfig* = object
-    # Performance optimisation, avoiding costly cosine calculation if query and
-    # window vectors are too different, i.e. counts of same tokens are below threshold.
+    # Performance optimisation, avoiding costly sliding window with cosine calculation if query and
+    # document vectors are too different, i.e. counts of same tokens are below threshold.
     matching_tokens_treshold*: float
     # If next step window has same score, merging its bounds with the previous window
-    merge_bounds*: bool
+    # merge_bounds*: bool
     # Include only results that have higher score
     score_treshold*: float
     # Optional hint, that there should be at least n tokens for query
-    hint_minimal_tokens*: int
+    minimal_tokens_hint*: int
 
 proc match*(s: Match, text: string): string =
   text[s.l..s.h]
 
 proc init*(_: type[ScoreConfig]): ScoreConfig =
-  ScoreConfig(matching_tokens_treshold: 0.55, merge_bounds: true, score_treshold: 0.55, hint_minimal_tokens: 6)
+  ScoreConfig(matching_tokens_treshold: 0.55, score_treshold: 0.55, minimal_tokens_hint: 6) # merge_bounds: true
 
 proc score*[T](q: CountTable[T], q_len: int, qnorm: float, text: seq[T], config = ScoreConfig.init): seq[Match] =
   # Sliding window counts and bounds
@@ -96,7 +96,7 @@ type ScoreFn*[T] = (proc(doc: T, found: var seq[(Match, T)]))
 proc build_score*[T](query: string, config = ScoreConfig.init): ScoreFn[T] =
   # Using bigrams for short queries and trigrams for long
   let q_tg = query.to_trigram_codes
-  if q_tg.len < config.hint_minimal_tokens:
+  if q_tg.len < config.minimal_tokens_hint:
     let q = query.to_bigram_codes; let q_us = q.unique.sort
     proc score_bg(doc: T, found: var seq[(Match, T)]) =
       if (intersect_count(doc.bigrams_us, q_us) / q_us.len) < config.matching_tokens_treshold: return
@@ -160,15 +160,15 @@ when is_main_module:
       trigrams: trigrams, trigrams_us: trigrams.unique.sort
     )
 
-  let db = Db(docs: [
-    "this is smme text message",
-    "this is some text message",
-    "another message"
-  ].mapit(Doc.init(it)))
+let db = Db(docs: [
+  "this is smme text message",
+  "this is some text message",
+  "another message"
+].mapit(Doc.init(it)))
 
-  let score_fn: ScoreFn[Doc] = build_score[Doc]("some te")
-  var found: seq[(Match, Doc)]
-  for doc in db.docs: score_fn(doc, found)
-  p found
-    .sortit(-it[0].score) # Sorting by score
-    .mapit(match(it[0], it[1].text)) # => @["some te", "smme te"]
+let score_fn: ScoreFn[Doc] = build_score[Doc]("some te")
+var found: seq[(Match, Doc)]
+for doc in db.docs: score_fn(doc, found)
+p found
+  .sortit(-it[0].score) # Sorting by score
+  .mapit(match(it[0], it[1].text)) # => @["some te", "smme te"]
