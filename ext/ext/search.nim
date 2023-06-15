@@ -154,8 +154,7 @@ when is_main_module:
       docs: seq[Doc]
 
   proc init(_: type[Doc], text: string): Doc =
-    # Pre-indexing document
-    let (bigrams, trigrams) = (text.to_bigram_codes, text.to_trigram_codes)
+    let (bigrams, trigrams) = (text.to_bigram_codes, text.to_trigram_codes) # Pre-indexing document
     Doc(text: text,
       bigrams: bigrams,   bigrams_us: bigrams.unique.sort,
       trigrams: trigrams, trigrams_us: trigrams.unique.sort
@@ -170,4 +169,6 @@ when is_main_module:
   let score_fn: ScoreFn[Doc] = build_score[Doc]("some te")
   var found: seq[(Match, Doc)]
   for doc in db.docs: score_fn(doc, found)
-  p found.sortit(-it[0].score).mapit(match(it[0], it[1].text)) # => @["some text"]
+  p found
+    .sortit(-it[0].score) # Sorting by score
+    .mapit(match(it[0], it[1].text)) # => @["some te", "smme te"]
