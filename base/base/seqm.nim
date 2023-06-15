@@ -341,6 +341,3 @@ proc copy*[V](list: seq[V]): seq[V] =
 
 proc any*(list: openarray[bool]): bool =
   list.any((v) => v)
-
-# proc geto*[T](list: openarray[T], i: int): Option[T] =
-#   if i < list.len: list[i].some else: T.none
