@@ -73,7 +73,7 @@ proc PTags*(tags: seq[(string, string)] = @[], disabled: seq[string] = @[], clos
   el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
     el".-mr-1 flash":
       for (text, link) in tags:
-        el("a.mr-1 .rounded.px-1.border", (text: text, href: link)):
+        el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], href: link)):
           if text in disabled: it.class ".text-gray-400.border-gray-200"
           else:                it.class ".text-blue-800.bg-blue-100.border-blue-100"
 

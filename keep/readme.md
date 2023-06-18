@@ -27,6 +27,8 @@
 
 # Lodo
 
+- Sync with static html to public internet hosting
+- Sync with google/drive to mobile
 - Rewrite "home-page" to be defined in config.
 - Rewrite home_cached and other cached methods with `db.cache home_cached` template
 - Search Facets

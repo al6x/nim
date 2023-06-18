@@ -44,7 +44,8 @@ proc parse*(_: type[Location], u: Url): Location =
     Location(kind: shortcut, did: u.path[0])
   elif u.path.len == 2:
     Location(kind: doc, sid: u.path[0], did: u.path[1])
-  # elif u.path.len > 2:  Location(kind: asset, sid: u.path[0], did: u.path[1], asset: u.path[2..^1].join("/"))
+  elif u.path.len > 2:
+    Location(kind: asset, sid: u.path[0], did: u.path[1], asset: u.path[2..^1].join("/"))
   else:
     Location(kind: unknown, url: u)
 
