@@ -187,18 +187,17 @@ proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[]): El =
     el(".ftext flash", (html: html))
 
 # Search -------------------------------------------------------------------------------------------
-type PFoundItem* = tuple[title, before, match, after: string]
-proc PFoundBlock*(matches: seq[PFoundItem]): El =
+type PFoundItem* = tuple[before, match, after: string]
+proc PFoundBlock*(title: string, matches: seq[PFoundItem]): El =
   assert not matches.is_empty, "at least one match expected"
   pblock_layout("pfound-block"):
     el"found-items.block":
-      for i, (title, before, match, after) in matches:
-        el"found-item.block":
-          el("span", (text: "..." & before))
+      el("a.text-blue-800", (text: title, href: "#"))
+      for i, (before, match, after) in matches:
+        el"found-item.ml-4":
+          el("span", (text: before))
           el("span .bg-yellow-100.px-1", (text: match))
-          el("span", (text: after & "..."))
-          if i == matches.high:
-            el("a.float-right .text-blue-800.ml-1", (text: title, href: "#"))
+          el("span", (text: after))
 
 proc PSearchInfo*(closed = false): El =
   el(PRBlock, (tname: "prblock-search-info", title: "Info", closed: closed)):
@@ -294,20 +293,20 @@ proc render_mockup: seq[El] =
 
     let search_controls = @[el(PIconButton, (icon: "cross"))]
 
+    let matches: seq[PFoundItem] = @[(
+      before: "there are multiple reasons about",
+      match: "Forex",
+      after: "every single of those reasons is big enough to stay away from " &
+        "such investment. Forex has all of them"
+    ), (
+      before: "Insane leverage. The minimal transaction on",
+      match: "Forex",
+      after: "Forex is one lot equal to 100k$. If you"
+    )]
+
     el(PApp, (title: "Found", title_controls: search_controls, show_block_separator: true, right: right)):
       for i in 1..6:
-        el(PFoundBlock, (matches: @[(
-          title: "About Forex",
-          before: "there are multiple reasons about",
-          match: "Forex",
-          after: "every single of those reasons is big enough to stay away from " &
-            "such investment. Forex has all of them"
-        ).PFoundItem, (
-          title: "About Forex",
-          before: "Insane leverage. The minimal transaction on",
-          match: "Forex",
-          after: "Forex is one lot equal to 100k$. If you"
-        ).PFoundItem]))
+        el(PFoundBlock, (title: "About Forex", matches: matches))
 
       let more = 23
       if more > 0:

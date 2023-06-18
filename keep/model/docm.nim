@@ -27,6 +27,7 @@ type
     bigrams_us*:  seq[int] # unique and sorted bigrams
     trigrams*:    seq[int]
     trigrams_us*: seq[int] # unique and sorted trigrams
+    doc*:         Doc
 
   Doc* = ref object of RootObj
     id*:          string
@@ -43,6 +44,19 @@ type
     ntags*:       seq[int] # normalized, merged
     bigrams_us*:  seq[int] # unique and sorted bigrams
     trigrams_us*: seq[int] # unique and sorted trigrams
+    space*:       Space
+
+  Space* = ref object
+    id*:           string
+    version*:      int
+    docs*:         Table[string, Doc]
+    tags*:         seq[string]
+    warnings*:     seq[string]
+    # processors*:   seq[proc()
+    # cache*:        Table[string, JsonNode]
+
+    # Special fields, performance optimisation
+    ntags*:        seq[int] # normalized but not merged
 
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block

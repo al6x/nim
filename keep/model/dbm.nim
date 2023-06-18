@@ -1,4 +1,4 @@
-import base, ext/vcache, ./docm, ./spacem, ./configm
+import base, ext/[vcache, grams, search], ./docm, ./spacem, ./configm, ./filterm
 
 type Db* = ref object
   version*:     int
@@ -86,6 +86,20 @@ proc get_doc*(db: Db, did: string): Option[(Space, Doc)] =
       let doc = space.docs[did]
       return (space, doc).some
 
+iterator filter_blocks*(db: Db, incl, excl: seq[int]): Block =
+  for _, space in db.spaces:
+    for _, doc in space.docs:
+      for blk in doc.blocks:
+        if incl.is_all_in(blk.ntags) and incl.is_none_in(blk.ntags):
+          yield blk
+
+proc filter_blocks_with_text*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Block]] =
+  let score_fn = build_score[Block](query)
+  for blk in db.filter_blocks(incl, excl):
+    score_fn(blk, result)
+  result = result.sortit(-it.score)
+
+# processing ---------------------------------------------------------------------------------------
 proc process*(db: Db) =
   db.cache.process("process(db)", db.non_processed_version):
     db.log.info "process"

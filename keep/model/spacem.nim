@@ -1,18 +1,5 @@
 import base, ext/[vcache, grams], ./docm, ./configm
 
-type
-  Space* = ref object
-    id*:           string
-    version*:      int
-    docs*:         Table[string, Doc]
-    tags*:         seq[string]
-    warnings*:     seq[string]
-    # processors*:   seq[proc()
-    # cache*:        Table[string, JsonNode]
-
-    # Special fields, performance optimisation
-    ntags*:        seq[int] # normalized but not merged
-
 proc log*(self: Space): Log =
   Log.init("Space", self.id)
 
@@ -25,6 +12,10 @@ iterator blocks*(space: Space): Block =
       yield blk
 
 proc post_process*(space: Space, doc: Doc) =
+  block: # Refs
+    doc.space = space
+    for blk in doc.blocks: blk.doc = doc
+
   block: # Merging and normalising tags
     let doc_ntags = (doc.tags.map(encode_tag) & space.ntags).sort
     for blk in doc.blocks:
@@ -33,7 +24,7 @@ proc post_process*(space: Space, doc: Doc) =
       doc.ntags.add block_ntags
     doc.ntags = doc.ntags.unique.sort
 
-  block: # Trigrams
+  block: # Grams
     for blk in doc.blocks:
       let ltext = blk.text.to_lower
       ltext.to_bigram_codes blk.bigrams
