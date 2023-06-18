@@ -10,16 +10,14 @@ proc on_location*(self: AppView, url: Url) =
   self.location = Location.parse url
 
 proc render_doc(self: AppView, sid, did: string): El =
-  let found = db.get(sid, did)
-  if found.is_none: return el(PMessage, (text: "Not found", top: true))
-  let (space, doc) = found.get
-  doc.render_doc(space, parent = self)
+  let doc = db.get(sid, did)
+  if doc.is_none: return el(PMessage, (text: "Not found", top: true))
+  doc.get.render_doc(parent = self)
 
 proc render_doc(self: AppView, did: string): El =
-  let found = db.get_doc(did)
-  if found.is_none: return el(PMessage, (text: "Not found", top: true))
-  let (space, doc) = found.get
-  self.render_doc(space.id, did)
+  let doc = db.get_doc(did)
+  if doc.is_none: return el(PMessage, (text: "Not found", top: true))
+  doc.get.render_doc(parent = self)
 
 proc render_home(self: AppView): El =
   if db.config.home.is_some:
@@ -28,7 +26,7 @@ proc render_home(self: AppView): El =
     let text = "config.home not defined, set it to id of a page you want to be used as a home page"
     el(PMessage, (text: text, top: true))
 
-proc render_search(self: AppView): El =
+proc render_filter(self: AppView): El =
   el("", (text: "Search not impl"))
 
 proc render_unknown(self: AppView): El =
@@ -37,13 +35,13 @@ proc render_unknown(self: AppView): El =
 proc render*(self: AppView): El =
   let l = self.location
   case l.kind
-  of LocationKind.home: self.render_home
-  of doc:               self.render_doc(l.sid, l.did)
-  of shortcut:          self.render_doc(l.did)
-  of LocationKind.find: self.render_search
-  of warns:             self.el(WarnsView, ())
-  of asset:             throw "asset should never happen in render"
-  of unknown:           self.render_unknown
+  of LocationKind.home:   self.render_home
+  of doc:                 self.render_doc(l.sid, l.did)
+  of shortcut:            self.render_doc(l.did)
+  of LocationKind.filter: self.render_filter
+  of warns:               self.el(WarnsView, ())
+  of unknown:             self.render_unknown
+  of asset:               throw "asset should never happen in render"
 
 proc on_timer*(self: AppView): bool =
   if   self.on_timer_db_version.is_none:
@@ -58,12 +56,11 @@ proc on_timer*(self: AppView): bool =
 proc on_binary*(self: AppView, url: Url): BinaryResponse =
   let l = Location.parse url
   if l.kind == asset:
-    let found = db.get(l.sid, l.did)
-    if found.is_none:
+    let doc = db.get(l.sid, l.did)
+    if doc.is_none:
       http_response(content = "Asset not found", code = 404)
     else:
-      let (space, doc) = found.get
-      doc.serve_asset(space, l.asset)
+      doc.get.serve_asset(l.asset)
   else:
     http_response "Invalid asset path", 400
 

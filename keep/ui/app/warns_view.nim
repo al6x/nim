@@ -6,7 +6,7 @@ type WarnsView* = ref object of Component
 proc render*(self: WarnsView): El =
   var rows: seq[seq[El]]
   for (sid, did) in db.docs_with_warns:
-    let (space, doc) = db.get(sid, did).get
+    let doc = db.get(sid, did).get
     rows.add @[
       el(PLink, (text: doc.title.if_empty(doc.id), link: doc_url(sid, did))),
       el(PWarnings, (warns: doc.nwarns.mapit((it, ""))))

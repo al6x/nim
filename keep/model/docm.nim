@@ -58,6 +58,10 @@ type
     # Special fields, performance optimisation
     ntags*:        seq[int] # normalized but not merged
 
+  Filter* = object
+    incl*, excl*: seq[int] # tags
+    query*:       string
+
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block
     list*: seq[Text]
@@ -166,3 +170,7 @@ proc encode_tag*(tag: string): int =
 
 proc decode_tag*(code: int): string =
   ntag_rcodes[code]
+
+# filter -------------------------------------------------------------------------------------------
+proc init*(_: type[Filter], incl: seq[int] = @[], excl: seq[int] = @[], query = ""): Filter =
+  Filter(incl: incl.unique.sort, excl: excl.unique.sort, query: query)

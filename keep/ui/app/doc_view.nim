@@ -2,11 +2,10 @@ import base, mono/[core, http]
 import ../../model, ../../render/blocks, ./helpers, ../palette as pl, ./location
 
 type DocView* = ref object of Component
-  space*: Space
-  doc*:   Doc
+  doc*: Doc
 
 proc render*(self: DocView): El =
-  let (doc, space) = (self.doc, self.space)
+  let (doc, space) = (self.doc, self.doc.space)
   let context = RenderContext.init(doc, space.id)
 
   var right: seq[El]
@@ -35,8 +34,8 @@ proc render*(self: DocView): El =
   view
 
 
-method render_doc*(doc: Doc, space: Space, parent: Component): El {.base.} =
-  parent.el(DocView, fmt"{space.id}/{doc.id}", (space: space, doc: doc))
+method render_doc*(doc: Doc, parent: Component): El {.base.} =
+  parent.el(DocView, fmt"{doc.space.id}/{doc.id}", (doc: doc))
 
-method serve_asset*(doc: Doc, space: Space, asset_rpath: string): BinaryResponse {.base.} =
+method serve_asset*(doc: Doc, asset_rpath: string): BinaryResponse {.base.} =
   file_response asset_path(doc, asset_rpath)

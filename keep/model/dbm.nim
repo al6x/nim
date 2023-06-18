@@ -1,4 +1,4 @@
-import base, ext/[vcache, grams, search], ./docm, ./spacem, ./configm, ./filterm
+import base, ext/[vcache, grams, search], ./docm, ./spacem, ./configm
 
 type Db* = ref object
   version*:     int
@@ -74,17 +74,15 @@ proc docs_with_warns*(db: Db): seq[tuple[sid, did: string]] =
 proc docs_with_warns_cached*(db: Db): seq[tuple[sid, did: string]] =
   db.cache.get_into("docs_with_warns", db.version, result, db.docs_with_warns)
 
-proc get*(db: Db, sid, did: string): Option[(Space, Doc)] =
+proc get*(db: Db, sid, did: string): Option[Doc] =
   for sid, space in db.spaces:
     if did in space.docs:
-      let doc = space.docs[did]
-      return (space, doc).some
+      return space.docs[did].some
 
-proc get_doc*(db: Db, did: string): Option[(Space, Doc)] =
+proc get_doc*(db: Db, did: string): Option[Doc] =
   for sid, space in db.spaces:
     if did in space.docs:
-      let doc = space.docs[did]
-      return (space, doc).some
+      return space.docs[did].some
 
 iterator filter_blocks*(db: Db, incl, excl: seq[int]): Block =
   for _, space in db.spaces:
@@ -93,7 +91,7 @@ iterator filter_blocks*(db: Db, incl, excl: seq[int]): Block =
         if incl.is_all_in(blk.ntags) and incl.is_none_in(blk.ntags):
           yield blk
 
-proc filter_blocks_with_text*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Block]] =
+proc filter_blocks*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Block]] =
   let score_fn = build_score[Block](query)
   for blk in db.filter_blocks(incl, excl):
     score_fn(blk, result)
