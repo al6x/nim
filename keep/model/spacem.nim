@@ -1,4 +1,4 @@
-import base, ext/vcache, ./docm, ./configm, ./trigrams
+import base, ext/[vcache, grams], ./docm, ./configm
 
 type
   Space* = ref object
@@ -34,11 +34,22 @@ proc post_process*(space: Space, doc: Doc) =
 
   block: # Trigrams
     for blk in doc.blocks:
-      blk.text.to_lower.to_trigrams doc.trigrams
-      for tag in blk.ntags: tag.to_trigrams blk.trigrams
+      let ltext = blk.text.to_lower
+      ltext.to_bigram_codes blk.bigrams
+      ltext.to_trigram_codes blk.trigrams
+
+      for tag in blk.ntags:
+        tag.to_bigram_codes blk.bigrams
+        tag.to_trigram_codes blk.trigrams
+
+      blk.bigrams_us = blk.bigrams.unique.sort
       blk.trigrams_us = blk.trigrams.unique.sort
+
+      doc.bigrams_us.add blk.bigrams_us
       doc.trigrams_us.add blk.trigrams_us
-    doc.trigrams_us = doc.trigrams.unique.sort
+
+    doc.bigrams_us = doc.bigrams_us.unique.sort
+    doc.trigrams_us = doc.trigrams_us.unique.sort
 
 iterator docs*(space: Space): Doc =
   for _, doc in space.docs: yield doc

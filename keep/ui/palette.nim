@@ -69,18 +69,13 @@ proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
       el("a .block .text-sm .text-blue-800", (text: text, href: link))
 
 type CloudTag* = tuple[text, link: string, size: int]
-proc PTags*(tags: seq[(string, string)] = @[], closed = false): El =
+proc PTags*(tags: seq[(string, string)] = @[], disabled: seq[string] = @[], closed = false): El =
   el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
     el".-mr-1 flash":
       for (text, link) in tags:
-        # let size_class = case size
-        #   of 0: "text-sm"
-        #   of 1: ""
-        #   of 2: "text-xl"
-        #   else: throw "unknown size"
-
-        # el"a .mr-1 .align-middle .text-center .leading-4 .text-blue-800":
-        el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100", (text: text, href: link))
+        el("a.mr-1 .rounded.px-1.border", (text: text, href: link)):
+          if text in disabled: it.class ".text-gray-400.border-gray-200"
+          else:                it.class ".text-blue-800.bg-blue-100.border-blue-100"
 
 proc PSearchField*(text = ""): El =
   el("textarea .border .rounded .border-gray-300 .px-1 .w-full " &
@@ -192,18 +187,22 @@ proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[]): El =
     el(".ftext flash", (html: html))
 
 # Search -------------------------------------------------------------------------------------------
-proc PSearchItem*(title, subtitle, before, match, after: string): El =
-  pblock_layout("psearch-item"):
-  # el".pl-8.pr-8 .mb-2":
-    el"psearch-item .text-gray-500":
-      el("span", (text: before))
-      el("span .font-bold.text-black", (text: match))
-      el("span", (text: after))
-      # el"span .mr-2"
-      el("a .text-blue-800", (text: title, href: "#"))
-      if not subtitle.is_empty:
-        el("span", (text: "/"))
-        el("a .text-blue-800", (text: title, href: "#"))
+type PFoundItem* = tuple[title, before, match, after: string]
+proc PFoundBlock*(matches: seq[PFoundItem]): El =
+  assert not matches.is_empty, "at least one match expected"
+  pblock_layout("pfound-block"):
+    el"found-items.block":
+      for i, (title, before, match, after) in matches:
+        el"found-item.block":
+          el("span", (text: "..." & before))
+          el("span .bg-yellow-100.px-1", (text: match))
+          el("span", (text: after & "..."))
+          if i == matches.high:
+            el("a.float-right .text-blue-800.ml-1", (text: title, href: "#"))
+
+proc PSearchInfo*(closed = false): El =
+  el(PRBlock, (tname: "prblock-search-info", title: "Info", closed: closed)):
+    el(".text-sm", (text: "Found 300 blocks in 20ms"))
 
 # PApp ---------------------------------------------------------------------------------------------
 proc papp_layout*(left, right, right_down: seq[El]): El =
@@ -227,10 +226,12 @@ proc PApp*(
   warns = seq[string].init,
   tags: seq[(string, string)] = @[], tags_controls = seq[El].init, tags_warns = seq[string].init,
   right: seq[El] = @[], right_down: seq[El] = @[],
+  show_block_separator = false,
   content: seq[El]
 ): El =
   let left =
     el"pdoc .block.flex.flex-col .space-y-1.mt-2.mb-2 c flash":
+      if show_block_separator: it.class "show_block_separator"
       # el"a.block.absolute.left-2 .text-gray-300": # Anchor
       #   it.class "top-3.5"
       #   it.text "#"
@@ -283,6 +284,38 @@ proc render_mockup: seq[El] =
 
   let context: RenderContext = (doc, "sample", RenderConfig.init)
 
+  mockup_section("Search"):
+    let right = els:
+      el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
+        el(PRBlock, ()):
+          el(PSearchField, (text: "finance/ About Forex"))
+          el(PTags, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
+          el(PSearchInfo, ())
+
+    let search_controls = @[el(PIconButton, (icon: "cross"))]
+
+    el(PApp, (title: "Found", title_controls: search_controls, show_block_separator: true, right: right)):
+      for i in 1..6:
+        el(PFoundBlock, (matches: @[(
+          title: "About Forex",
+          before: "there are multiple reasons about",
+          match: "Forex",
+          after: "every single of those reasons is big enough to stay away from " &
+            "such investment. Forex has all of them"
+        ).PFoundItem, (
+          title: "About Forex",
+          before: "Insane leverage. The minimal transaction on",
+          match: "Forex",
+          after: "Forex is one lot equal to 100k$. If you"
+        ).PFoundItem]))
+
+      let more = 23
+      if more > 0:
+        pblock_layout("pblock-pagination"):
+          el"":
+            alter_el(el(PTextButton, (text: fmt"{more} more"))):
+              it.class "block float-right"
+
   mockup_section("Note"):
     let right = els:
       # el(PRBlock, ()):
@@ -306,32 +339,6 @@ proc render_mockup: seq[El] =
     )):
       for blk in doc.blocks:
         el(PBlock, (blk: blk, context: context, controls: controls_stub))
-
-  mockup_section("Search"):
-    let right = els:
-      el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
-        el(PRBlock, ()):
-          el(PSearchField, (text: "finance/ About Forex"))
-
-    let search_controls = @[el(PIconButton, (icon: "cross"))]
-
-    el(PApp, (title: "Found", title_controls: search_controls, right: right)):
-      for i in 1..6:
-        el(PSearchItem, (
-          title: "Risk Simulation",
-          subtitle: "",
-          before: "there are multiple reasons to",
-          match: "About Forex",
-          after: "Every single of those reasons is big enough to stay away from " &
-            "such investment. Forex has all of them"
-        ))
-
-      let more = 23
-      if more > 0:
-        pblock_layout("pblock-pagination"):
-          el"":
-            alter_el(el(PTextButton, (text: fmt"{more} more"))):
-              it.class "block float-right"
 
   mockup_section("Misc"):
     el(PApp, (title: "Misc")):

@@ -1,5 +1,6 @@
 # Todo
 
+- V Cache as view field
 - Categories - urgent, high, lindy, archive.
 - Live Tutorial
 - Add warnings page
@@ -26,6 +27,8 @@
 
 # Lodo
 
+- Search Facets
+- Folding content right panel, persistent setting if closed
 - Allow requests only from "keep" domain
 - make editor configurable
 - Checkout M. Fowler BiKi

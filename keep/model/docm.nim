@@ -21,10 +21,12 @@ type
     warns*:  seq[string]
     source*: BlockSource
 
-    # Special fields used for fast db indexing etc.
+    # Special fields used for fast indexing
     ntags*:       seq[string] # merged, normalized tags
-    trigrams*:    seq[uint16]
-    trigrams_us*: seq[uint16] # unique and sorted trigrams
+    bigrams*:     seq[int]
+    bigrams_us*:  seq[int] # unique and sorted bigrams
+    trigrams*:    seq[int]
+    trigrams_us*: seq[int] # unique and sorted trigrams
 
   Doc* = ref object of RootObj
     id*:          string
@@ -39,7 +41,8 @@ type
 
     # Special fields used for fast db indexing etc.
     ntags*:       seq[string]
-    trigrams_us*: seq[uint16] # unique and sorted trigrams
+    bigrams_us*:  seq[int] # unique and sorted bigrams
+    trigrams_us*: seq[int] # unique and sorted trigrams
 
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block

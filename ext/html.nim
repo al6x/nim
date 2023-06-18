@@ -252,7 +252,8 @@ proc style*(self: El, style: string | tuple) =
     self.attr("style", style)
 
 proc class*(self: El, class: string) =
-  let class = if "class" in self: self["class"] & " " & class else: class
+  var class = class.replace(".", " ")
+  class = if "class" in self: self["class"] & " " & class else: class
   self.attr "class", class
 
 template set_attrs*(self: El, attrs: tuple) =
