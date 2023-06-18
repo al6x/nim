@@ -74,19 +74,14 @@ proc docs_with_warns*(db: Db): seq[tuple[sid, did: string]] =
 proc docs_with_warns_cached*(db: Db): seq[tuple[sid, did: string]] =
   db.cache.get_into("docs_with_warns", db.version, result, db.docs_with_warns)
 
-proc home*(db: Db): Option[tuple[space: Space, doc: Doc]] =
-  # Page that will be shown as home page, any page marked with "home" tag
-  for sid, space in db.spaces:
-    for did, doc in space.docs:
-      if "home-page".encode_tag in doc.ntags:
-        return (space, doc).some
-
-proc home_cached*(db: Db): Option[tuple[space: Space, doc: Doc]] =
-  db.cache.get_into("home", db.version, result, db.home)
-
 proc get*(db: Db, sid, did: string): Option[(Space, Doc)] =
-  if sid in db.spaces:
-    let space = db.spaces[sid]
+  for sid, space in db.spaces:
+    if did in space.docs:
+      let doc = space.docs[did]
+      return (space, doc).some
+
+proc get_doc*(db: Db, did: string): Option[(Space, Doc)] =
+  for sid, space in db.spaces:
     if did in space.docs:
       let doc = space.docs[did]
       return (space, doc).some
