@@ -50,12 +50,12 @@ proc validate_links*(space: Space, db: Db) =
       except:
         blk.warns.add fmt"Invalid link: {link.to_s}"
 
-proc ntags*(db: Db): Table[string, int] =
+proc ntags*(db: Db): Table[int, int] =
   for blk in db.blocks:
     for ntag in blk.ntags:
       result.inc ntag
 
-proc ntags_cached*(db: Db): Table[string, int] =
+proc ntags_cached*(db: Db): Table[int, int] =
   db.cache.get_into("ntags", db.version, result, db.ntags)
 
 proc docs_with_warns*(db: Db): seq[tuple[sid, did: string]] =
@@ -78,8 +78,11 @@ proc home*(db: Db): Option[tuple[space: Space, doc: Doc]] =
   # Page that will be shown as home page, any page marked with "home" tag
   for sid, space in db.spaces:
     for did, doc in space.docs:
-      if "home-page" in doc.ntags:
+      if "home-page".encode_tag in doc.ntags:
         return (space, doc).some
+
+proc home_cached*(db: Db): Option[tuple[space: Space, doc: Doc]] =
+  db.cache.get_into("home", db.version, result, db.home)
 
 proc get*(db: Db, sid, did: string): Option[(Space, Doc)] =
   if sid in db.spaces:

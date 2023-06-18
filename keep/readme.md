@@ -27,6 +27,8 @@
 
 # Lodo
 
+- Rewrite "home-page" to be defined in config.
+- Rewrite home_cached and other cached methods with `db.cache home_cached` template
 - Search Facets
 - Folding content right panel, persistent setting if closed
 - Allow requests only from "keep" domain

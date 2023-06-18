@@ -10,7 +10,7 @@ proc render*(self: DocView): El =
   let context = RenderContext.init(doc, space.id)
 
   var right: seq[El]
-  let all_tags = db.ntags_cached.keys
+  let all_tags = db.ntags_cached.keys.map(decode_tag)
   right.add el(PTags, (tags: all_tags.with_path(context)))
 
   var right_down: seq[El]

@@ -10,12 +10,12 @@ proc on_location*(self: AppView, url: Url) =
   self.location = Location.parse url
 
 proc render_home(self: AppView): El =
-  let h = db.home
-  if h.is_none:
+  let home_page = db.home_cached
+  if home_page.is_none:
     let text = "Home page not defined, add '#home-page' tag to any page you want to used as home page"
     el(PMessage, (text: text, top: true))
   else:
-    render_doc(h.get.doc, h.get.space, parent = self)
+    render_doc(home_page.get.doc, home_page.get.space, parent = self)
 
 proc render_doc_helper(self: AppView, sid, did: string): El =
   let found = db.get(sid, did)

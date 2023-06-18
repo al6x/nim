@@ -7,6 +7,7 @@ type
     link_path*:  proc (link: Link, context: RenderContext): string
     tag_path*:   proc (tag: string, context: RenderContext): string
     asset_path*: proc (path: string, context: RenderContext): string
+    render_tag*: proc (tag: string, context: RenderContext): SafeHtml
 
 # config -------------------------------------------------------------------------------------------
 proc link_path*(link: Link, context: RenderContext): string =
@@ -20,8 +21,13 @@ proc tag_path*(tag: string, context: RenderContext): string =
 proc asset_path*(path: string, context: RenderContext): string =
   "/" & context.space_id & "/" & context.doc.id & "/" & path
 
+proc render_tag*(tag: string, context: RenderContext): SafeHtml =
+  let ntag = tag.to_lower
+  let path = context.config.tag_path(ntag, context)
+  fmt"""<a class="tag" href="/tags/{path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
+
 proc init*(_: type[RenderConfig]): RenderConfig =
-  RenderConfig(link_path: link_path, tag_path: tag_path, asset_path: asset_path)
+  RenderConfig(link_path: link_path, tag_path: tag_path, asset_path: asset_path, render_tag: render_tag)
 
 # render_embed -------------------------------------------------------------------------------------
 method render_embed*(embed: Embed, context: RenderContext): SafeHtml {.base.} =
@@ -73,9 +79,7 @@ proc render_text*(text: Text, context: RenderContext): SafeHtml =
     of TextItemKind.glink:
       html.add fmt"""<a class="glink" href="{item.glink.escape_html}">{item.text.escape_html(quotes = false)}</a>"""
     of TextItemKind.tag:
-      let ntag = item.text.to_lower
-      let path = config.tag_path(ntag, context)
-      html.add fmt"""<a class="tag" href="/tags/{path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
+      html.add config.render_tag(item.text, context)
     of TextItemKind.embed:
       html.add: render_embed(item.embed, context)
 

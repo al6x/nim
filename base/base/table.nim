@@ -54,6 +54,8 @@ test "filter_map":
 proc keys*[K, V](table: Table[K, V] | OrderedTable[K, V]): seq[K] =
   for k in table.keys: result.add k
 
+# proc keys*[K, V](table: CountTable[K]): seq[K] =
+#   for k in table.keys: result.add k
 
 # values -------------------------------------------------------------------------------------------
 proc values*[K, V](table: Table[K, V] | OrderedTable[K, V]): seq[V] =

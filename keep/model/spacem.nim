@@ -10,7 +10,8 @@ type
     # processors*:   seq[proc()
     # cache*:        Table[string, JsonNode]
 
-    ntags*:        seq[string] # lowercased
+    # Special fields, performance optimisation
+    ntags*:        seq[int] # normalized but not merged
 
 proc log*(self: Space): Log =
   Log.init("Space", self.id)
@@ -25,9 +26,9 @@ iterator blocks*(space: Space): Block =
 
 proc post_process*(space: Space, doc: Doc) =
   block: # Merging and normalising tags
-    let doc_ntags = (doc.tags.map(to_lower) & space.ntags).sort
+    let doc_ntags = (doc.tags.map(encode_tag) & space.ntags).sort
     for blk in doc.blocks:
-      let block_ntags = blk.tags.map(to_lower)
+      let block_ntags = blk.tags.map(encode_tag)
       blk.ntags = (block_ntags & doc_ntags).unique.sort
       doc.ntags.add block_ntags
     doc.ntags = doc.ntags.unique.sort
@@ -39,8 +40,9 @@ proc post_process*(space: Space, doc: Doc) =
       ltext.to_trigram_codes blk.trigrams
 
       for tag in blk.ntags:
-        tag.to_bigram_codes blk.bigrams
-        tag.to_trigram_codes blk.trigrams
+        let ltag = tag.decode_tag.to_lower
+        ltag.to_bigram_codes blk.bigrams
+        ltag.to_trigram_codes blk.trigrams
 
       blk.bigrams_us = blk.bigrams.unique.sort
       blk.trigrams_us = blk.trigrams.unique.sort

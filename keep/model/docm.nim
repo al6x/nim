@@ -21,8 +21,8 @@ type
     warns*:  seq[string]
     source*: BlockSource
 
-    # Special fields used for fast indexing
-    ntags*:       seq[string] # merged, normalized tags
+    # Special fields, performance optimisation
+    ntags*:       seq[int] # normalized, merged
     bigrams*:     seq[int]
     bigrams_us*:  seq[int] # unique and sorted bigrams
     trigrams*:    seq[int]
@@ -35,12 +35,12 @@ type
     title*:       string
     blocks*:      seq[Block]
     blockids*:    Table[string, Block] # for quick access by id
-    tags*:        seq[string] # merged tags
+    tags*:        seq[string]
     warns*:       seq[string]
     source*:      DocSource
 
-    # Special fields used for fast db indexing etc.
-    ntags*:       seq[string]
+    # Special fields, performance optimisation
+    ntags*:       seq[int] # normalized, merged
     bigrams_us*:  seq[int] # unique and sorted bigrams
     trigrams_us*: seq[int] # unique and sorted trigrams
 
@@ -141,3 +141,14 @@ proc nwarns*(doc: Doc): seq[string] =
   result.add doc.warns
   for blk in doc.blocks: result.add blk.warns
   result.unique.sort
+
+# tags ---------------------------------------------------------------------------------------------
+var ntag_codes: Table[string, int]
+var ntag_rcodes: Table[int, string]
+proc encode_tag*(tag: string): int =
+  let ntag = tag.to_lower
+  result = ntag_codes.mget_or_put(ntag, ntag_codes.len)
+  if result notin ntag_rcodes: ntag_rcodes[result] = tag
+
+proc decode_tag*(code: int): string =
+  ntag_rcodes[code]

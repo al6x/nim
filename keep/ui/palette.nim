@@ -150,7 +150,7 @@ template pblock_tags*(tags: seq[(string, string)]) =
       for (tag, link) in tagsv:
         el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100"):
           it.attr("href", link)
-          it.text(tag.to_lower)
+          it.text(tag) # .to_lower
 
 template pblock_layout*(tname: string, code: untyped): auto =
   el(tname & " .pblock.flex.flex-col.space-y-1 c flash"):

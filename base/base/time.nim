@@ -32,7 +32,6 @@ with "Helpers":
     seconds.inc second
     seconds
 
-
 type Time* = object
   year*:   Natural
   month*:  1..12
@@ -144,10 +143,11 @@ proc `<=`*(a, b: Time | TimeD | TimeM): bool = a.epoch <= b.epoch
 proc hash*(t: Time | TimeD | TimeM): Hash = t.epoch.hash
 
 
-converter to_time*(t: (int, int, int, int, int, int)): Time = Time.init(t[0], t[1], t[2], t[3], t[4], t[5])
-converter to_timed*(t: Time): TimeD = TimeD.init(t)
-converter to_timed*(d: (int, int, int)): TimeD = TimeD.init(d[0], d[1], d[2])
-converter to_timem*(m: (int, int)): TimeM = TimeM.init(m[0], m[1])
+# It messes up JSON
+# converter to_time*(t: (int, int, int, int, int, int)): Time = Time.init(t[0], t[1], t[2], t[3], t[4], t[5])
+# converter to_timed*(t: Time): TimeD = TimeD.init(t)
+# converter to_timed*(d: (int, int, int)): TimeD = TimeD.init(d[0], d[1], d[2])
+# converter to_timem*(m: (int, int)): TimeM = TimeM.init(m[0], m[1])
 
 
 test "epoch":

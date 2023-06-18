@@ -10,17 +10,17 @@ proc intersect_count*[T](a, b: seq[T]): int =
     elif a[i] > b[j]: j.inc
     else:             result.inc; i.inc; j.inc
 
-template l2_norm[T](v: CountTable[T]): float {.inject.} =
+template l2_norm[T](v: Table[T, int]): float {.inject.} =
   var sum = 0
   for _, count in v: sum += count * count
   sum.float.sqrt
 
-proc cosine_similarity[T](q, w: CountTable[T], qnorm: float): float {.inject.} =
+proc cosine_similarity[T](q, w: Table[T, int], qnorm: float): float {.inject.} =
   var dot_prod = 0
-  for token, count in q: dot_prod += count * w[token]
+  for token, count in q: dot_prod += count * w.get(token, 0)
   dot_prod.float / (qnorm * w.l2_norm)
 
-proc count_tokens[T](tokens: seq[T]): CountTable[T] =
+proc count_tokens[T](tokens: seq[T]): Table[T, int] =
   for token in tokens: result.inc token
 
 proc cosine_similarity[T](a, b: seq[T]): float {.inject.} =
@@ -46,9 +46,9 @@ proc match*(s: Match, text: string): string =
 proc init*(_: type[ScoreConfig]): ScoreConfig =
   ScoreConfig(matching_tokens_treshold: 0.55, score_treshold: 0.55, minimal_tokens_hint: 6) # merge_bounds: true
 
-proc score*[T](q: CountTable[T], q_len: int, qnorm: float, text: seq[T], config = ScoreConfig.init): seq[Match] =
+proc score*[T](q: Table[T, int], q_len: int, qnorm: float, text: seq[T], config = ScoreConfig.init): seq[Match] =
   # Sliding window counts and bounds
-  var w: CountTable[T]
+  var w: Table[T, int]
   var same_count = 0
   var l = 0; var h = min(q_len - 1, text.high)
   # var score = (-1.0, -1, -1).Score
@@ -87,7 +87,7 @@ proc score*[T](q: CountTable[T], q_len: int, qnorm: float, text: seq[T], config 
       calc_score()
 
 proc score*[T](query, text: seq[T], config = ScoreConfig.init): seq[Match] =
-  var q: CountTable[T]
+  var q: Table[T, int]
   for token in query: q.inc token
   score(q, query.len, q.l2_norm, text, config)
 
