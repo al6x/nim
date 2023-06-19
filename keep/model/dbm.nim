@@ -84,18 +84,19 @@ proc get_doc*(db: Db, did: string): Option[Doc] =
     if did in space.docs:
       return space.docs[did].some
 
-iterator filter_blocks*(db: Db, incl, excl: seq[int]): Block =
+iterator filter_blocks*(db: Db, filter: Filter): Block =
+  let (incl, excl) = (filter.incl, filter.excl)
   for _, space in db.spaces:
     for _, doc in space.docs:
       for blk in doc.blocks:
-        if incl.is_all_in(blk.ntags) and incl.is_none_in(blk.ntags):
+        if incl.is_all_in(blk.ntags) and excl.is_none_in(blk.ntags):
           yield blk
 
-proc filter_blocks*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Block]] =
-  let score_fn = build_score[Block](query)
-  for blk in db.filter_blocks(incl, excl):
-    score_fn(blk, result)
-  result = result.sortit(-it.score)
+# proc filter_blocks*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Block]] =
+#   let score_fn = build_score[Block](query)
+#   for blk in db.filter_blocks(incl, excl):
+#     score_fn(blk, result)
+#   result = result.sortit(-it.score)
 
 # processing ---------------------------------------------------------------------------------------
 proc process*(db: Db) =

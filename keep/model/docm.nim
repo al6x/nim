@@ -60,7 +60,7 @@ type
 
   Filter* = object
     incl*, excl*: seq[int] # tags
-    query*:       string
+    # query*:       string
 
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block
@@ -172,5 +172,5 @@ proc decode_tag*(code: int): string =
   ntag_rcodes[code]
 
 # filter -------------------------------------------------------------------------------------------
-proc init*(_: type[Filter], incl: seq[int] = @[], excl: seq[int] = @[], query = ""): Filter =
-  Filter(incl: incl.unique.sort, excl: excl.unique.sort, query: query)
+proc init*(_: type[Filter], incl: seq[int] = @[], excl: seq[int] = @[]): Filter =
+  Filter(incl: incl.unique.sort, excl: excl.unique.sort)

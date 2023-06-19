@@ -13,7 +13,7 @@ type Location* = object
   of asset:    asset*: string # sid, did
   of unknown:  url*: Url
 
-proc decode_filter(tags = "", query = ""): Filter
+proc decode_filter(tags = ""): Filter
 proc encode_filter(f: Filter): Url
 
 proc to_url*(l: Location): Url =
@@ -34,10 +34,10 @@ proc parse*(_: type[Location], u: Url): Location =
     Location(kind: home)
   elif u.path.len == 2 and u.path[0] == "tags":
     Location(kind: filter, filter: decode_filter(tags = u.path[1]))
-  elif u.path.len == 2 and u.path[0] == "query":
-    Location(kind: filter, filter: decode_filter(query = u.path[1]))
-  elif u.path.len == 4 and u.path[0] == "tags" and u.path[2] == "query":
-    Location(kind: filter, filter: decode_filter(tags = u.path[1], query = u.path[3]))
+  # elif u.path.len == 2 and u.path[0] == "query":
+  #   Location(kind: filter, filter: decode_filter(query = u.path[1]))
+  # elif u.path.len == 4 and u.path[0] == "tags" and u.path[2] == "query":
+  #   Location(kind: filter, filter: decode_filter(tags = u.path[1], query = u.path[3]))
   elif u.path.len == 1 and u.path[0] == "warns":
     Location(kind: warns)
   elif u.path.len == 1:
@@ -63,8 +63,8 @@ proc asset_url*(sid, did, asset: string): string =
   url.params["mono_id"] = mono_id
   url.to_s
 
-proc filter_url*(incl: seq[int] = @[], excl: seq[int] = @[], query = ""): string =
-  Location(kind: filter, filter: Filter.init(incl = incl, excl = excl, query = query)).to_s
+proc filter_url*(incl: seq[int] = @[], excl: seq[int] = @[]): string =
+  Location(kind: filter, filter: Filter.init(incl = incl, excl = excl)).to_s
 
 # filter -------------------------------------------------------------------------------------------
 proc encode_filter(f: Filter): Url =
@@ -75,15 +75,15 @@ proc encode_filter(f: Filter): Url =
     path.add "tags"
     path.add (f.incl.mapit(encode(it)) & f.excl.mapit("-" & encode(it))).join(",")
 
-  unless f.query.is_empty:
-    path.add "query"
-    path.add f.query
+  # unless f.query.is_empty:
+  #   path.add "query"
+  #   path.add f.query
 
   path.to_url
 
-proc decode_filter(tags = "", query = ""): Filter =
+proc decode_filter(tags = ""): Filter =
   for tag in tags.split(","):
     if tag.starts_with '-': result.excl.add tag[1..^1].replace('-', ' ').encode_tag
     else:                   result.incl.add tag.replace('-', ' ').encode_tag
 
-  result.query = query
+  # result.query = query

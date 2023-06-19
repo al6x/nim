@@ -1,5 +1,5 @@
 import base, mono/core, std/osproc
-import ./support, ../../model, ../../render/blocks, ../palette
+import ./support, ../../model, ../../render/blocks, ../palette, ./location
 
 proc init*(_: type[RenderContext], doc: Doc, space_id: string): RenderContext =
   proc asset_path_with_mono_id(path: string, context: RenderContext): string =
@@ -40,7 +40,15 @@ proc edit_tags_btn*(doc: Doc): Option[El] =
   if_doc_with_text_source doc.source:
     return edit_text_source_btn(dsource.location, dsource.tags_line_n[0]).some
 
-proc edit_btn*(blk: Block, doc: Doc): Option[El] =
-  if_doc_with_text_source doc.source:
+proc edit_btn*(blk: Block): Option[El] =
+  if_doc_with_text_source blk.doc.source:
     if_block_with_text_source blk.source:
       return edit_text_source_btn(dsource.location, bsource.line_n[0]).some
+
+proc Warns*(): El =
+  let warns_count = db.docs_with_warns_cached.len
+  list_el:
+    if warns_count > 0:
+      let message = fmt"""{warns_count} {warns_count.pluralize("doc")} with warns"""
+      el(PRBlock, (tname: "prblock-warnings")):
+        el(PWarnings, (warns: @[(message, warns_url())]))

@@ -8,17 +8,12 @@ proc render*(self: DocView): El =
   let (doc, space) = (self.doc, self.doc.space)
   let context = RenderContext.init(doc, space.id)
 
-  var right: seq[El]
   let all_tags = db.ntags_cached.keys.map(decode_tag)
-  right.add el(PTags, (tags: all_tags.with_path(context)))
+  let right = els:
+    el(PTags, (tags: all_tags.with_path(context)))
 
-  var right_down: seq[El]
-  let warns_count = db.docs_with_warns_cached.len
-  if warns_count > 0:
-    let message = fmt"""{warns_count} {warns_count.pluralize("doc")} with warns"""
-    right_down.add:
-      el(PRBlock, (tname: "prblock-warnings")):
-        el(PWarnings, (warns: @[(message, warns_url())]))
+  let right_down = els:
+    el(Warns, ())
 
   let view =
     el(PApp, ( # App
@@ -28,7 +23,7 @@ proc render*(self: DocView): El =
       right: right, right_down: right_down
     )):
       for blk in doc.blocks: # Blocks
-        el(PBlock, (blk: blk, context: context, controls: edit_btn(blk, doc).to_seq))
+        el(PBlock, (blk: blk, context: context, controls: edit_btn(blk).to_seq))
 
   view.window_title doc.title
   view

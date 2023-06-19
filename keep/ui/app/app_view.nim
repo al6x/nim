@@ -1,6 +1,6 @@
 import base, mono/[core, http], std/os
-import ../../model/[spacem, dbm], ./location, ../palette, ./helpers, ./support
-import ./doc_view, ./warns_view
+import ../../model, ./location, ../palette, ./helpers, ./support
+import ./doc_view, ./warns_view, ./filter_view
 
 type AppView* = ref object of Component
   location*: Location
@@ -26,11 +26,11 @@ proc render_home(self: AppView): El =
     let text = "config.home not defined, set it to id of a page you want to be used as a home page"
     el(PMessage, (text: text, top: true))
 
-proc render_filter(self: AppView): El =
-  el("", (text: "Search not impl"))
+proc render_filter(self: AppView, filter: Filter): El =
+  self.el(FilterView, (filter: filter))
 
 proc render_unknown(self: AppView): El =
-  el("", (text: "Unknown not impl"))
+  el("", (text: "Unknown page"))
 
 proc render*(self: AppView): El =
   let l = self.location
@@ -38,7 +38,7 @@ proc render*(self: AppView): El =
   of LocationKind.home:   self.render_home
   of doc:                 self.render_doc(l.sid, l.did)
   of shortcut:            self.render_doc(l.did)
-  of LocationKind.filter: self.render_filter
+  of LocationKind.filter: self.render_filter(self.location.filter)
   of warns:               self.el(WarnsView, ())
   of unknown:             self.render_unknown
   of asset:               throw "asset should never happen in render"
