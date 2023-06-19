@@ -1,4 +1,4 @@
-import std/[sugar, strutils, macros]
+import std/[sugar, strutils, macros, math]
 from std/times as nt import nil
 
 # import std/[strformat, sugar, strutils, unicode, tables, macros]
@@ -75,16 +75,35 @@ template p*(a, b) = echo a, ", ", b
 template p*(a, b, c) = echo a, ", ", b, ", ", c
 template p*(a, b, c, d) = echo a, ", ", b, ", ", c, " ", d
 
+# Timer --------------------------------------------------------------------------------------------
+type TimestampMs* = object
+  dt: nt.DateTime
 
-type TimerSec* = proc: int
-proc timer_sec*(): TimerSec =
-  let started_at = nt.utc(nt.now())
-  () => nt.in_seconds(nt.`-`(nt.utc(nt.now()), started_at)).int
+proc now(_: type[TimestampMs]): TimestampMs =
+  TimestampMs(dt: nt.utc(nt.now()))
+
+proc timestamp_ms*: TimestampMs =
+  TimestampMs.now
+
+# proc `-`*(b, a: TimestampMs): int =
+#   nt.in_milliseconds(nt.`-`(b.dt, a.dt)).int
+
+proc now*(t: TimestampMs): int =
+  nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), t.dt)).int
+
+proc `$`*(t: TimestampMs): string =
+  t.now.to_s & "ms"
 
 type TimerMs* = proc: int
 proc timer_ms*(): TimerMs =
-  let started_at = nt.utc(nt.now())
-  () => nt.in_milliseconds(nt.`-`(nt.utc(nt.now()), started_at)).int
+  let t = TimestampMs.now
+  () => t.now
+
+type TimerSec* = proc: int
+proc timer_sec*(): TimerSec =
+  let t = TimestampMs.now
+  () => (t.now / 1000).ceil.int
+
 
 template with*[T](TT: type[T], code) =
   using self: T; using tself: type[T]

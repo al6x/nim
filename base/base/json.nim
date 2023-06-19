@@ -107,6 +107,14 @@ proc sort*(node: JsonNode): JsonNode =
     copy = node.copy
   copy
 
+# CountTable ---------------------------------------------------------------------------------------
+# proc to_json_hook*[K](t: CountTable[K]): JsonNode =
+#   var t2: Table[K, int]; for k, v in t: t2[k] = v
+#   t2.to_json
+
+# proc from_json_hook*[K](t: var CountTable[K], json: JsonNode) =
+#   var t2: Table[K, int]; json.json_to(t2)
+#   for k, v in t2: t[k] = v
 
 # Test ----------------------------------------------------------------------------------------------
 when is_main_module:
@@ -148,6 +156,12 @@ when is_main_module:
 
   # Stable, with sorted object keys
   check (%{ a: 1, b: 2 }).sort.to_s(false) == (%{ b: 2, a: 1 }).sort.to_s(false)
+
+  # block: # count table
+  #   var t: CountTable[int]
+  #   t.inc 1
+  #   echo t
+  #   echo t.to_json
 
 
 # when is_main_module: # Any

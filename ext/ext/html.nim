@@ -163,6 +163,14 @@ proc `[]=`*(el: El, k: string, v: string | int | bool) =
 
 proc normalize*(el: El): (El, OrderedTable[string, ElAttrVal])
 
+proc expand_children*(list: seq[El], result: var seq[El]) =
+  for el in list:
+    if el.kind == ElKind.list: expand_children(el.children, result)
+    else:                      result.add el
+
+proc expand_children*(list: seq[El]): seq[El] =
+  list.expand_children(result)
+
 proc to_json_hook*(el: El): JsonNode =
   case el.kind
   of ElKind.el:
@@ -197,14 +205,15 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false, parent_
     #   result.add "/>"
     # else:
     html.add ">"
-    unless nel.children.is_empty:
-      if nel.children.len == 1 and nel.children[0].kind in [ElKind.text, ElKind.html]:
+    let nchildren = nel.children.expand_children
+    unless nchildren.is_empty:
+      if nchildren.len == 1 and nchildren[0].kind in [ElKind.text, ElKind.html]:
         # Single text or html content
-        nel.children[0].to_html(html, comments = comments)
+        nchildren[0].to_html(html, comments = comments)
       else:
         html.add "\n"
-        let newlines = "c" in nel.children[0]
-        for child in nel.children:
+        let newlines = "c" in nchildren[0]
+        for child in nchildren:
           if newlines: html.add "\n"
           child.to_html(html, indent = indent & "  ", comments = comments, parent_tag = el.tag.some)
           html.add "\n"
@@ -252,7 +261,8 @@ proc style*(self: El, style: string | tuple) =
     self.attr("style", style)
 
 proc class*(self: El, class: string) =
-  let class = if "class" in self: self["class"] & " " & class else: class
+  var class = class.replace(".", " ")
+  class = if "class" in self: self["class"] & " " & class else: class
   self.attr "class", class
 
 template set_attrs*(self: El, attrs: tuple) =

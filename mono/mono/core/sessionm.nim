@@ -29,7 +29,7 @@ type
     outbox*: seq[OutEvent]
     app*:    T
     el*:     Option[El] # UI tree from the last app render
-    last_accessed_ms*: TimerMs
+    last_accessed_ms*: TimestampMs
 
 proc log*[T](self: Session[T]): Log =
   Log.init("Session", self.id)
@@ -56,7 +56,7 @@ method process*[T](self: Session[T]): bool {.base.} =
   true
 
 proc init*[T](_: type[Session[T]], app: T): Session[T] =
-  Session[T](id: secure_random_token(6), last_accessed_ms: timer_ms(), app: app)
+  Session[T](id: secure_random_token(6), last_accessed_ms: timestamp_ms(), app: app)
 
 # Sessions -----------------------------------------------------------------------------------------
 type Sessions*[T] = ref Table[string, Session[T]]
@@ -65,7 +65,7 @@ proc process*[T](sessions: Sessions[T]) =
   for _, s in sessions: discard s.process
 
 proc collect_garbage*[T](self: Sessions[T], session_timeout_ms: int) =
-  let deleted = self[].delete (_, s) => s.last_accessed_ms() > session_timeout_ms
+  let deleted = self[].delete (_, s) => s.last_accessed_ms.now > session_timeout_ms
   for session in deleted.values: session.log.info("closed")
 
 proc add_timer_event*[T](self: Sessions[T]) =

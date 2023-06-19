@@ -88,7 +88,7 @@ proc build_http_handler[T](sessions: Sessions[T], build_app: BuildApp[T], asset_
         req.respond_json OutEvent(kind: expired)
       else:
         let session = sessions[][post_event.mono_id]
-        session.last_accessed_ms = timer_ms()
+        session.last_accessed_ms = timestamp_ms()
         case post_event.kind
         of events:
           req.handle_app_in_event(session, post_event.events)

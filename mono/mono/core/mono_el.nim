@@ -53,6 +53,9 @@ proc window_location*(self: El, location: string | Url) =
   # Location will be set dynamically
   self.attr("window_location", location.to_s)
 
+proc window_location*(self: El): Option[Url] =
+  if "window_location" in self: return Url.parse(self["window_location"]).some
+
 proc window_title*(el: El): string =
   if "window_title" in el: el["window_title"] else: ""
 

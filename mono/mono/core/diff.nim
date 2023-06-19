@@ -91,10 +91,12 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
   else:
     # el children
     var add_children: seq[El]
-    for i, nchild in nel.children:
+    # Expanding list kind elements in children
+    let (nchildren, ochildren) = (nel.children.expand_children, oel.children.expand_children)
+    for i, nchild in nchildren:
       assert nchild.kind == ElKind.el, "mixed children content not supported"
-      if i < oel.children.len:
-        let ochild = oel.children[i]
+      if i < ochildren.len:
+        let ochild = ochildren[i]
         assert ochild.kind == ElKind.el, "mixed children content not supported"
         diff(id & [i], ochild, nchild, diffs)
       else:
