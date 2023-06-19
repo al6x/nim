@@ -2,10 +2,13 @@ import base, ./grams
 
 
 # Helpers ------------------------------------------------------------------------------------------
+template assert_sorted[T](l: seq[T]) =
+  unless l.is_empty: assert l[0] <= l[^1], "must be sorted"
+
 proc intersect_count*[T](a, b: seq[T]): int =
   # a, b should be sorted
   # LODO could be improved with binary search
-  assert a[0] < a[^1] and b[0] < b[^1], "must be sorted"
+  a.assert_sorted; b.assert_sorted
   var i = 0; var j = 0
   while i < a.len and j < b.len:
     if   a[i] < b[j]: i.inc
@@ -13,6 +16,8 @@ proc intersect_count*[T](a, b: seq[T]): int =
     else:             result.inc; i.inc; j.inc
 
 proc is_all_in*[T](subset, superset: seq[T]): bool {.inline.} =
+  # subset, superset should be sorted
+  subset.assert_sorted; superset.assert_sorted
   var i = 0; var j = 0
   while i < subset.len and j < superset.len:
     if   subset[i] < superset[j]: return false
@@ -21,12 +26,13 @@ proc is_all_in*[T](subset, superset: seq[T]): bool {.inline.} =
       i.inc; j.inc
   i == subset.len
 
-proc is_none_in*[T](s1, s2: seq[T]): bool {.inline.} =
-  # s1, s2 should be sorted
+proc is_none_in*[T](a, b: seq[T]): bool {.inline.} =
+  # a, b should be sorted
+  a.assert_sorted; b.assert_sorted
   var i = 0; var j = 0
-  while i < s1.len and j < s2.len:
-    if   s1[i] < s2[j]: i.inc
-    elif s1[i] > s2[j]: j.inc
+  while i < a.len and j < b.len:
+    if   a[i] < b[j]: i.inc
+    elif a[i] > b[j]: j.inc
     else:               return false
   true
 

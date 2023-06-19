@@ -62,13 +62,15 @@ proc `==`*(a, b: Url): bool =
   )
 
 proc path_as_s*(url: Url): string =
-  "/" & url.path.map((v) => nurim.encode_url(v)).join("/")
+  # "/" & url.path.map((v) => nurim.encode_url(v)).join("/")
+  "/" & url.path.join("/")
 
 proc `$`*(url: Url): string =
   var params: seq[(string, string)]
   for k, v in url.params: params.add (k, v)
   params = params.sort (kv) => kv[0]
   var query_s = if params.len > 0: "?" & nurim.encode_query(params) else: ""
+  # var query_s = if params.len > 0: "?" & nurim.encode_query(params) else: ""
   # let path_s = "/" & url.path.map((v) => nurim.encode_url(v)).join("/")
   if url.is_full:
     let port   = if url.port == 80: "" else: fmt":{url.port}"

@@ -53,15 +53,13 @@ template component_set_attrs*[T: Component](component: T, attrs: untyped) =
 
 template build_el*[T: Component](parent: Component, ChildT: type[T], id: string | int, attrs: tuple, code): El =
   let attrsv = attrs
-  let component = parent.get_child_component(ChildT, id)
-  component_set_attrs(component, attrs)
+  let component = parent.get_child_component(ChildT, id, proc(c: T) = c.component_set_attrs(attrs))
   let content = els(code)
   render(component, content)
 
 template build_el*[T: Component](parent: Component, ChildT: type[T], id: string | int, attrs: tuple): El =
   let attrsv = attrs
-  let component = parent.get_child_component(ChildT, id)
-  component_set_attrs(component, attrs)
+  let component = parent.get_child_component(ChildT, id, proc(c: T) = c.component_set_attrs(attrs))
   render(component)
 
 template build_el*[T: Component](parent: Component, ChildT: type[T], attrs: tuple, code): El =

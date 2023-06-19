@@ -77,10 +77,9 @@ proc PTags*(tags: seq[(string, string)] = @[], disabled: seq[string] = @[], clos
           if text in disabled: it.class ".text-gray-400.border-gray-200"
           else:                it.class ".text-blue-800.bg-blue-100.border-blue-100"
 
-proc PSearchField*(text = ""): El =
+proc PSearchField*(): El =
   el("textarea .border .rounded .border-gray-300 .px-1 .w-full " &
-    ".focus:outline-none .placeholder-gray-500 .resize-none rows=2", (placeholder: "Find...")):
-    if not text.is_empty: it.value text
+    ".focus:outline-none .placeholder-gray-500 .resize-none rows=2", (placeholder: "Find..."))
 
 proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
   el(PRBlock, (tname: "prblock-space-info", title: "Space", closed: closed)):
@@ -195,13 +194,11 @@ proc PFoundBlock*(title: string, matches: seq[PFoundItem]): El =
       el("a.text-blue-800", (text: title, href: "#"))
       for i, (before, match, after) in matches:
         el"found-item.ml-4":
-          el("span", (text: before))
-          el("span .bg-yellow-100.px-1", (text: match))
-          el("span", (text: after))
+          it.html before.escape_html & build_el("span .bg-yellow-100", (text: match)).to_html & after.escape_html
 
 proc PSearchInfo*(closed = false): El =
   el(PRBlock, (tname: "prblock-search-info", title: "Info", closed: closed)):
-    el(".text-sm", (text: "Found 300 blocks in 20ms"))
+    el(".text-sm.text-gray-400", (text: "Found 300 blocks in 20ms"))
 
 # PApp ---------------------------------------------------------------------------------------------
 proc papp_layout*(left, right, right_down: seq[El]): El =
@@ -285,23 +282,22 @@ proc render_mockup: seq[El] =
 
   mockup_section("Search"):
     let right = els:
-      el(PRBlock, ()): # Adding empty controls, to keep search field same distance from the top
-        el(PRBlock, ()):
-          el(PSearchField, (text: "finance/ About Forex"))
-          el(PTags, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
-          el(PSearchInfo, ())
+      alter_el(el(PSearchField, ())):
+        it.text "finance/ About Forex"
+      el(PTags, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
+      el(PSearchInfo, ())
 
     let search_controls = @[el(PIconButton, (icon: "cross"))]
 
     let matches: seq[PFoundItem] = @[(
-      before: "there are multiple reasons about",
+      before: "there are multiple reasons about ",
       match: "Forex",
-      after: "every single of those reasons is big enough to stay away from " &
+      after: " every single of those reasons is big enough to stay away from " &
         "such investment. Forex has all of them"
     ), (
-      before: "Insane leverage. The minimal transaction on",
+      before: "Insane leverage. The minimal transaction Super",
       match: "Forex",
-      after: "Forex is one lot equal to 100k$. If you"
+      after: " is one lot equal to 100k$. If you"
     )]
 
     el(PApp, (title: "Found", title_controls: search_controls, show_block_separator: true, right: right)):
@@ -319,8 +315,7 @@ proc render_mockup: seq[El] =
     let right = els:
       # el(PRBlock, ()):
       #   el(PIconButton, (icon: "edit"))
-      el(PRBlock, ()):
-        el(PSearchField, ())
+      el(PSearchField, ())
       el(PFavorites, (links: data.links))
       el(PTags, (tags: data.tags.with_path(context)))
       el(PBacklinks, (links: data.links))

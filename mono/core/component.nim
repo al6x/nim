@@ -30,15 +30,23 @@ proc after_render(self: Component) =
   self.children_built.clear
   old.values.each(before_destroy) # triggering :before_destroy
 
-proc get_child_component*[T: Component](self: Component, _: type[T], id: string | int): T =
+proc get_child_component*[T: Component](self: Component, _: type[T], id: string | int, set_attrs: (proc(c: T))): T =
   let full_id = $(T) & "/" & id.to_s
   if full_id in self.children_built: throw fmt"Two components have same id: {full_id}"
   self.children_built.add full_id
   if full_id notin self.children:
-    let child = when compiles(T.init): T.init else: T()
+    let child: T = when compiles(T.init): T.init else: T()
+    set_attrs(child)
     when compiles(child.after_create): child.after_create
     self.children[full_id] = child
   self.children[full_id].T
+
+proc set_location[T: Component](component: T, location: Url): bool =
+  when compiles(component.on_location(location)):
+    component.on_location location
+    true
+  else:
+    false
 
 template process_in_event[T: Component](self: T, current_tree: Option[El], event: InEvent): bool =
   template if_handler_found(handler_name, code): bool =
@@ -53,11 +61,7 @@ template process_in_event[T: Component](self: T, current_tree: Option[El], event
 
   case event.kind
   of location:
-    when compiles(self.on_location(event.location)):
-      self.on_location event.location
-      true
-    else:
-      false
+    set_location(self, event.location)
   of click:
     if_handler_found on_click, handler(event.click)
   of dblclick:
@@ -94,5 +98,6 @@ proc process*[T: Component](self: T, current_el: Option[El], events: openarray[I
 
   # when compiles(self.act): self.act # Do something before render
   let el = self.render
+  el.window_location.applyit: discard set_location(self, it) # If location changed, updating
   self.after_render
   el.some

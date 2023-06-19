@@ -27,7 +27,7 @@ proc render_home(self: AppView): El =
     el(PMessage, (text: text, top: true))
 
 proc render_filter(self: AppView, filter: Filter): El =
-  self.el(FilterView, (filter: filter))
+  self.el(FilterView, (initial_filter: filter))
 
 proc render_unknown(self: AppView): El =
   el("", (text: "Unknown page"))

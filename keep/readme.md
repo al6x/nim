@@ -1,5 +1,9 @@
 # Todo
 
+- Make tags cloud to work
+- Add sorting to filter and pagination
+- Add arrow for filter block, and doc title, section title
+- Move section to block attribute
 - V Cache as view field
 - Categories - urgent, high, lindy, archive.
 - Live Tutorial
