@@ -1,5 +1,6 @@
 # Todo
 
+- Search for "health" doesn't work.
 - Make tags cloud to work
 - Add sorting to filter and pagination
 - Add arrow for filter block, and doc title, section title

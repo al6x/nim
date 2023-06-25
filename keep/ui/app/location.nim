@@ -66,10 +66,10 @@ proc filter_url*(filter: Filter): string =
 # filter -------------------------------------------------------------------------------------------
 proc encode_filter_url(f: Filter): Url =
   template encode(tag: int): string = tag.decode_tag.replace(' ', '-').to_lower
-  let etags = (f.incl.mapit(encode(it)) & f.excl.mapit("-" & encode(it))).join(",")
+  let etags = (f.incl.mapit(encode(it)).sort & f.excl.mapit("-" & encode(it)).sort).join(",")
 
   var path: seq[string]
-  unless etags.is_empty: path.add ["tags", etags]
+  unless etags.is_empty:   path.add ["tags", etags]
   unless f.query.is_empty: path.add ["query", f.query]
   if path.is_empty: path.add "query"
   path.to_url
@@ -78,18 +78,10 @@ proc is_filter_url(u: Url): bool =
   u.path.len >= 1 and u.path[0] in ["tags", "query"]
 
 proc decode_filter_url(u: Url): Filter =
-  var incl, excl: seq[int]; var query: string
-  template parse_tags(s: string) =
-    unless s.is_empty:
-      for tag in s.split(","):
-        if tag.starts_with '-': excl.add tag[1..^1].replace('-', ' ').encode_tag
-        else:                   incl.add tag.replace('-', ' ').encode_tag
-
-  for i in [0, 2]:
-    if i + 1 < u.path.len:
-      case u.path[i]
-      of "tags":  parse_tags u.path[i + 1]
-      of "query": query = u.path[i + 1]
-      else:       throw "invalid url"
-
-  Filter.init(incl = incl, excl = excl, query = query)
+  var incl, excl: seq[int]
+  let tags = u.get("tags", "")
+  unless tags.is_empty:
+    for tag in tags.split(","):
+      if tag.starts_with '-': excl.add tag[1..^1].replace('-', ' ').encode_tag
+      else:                   incl.add tag.replace('-', ' ').encode_tag
+  Filter.init(incl = incl, excl = excl, query = u.get("query", ""))

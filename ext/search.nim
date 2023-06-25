@@ -1,5 +1,34 @@
 import base, ./grams
 
+# LODO ---------------------------------------------------------------------------------------------
+# Faster search algorithm.
+#
+# Use inverse indexes for both tags and full text search.
+#
+# Each inverse index, term -> doc_id, integer, sorted by doc_id.
+#
+# Adding element to index:
+# - doc_id is incremental, id for new doc will be the largest id, so it can be added as the last item to indexes.
+#
+# Deleting element from index:
+# - If it's the last item in idex, delete it.
+# - Else replace doc_id in index[i] by the next id, index won't be unique but will still be sorted.
+# - Periodically compress indexes and remove dublicates.
+#
+# Searing for [a, b, c] terms in indexes:
+# - Find [a, b, c] index with shortest length, the shortest_index.
+# - Find another [a, b, c] index with smallest probabilistic intersection with smallest_index.
+#   - Choose 7 random docs in smallest_index, and check if those docs exist in [a, b, c], using binary search.
+# - Intersect two found indexes as first_intersection.
+# - Intersect first_intersection with rest of indexes.
+#   - Ff first_intersection length 10 times smaller than next index, do intersection using binary search.
+#   - Else do intersection as two sorted list
+#
+# Full text search:
+# - Reduce set of documents using indexes, require at least matching_tokens_treshold=0.55 percentage of tokens to match.
+# - Score reduced set of docs, using sliding window and online cosine similarity algorithm.
+#   - Optimise cosine similarity, skip it when matching tokens are less than matching_tokens_treshold
+# - Sort docs by score
 
 # Helpers ------------------------------------------------------------------------------------------
 template assert_sorted[T](l: seq[T]) =

@@ -42,8 +42,8 @@ proc `$`*(f: Filter): string =
   template decode(tag: int): string =
     "#" & tag.decode_tag.replace(' ', '-').to_lower
 
-  add f.incl.mapit(decode(it)).join(" ")
-  add f.excl.mapit("-" & decode(it)).join(" ")
+  add f.incl.mapit(decode(it)).sort.join(" ")
+  add f.excl.mapit("-" & decode(it)).sort.join(" ")
   add f.query
 
 test "parse":
