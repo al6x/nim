@@ -52,3 +52,10 @@ proc Warns*(): El =
       let message = fmt"""{warns_count} {warns_count.pluralize("doc")} with warns"""
       el(PRBlock, (tname: "prblock-warnings")):
         el(PWarnings, (warns: @[(message, warns_url())]))
+
+proc Tags*(): El =
+  let tags = db.ntags_cached.keys.map(decode_tag).sort
+  el(PTags, ()):
+    for tag in tags:
+      alter_el(el(PTag, (text: tag))):
+        it.attr("href", tag_url(tag))

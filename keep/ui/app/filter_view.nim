@@ -17,7 +17,9 @@ proc InfoMessage(message: string): El =
     el".text-sm.text-gray-400":
       it.text message
 
-proc Tags[T](tags: seq[string], filter: Filter, filter_view: T): El =
+proc FilterTags[T](filter: Filter, filter_view: T): El =
+  let tags = db.ntags_cached.keys.map(decode_tag).sort
+
   proc incl_or_excl_tag(tag: int): proc(e: ClickEvent) =
     proc(e: ClickEvent) =
       var f = filter
@@ -58,7 +60,6 @@ proc Tags[T](tags: seq[string], filter: Filter, filter_view: T): El =
 
 proc render_search*(self: FilterView, filter: Filter): El =
   let side_text_len = (db.config.text_around_match_len.get(200) / 2).ceil.int
-  let all_tags = db.ntags_cached.keys.map(decode_tag).sort
   let tic = timer_ms()
   let query_ready = filter.query.len >= 3
   var blocks: seq[Matches[Block]]
@@ -71,7 +72,7 @@ proc render_search*(self: FilterView, filter: Filter): El =
   let right = els:
     alter_el(el(PSearchField, ()), it.bind_to(self.query))
     el(InfoMessage, (message: message))
-    el(Tags, (tags: all_tags, filter: filter, filter_view: self))
+    el(FilterTags, (filter: filter, filter_view: self))
 
   let right_down = els:
     el(Warns, ())
@@ -96,7 +97,6 @@ proc render_search*(self: FilterView, filter: Filter): El =
   view
 
 proc render_filter*(self: FilterView, filter: Filter): El =
-  let all_tags = db.ntags_cached.keys.map(decode_tag)
   let tic = timer_ms()
   let filter_ready = not (filter.incl.is_empty and filter.excl.is_empty)
   var blocks: seq[Block]
@@ -109,7 +109,7 @@ proc render_filter*(self: FilterView, filter: Filter): El =
   let right = els:
     alter_el(el(PSearchField, ()), it.bind_to(self.query))
     el(InfoMessage, (message: message))
-    el(Tags, (tags: all_tags, filter: filter, filter_view: self))
+    el(FilterTags, (filter: filter, filter_view: self))
 
   let right_down = els:
     el(Warns, ())

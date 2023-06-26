@@ -13,16 +13,16 @@ type Location* = object
   of asset:    asset*: string # sid, did
   of unknown:  url*: Url
 
-proc encode_filter_url(f: Filter): Url
+proc to_url(f: Filter): Url
 proc is_filter_url(u: Url): bool
-proc decode_filter_url(u: Url): Filter
+proc from_url(_: type[Filter], u: Url): Filter
 
 proc to_url*(l: Location): Url =
   case l.kind
   of home:     [].to_url
   of doc:      [l.sid, l.did].to_url
   of shortcut: [l.did].to_url
-  of filter:   encode_filter_url(l.filter) # ["filter", l.text].to_url
+  of filter:   l.filter.to_url
   of warns:    ["warns"].to_url
   of asset:    ([l.sid, l.did] & l.asset.split("/")).to_url
   of unknown:  l.url
@@ -34,7 +34,7 @@ proc parse*(_: type[Location], u: Url): Location =
   if   u.path.len == 0:
     Location(kind: home)
   elif u.is_filter_url:
-    Location(kind: filter, filter: decode_filter_url(u))
+    Location(kind: filter, filter: Filter.from_url(u))
   elif u.path.len == 1 and u.path[0] == "warns":
     Location(kind: warns)
   elif u.path.len == 1:
@@ -63,8 +63,11 @@ proc asset_url*(sid, did, asset: string): string =
 proc filter_url*(filter: Filter): string =
   Location(kind: LocationKind.filter, filter: filter).to_s
 
+proc tag_url*(tag: string): string =
+  ["tags", tag.to_lower].to_url.to_s
+
 # filter -------------------------------------------------------------------------------------------
-proc encode_filter_url(f: Filter): Url =
+proc to_url(f: Filter): Url =
   template encode(tag: int): string = tag.decode_tag.replace(' ', '-').to_lower
   let etags = (f.incl.mapit(encode(it)).sort & f.excl.mapit("-" & encode(it)).sort).join(",")
 
@@ -77,7 +80,7 @@ proc encode_filter_url(f: Filter): Url =
 proc is_filter_url(u: Url): bool =
   u.path.len >= 1 and u.path[0] in ["tags", "query"]
 
-proc decode_filter_url(u: Url): Filter =
+proc from_url(_: type[Filter], u: Url): Filter =
   var incl, excl: seq[int]
   let tags = u.get("tags", "")
   unless tags.is_empty:

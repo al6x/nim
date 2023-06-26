@@ -85,7 +85,7 @@ proc PTags*(closed = false, content: seq[El]): El =
 type PTagStyle* = enum normal, included, excluded, ignored
 proc PTag*(text: string, style: PTagStyle = normal): El =
   let class = case style
-  of normal:   ".text-blue-800.bg-blue-100.border-blue-100"
+  of normal:   ".text-gray-400.border-gray-200" # ".text-blue-800.bg-blue-100.border-blue-100"
   of included: ".text-blue-800.bg-blue-100.border-blue-100"
   of excluded: ".text-pink-800.bg-pink-100.border-pink-100"
   of ignored:  ".text-gray-400.border-gray-200"
