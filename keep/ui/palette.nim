@@ -42,7 +42,7 @@ proc PLink*(text: string, link: string): El =
 
 # Right --------------------------------------------------------------------------------------------
 proc PRBlock*(tname = "prblock", title = "", closed = false, content: seq[El] = @[]): El =
-  el(tname & " .block.relative flash c"):
+  el(tname & " .block.relative c"):
     if closed:
       assert not title.is_empty, "can't have empty title on closed rsection"
       el(".text-gray-300", (text: title))
@@ -69,13 +69,27 @@ proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
       el("a .block .text-sm .text-blue-800", (text: text, href: link))
 
 type CloudTag* = tuple[text, link: string, size: int]
-proc PTags*(tags: seq[(string, string)] = @[], disabled: seq[string] = @[], closed = false): El =
+proc PTagsOld*(tags: seq[(string, string)] = @[], disabled: seq[string] = @[], closed = false): El =
   el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
-    el".-mr-1 flash":
+    el".-mr-1":
       for (text, link) in tags:
         el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], href: link)):
           if text in disabled: it.class ".text-gray-400.border-gray-200"
           else:                it.class ".text-blue-800.bg-blue-100.border-blue-100"
+
+proc PTags*(closed = false, content: seq[El]): El =
+  el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
+    el".-mr-1":
+      it.add content
+
+type PTagStyle* = enum normal, included, excluded, ignored
+proc PTag*(text: string, style: PTagStyle = normal): El =
+  let class = case style
+  of normal:   ".text-blue-800.bg-blue-100.border-blue-100"
+  of included: ".text-blue-800.bg-blue-100.border-blue-100"
+  of excluded: ".text-pink-800.bg-pink-100.border-pink-100"
+  of ignored:  ".text-gray-400.border-gray-200"
+  el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], class: class))
 
 proc PSearchField*(): El =
   el("textarea .border .rounded .border-gray-300 .px-1 .w-full " &
@@ -284,7 +298,7 @@ proc render_mockup: seq[El] =
     let right = els:
       alter_el(el(PSearchField, ())):
         it.text "finance/ About Forex"
-      el(PTags, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
+      el(PTagsOld, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
       el(PSearchInfo, ())
 
     let search_controls = @[el(PIconButton, (icon: "cross"))]
@@ -317,7 +331,7 @@ proc render_mockup: seq[El] =
       #   el(PIconButton, (icon: "edit"))
       el(PSearchField, ())
       el(PFavorites, (links: data.links))
-      el(PTags, (tags: data.tags.with_path(context)))
+      el(PTagsOld, (tags: data.tags.with_path(context)))
       el(PBacklinks, (links: data.links))
       el(PRBlock, (title: "Other", closed: true))
 

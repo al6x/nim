@@ -10,7 +10,8 @@ proc render*(self: DocView): El =
 
   let all_tags = db.ntags_cached.keys.map(decode_tag)
   let right = els:
-    el(PTags, (tags: all_tags.with_path(context)))
+    # el(PTags, (tags: all_tags.with_path(context)))
+    discard
 
   let right_down = els:
     el(Warns, ())

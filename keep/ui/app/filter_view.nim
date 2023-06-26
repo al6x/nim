@@ -1,4 +1,4 @@
-import base, mono/[core, http]
+import base, mono/[core, http], ext/[grams, search]
 import ../../model, ../../render/blocks, ./helpers, ../palette as pl, ./location
 
 type FilterView* = ref object of Component
@@ -12,19 +12,66 @@ proc safe_substring(s: string, l, h: int): string =
   assert l < h
   s[max(0, min(s.high, l))..min(s.high, max(0, h))]
 
-proc render_search*(self: FilterView, filter: Filter): El =
-  let blocks = db.search_blocks(filter.incl, filter.excl, filter.query).to_seq
-  let side_text_len = (db.config.text_around_match_len.get(200) / 2).ceil.int
+proc InfoMessage(message: string): El =
+  el(PRBlock, (tname: "prblock-filter-info")):
+    el".text-sm.text-gray-400":
+      it.text message
 
+proc Tags[T](tags: seq[string], filter: Filter, filter_view: T): El =
+  proc incl_or_excl_tag(tag: int): proc(e: ClickEvent) =
+    proc(e: ClickEvent) =
+      var f = filter
+      f.excl.deleteit(it == tag); f.incl.deleteit(it == tag)
+      if shift in e.special_keys: f.excl = (f.excl & @[tag]).sort
+      else:                       f.incl = (f.incl & @[tag]).sort
+      filter_view.query = f.to_s
+
+  proc deselect_tag(tag: int): proc(e: ClickEvent) =
+    proc(e: ClickEvent) =
+      var f = filter
+      let excl = tag in f.incl and shift in e.special_keys
+      f.excl.deleteit(it == tag); f.incl.deleteit(it == tag)
+      if excl: f.excl = (f.excl & @[tag]).sort
+      filter_view.query = f.to_s
+
+  let no_selected = filter.incl.is_empty and filter.excl.is_empty
+  el(PTags, ()):
+    for tag in tags:
+      capt tag:
+        let tcode = tag.encode_tag
+        if   tcode in filter.incl:
+          alter_el(el(PTag, (text: tag, style: included))):
+            it.attr("href", "#")
+            it.on_click deselect_tag(tcode)
+        elif tcode in filter.excl:
+          alter_el(el(PTag, (text: tag, style: excluded))):
+            it.attr("href", "#")
+            it.on_click deselect_tag(tcode)
+        elif no_selected:
+          alter_el(el(PTag, (text: tag, style: normal))):
+            it.attr("href", "#")
+            it.on_click incl_or_excl_tag(tcode)
+        else:
+          alter_el(el(PTag, (text: tag, style: ignored))):
+            it.attr("href", "#")
+            it.on_click incl_or_excl_tag(tcode)
+
+proc render_search*(self: FilterView, filter: Filter): El =
+  let side_text_len = (db.config.text_around_match_len.get(200) / 2).ceil.int
+  let all_tags = db.ntags_cached.keys.map(decode_tag).sort
   let tic = timer_ms()
-  let all_tags = db.ntags_cached.keys.map(decode_tag)
+  let query_ready = filter.query.len >= 3
+  var blocks: seq[Matches[Block]]
+  if query_ready: blocks = db.search_blocks(filter.incl, filter.excl, filter.query).to_seq
+  let message = if query_ready:
+    fmt"""Found {blocks.len} {blocks.len.pluralize("block")} in {tic()}ms"""
+  else:
+    "Query should have at least 3 symbols"
+
   let right = els:
-    # el(PTags, (tags: all_tags.with_path(context)))
     alter_el(el(PSearchField, ()), it.bind_to(self.query))
-    # el(PTags, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
-    el(PRBlock, (tname: "prblock-filter-info", title: "Info")):
-      el".text-sm.text-gray-400":
-        it.text fmt"""Found {blocks.len} {blocks.len.pluralize("block")} in {tic()}ms"""
+    el(InfoMessage, (message: message))
+    el(Tags, (tags: all_tags, filter: filter, filter_view: self))
 
   let right_down = els:
     el(Warns, ())
@@ -49,17 +96,20 @@ proc render_search*(self: FilterView, filter: Filter): El =
   view
 
 proc render_filter*(self: FilterView, filter: Filter): El =
-  let blocks = db.filter_blocks(filter.incl, filter.excl).to_seq
-
-  let tic = timer_ms()
   let all_tags = db.ntags_cached.keys.map(decode_tag)
+  let tic = timer_ms()
+  let filter_ready = not (filter.incl.is_empty and filter.excl.is_empty)
+  var blocks: seq[Block]
+  if filter_ready: blocks = db.filter_blocks(filter.incl, filter.excl).to_seq
+  let message = if filter_ready:
+    fmt"""Found {blocks.len} {blocks.len.pluralize("block")} in {tic()}ms"""
+  else:
+    "Select at least one tag"
+
   let right = els:
-    # el(PTags, (tags: all_tags.with_path(context)))
     alter_el(el(PSearchField, ()), it.bind_to(self.query))
-    # el(PTags, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
-    el(PRBlock, (tname: "prblock-filter-info", title: "Info")):
-      el".text-sm.text-gray-400":
-        it.text fmt"""Found {blocks.len} {blocks.len.pluralize("block")} in {tic()}ms"""
+    el(InfoMessage, (message: message))
+    el(Tags, (tags: all_tags, filter: filter, filter_view: self))
 
   let right_down = els:
     el(Warns, ())

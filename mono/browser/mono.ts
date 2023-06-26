@@ -133,9 +133,11 @@ function listen_to_dom_events() {
   })
 
   async function on_click(raw_event: MouseEvent) {
-    let el = raw_event.target as HTMLElement, location = "" + (el as any).href
+    let el = raw_event.target as HTMLElement
+    // The `getAttribute` should be used, not `el.href` as in case of `#` it would return current url with `#`.
+    let location = "" + (el as any).getAttribute("href")
     if (location == get_window_location()) return
-    if (el.tagName.toLowerCase() == "a" && location != "") {
+    if (el.tagName.toLowerCase() == "a" && location != "" && location != "#") {
       // Click with redirect
       let found = find_el_with_listener(el)
       if (!found) return

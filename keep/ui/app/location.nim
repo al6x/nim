@@ -71,7 +71,7 @@ proc encode_filter_url(f: Filter): Url =
   var path: seq[string]
   unless etags.is_empty:   path.add ["tags", etags]
   unless f.query.is_empty: path.add ["query", f.query]
-  if path.is_empty: path.add "query"
+  if path.is_empty: path.add "tags"
   path.to_url
 
 proc is_filter_url(u: Url): bool =

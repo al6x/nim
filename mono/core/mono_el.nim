@@ -100,16 +100,14 @@ proc on_click*(self: El, fn: proc(e: ClickEvent)) =
   self.extras_getset.on_click = fn.some
 
 proc on_click*(self: El, fn: proc()) =
-  self.attr("on_click", true)
-  self.extras_getset.on_click = (proc(e: ClickEvent) = fn()).some
+  self.on_click(proc(e: ClickEvent) = fn())
 
 proc on_dblclick*(self: El, fn: proc(e: ClickEvent)) =
   self.attr("on_dblclick", true)
   self.extras_getset.on_dblclick = fn.some
 
 proc on_dblclick*(self: El, fn: proc()) =
-  self.attr("on_dblclick", true)
-  self.extras_getset.on_dblclick = (proc(e: ClickEvent) = fn()).some
+  self.on_dblclick(proc(e: ClickEvent) = fn())
 
 proc on_keydown*(self: El, fn: proc(e: KeydownEvent)) =
   self.attr("on_keydown", true)
