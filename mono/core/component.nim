@@ -49,7 +49,7 @@ proc set_location[T: Component](component: T, location: Url): bool =
     false
 
 template process_in_event[T: Component](self: T, current_tree: Option[El], event: InEvent): bool =
-  template if_handler_found(handler_name, code): bool =
+  template if_handler_found(handler_name, code: untyped): bool =
     assert current_tree.is_some, "UI tree should be present at this stage"
     let el = current_tree.get.get event.el
     if el.extras.is_some and el.extras_get.`handler_name`.is_some:
@@ -59,7 +59,7 @@ template process_in_event[T: Component](self: T, current_tree: Option[El], event
     else:
       false
 
-  case event.kind
+  let state_changed_maybe = case event.kind
   of location:
     set_location(self, event.location)
   of click:
@@ -91,6 +91,13 @@ template process_in_event[T: Component](self: T, current_tree: Option[El], event
   of timer:
     when compiles(self.on_timer): self.on_timer
     else:                         true
+
+  when compiles(self.after_in_event(event)):
+    # Could be needed to update location that depends on input, after the input event.
+    # For example, search input, also changes location, and location used in router during rendering.
+    if state_changed_maybe: self.after_in_event(event)
+
+  state_changed_maybe
 
 proc process*[T: Component](self: T, current_el: Option[El], events: openarray[InEvent]): Option[El] =
   let state_changed_maybe = events.mapit(self.process_in_event(current_el, it)).any
