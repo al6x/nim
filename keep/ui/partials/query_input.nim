@@ -20,4 +20,9 @@ proc render*(self: QueryInput): El =
   alter_el el(PSearchField, ()):
     it.value self.query
     it.on_input proc (e: InputEvent) = self.set_query(e.value)
-    # it.bind_to(self.query)
+
+proc QueryInputWithRedirect*(set_location: proc(l: Location)): El =
+  alter_el el(PSearchField, ()):
+    it.value ""
+    it.on_input proc (e: InputEvent) =
+      set_location Location(kind: filter, filter: Filter.parse(e.value))

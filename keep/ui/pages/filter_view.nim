@@ -31,6 +31,5 @@ proc FilterView*(query_input: QueryInput): El =
         let blk_link = build_el(PIconLink, (icon: "link", url: blk.url))
         el(PBlock, (blk: blk, context: context, controls: @[blk_link], hover: false))
 
-  view.window_title "Filter" #doc.title
-  # view.window_location filter.filter_url
+  view.window_title "Filter"
   view

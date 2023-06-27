@@ -32,11 +32,12 @@ template set_attrs_from_tuple*[T](obj: T, attrs: tuple) =
 
 template component_set_attrs*[T](component: T, attrs: untyped) =
   let attrsv = attrs
-  if not is_attrs_equal(component, attrsv):
-    # Performance optimisation, setting attributes only if they changed, as `c.set_attrs` may contain
-    # expensive calculations.
-    when compiles(call_set_attrs(component, attrsv)): call_set_attrs(component, attrsv)
-    else:                                             set_attrs_from_tuple(component, attrsv)
+  # if not is_attrs_equal(component, attrsv):
+  # Performance optimisation, setting attributes only if they changed, as `c.set_attrs` may contain
+  # expensive calculations. Actually, it can't be done, as component may have large objects as attrs.
+
+  when compiles(call_set_attrs(component, attrsv)): call_set_attrs(component, attrsv)
+  else:                                             set_attrs_from_tuple(component, attrsv)
 
 macro call_fn_with_content_r*(f: proc, tuple_args: tuple, content_arg: typed, r: typed): typed =
   var args = newSeq[NimNode]()

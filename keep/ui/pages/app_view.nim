@@ -12,12 +12,13 @@ proc on_location*(self: AppView, url: Url) =
 proc render_doc(self: AppView, sid, did: string): El =
   let doc = db.get(sid, did)
   if doc.is_none: return el(PMessage, (text: "Not found", top: true))
-  doc.get.render_doc(parent = self)
+  proc set_location(l: Location) = self.location = l
+  doc.get.render_doc(parent = self, set_location = set_location)
 
 proc render_doc(self: AppView, did: string): El =
   let doc = db.get_doc(did)
   if doc.is_none: return el(PMessage, (text: "Not found", top: true))
-  doc.get.render_doc(parent = self)
+  self.render_doc(doc.get.id, doc.get.space.id)
 
 proc render_home(self: AppView): El =
   if db.config.home.is_some:

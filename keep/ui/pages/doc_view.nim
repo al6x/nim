@@ -1,14 +1,16 @@
 import base, mono/[core, http]
-import ../../model, ../../render/blocks, ../helpers, ../palette as pl, ../location
+import ../../model, ../../render/blocks, ../helpers, ../palette as pl, ../location, ../partials/query_input
 
 type DocView* = ref object of Component
-  doc*: Doc
+  doc*:          Doc
+  set_location*: proc(l: Location)
 
 proc render*(self: DocView): El =
   let (doc, space) = (self.doc, self.doc.space)
   let context = RenderContext.init(doc, space.id)
 
   let right = els:
+    el(QueryInputWithRedirect, (set_location: self.set_location))
     el(Tags, ())
 
   let right_down = els:
@@ -29,8 +31,8 @@ proc render*(self: DocView): El =
   view
 
 
-method render_doc*(doc: Doc, parent: Component): El {.base.} =
-  parent.el(DocView, fmt"{doc.space.id}/{doc.id}", (doc: doc))
+method render_doc*(doc: Doc, parent: Component, set_location: proc(l: Location)): El {.base.} =
+  parent.el(DocView, fmt"{doc.space.id}/{doc.id}", (doc: doc, set_location: set_location))
 
 method serve_asset*(doc: Doc, asset_rpath: string): BinaryResponse {.base.} =
   file_response asset_path(doc, asset_rpath)

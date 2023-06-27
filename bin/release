@@ -10,7 +10,7 @@ rm -rf tmp/releases
 mkdir -p tmp/releases
 
 nim_version="1.6"
-version="3.3.0"
+version="3.3.1"
 
 # readme -------------------------------------------------------------------------------------------
 cp -r readme.md tmp/releases
