@@ -17,6 +17,12 @@ proc keep_dir*(): string =
   current_source_path().parent_dir.parent_dir.absolute_path
 
 # Elementary ---------------------------------------------------------------------------------------
+proc PIconLink*(icon: string, title = "", size = "w-5 h-5", color = "bg-blue-800", url = "#"): El =
+  let asset_root = if palette.mockup_mode: "" else: "/assets/palette/"
+  el("a .block.svg-icon", (class: size & " " & color, href: url)):
+    unless title.is_empty: it.attr("title", title)
+    it.style fmt"-webkit-mask-image: url({asset_root}icons/" & icon & ".svg);"
+
 proc PIconButton*(icon: string, title = "", size = "w-5 h-5", color = "bg-gray-500"): El =
   let asset_root = if palette.mockup_mode: "" else: "/assets/palette/"
   el("button .block.svg-icon", (class: size & " " & color)):
@@ -67,15 +73,6 @@ proc PBacklinks*(links: openarray[(string, string)], closed = false): El =
   el(PRBlock, (tname: "prblock-backlinks", title: "Backlinks", closed: closed)):
     for (text, link) in links:
       el("a .block .text-sm .text-blue-800", (text: text, href: link))
-
-type CloudTag* = tuple[text, link: string, size: int]
-proc PTagsOld*(tags: seq[(string, string)] = @[], disabled: seq[string] = @[], closed = false): El =
-  el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
-    el".-mr-1":
-      for (text, link) in tags:
-        el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], href: link)):
-          if text in disabled: it.class ".text-gray-400.border-gray-200"
-          else:                it.class ".text-blue-800.bg-blue-100.border-blue-100"
 
 proc PTags*(closed = false, content: seq[El]): El =
   el(PRBlock, (tname: "prblock-tags", title: "Tags", closed: closed)):
@@ -191,28 +188,30 @@ proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)
 #     el".ftext flash":
 #       it.html html
 
-proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[]): El =
+proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[], hover = true): El =
   let html = render_block(blk, context).to_html
   let tname = fmt"pblock-f{blk.source.kind}"
   var tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
   if blk of TextBlock or blk of ListBlock: tags = @[]
-  pblock_layout(tname, blk.warns, controls, tags, true):
+  pblock_layout(tname, blk.warns, controls, tags, hover):
     el(".ftext flash", (html: html))
 
 # Search -------------------------------------------------------------------------------------------
 type PFoundItem* = tuple[before, match, after: string]
-proc PFoundBlock*(title: string, matches: seq[PFoundItem]): El =
+proc PFoundBlock*(title: string, matches: seq[PFoundItem], url = "#"): El =
   assert not matches.is_empty, "at least one match expected"
-  pblock_layout("pfound-block"):
+  let controls = @[el(PIconLink, (icon: "link", url: url))]
+  pblock_layout("pfound-block", seq[string].init, controls, seq[(string, string)].init, false):
     el"found-items.block":
-      el("a.text-blue-800", (text: title, href: "#"))
+      el("a.text-blue-800", (text: title, href: url))
       for i, (before, match, after) in matches:
         el"found-item.ml-4":
           it.html before.escape_html & build_el("span .bg-yellow-100", (text: match)).to_html & after.escape_html
 
-proc PSearchInfo*(closed = false): El =
-  el(PRBlock, (tname: "prblock-search-info", title: "Info", closed: closed)):
-    el(".text-sm.text-gray-400", (text: "Found 300 blocks in 20ms"))
+proc PSearchInfo*(message: string): El =
+  el(PRBlock, (tname: "prblock-filter-info")):
+    el".text-sm.text-gray-400":
+      it.text message
 
 # PApp ---------------------------------------------------------------------------------------------
 proc papp_layout*(left, right, right_down: seq[El]): El =
@@ -240,7 +239,7 @@ proc PApp*(
   content: seq[El]
 ): El =
   let left =
-    el"pdoc .block.flex.flex-col .space-y-1.mt-2.mb-2 c flash":
+    el"pdoc .flex.flex-col .space-y-1.mt-2.mb-2 c flash":
       if show_block_separator: it.class "show_block_separator"
       # el"a.block.absolute.left-2 .text-gray-300": # Anchor
       #   it.class "top-3.5"
@@ -273,6 +272,7 @@ template mockup_section(title_arg: string, code) =
     el(MockupSection, (title: title_arg)):
       add_or_return_el built
 
+type CloudTag* = tuple[text, link: string, size: int]
 type StubData = object
   links:      seq[(string, string)]
   tags:       seq[string]
@@ -295,11 +295,21 @@ proc render_mockup: seq[El] =
   let context: RenderContext = (doc, "sample", RenderConfig.init)
 
   mockup_section("Search"):
+    let tags_el = block:
+      let incl = @["Trading", "Profit"]; let excl = @["Euro"]
+      el(PTags, ()):
+        for tag in data.tags:
+          let style =
+            if   tag in incl: included
+            elif tag in excl: excluded
+            else:             normal
+          el(PTag, (text: tag, style: style))
+
     let right = els:
       alter_el(el(PSearchField, ())):
         it.text "finance/ About Forex"
-      el(PTagsOld, (tags: data.tags.with_path(context), disabled: @["Taxes", "Currency", "Stock"]))
-      el(PSearchInfo, ())
+      el(PSearchInfo, (message: "Found 300 blocks in 20ms"))
+      it.add tags_el
 
     let search_controls = @[el(PIconButton, (icon: "cross"))]
 
@@ -331,7 +341,9 @@ proc render_mockup: seq[El] =
       #   el(PIconButton, (icon: "edit"))
       el(PSearchField, ())
       el(PFavorites, (links: data.links))
-      el(PTagsOld, (tags: data.tags.with_path(context)))
+      el(PTags, ()):
+        for tag in data.tags:
+          el(PTag, (text: tag))
       el(PBacklinks, (links: data.links))
       el(PRBlock, (title: "Other", closed: true))
 

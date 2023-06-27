@@ -8,7 +8,7 @@
   position: relative; border-top: 1px solid white; border-bottom: 1px solid white;
 }
 
-.show_block_separator .pblock { border-bottom: 1px solid; @apply border-b-gray-200; }
+.show_block_separator .pblock { border-bottom: 1px solid; @apply border-b-gray-200; @apply pb-2; }
 .show_block_separator .pblock:last-child { border-bottom: white; }
 
 .pblock_hover:hover { @apply border-gray-200; }

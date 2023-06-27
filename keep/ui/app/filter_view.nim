@@ -12,11 +12,6 @@ proc safe_substring(s: string, l, h: int): string =
   assert l < h
   s[max(0, min(s.high, l))..min(s.high, max(0, h))]
 
-proc InfoMessage(message: string): El =
-  el(PRBlock, (tname: "prblock-filter-info")):
-    el".text-sm.text-gray-400":
-      it.text message
-
 proc FilterTags[T](filter: Filter, filter_view: T): El =
   let tags = db.ntags_cached.keys.map(decode_tag).sort
 
@@ -71,7 +66,7 @@ proc render_search*(self: FilterView, filter: Filter): El =
 
   let right = els:
     alter_el(el(PSearchField, ()), it.bind_to(self.query))
-    el(InfoMessage, (message: message))
+    el(PSearchInfo, (message: message))
     el(FilterTags, (filter: filter, filter_view: self))
 
   let right_down = els:
@@ -90,7 +85,11 @@ proc render_search*(self: FilterView, filter: Filter): El =
           let match  = blk.text.safe_substring(l, h)
           let after  = blk.text.safe_substring(h + 1, h + side_text_len)
           matches.add (before, match, after)
-        el(PFoundBlock, (title: blk.doc.title.if_empty(blk.doc.id), matches: matches))
+        el(PFoundBlock, (
+          title:    blk.doc.title.if_empty(blk.doc.id),
+          matches:  matches,
+          url:      blk.url,
+        ))
 
   view.window_title "Search"
   view.window_location filter.filter_url
@@ -108,7 +107,7 @@ proc render_filter*(self: FilterView, filter: Filter): El =
 
   let right = els:
     alter_el(el(PSearchField, ()), it.bind_to(self.query))
-    el(InfoMessage, (message: message))
+    el(PSearchInfo, (message: message))
     el(FilterTags, (filter: filter, filter_view: self))
 
   let right_down = els:
@@ -116,12 +115,14 @@ proc render_filter*(self: FilterView, filter: Filter): El =
 
   let view =
     el(PApp, ( # App
+      show_block_separator: true,
       title: "Filter", title_hint: "",
       right: right, right_down: right_down
     )):
       for blk in blocks: # Blocks
         let context = RenderContext.init(blk.doc, blk.doc.space.id)
-        el(PBlock, (blk: blk, context: context, controls: edit_btn(blk).to_seq))
+        let blk_link = build_el(PIconLink, (icon: "link", url: blk.url))
+        el(PBlock, (blk: blk, context: context, controls: @[blk_link], hover: false))
 
   view.window_title "Filter" #doc.title
   view.window_location filter.filter_url

@@ -15,12 +15,14 @@ test "trim":
     " a b ".trim == "a b"
     " a \n b ".trim == "a \n b"
 
-
 proc is_empty*(s: string): bool = s == ""
-
 
 proc is_present*(s: string): bool = not s.is_empty
 
+proc add_spaced*(self: var string, s: string) =
+  if not s.is_empty:
+    if not self.is_empty: self.add " "
+    self.add s
 
 proc if_empty*(s: string, default: string): string =
   if s.is_empty: default else: s

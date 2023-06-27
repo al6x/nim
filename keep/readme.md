@@ -1,20 +1,14 @@
 # Todo
 
-- Remove source from block and doc, move trigrams into search
-- Search for "health" doesn't work.
-- Add sorting to filter and pagination
+- Fix inline tags
+- Search for "everyday" doesn't work
+- Display doc id and block id
+- Add pagination to search and filter
 - Add arrow for filter block, and doc title, section title
-- Move section to block attribute
-- V Cache as view field
 - Categories - urgent, high, lindy, archive.
-- Live Tutorial
-- Add warnings page
-- Hide panel by default, show setting button on doc right
-- Create db config
-- Show space with list of documents, control sorting etc in db config
-- make tags and text lowercase, make it tags, mtags, ltags
+- Empty home page
+- Navigation from search with "fantasy" tag to warns doesn't work
 - Turn alex/notes into space
-- Make search
 - Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
 - Use block or text table to display list of notes
 - Add block and doc id to search index
@@ -32,6 +26,13 @@
 
 # Lodo
 
+- Show space with list of documents, control sorting etc in db config
+- Hide panel by default, show setting button on doc right
+- Live Tutorial
+- V Cache selected tags as view field, probably not, just use sqlite
+- Search for "health" doesn't work.
+- Add sorting to search and filter
+- Move trigrams into search
 - Display update time for docs
 - Sync with static html to public internet hosting
 - Sync with google/drive to mobile

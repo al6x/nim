@@ -89,6 +89,9 @@ type
   SectionBlock* = ref object of Block
     title*: string
 
+  TitleBlock* = ref object of Block # A virtual block, for doc title, needed for search
+    title*: string
+
   SubsectionBlock* = ref object of Block
     title*: string
 

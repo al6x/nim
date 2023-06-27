@@ -842,6 +842,13 @@ proc init_fdoc*(location: string): Doc =
   let id = location.file_name.file_name_ext.name
   Doc(id: id, asset_path: location[0..^4].some)
 
+proc add_title_block*(doc: Doc) =
+  let source = FBlockSource(id: doc.id, text: "", kind: "text", line_n: (1, 1))
+  let tblock = TitleBlock(id: doc.id, title: doc.title, source: source)
+  tblock.text.add_spaced doc.title
+  tblock.text.add_spaced doc.id
+  doc.blocks.insert tblock
+
 proc parse*(_: type[Doc], text, location: string, updated = Time.now, config = FParseConfig.init): Doc =
   let pr = Parser.init(text)
   var source_blocks = pr.consume_blocks(config.can_have_implicittext)
@@ -849,6 +856,7 @@ proc parse*(_: type[Doc], text, location: string, updated = Time.now, config = F
   if blk.is_some: source_blocks.add blk.get
 
   let doc = init_fdoc location
+  doc.add_title_block
   doc.updated = updated
   doc.warns.add pr.warns
   let doc_source = DocTextSource(kind: "ftext", location: location, tags_line_n: tags_line_n)

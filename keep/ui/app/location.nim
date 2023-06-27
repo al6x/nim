@@ -55,6 +55,14 @@ proc home_url*(): string =
 proc doc_url*(sid, did: string): string =
   Location(kind: LocationKind.doc, sid: sid, did: did).to_s
 
+proc url*(doc: Doc): string =
+  doc_url doc.space.id, doc.id
+
+proc url*(blk: Block): string =
+  if blk of TitleBlock:     blk.doc.url
+  elif not blk.id.is_empty: blk.doc.url & "#" & blk.id
+  else:                     blk.doc.url
+
 proc asset_url*(sid, did, asset: string): string =
   var url = Location(kind: LocationKind.asset, sid: sid, did: did, asset: asset).to_url
   url.params["mono_id"] = mono_id

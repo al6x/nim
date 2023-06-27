@@ -22,6 +22,7 @@ proc render*(self: DocView): El =
       right: right, right_down: right_down
     )):
       for blk in doc.blocks: # Blocks
+        if blk of TitleBlock: continue
         el(PBlock, (blk: blk, context: context, controls: edit_btn(blk).to_seq))
 
   view.window_title doc.title

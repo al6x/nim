@@ -30,6 +30,11 @@ proc post_process*(space: Space, doc: Doc) =
       ltext.to_bigram_codes blk.bigrams
       ltext.to_trigram_codes blk.trigrams
 
+      unless blk.id.is_empty:
+        let lid = blk.id.to_lower
+        lid.to_bigram_codes blk.trigrams
+        lid.to_trigram_codes blk.trigrams
+
       for tag in blk.ntags:
         let ltag = tag.decode_tag.to_lower
         ltag.to_bigram_codes blk.bigrams
