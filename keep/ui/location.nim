@@ -58,10 +58,17 @@ proc doc_url*(sid, did: string): string =
 proc url*(doc: Doc): string =
   doc_url doc.space.id, doc.id
 
-proc url*(blk: Block): string =
-  if blk of TitleBlock:     blk.doc.url
-  elif not blk.id.is_empty: blk.doc.url & "#" & blk.id
-  else:                     blk.doc.url
+proc short_url*(doc: Doc): string =
+  for id, space in db.spaces:
+    if id != doc.space.id and doc.id in space.docs: return doc.url
+  doc.id
+
+proc url*(blk: Block, short = false): string =
+  result = if short: blk.doc.short_url else: blk.doc.url
+  unless blk.id.is_empty: result.add "#" & blk.id
+
+proc short_url*(blk: Block): string =
+  blk.url(short = true)
 
 proc asset_url*(sid, did, asset: string): string =
   var url = Location(kind: LocationKind.asset, sid: sid, did: did, asset: asset).to_url

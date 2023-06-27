@@ -28,7 +28,7 @@ proc FilterView*(query_input: QueryInput): El =
     )):
       for blk in blocks: # Blocks
         let context = RenderContext.init(blk.doc, blk.doc.space.id)
-        let blk_link = build_el(PIconLink, (icon: "link", url: blk.url))
+        let blk_link = build_el(PIconLink, (icon: "link", url: blk.short_url))
         el(PBlock, (blk: blk, context: context, controls: @[blk_link], hover: false))
 
   view.window_title "Filter"

@@ -41,7 +41,7 @@ proc SearchView*(query_input: QueryInput): El =
         el(PFoundBlock, (
           title:    blk.doc.title.if_empty(blk.doc.id),
           matches:  matches,
-          url:      blk.url,
+          url:      blk.short_url,
         ))
 
   view.window_title "Search"
