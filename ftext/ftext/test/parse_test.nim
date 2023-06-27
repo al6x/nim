@@ -326,6 +326,7 @@ test "parse":
     """.dedent
 
     let doc = Doc.parse(text, "some.ft")
+    doc.blocks.delete 0 # removing title block
     check doc.blocks.len == 3
     check doc.tags == @["t", "t2"]
     check doc.source.DocTextSource.tags_line_n == (8, 8)
@@ -351,6 +352,7 @@ test "parse":
 
     let doc = Doc.parse(text, "some.ft")
     check doc.title == "Some title"
+    doc.blocks.delete 0 # removing title block
     check doc.blocks.len == 5
 
 test "should check for missing assets":
@@ -363,6 +365,7 @@ test "should check for missing assets":
   """.dedent
 
   let doc = Doc.parse(text, fmt"{test_space_location()}/some.ft")
+  doc.blocks.delete 0 # removing title block
   let blocks = doc.blocks
   check blocks.len == 3
   check blocks[0].warns == @["Asset doesn't exist: missing1.png"]
@@ -379,6 +382,7 @@ test "should guess asset extensions":
   """.dedent
 
   let doc = Doc.parse(text, fmt"{test_space_location()}/some.ft")
+  doc.blocks.delete 0 # removing title block
   let blocks = doc.blocks
   check blocks.len == 3
   check (blocks[0].assets, blocks[0].warns) == (@["img.png"], @[])
@@ -536,6 +540,7 @@ test "doc, from error":
 
     Another
   """.dedent.trim, "some.ft")
+  doc.blocks.delete 0 # removing title block
   check doc.blocks.len == 1
   check doc.blocks[0].text == "Some Another"
   check doc.warns.is_empty

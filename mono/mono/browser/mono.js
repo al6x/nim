@@ -79,10 +79,12 @@ function listen_to_dom_events() {
         post_event(mono_id, { kind: 'location', location: get_window_location(), el: [] });
     });
     async function on_click(raw_event) {
-        let el = raw_event.target, location = "" + el.href;
+        let el = raw_event.target;
+        // The `getAttribute` should be used, not `el.href` as in case of `#` it would return current url with `#`.
+        let location = "" + el.getAttribute("href");
         if (location == get_window_location())
             return;
-        if (el.tagName.toLowerCase() == "a" && location != "") {
+        if (el.tagName.toLowerCase() == "a" && location != "" && location != "#") {
             // Click with redirect
             let found = find_el_with_listener(el);
             if (!found)

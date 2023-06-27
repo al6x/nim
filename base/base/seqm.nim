@@ -79,6 +79,12 @@ test "take":
 proc delete*[T](s: var seq[T], cond: (T) -> bool): void =
   s = s.filter((v) => not cond(v))
 
+template deleteit*[T](s: var seq[T], cond: untyped): void =
+  var result: seq[T]
+  for it {.inject.} in s:
+    if not cond: result.add it
+  s = result
+
 
 proc findi*[T](list: openarray[T], value: T, start = 0): Option[int] =
   if start <= (list.len - 1):

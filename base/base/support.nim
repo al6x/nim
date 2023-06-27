@@ -119,7 +119,7 @@ template unless*(cond, code): auto =
 
 
 macro capt1*(a: typed, body: untyped): untyped =
-  let a_name = ident(a.str_val); let a_type = get_type_inst a
+  let a_name = ident(a.repr); let a_type = get_type_inst a
   quote do:
     block:
       proc create_scope(a_arg: `a_type`) =

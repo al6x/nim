@@ -54,6 +54,9 @@ with Time:
   proc init*(tself; epoch_seconds: int): Time =
     Time.init times.utc(times.fromUnix(epoch_seconds))
 
+  proc init*(tself; t: times.Time): Time =
+    Time.init(times.local(t))
+
   let time_format = times.init_time_format "yyyy-MM-dd HH:mm:ss"
   proc init*(tself; time: string): Time =
     Time.init times.parse(time, time_format, times.utc())

@@ -100,16 +100,14 @@ proc on_click*(self: El, fn: proc(e: ClickEvent)) =
   self.extras_getset.on_click = fn.some
 
 proc on_click*(self: El, fn: proc()) =
-  self.attr("on_click", true)
-  self.extras_getset.on_click = (proc(e: ClickEvent) = fn()).some
+  self.on_click(proc(e: ClickEvent) = fn())
 
 proc on_dblclick*(self: El, fn: proc(e: ClickEvent)) =
   self.attr("on_dblclick", true)
   self.extras_getset.on_dblclick = fn.some
 
 proc on_dblclick*(self: El, fn: proc()) =
-  self.attr("on_dblclick", true)
-  self.extras_getset.on_dblclick = (proc(e: ClickEvent) = fn()).some
+  self.on_dblclick(proc(e: ClickEvent) = fn())
 
 proc on_keydown*(self: El, fn: proc(e: KeydownEvent)) =
   self.attr("on_keydown", true)
@@ -124,5 +122,11 @@ proc on_blur*(self: El, fn: proc(e: BlurEvent)) =
   self.extras_getset.on_blur = fn.some
 
 proc on_blur*(self: El, fn: proc()) =
-  self.attr("on_blur", true)
-  self.extras_getset.on_blur = (proc(e: BlurEvent) = fn()).some
+  self.on_blur(proc(e: BlurEvent) = fn())
+
+proc on_input*(self: El, fn: proc(e: InputEvent)) =
+  self.attr("on_input", true)
+  self.extras_getset.on_input = fn.some
+
+proc on_input*(self: El, fn: proc()) =
+  self.on_input(proc(e: InputEvent) = fn())

@@ -88,6 +88,34 @@ proc to_json_hook*(url: Url): JsonNode =
 proc from_json_hook*(v: var Url, json: JsonNode) =
   v = Url.parse json.get_str
 
+proc contains*(u: Url, k: string): bool =
+  # Search for param in params or path `host.com/k1/v1/k2/v2?k3=v3`
+  if k in u.params: return true
+  else:
+    var i = 0
+    while i < u.path.len - 1:
+      if u.path[i] == k: return true
+      i.inc 2
+  false
+
+proc get*(u: Url, k: string, default = string.none): string =
+  # Search for param in params or path `host.com/k1/v1/k2/v2?k3=v3`
+  if k in u.params: return u.params[k]
+  else:
+    var i = 0
+    while i < u.path.len - 1:
+      if u.path[i] == k: return u.path[i+1]
+      i.inc 2
+  if default.is_some: default.get
+  else:               throw "param not found: " & k
+
+proc get*(u: Url, k, default: string): string =
+  u.get k, default.some
+
+proc `[]`*(u: Url, k: string): string =
+  u.get k
+
+
 test "parse, path, query":
   let url_s = "http://host.com/path?a=b&c=d"
   let url = Url.parse url_s
@@ -102,6 +130,13 @@ test "json":
   let jsons = url.to_json.to_s
   let parsed = jsons.parse_json.json_to(Url)
   check url == parsed
+
+test "unified path and params":
+  let url = Url.parse "http://host.com/k1/v1/k2/v2/?k3=v3"
+  check:
+    "k2" in url
+    "k3" in url
+    url["k2"] == "v2"
 
 # # Merge two urls
 # proc `&`*(base, addon: Url): Url =

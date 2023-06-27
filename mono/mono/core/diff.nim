@@ -51,10 +51,10 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
     # Normalization needed only if attrs has been changed
     # Normalization may change content, for example replace attr value into html content for textarea,
     # so oel and nel needs to be replaced with normalized versions.
-    let oel_norm = oel.normalize # (oel_norm, oattrs) could be cached
+    let oel_norm = oel.normalize true # (oel_norm, oattrs) could be cached
     oel = oel_norm[0]; let oattrs = oel_norm[1]
 
-    let nel_norm = nel.normalize
+    let nel_norm = nel.normalize true
     nel = nel_norm[0]; let nattrs = nel_norm[1]
 
     var set_attrs: Table[string, ElAttrVal]
