@@ -110,7 +110,11 @@ proc get*[T: Component](self: Component, _: type[T], id: string | int, set_attrs
     set_attrs(child)
     when compiles(child.after_create): child.after_create
     self.children[full_id] = child
-  self.children[full_id].T
+    child
+  else:
+    let child: T = self.children[full_id].T
+    set_attrs(child)
+    child
 
 template get*[T: Component](self: Component, TT: type[T], id: string | int, attrs: tuple): T =
   get(self, TT, id, proc(c: T) = c.component_set_attrs(attrs))
