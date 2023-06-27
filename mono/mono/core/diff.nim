@@ -103,9 +103,9 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
         add_children.add nchild
     unless add_children.is_empty: diffs.add add_children(id, add_children)
 
-    if nel.children.len < oel.children.len:
-      for ochild in oel.children: assert ochild.kind == ElKind.el, "mixed children content not supported"
-      diffs.add set_children_len(id, nel.children.len)
+    if nchildren.len < ochildren.len:
+      for ochild in ochildren: assert ochild.kind == ElKind.el, "mixed children content not supported"
+      diffs.add set_children_len(id, nchildren.len)
 
 proc diff*(id: openarray[int], oel, nel: El): seq[Diff] =
   diff(id.to_seq, oel, nel, result)
