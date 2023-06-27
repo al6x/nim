@@ -1,6 +1,6 @@
 import base, mono/[core, http], std/os
-import ../../model, ./location, ../palette, ./helpers, ./support
-import ./doc_view, ./warns_view, ./filter_view
+import ../../model, ../location, ../palette, ../helpers, ../support
+import ./doc_view, ./warns_view, ./filter_view, ./search_view, ../partials/[query_input]
 
 type AppView* = ref object of Component
   location*: Location
@@ -29,7 +29,8 @@ proc render_home(self: AppView): El =
 proc render_filter(self: AppView, filter: Filter): El =
   proc set_location(l: Location) = self.location = l
   let query_input = self.get(QueryInput, (filter: filter, set_location: set_location))
-  self.el(FilterView, (query_input: query_input))
+  if filter.query.is_empty: el(FilterView, (query_input: query_input))
+  else:                     el(SearchView, (query_input: query_input))
 
 proc render_unknown(self: AppView): El =
   el("", (text: "Unknown page"))

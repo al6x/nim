@@ -1,5 +1,5 @@
 import base, mono/core
-import ../../model, ./helpers, ../palette as pl, ./location
+import ../../model, ../helpers, ../palette as pl, ../location
 
 type WarnsView* = ref object of Component
 

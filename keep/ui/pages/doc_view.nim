@@ -1,5 +1,5 @@
 import base, mono/[core, http]
-import ../../model, ../../render/blocks, ./helpers, ../palette as pl, ./location
+import ../../model, ../../render/blocks, ../helpers, ../palette as pl, ../location
 
 type DocView* = ref object of Component
   doc*: Doc

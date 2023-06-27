@@ -1,5 +1,5 @@
 import base, mono/core, ext/parser
-import ./support, ../../model
+import ./support, ../model
 
 type LocationKind* = enum home, doc, shortcut, filter, warns, asset, unknown
 type Location* = object
