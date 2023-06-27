@@ -1,4 +1,4 @@
-import base, ext/[parser, yaml]
+import base, ext/[parser, yaml], std/os
 import ./model
 
 export model
@@ -842,13 +842,14 @@ proc init_fdoc*(location: string): Doc =
   let id = location.file_name.file_name_ext.name
   Doc(id: id, asset_path: location[0..^4].some)
 
-proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): Doc =
+proc parse*(_: type[Doc], text, location: string, updated = Time.now, config = FParseConfig.init): Doc =
   let pr = Parser.init(text)
   var source_blocks = pr.consume_blocks(config.can_have_implicittext)
   let (blk, tags, tags_line_n) = pr.consume_doc_tags
   if blk.is_some: source_blocks.add blk.get
 
   let doc = init_fdoc location
+  doc.updated = updated
   doc.warns.add pr.warns
   let doc_source = DocTextSource(kind: "ftext", location: location, tags_line_n: tags_line_n)
   doc.hash = text.hash.int; doc.tags = tags; doc.source = doc_source
@@ -868,11 +869,12 @@ proc parse*(_: type[Doc], text, location: string, config = FParseConfig.init): D
       else:
         doc.warns.add fmt"Unknown block kind '{source.kind}'"
         UnknownBlock()
-      blk.id = source.id; blk.hash = source.text.hash.int; blk.source = source
+      blk.id = source.id; blk.hash = source.text.hash.int; blk.source = source; blk.updated = updated
       post_process_block(blk, doc, config)
       doc.blocks.add blk
   doc.blockids = doc.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
   doc
 
 proc read*(_: type[Doc], location: string, config = FParseConfig.init): Doc =
-  Doc.parse(text = fs.read(location), location = location, config = config)
+  let updated = Time.init get_file_info(location).last_write_time
+  Doc.parse(text = fs.read(location), location = location, updated = updated, config = config)

@@ -11,15 +11,17 @@ type
     kind*: string
 
   Block* = ref object of RootObj
-    id*:     string
-    hash*:   int
-    tags*:   seq[string]
-    links*:  seq[Link]
-    assets*: seq[string]
-    glinks*: seq[string]
-    text*:   string
-    warns*:  seq[string]
-    source*: BlockSource
+    id*:      string
+    hash*:    int
+    tags*:    seq[string]
+    links*:   seq[Link]
+    assets*:  seq[string]
+    glinks*:  seq[string]
+    text*:    string
+    warns*:   seq[string]
+    source*:  BlockSource
+    updated*: Time
+    doc*:     Doc
 
     # Special fields, performance optimisation
     ntags*:       seq[int] # normalized, merged
@@ -27,7 +29,6 @@ type
     bigrams_us*:  seq[int] # unique and sorted bigrams
     trigrams*:    seq[int]
     trigrams_us*: seq[int] # unique and sorted trigrams
-    doc*:         Doc
 
   Doc* = ref object of RootObj
     id*:          string
@@ -39,12 +40,13 @@ type
     tags*:        seq[string]
     warns*:       seq[string]
     source*:      DocSource
+    updated*:     Time
+    space*:       Space
 
     # Special fields, performance optimisation
     ntags*:       seq[int] # normalized, merged
     bigrams_us*:  seq[int] # unique and sorted bigrams
     trigrams_us*: seq[int] # unique and sorted trigrams
-    space*:       Space
 
   Space* = ref object
     id*:           string

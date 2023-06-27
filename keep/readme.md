@@ -1,7 +1,7 @@
 # Todo
 
+- Remove source from block and doc, move trigrams into search
 - Search for "health" doesn't work.
-- Make tags cloud to work on doc page
 - Add sorting to filter and pagination
 - Add arrow for filter block, and doc title, section title
 - Move section to block attribute
@@ -32,6 +32,7 @@
 
 # Lodo
 
+- Display update time for docs
 - Sync with static html to public internet hosting
 - Sync with google/drive to mobile
 - Rewrite "home-page" to be defined in config.
