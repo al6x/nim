@@ -1,4 +1,4 @@
-import base, std/macros
+import std/macros
 
 template is_attrs_equal*[T](obj: T, attrs: tuple): bool =
   var r = true
