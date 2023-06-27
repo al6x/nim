@@ -18,7 +18,7 @@ proc render_doc(self: AppView, sid, did: string): El =
 proc render_doc(self: AppView, did: string): El =
   let doc = db.get_doc(did)
   if doc.is_none: return el(PMessage, (text: "Not found", top: true))
-  self.render_doc(doc.get.id, doc.get.space.id)
+  self.render_doc(doc.get.space.id, doc.get.id)
 
 proc render_home(self: AppView): El =
   if db.config.home.is_some:

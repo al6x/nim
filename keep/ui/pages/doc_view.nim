@@ -30,9 +30,8 @@ proc render*(self: DocView): El =
   view.window_title doc.title
   view
 
-
 method render_doc*(doc: Doc, parent: Component, set_location: proc(l: Location)): El {.base.} =
-  parent.el(DocView, fmt"{doc.space.id}/{doc.id}", (doc: doc, set_location: set_location))
+  parent.get(DocView, fmt"{doc.space.id}/{doc.id}", (doc: doc, set_location: set_location)).render
 
 method serve_asset*(doc: Doc, asset_rpath: string): BinaryResponse {.base.} =
   file_response asset_path(doc, asset_rpath)
