@@ -27,14 +27,16 @@ proc render_home(self: AppView): El =
     el(PMessage, (text: text, top: true))
 
 proc render_filter(self: AppView, filter: Filter): El =
-  self.el(FilterView, (initial_filter: filter))
+  proc set_location(l: Location) = self.location = l
+  let query_input = self.get(QueryInput, (filter: filter, set_location: set_location))
+  self.el(FilterView, (query_input: query_input))
 
 proc render_unknown(self: AppView): El =
   el("", (text: "Unknown page"))
 
 proc render*(self: AppView): El =
   let l = self.location
-  case l.kind
+  let el = case l.kind
   of LocationKind.home:   self.render_home
   of doc:                 self.render_doc(l.sid, l.did)
   of shortcut:            self.render_doc(l.did)
@@ -42,6 +44,9 @@ proc render*(self: AppView): El =
   of warns:               self.el(WarnsView, ())
   of unknown:             self.render_unknown
   of asset:               throw "asset should never happen in render"
+
+  el.window_location self.location.to_url.to_s
+  el
 
 proc on_timer*(self: AppView): bool =
   if   self.on_timer_db_version.is_none:

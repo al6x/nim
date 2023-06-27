@@ -1,5 +1,7 @@
-import base, std/macros, ext/url
-import ./mono_el
+import base, ext/url
+import ./mono_el, ./macro_helpers
+
+export macro_helpers
 
 type
   InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer
@@ -29,17 +31,6 @@ proc after_render(self: Component) =
   let old = self.children.delete((id, child) => id notin self.children_built)
   self.children_built.clear
   old.values.each(before_destroy) # triggering :before_destroy
-
-proc get_child_component*[T: Component](self: Component, _: type[T], id: string | int, set_attrs: (proc(c: T))): T =
-  let full_id = $(T) & "/" & id.to_s
-  if full_id in self.children_built: throw fmt"Two components have same id: {full_id}"
-  self.children_built.add full_id
-  if full_id notin self.children:
-    let child: T = when compiles(T.init): T.init else: T()
-    set_attrs(child)
-    when compiles(child.after_create): child.after_create
-    self.children[full_id] = child
-  self.children[full_id].T
 
 proc set_location[T: Component](component: T, location: Url): bool =
   when compiles(component.on_location(location)):
@@ -108,3 +99,21 @@ proc process*[T: Component](self: T, current_el: Option[El], events: openarray[I
   el.window_location.applyit: discard set_location(self, it) # If location changed, updating
   self.after_render
   el.some
+
+# stateful child components ------------------------------------------------------------------------
+proc get*[T: Component](self: Component, _: type[T], id: string | int, set_attrs: (proc(c: T))): T =
+  let full_id = $(T) & "/" & id.to_s
+  if full_id in self.children_built: throw fmt"Two components have same id: {full_id}"
+  self.children_built.add full_id
+  if full_id notin self.children:
+    let child: T = when compiles(T.init): T.init else: T()
+    set_attrs(child)
+    when compiles(child.after_create): child.after_create
+    self.children[full_id] = child
+  self.children[full_id].T
+
+template get*[T: Component](self: Component, TT: type[T], id: string | int, attrs: tuple): T =
+  get(self, TT, id, proc(c: T) = c.component_set_attrs(attrs))
+
+template get*[T: Component](self: Component, TT: type[T], attrs: tuple): T =
+  get(self, TT, "", proc(c: T) = c.component_set_attrs(attrs))

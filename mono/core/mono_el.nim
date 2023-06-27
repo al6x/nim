@@ -122,5 +122,11 @@ proc on_blur*(self: El, fn: proc(e: BlurEvent)) =
   self.extras_getset.on_blur = fn.some
 
 proc on_blur*(self: El, fn: proc()) =
-  self.attr("on_blur", true)
-  self.extras_getset.on_blur = (proc(e: BlurEvent) = fn()).some
+  self.on_blur(proc(e: BlurEvent) = fn())
+
+proc on_input*(self: El, fn: proc(e: InputEvent)) =
+  self.attr("on_input", true)
+  self.extras_getset.on_input = fn.some
+
+proc on_input*(self: El, fn: proc()) =
+  self.on_input(proc(e: InputEvent) = fn())

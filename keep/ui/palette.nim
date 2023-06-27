@@ -149,21 +149,21 @@ template pblock_controls*(controls: seq[El], hover: bool) =
 template pblock_warns*(warns: seq[string]) =
   let warnsv: seq[string] = warns
   unless warnsv.is_empty:
-    el"pblock-warns .block.border-l-4.border-orange-800 flash":
+    el"pblock-warns .block.border-l-4.border-orange-800":
       for warn in warnsv:
         el(".inline-block .text-orange-800 .ml-2", (text: warn))
 
 template pblock_tags*(tags: seq[(string, string)]) =
   let tagsv: seq[(string, string)] = tags
   unless tagsv.is_empty:
-    el"pblock-tags .block.-mr-1 flash":
+    el"pblock-tags .block.-mr-1":
       for (tag, link) in tagsv:
         el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100"):
           it.attr("href", link)
           it.text(tag) # .to_lower
 
 template pblock_layout*(tname: string, code: untyped): auto =
-  el(tname & " .pblock.flex.flex-col.space-y-1 c flash"):
+  el(tname & " .pblock.flex.flex-col.space-y-1 c"):
     code
 
 template pblock_layout*(
@@ -194,7 +194,7 @@ proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[], hover 
   var tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
   if blk of TextBlock or blk of ListBlock: tags = @[]
   pblock_layout(tname, blk.warns, controls, tags, hover):
-    el(".ftext flash", (html: html))
+    el(".ftext", (html: html))
 
 # Search -------------------------------------------------------------------------------------------
 type PFoundItem* = tuple[before, match, after: string]
@@ -239,7 +239,7 @@ proc PApp*(
   content: seq[El]
 ): El =
   let left =
-    el"pdoc .flex.flex-col .space-y-1.mt-2.mb-2 c flash":
+    el"pdoc .flex.flex-col .space-y-1.mt-2.mb-2 c":
       if show_block_separator: it.class "show_block_separator"
       # el"a.block.absolute.left-2 .text-gray-300": # Anchor
       #   it.class "top-3.5"
@@ -247,7 +247,7 @@ proc PApp*(
       #   it.location "#"
       unless title.is_empty:
         pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
-          el(".text-2xl flash", (text: title, title: title_hint))
+          el(".text-2xl", (text: title, title: title_hint))
 
       it.add content
 

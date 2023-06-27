@@ -2,18 +2,15 @@ import base, mono/[core, http], ext/[grams, search]
 import ../../model, ../../render/blocks, ./helpers, ../palette as pl, ./location
 
 type FilterView* = ref object of Component
-  initial_filter*: Filter
-  query*: string
-
-proc after_create*(self: FilterView) =
-  self.query = self.initial_filter.to_s # Setting the initial query from url
+  query_input*: QueryInput
 
 proc safe_substring(s: string, l, h: int): string =
   assert l < h
   s[max(0, min(s.high, l))..min(s.high, max(0, h))]
 
-proc FilterTags[T](filter: Filter, filter_view: T): El =
+proc FilterTags(query_input: QueryInput): El =
   let tags = db.ntags_cached.keys.map(decode_tag).sortit(it.to_lower)
+  let filter = query_input.filter
 
   proc incl_or_excl_tag(tag: int): proc(e: ClickEvent) =
     proc(e: ClickEvent) =
@@ -21,7 +18,7 @@ proc FilterTags[T](filter: Filter, filter_view: T): El =
       f.excl.deleteit(it == tag); f.incl.deleteit(it == tag)
       if shift in e.special_keys: f.excl = (f.excl & @[tag]).sort
       else:                       f.incl = (f.incl & @[tag]).sort
-      filter_view.query = f.to_s
+      query_input.set_query f.to_s
 
   proc deselect_tag(tag: int): proc(e: ClickEvent) =
     proc(e: ClickEvent) =
@@ -29,7 +26,7 @@ proc FilterTags[T](filter: Filter, filter_view: T): El =
       let excl = tag in f.incl and shift in e.special_keys
       f.excl.deleteit(it == tag); f.incl.deleteit(it == tag)
       if excl: f.excl = (f.excl & @[tag]).sort
-      filter_view.query = f.to_s
+      query_input.set_query f.to_s
 
   let no_selected = filter.incl.is_empty and filter.excl.is_empty
   el(PTags, ()):
@@ -53,9 +50,10 @@ proc FilterTags[T](filter: Filter, filter_view: T): El =
             it.attr("href", "#")
             it.on_click incl_or_excl_tag(tcode)
 
-proc render_search*(self: FilterView, filter: Filter): El =
+proc render_search*(self: FilterView): El =
   let side_text_len = (db.config.text_around_match_len.get(200) / 2).ceil.int
   let tic = timer_ms()
+  let filter = self.query_input.filter
   let query_ready = filter.query.len >= 3
   var blocks: seq[Matches[Block]]
   if query_ready: blocks = db.search_blocks(filter.incl, filter.excl, filter.query).to_seq
@@ -65,9 +63,9 @@ proc render_search*(self: FilterView, filter: Filter): El =
     "Query should have at least 3 symbols"
 
   let right = els:
-    alter_el(el(PSearchField, ()), it.bind_to(self.query))
+    it.add self.query_input.render # alter_el(el(PSearchField, ()), it.bind_to(self.query))
     el(PSearchInfo, (message: message))
-    el(FilterTags, (filter: filter, filter_view: self))
+    el(FilterTags, (query_input: self.query_input))
 
   let right_down = els:
     el(Warns, ())
@@ -92,11 +90,12 @@ proc render_search*(self: FilterView, filter: Filter): El =
         ))
 
   view.window_title "Search"
-  view.window_location filter.filter_url
+  # view.window_location filter.filter_url
   view
 
-proc render_filter*(self: FilterView, filter: Filter): El =
+proc render_filter*(self: FilterView): El =
   let tic = timer_ms()
+  let filter = self.query_input.filter
   let filter_ready = not (filter.incl.is_empty and filter.excl.is_empty)
   var blocks: seq[Block]
   if filter_ready: blocks = db.filter_blocks(filter.incl, filter.excl).to_seq
@@ -106,9 +105,9 @@ proc render_filter*(self: FilterView, filter: Filter): El =
     "Select at least one tag"
 
   let right = els:
-    alter_el(el(PSearchField, ()), it.bind_to(self.query))
+    it.add self.query_input.render # alter_el(el(PSearchField, ()), it.bind_to(self.query))
     el(PSearchInfo, (message: message))
-    el(FilterTags, (filter: filter, filter_view: self))
+    el(FilterTags, (query_input: self.query_input))
 
   let right_down = els:
     el(Warns, ())
@@ -125,9 +124,8 @@ proc render_filter*(self: FilterView, filter: Filter): El =
         el(PBlock, (blk: blk, context: context, controls: @[blk_link], hover: false))
 
   view.window_title "Filter" #doc.title
-  view.window_location filter.filter_url
+  # view.window_location filter.filter_url
   view
 
 proc render*(self: FilterView): El =
-  let filter = Filter.parse self.query
-  if filter.query.is_empty: self.render_filter(filter) else: self.render_search(filter)
+  if self.query_input.filter.query.is_empty: self.render_filter else: self.render_search

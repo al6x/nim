@@ -161,7 +161,7 @@ proc `[]`*(el: El, k: string): string =
 proc `[]=`*(el: El, k: string, v: string | int | bool) =
   el.attrs[k] = v.to_s
 
-proc normalize*(el: El): (El, OrderedTable[string, ElAttrVal])
+proc normalize*(el: El, update: bool): (El, OrderedTable[string, ElAttrVal])
 
 proc expand_children*(list: seq[El], result: var seq[El]) =
   for el in list:
@@ -174,7 +174,7 @@ proc expand_children*(list: seq[El]): seq[El] =
 proc to_json_hook*(el: El): JsonNode =
   case el.kind
   of ElKind.el:
-    let (nel, nattrs) = el.normalize
+    let (nel, nattrs) = el.normalize false
     if nel.children.is_empty: %{ kind: el.kind, tag: el.tag, attrs: nattrs }
     else:                     %{ kind: el.kind, tag: el.tag, attrs: nattrs, children: nel.children }
   of ElKind.text:             %{ kind: el.kind, text: el.text_data }
@@ -185,7 +185,7 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false, parent_
   case el.kind
   of ElKind.el:
     # if newlines: html.add "\n"
-    let (nel, nattrs) = el.normalize
+    let (nel, nattrs) = el.normalize false
 
     if nel.tag == "tr" and parent_tag.is_some and parent_tag.get notin ["tbody", "thead"]:
       # Checking correct HTML structure for tables, it's important for dynamic updates with diff
@@ -354,7 +354,10 @@ test "el, basics":
   check h.to_html == html
 
 # normalize ----------------------------------------------------------------------------------------
-proc normalize*(el: El): (El, OrderedTable[string, ElAttrVal]) =
+proc normalize*(el: El, update: bool): (El, OrderedTable[string, ElAttrVal]) =
+  # Some fields needs to be rendered differently for initial render and for update, for example
+  # textarea should be rendered as <textarea>html</textarea>, but updated as `textare.value = html`
+
   assert el.kind == ElKind.el
   var el = el
   var attrs: Table[string, ElAttrVal]
@@ -373,8 +376,11 @@ proc normalize*(el: El): (El, OrderedTable[string, ElAttrVal]) =
     else:
       attrs["value"] = (attrs["value"][0], string_prop)
   elif el.tag == "textarea" and "value" in attrs: # textarea
-    el = el.dcopy
-    el.html attrs["value"][0].SafeHtml
-    attrs.del "value"
+    if update:
+      attrs["value"] = (attrs["value"][0], string_prop)
+    else:
+      el = el.dcopy
+      el.html attrs["value"][0].SafeHtml
+      attrs.del "value"
 
   (el, attrs.sort)

@@ -26,6 +26,8 @@
 
 # Lodo
 
+- use `select: blocks/docs order_by: `
+- use `sql: expression` for filter
 - Show space with list of documents, control sorting etc in db config
 - Hide panel by default, show setting button on doc right
 - Live Tutorial
