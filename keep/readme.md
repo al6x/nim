@@ -1,31 +1,18 @@
 # Todo
 
-- Add search field to page
-- Search for "everyday" doesn't work
-- Display doc id and block id
 - Add pagination to search and filter
-- Add arrow for filter block, and doc title, section title
-- Categories - urgent, high, lindy, archive.
-- Empty home page
-- Navigation from search with "fantasy" tag to warns doesn't work
+- Add doc title for search blocks
 - Turn alex/notes into space
-- Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
-- Use block or text table to display list of notes
-- Add block and doc id to search index
-- Refactor space, so it can have mixed content, ftext etc
-- Add space.config and parse editor code like "{path} {line}, each space has its own editor, could
-  be local space or github space
 - Make video about parser FText
-- Search with blackjack and hookers, index Wwar of the worlds, and libres, show query timing, tags facets with stats,
-  show query and chunk trigrams, don't do separate app, use with notes, just add extra vidgets to display
-  peformance and trigrams.
-- Add space/doc/block link for both embed and block display.
-- Spaces have different colors of favicon, favicon set on top level compponent as window_icon
-- Hierarchical tags
-- Mozaic images gallery
+- Search with blackjack and hookers, tags facets with stats, show query and chunk trigrams, don't do separate app, use with notes
 
 # Lodo
 
+- Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
+- Categories - urgent, high, lindy, archive.
+- Display doc id and block id with gray color
+- Home page with readme
+- Search for "everyday" doesn't work
 - use `select: blocks/docs order_by: `
 - use `sql: expression` for filter
 - Show space with list of documents, control sorting etc in db config
@@ -46,6 +33,12 @@
 - make editor configurable
 - Checkout M. Fowler BiKi
 - FText, long link reference, [N. Taleb Random](nt_random), [nt_random](http://ntaleb.org/random)
+- Add space.config and parse editor code like "{path} {line}, each space has its own editor, could
+  be local space or github space
+- Add space/doc/block link for both embed and block display.
+- Spaces have different colors of favicon, favicon set on top level compponent as window_icon
+- Hierarchical tags
+- Mozaic images gallery
 
 # Notes
 

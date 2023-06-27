@@ -89,7 +89,7 @@ proc PTag*(text: string, style: PTagStyle = normal): El =
   el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], class: class))
 
 proc PSearchField*(): El =
-  el("textarea .border .rounded .border-gray-300 .px-1 .w-full " &
+  el("textarea .border .rounded .border-gray-300 .placeholder-gray-400 .px-1 .w-full " &
     ".focus:outline-none .placeholder-gray-500 .resize-none rows=2", (placeholder: "Find..."))
 
 proc PSpaceInfo*(warns: openarray[(string, string)], closed = false): El =
