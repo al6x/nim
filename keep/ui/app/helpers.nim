@@ -54,7 +54,7 @@ proc Warns*(): El =
         el(PWarnings, (warns: @[(message, warns_url())]))
 
 proc Tags*(): El =
-  let tags = db.ntags_cached.keys.map(decode_tag).sort
+  let tags = db.ntags_cached.keys.map(decode_tag).sortit(it.to_lower)
   el(PTags, ()):
     for tag in tags:
       alter_el(el(PTag, (text: tag))):

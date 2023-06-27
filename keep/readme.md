@@ -1,6 +1,6 @@
 # Todo
 
-- Fix inline tags
+- Add search field to page
 - Search for "everyday" doesn't work
 - Display doc id and block id
 - Add pagination to search and filter

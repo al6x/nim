@@ -13,7 +13,7 @@ proc safe_substring(s: string, l, h: int): string =
   s[max(0, min(s.high, l))..min(s.high, max(0, h))]
 
 proc FilterTags[T](filter: Filter, filter_view: T): El =
-  let tags = db.ntags_cached.keys.map(decode_tag).sort
+  let tags = db.ntags_cached.keys.map(decode_tag).sortit(it.to_lower)
 
   proc incl_or_excl_tag(tag: int): proc(e: ClickEvent) =
     proc(e: ClickEvent) =

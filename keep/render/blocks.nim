@@ -24,7 +24,7 @@ proc asset_path*(path: string, context: RenderContext): string =
 proc render_tag*(tag: string, context: RenderContext): SafeHtml =
   let ntag = tag.to_lower
   let path = context.config.tag_path(ntag, context)
-  fmt"""<a class="tag" href="/tags/{path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
+  fmt"""<a class="tag" href="{path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
 
 proc init*(_: type[RenderConfig]): RenderConfig =
   RenderConfig(link_path: link_path, tag_path: tag_path, asset_path: asset_path, render_tag: render_tag)
