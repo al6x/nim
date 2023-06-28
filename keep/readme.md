@@ -6,6 +6,7 @@
 
 # Lodo
 
+- Add home icon at the right of the white page
 - Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
 - Categories - urgent, high, lindy, archive.
 - Display doc id and block id with gray color

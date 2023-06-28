@@ -66,7 +66,7 @@ proc url*(doc: Doc): string =
 proc short_url*(doc: Doc): string =
   for id, space in db.spaces:
     if id != doc.space.id and doc.id in space.docs: return doc.url
-  doc.id
+  [doc.id].to_url.to_s
 
 proc url*(blk: Block, short = false): string =
   result = if short: blk.doc.short_url else: blk.doc.url
