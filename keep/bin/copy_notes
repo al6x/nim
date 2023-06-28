@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+EXAMPLE_DIR=$DIR/examples/notes
+NOTES_DIR=/alex/notes
+
+yes | cp -rf $NOTES_DIR/movies.ft $EXAMPLE_DIR/movies.ft
+yes | cp -rf $NOTES_DIR/movies $EXAMPLE_DIR/movies
+yes | cp -rf $NOTES_DIR/everyday.ft $EXAMPLE_DIR/everyday.ft

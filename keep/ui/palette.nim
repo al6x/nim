@@ -85,9 +85,9 @@ proc PTags*(closed = false, content: seq[El]): El =
 type PTagStyle* = enum normal, included, excluded, ignored
 proc PTag*(text: string, style: PTagStyle = normal): El =
   let class = case style
-  of normal:   ".text-gray-400.border-gray-200" # ".text-blue-800.bg-blue-100.border-blue-100"
-  of included: ".text-blue-800.bg-blue-100.border-blue-100"
-  of excluded: ".text-pink-800.bg-pink-100.border-pink-100"
+  of normal:   ".text-blue-800.bg-blue-50.border-blue-50"
+  of included: ".text-blue-800.bg-blue-50.border-blue-50"
+  of excluded: ".text-pink-800.bg-pink-50.border-pink-50"
   of ignored:  ".text-gray-400.border-gray-200"
   el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], class: class))
 
@@ -161,7 +161,7 @@ template pblock_tags*(tags: seq[(string, string)]) =
   unless tagsv.is_empty:
     el"pblock-tags .block.-mr-1":
       for (tag, link) in tagsv:
-        el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-100.border-blue-100"):
+        el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-50.border-blue-50"):
           it.attr("href", link)
           it.text(tag) # .to_lower
 
@@ -194,8 +194,7 @@ proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)
 proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[], hover = true): El =
   let html = render_block(blk, context).to_html
   let tname = fmt"pblock-f{blk.source.kind}"
-  var tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
-  if blk of TextBlock or blk of ListBlock: tags = @[]
+  let tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
   pblock_layout(tname, blk.warns, controls, tags, hover):
     el(".ftext", (html: html))
 
@@ -236,12 +235,12 @@ proc papp_layout*(left, right, right_down: seq[El]): El =
       it.add left
     let class = nomockup"fixed right-0 top-0 bottom-0 overflow-y-scroll"
     # nomockup".right-panel-hidden-icon"
-    el(".w-3/12.flex.flex-col.justify-between .border-gray-300.border-l.bg-slate-50", (class: class)):
+    el("papp-right .w-3/12.flex.flex-col.justify-between .border-gray-300.border-l.bg-slate-50", (class: class)):
       # el".absolute .top-0 .right-0 .m-2 .mt-4":
       #   el(PIconButton, (icon: "controls"))
       # el("papp-right .flex.flex-col.space-y-2.m-2 " & nomockup".right-panel-content" & " c"):
       # el("papp-right .flex.flex-col" & nomockup".right-panel-content" & " c"):
-      el("papp-right-down .flex.flex-col.space-y-2.m-2 c"):
+      el("papp-right-up .flex.flex-col.space-y-2.m-2 c"):
         it.add right
       el("papp-right-down .flex.flex-col.space-y-2.m-2 c"):
         it.add right_down
@@ -318,7 +317,7 @@ proc render_mockup: seq[El] =
           let style =
             if   tag in incl: included
             elif tag in excl: excluded
-            else:             normal
+            else:             ignored
           el(PTag, (text: tag, style: style))
 
     let right = els:

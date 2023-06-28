@@ -101,9 +101,9 @@
 
       </papp-left>
 
-      <div class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
+      <papp-right class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
 
-        <papp-right-down class="flex flex-col space-y-2 m-2">
+        <papp-right-up class="flex flex-col space-y-2 m-2">
           <textarea class="border rounded border-gray-300 placeholder-gray-400 px-1 w-full focus:outline-none placeholder-gray-500 resize-none" placeholder="Find..." rows="2">finance/ About Forex</textarea>
           <prblock-filter-info class="block relative">
             <div class="text-sm text-gray-400">Found 300 blocks in 20ms</div>
@@ -112,24 +112,24 @@
             <div class="text-gray-300">Tags</div>
             <div class="-mr-1">
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Stock</a>
-              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-100 border-blue-100">Trading</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Trading</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Market</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Dollar</a>
-              <a class="mr-1 rounded px-1 border  text-pink-800 bg-pink-100 border-pink-100">Euro</a>
+              <a class="mr-1 rounded px-1 border  text-pink-800 bg-pink-50 border-pink-50">Euro</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Taxes</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Currency</a>
-              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-100 border-blue-100">Profit</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Profit</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Loss</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Option</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Strategy</a>
               <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Backtesting</a>
             </div>
           </prblock-tags>
-        </papp-right-down>
+        </papp-right-up>
 
         <papp-right-down class="flex flex-col space-y-2 m-2"></papp-right-down>
 
-      </div>
+      </papp-right>
 
     </papp>
 
@@ -174,8 +174,8 @@
           <pblock-fsection class="pblock flex flex-col space-y-1 pblock_hover">
             <div class="ftext"><div class="text-2xl">Trends are down   </div></div>
             <pblock-tags class="block -mr-1">
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/Finance">Finance</a>
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/Trading">Trading</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/Finance">Finance</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/Trading">Trading</a>
             </pblock-tags>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
@@ -187,6 +187,9 @@
             <div class="ftext"><p><b>Negative trend</b>. Odds are against you. Stock market on average goes up, but the currencies on average going down.</p>
 <p><b>Leverage</b>. Insane leverage. The minimal transaction on Forex is one lot equal to 100k$. If you don't have such <a class="link" href="/sample/money">money</a> - you will be using leverage, sometimes very huge leverage. Small market fluctuation - and the margin call would wipe you out.</p>
 <p><b>No intrinsic value</b>. Unlike <a class="tag" href="/tags/stocks">stocks</a> that has intrinsic <a class="link" href="/sample/value">value</a>, currencies doesn't have it. Currencies are based on belief in those who controls it. And <code>believes</code> and actions of those who controls it can change suddently and because it doesn't has any bottom value, it can fell all the way down <a class="glink" href="http://some.com">to zero</a>.</p></div>
+            <pblock-tags class="block -mr-1">
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/stocks">stocks</a>
+            </pblock-tags>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/controls.svg);"></button>
@@ -308,8 +311,8 @@ mockup_section("Text"):
   </tbody>
 </table></div>
             <pblock-tags class="block -mr-1">
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/bushcraft">bushcraft</a>
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/knots">knots</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/bushcraft">bushcraft</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/knots">knots</a>
             </pblock-tags>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
@@ -397,8 +400,8 @@ mockup_section("Text"):
   </tbody>
 </table></div>
             <pblock-tags class="block -mr-1">
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/bushcraft">bushcraft</a>
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/knots">knots</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/bushcraft">bushcraft</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/knots">knots</a>
             </pblock-tags>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
@@ -419,7 +422,7 @@ mockup_section("Text"):
   <img src="/sample/about-forex/knots/losa.jpg"></img>
 </a></div>
             <pblock-tags class="block -mr-1">
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/knots">knots</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/knots">knots</a>
             </pblock-tags>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
@@ -588,9 +591,9 @@ mockup_section("Text"):
 
           <pblock-doc-tags class="pblock flex flex-col space-y-1 pblock_hover">
             <pblock-tags class="block -mr-1">
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/Forex">Forex</a>
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/Margin">Margin</a>
-              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-100 border-blue-100" href="/tags/Fake">Fake</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/Forex">Forex</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/Margin">Margin</a>
+              <a class="mr-1 rounded px-1 border text-blue-800 bg-blue-50 border-blue-50" href="/tags/Fake">Fake</a>
             </pblock-tags>
             <pblock-controls class="block absolute right-0 top-1 flex bg-white rounded p-1" style="margin-top: 0;">
               <button class="block svg-icon w-5 h-5 bg-gray-500" style="-webkit-mask-image: url(icons/edit.svg);"></button>
@@ -602,9 +605,9 @@ mockup_section("Text"):
 
       </papp-left>
 
-      <div class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
+      <papp-right class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
 
-        <papp-right-down class="flex flex-col space-y-2 m-2">
+        <papp-right-up class="flex flex-col space-y-2 m-2">
           <textarea class="border rounded border-gray-300 placeholder-gray-400 px-1 w-full focus:outline-none placeholder-gray-500 resize-none" placeholder="Find..." rows="2"></textarea>
           <prblock-favorites class="block relative">
             <div class="text-gray-300">Favorites</div>
@@ -616,18 +619,18 @@ mockup_section("Text"):
           <prblock-tags class="block relative">
             <div class="text-gray-300">Tags</div>
             <div class="-mr-1">
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Stock</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Trading</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Market</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Dollar</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Euro</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Taxes</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Currency</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Profit</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Loss</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Option</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Strategy</a>
-              <a class="mr-1 rounded px-1 border  text-gray-400 border-gray-200">Backtesting</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Stock</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Trading</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Market</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Dollar</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Euro</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Taxes</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Currency</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Profit</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Loss</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Option</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Strategy</a>
+              <a class="mr-1 rounded px-1 border  text-blue-800 bg-blue-50 border-blue-50">Backtesting</a>
             </div>
           </prblock-tags>
           <prblock-backlinks class="block relative">
@@ -643,7 +646,7 @@ mockup_section("Text"):
               <button class="block svg-icon w-4 h-4 bg-gray-300" style="-webkit-mask-image: url(icons/left.svg);"></button>
             </div>
           </prblock>
-        </papp-right-down>
+        </papp-right-up>
 
         <papp-right-down class="flex flex-col space-y-2 m-2">
 
@@ -655,7 +658,7 @@ mockup_section("Text"):
 
         </papp-right-down>
 
-      </div>
+      </papp-right>
 
     </papp>
 
@@ -683,13 +686,13 @@ mockup_section("Text"):
 
       </papp-left>
 
-      <div class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
+      <papp-right class="w-3/12 flex flex-col justify-between border-gray-300 border-l bg-slate-50 ">
+
+        <papp-right-up class="flex flex-col space-y-2 m-2"></papp-right-up>
 
         <papp-right-down class="flex flex-col space-y-2 m-2"></papp-right-down>
 
-        <papp-right-down class="flex flex-col space-y-2 m-2"></papp-right-down>
-
-      </div>
+      </papp-right>
 
     </papp>
 

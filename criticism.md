@@ -246,3 +246,10 @@ for examlpe for HTML building DSL.
 
 Templates are very fragile, should be used only minimally, tried to use it for HTML templating DSL
 tons of edge cases.
+
+Refusal from core team to improve it, like `do (x, y: auto) -> auto:` instead of `do (x, y):` and similar cases.
+
+Bad standard library, Nim tries to achieve top performance, and so many functions in standard
+library are more complicated than it could be if imlemented with overhead.
+
+No good and simple way to multicore, it can't share global variables like C, nor can it use alternative ways like Erlang actors. Also, even in its limited form it's not easy to use and requires to know things like `move` etc.

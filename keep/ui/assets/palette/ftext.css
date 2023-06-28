@@ -7,7 +7,7 @@
 .ftext a.link, .ftext a.glink { @apply text-blue-800; }
 
 .ftext a.tag {
-  @apply px-1; @apply rounded; @apply border; @apply text-blue-800; @apply bg-blue-100; @apply border-blue-100;
+  @apply px-1; @apply rounded; @apply border; @apply text-blue-800; @apply bg-blue-50; @apply border-blue-50;
 }
 
 .ftext > ul { @apply space-y-1; position: relative; left: 15px; margin-right: 15px; }
@@ -23,3 +23,8 @@
 }
 
 .card_fixed_height_image img { width:100%; height:100%; object-fit: cover; overflow: hidden; }
+
+@media print {
+  papp-left { width: 100% !important; }
+  papp-right { display: none !important; }
+}

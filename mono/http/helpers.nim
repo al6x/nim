@@ -39,6 +39,7 @@ proc default_html_page*(app_el: El, styles = seq[string].init, scripts = seq[str
         for style in styles:
           if style.is_style_link: el("link", (rel: "stylesheet", href: style))
           else:                   el("style", (html: style))
+        el("meta", (charset: "UTF-8"))
 
       el"body":
         it.add app_el
