@@ -27,11 +27,11 @@ proc render_home(self: AppView): El =
     let text = "config.home not defined, set it to id of a page you want to be used as a home page"
     el(PMessage, (text: text, top: true))
 
-proc render_filter(self: AppView, filter: Filter): El =
+proc render_filter(self: AppView, filter: Filter, page: int): El =
   proc set_location(l: Location) = self.location = l
   let query_input = self.get(QueryInput, (filter: filter, set_location: set_location))
-  if filter.query.is_empty: el(FilterView, (query_input: query_input))
-  else:                     el(SearchView, (query_input: query_input))
+  if filter.query.is_empty: el(FilterView, (query_input: query_input, page: page))
+  else:                     el(SearchView, (query_input: query_input, page: page))
 
 proc render_unknown(self: AppView): El =
   el("", (text: "Unknown page"))
@@ -42,7 +42,7 @@ proc render*(self: AppView): El =
   of LocationKind.home:   self.render_home
   of doc:                 self.render_doc(l.sid, l.did)
   of shortcut:            self.render_doc(l.did)
-  of LocationKind.filter: self.render_filter(self.location.filter)
+  of LocationKind.filter: self.render_filter(self.location.filter, self.location.page)
   of warns:               self.el(WarnsView, ())
   of unknown:             self.render_unknown
   of asset:               throw "asset should never happen in render"

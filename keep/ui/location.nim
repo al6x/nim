@@ -8,7 +8,9 @@ type Location* = object
   of home:     discard
   of doc:      discard # sid, did
   of shortcut: discard # sid
-  of filter:   filter*: Filter
+  of filter:
+    filter*: Filter
+    page*:   int
   of warns:    discard
   of asset:    asset*: string # sid, did
   of unknown:  url*: Url
@@ -22,7 +24,10 @@ proc to_url*(l: Location): Url =
   of home:     [].to_url
   of doc:      [l.sid, l.did].to_url
   of shortcut: [l.did].to_url
-  of filter:   l.filter.to_url
+  of filter:
+    var url = l.filter.to_url
+    if l.page > 1: url.params["page"] = l.page.to_s
+    url
   of warns:    ["warns"].to_url
   of asset:    ([l.sid, l.did] & l.asset.split("/")).to_url
   of unknown:  l.url
@@ -34,7 +39,7 @@ proc parse*(_: type[Location], u: Url): Location =
   if   u.path.len == 0:
     Location(kind: home)
   elif u.is_filter_url:
-    Location(kind: filter, filter: Filter.from_url(u))
+    Location(kind: filter, filter: Filter.from_url(u), page: int.parse(u.params.get("page", "1")))
   elif u.path.len == 1 and u.path[0] == "warns":
     Location(kind: warns)
   elif u.path.len == 1:
@@ -75,8 +80,8 @@ proc asset_url*(sid, did, asset: string): string =
   url.params["mono_id"] = mono_id
   url.to_s
 
-proc filter_url*(filter: Filter): string =
-  Location(kind: LocationKind.filter, filter: filter).to_s
+proc filter_url*(filter: Filter, page: int): string =
+  Location(kind: LocationKind.filter, filter: filter, page: page).to_s
 
 proc tag_url*(tag: string): string =
   ["tags", tag.to_lower].to_url.to_s

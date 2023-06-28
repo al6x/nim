@@ -347,3 +347,10 @@ proc copy*[V](list: seq[V]): seq[V] =
 
 proc any*(list: openarray[bool]): bool =
   list.any((v) => v)
+
+proc paginate*[T](list: openarray[T], page, per_page: int): seq[T] =
+  if list.is_empty: return
+  assert page > 0
+  let l = (page - 1) * per_page; assert l <= list.high
+  let h = min(list.high, page * per_page)
+  list[l..h]

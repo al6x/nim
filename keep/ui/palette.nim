@@ -35,6 +35,9 @@ proc PSymButton*(sym: char, size = "w-5 h-5", color = "gray-500"): El =
 proc PTextButton*(text: string, color = "text-blue-800"): El =
   el("button", (class: color, text: text))
 
+proc PTextLink*(text: string, color = "text-blue-800", url = "#"): El =
+  el("a", (class: color, text: text, href: url))
+
 type PMessageKind* = enum info, warn
 proc PMessage*(text: string, kind: PMessageKind = info, top = false): El =
   el("pmessage .block.p-2.rounded.bg-slate-50", (text: text)):
@@ -178,7 +181,7 @@ template pblock_layout*(
     # Should be the last one, otherwise the first element will have extra margin
     pblock_controls(controls, hover)
 
-# FBlocks ------------------------------------------------------------------------------------------
+# PBlocks ------------------------------------------------------------------------------------------
 proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)] =
   tags.map((tag) => (tag, (context.config.tag_path)(tag, context)))
 
@@ -195,6 +198,19 @@ proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[], hover 
   if blk of TextBlock or blk of ListBlock: tags = @[]
   pblock_layout(tname, blk.warns, controls, tags, hover):
     el(".ftext", (html: html))
+
+proc PPagination*(count, page, per_page: int, url: proc(n: int): string): El =
+  if count <= per_page: return list_el()
+  pblock_layout("pblock-pagination"):
+    el"":
+      let pages = (count/per_page).floor.int
+      if page <= pages:
+        let more = count - page * per_page
+        alter_el(el(PTextLink, (text: fmt"Next {more} →", url: url(page + 1))), it.class "block float-right")
+
+      let back_class = if page > 1: "block" else: "block hidden"
+      alter_el(el(PTextLink, (text: fmt"← Back", url: url(page - 1))), it.class back_class)
+
 
 # Search -------------------------------------------------------------------------------------------
 type PFoundItem* = tuple[before, match, after: string]
@@ -328,12 +344,7 @@ proc render_mockup: seq[El] =
       for i in 1..6:
         el(PFoundBlock, (title: "About Forex", matches: matches))
 
-      let more = 23
-      if more > 0:
-        pblock_layout("pblock-pagination"):
-          el"":
-            alter_el(el(PTextButton, (text: fmt"{more} more"))):
-              it.class "block float-right"
+      el(PPagination, (count: 200, page: 2, per_page: 30, url: (proc (page: int): string = page.to_s)))
 
   mockup_section("Note"):
     let right = els:

@@ -14,7 +14,7 @@ proc after_create*(self: QueryInput) =
 proc set_query*(self: QueryInput, q: string) =
   self.query  = q
   self.filter = Filter.parse(q)
-  self.set_location(Location(kind: filter, filter: self.filter))
+  self.set_location(Location(kind: filter, filter: self.filter, page: 1))
 
 proc render*(self: QueryInput): El =
   alter_el el(PSearchField, ()):
@@ -25,4 +25,4 @@ proc QueryInputWithRedirect*(set_location: proc(l: Location)): El =
   alter_el el(PSearchField, ()):
     it.value ""
     it.on_input proc (e: InputEvent) =
-      set_location Location(kind: filter, filter: Filter.parse(e.value))
+      set_location Location(kind: filter, filter: Filter.parse(e.value), page: 1)

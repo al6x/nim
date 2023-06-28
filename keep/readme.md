@@ -1,7 +1,5 @@
 # Todo
 
-- Add pagination to search and filter
-- Add doc title for search blocks
 - Turn alex/notes into space
 - Make video about parser FText
 - Search with blackjack and hookers, tags facets with stats, show query and chunk trigrams, don't do separate app, use with notes

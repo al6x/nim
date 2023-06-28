@@ -13,7 +13,7 @@ var db* {.threadvar.}: Db
 proc log*(db: Db): Log =
   Log.init("Db")
 
-proc init*(_: type[Db], config = Config()): Db =
+proc init*(_: type[Db], config = Config.init): Db =
   Db(config: config)
 
 proc non_processed_version*(db: Db): int =

@@ -5,8 +5,7 @@ proc safe_substring(s: string, l, h: int): string =
   assert l < h
   s[max(0, min(s.high, l))..min(s.high, max(0, h))]
 
-proc SearchView*(query_input: QueryInput): El =
-  let side_text_len = (db.config.text_around_match_len.get(200) / 2).ceil.int
+proc SearchView*(query_input: QueryInput, page: int): El =
   let tic = timer_ms()
   let filter = query_input.filter
   let query_ready = filter.query.len >= 3
@@ -25,13 +24,15 @@ proc SearchView*(query_input: QueryInput): El =
   let right_down = els:
     el(Warns, ())
 
+  let side_text_len = db.config.text_around_match_len; let per_page = db.config.per_page
+  proc page_url(page: int): string = filter_url(filter, page)
   let view =
     el(PApp, ( # App
       show_block_separator: true,
       title: "Found", title_hint: "",
       right: right, right_down: right_down
     )):
-      for (best_score, blk, blk_matches) in blocks: # Blocks
+      for (best_score, blk, blk_matches) in blocks.paginate(page = page, per_page = per_page): # Blocks
         var matches: seq[PFoundItem]
         for (score, l, h) in blk_matches:
           let before = blk.text.safe_substring(l - side_text_len, l - 1)
@@ -43,6 +44,8 @@ proc SearchView*(query_input: QueryInput): El =
           matches:  matches,
           url:      blk.short_url,
         ))
+
+      el(PPagination, (count: blocks.len, page: page, per_page: per_page, url: page_url))
 
   view.window_title "Search"
   view
