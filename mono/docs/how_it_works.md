@@ -43,7 +43,7 @@ Server, Nim:
   every_100ms      => unless session.outbox.is_empty: send it to Browser.
 
   # UI processing, see session.nim
-  every_100ms      => unless inbox.is_empty: session.outbox.add(session.process(session.inbox))
+  every_100ms      => unless session.inbox.is_empty: session.outbox.add(session.process(session.inbox))
 
 proc process(s: Session, in_events: seq[InEvent]): seq[OutEvent] = # see session.nim
   # Session has current UI tree, s.ui_tree. Actually 2 trees, Components tree, and HTML elements tree,
