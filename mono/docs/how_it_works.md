@@ -8,7 +8,7 @@ Browser got set of diffs to patch existing UI and updates it
 
 # In details
 
-Browser has tiny JS client, that listen on UI events and executes commands send from server.
+Browser has tiny JS client, it forwards UI events to Nim Server, and executes commands send back from Nim Server.
 
 ```Nim
 Browser, JS: # see mono.ts
