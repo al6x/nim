@@ -34,7 +34,7 @@ nimble install https://github.com/al6x/nim?subdir=mono
 nim r --experimental:overloadable_enums --threads:off todo.nim
 ```
 
-![](readme/todo.png)
+![](docs/todo.png)
 
 # Features
 

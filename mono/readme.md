@@ -4,7 +4,7 @@ Simple and clean code, fluid interactive UI, plain Nim C-runtime no need to comp
 
 Checkout [Twitter in 60 lines of Nim](mono/examples/twitter.nim) and [7min Video](https://www.youtube.com/watch?v=7Owct-njg0s)
 
-![](readme/twitter-small.png)
+![](docs/twitter-small.png)
 
 Run it
 
