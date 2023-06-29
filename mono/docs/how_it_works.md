@@ -2,9 +2,9 @@
 
 Browser listens to UI events and forwards it to server as `InEvent`.
 
-Server session maintains UI tree, and listens for events. And when get event - updates variables, executes listeners, calculates difference between new and old tree, and send set of diffs to Browser. All happens in `session.process(events: seq[InEvent]): seq[OutEvent]`.
+Server session maintains UI tree, and listens for events. And when get event - updates variables, executes listeners, calculates difference between new and old tree, and sends set of diffs to Browser. All happens in `session.process(events: seq[InEvent]): seq[OutEvent]`.
 
-Browser got set of diffs and patches existing UI to update it.
+Browser gets the set of diffs and patches existing UI to update it.
 
 # In details
 
