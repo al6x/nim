@@ -310,6 +310,9 @@ template els*(code): seq[El] =
 template list_el*(code): El =
   El(kind: ElKind.list, children: els(code))
 
+template list_el*(): El =
+  El(kind: ElKind.list)
+
 template add_or_return_el*(e_arg: El): auto =
   let e = e_arg
   assert not e.is_nil
