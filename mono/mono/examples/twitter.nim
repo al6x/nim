@@ -30,7 +30,7 @@ proc render(self: TwitterView): El =
   proc delete(i: int): auto =
     proc = self.db.messages.delete(i); self.db.save
 
-  el"app":
+  el("app", (window_title: fmt"{self.db.messages.len} messages")):
     for i, message in self.db.messages:
       capt i, message:
         if self.edit.is_some and i == self.edit.get[0]:

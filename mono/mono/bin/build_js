@@ -3,4 +3,4 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../browser" && pwd )"
 
 # deno bundle --config $DIR/tsconfig.json $DIR/mono.ts $DIR/mono.js
-tsc -p $DIR/tsconfig.json
+tsc -w -p $DIR/tsconfig.json
