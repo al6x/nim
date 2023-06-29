@@ -4,7 +4,7 @@ Simple and clean code, fluid interactive UI, plain Nim C-runtime no need to comp
 
 Checkout [Twitter Example](mono/examples/twitter.nim)
 
-![](readme/twitter-no-frame.png)
+![](readme/twitter-small.png)
 
 Run it as
 
