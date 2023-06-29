@@ -45,7 +45,7 @@ Use `import base/log; log_emitters.len = 0` to silence the default console logge
 - Reactive, like Svelte or React.
 - Stateful Components and bidirectional data binding.
 - Fast initial page load and SEO friendly.
-- Works on Nim Server, or Compile to JS in Browser.
+- Works on Nim Server, or (in next version) Compile to JS in Browser.
 - Support for Browser Title, Location, Favicon, Back/Forward Buttons.
 
 # Development and contributing
