@@ -62,6 +62,8 @@ Use `import base/log; log_emitters.len = 0` to silence the default console logge
 
 # Development and contributing
 
+Checkout [How it Works](docs/how_it_works.md).
+
 Checkout the repo, then run
 
 - `nim r --experimental:overloadable_enums --threads:off mono/test.nim test` for tests.
