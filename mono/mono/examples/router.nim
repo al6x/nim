@@ -1,3 +1,4 @@
+# Shows how to use routing, using blog as example
 import base, mono/core
 
 # Model --------------------------------------------------------------------------------------------
