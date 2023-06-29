@@ -40,22 +40,27 @@ type
 Server, Nim:
   # IO layer
   on_browser_event => session.inbox.add(in_event)
-  every_100ms      => check session.outbox queue, and send it to Browser.
+  every_100ms      => unless session.outbox.is_empty: send it to Browser.
 
   # UI processing, see session.nim
   every_100ms      => unless inbox.is_empty: session.outbox.add(session.process(session.inbox))
 
 proc process(s: Session, in_events: seq[InEvent]): seq[OutEvent] = # see session.nim
-  session has s.ui_tree (actually 2 trees, Components tree, and HTML elements tree)
+  # session has s.ui_tree (actually 2 trees, Components tree, and HTML elements tree)
+
+  # Updating state
   check if s.ui_tree has input/variable bindings that match in_events, and if so update variables
   check if s.ui_tree has action listener matching in_events, and if so execute it
+
+  # Rendering new UI based on the new State
   let new_ui_tree = s.root_component.render # see component.nim
 
   # Calculating efficient set of diffs, that should be applied to old tree to turn it into new tree
   let diffs = diff(s.ui_tree, new_ui_tree) # see diff.nim
-
   s.ui_tree = new_ui_tree
-  @[OutEvent(kind: update, diffs: diffs)] # sending set of diffs to Browser
+
+  # Storing diffs in out queue, that will be sent back to Browser
+  @[OutEvent(kind: update, diffs: diffs)]
 ```
 
 Take look at `session_test.nim` it tests this scenario.
