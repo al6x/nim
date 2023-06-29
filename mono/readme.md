@@ -2,7 +2,7 @@ Nim Web Framework
 
 Simple and clean code, fluid interactive UI, plain Nim C-runtime no need to compile to JS.
 
-Checkout [Twitter Example](mono/examples/twitter.nim)
+Checkout [Twitter in 60 lines of Nim](mono/examples/twitter.nim) and [7min Video](https://www.youtube.com/watch?v=7Owct-njg0s)
 
 ![](readme/twitter-small.png)
 
@@ -30,11 +30,15 @@ proc render(self: Hello): El =
 run_http_server(() => Hello())
 ```
 
-# Resources
+Mono allows structure UI code as atomic and reusable components, to see the difference, compare [Twitter](mono/examples/twitter.nim) and [Twitter version with Components](mono/examples/twitter_comp.nim).
 
-[Video Demo](https://www.youtube.com/watch?v=vjj0mZOh5h4) and [Todo](mono/examples/todo.nim) examples.
+# Install
 
-It's a component network, note the difference between the [Twitter Example](mono/examples/twitter.nim) and the same code structured as UI components [Twitter Comp](mono/examples/twitter_comp.nim).
+`nimble install https://github.com/al6x/nim?subdir=mono`
+
+Then run [Twitter Example](mono/examples/twitter.nim) and start experimenting.
+
+Use `import base/log; log_emitters.len = 0` to silence the default console logger.
 
 # Features
 
@@ -55,14 +59,6 @@ It's a component network, note the difference between the [Twitter Example](mono
 - Tag shortcut helps keep code small.
 - No wait for Nim compilation, plays well with Tailwind, autocomplete etc.
 - Context with `threadvar`.
-
-# Install
-
-`nimble install https://github.com/al6x/nim?subdir=mono`
-
-Then run [Todo Example](mono/examples/todo.nim) and start experimenting.
-
-Use `import base/log; log_emitters.len = 0` to silence the default console logger.
 
 # Development and contributing
 
