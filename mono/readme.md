@@ -30,7 +30,7 @@ proc render(self: Hello): El =
 run_http_server(() => Hello())
 ```
 
-Mono allows structure UI code as atomic and reusable components, to see the difference, compare [Twitter](mono/examples/twitter.nim) and version of [Twitter with Components](mono/examples/twitter_comp.nim). It has slightly more lines of code, but it pays for larger app.
+Mono allows structure UI code as atomic and reusable components. To see the difference, compare [Twitter](mono/examples/twitter.nim) and version of [Twitter with Components](mono/examples/twitter_comp.nim). It has slightly more lines of code, but it pays for larger app.
 
 # Install
 
