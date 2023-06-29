@@ -9,102 +9,61 @@ Unknown ^section
 
 Sci-Fi ^section
 
-Terminator 1 | img{terminator1} | #horror #fiction
-
+Terminator 1 | img{terminator1} | #fiction
 Terminator 2 | img{terminator2} | #fiction
-
 Matrix 1, 2 | img{matrix1} | #fiction
-
 Event Horizon | img{event-horizon} | #horror #fiction
-
 Pandorum | img{pandorum} | #horror #fiction
-
 Alien | img{alien} | #horror #fiction
-
 Aliens | img{aliens} | #horror #fiction
-
 The Thing 1 | img{the-thing-1} | #horror #fiction
-
 The Thing 2 | img{the-thing-2} | #horror #fiction
-
 Starship Troopers | img{starship-troopers} | #horror #fiction
-
-Silent Hill | img{silent-hill} | #horror
-
-Sleepy Hollow | img{sleepy-hollow} | #thriller
-
-From Hell | img{from-hell} | #thriller
-
-The Ninth Gate | img{the-ninth-gate} | #thriller
-
 The Mist | img{the-mist} | #thriller
-
 Doom Guy | img{doomguy} | #thriller
-
 War of the Worlds | img{war-of-the-worlds} | #fiction
-
 Constantine | img{constantine} | #thriller
-
 Chappie | img{chappie} | #fiction
-
 District 9 | img{district-9} | #fiction
-
 Limitless | img{limitless} | #fiction
-
 Dark City | img{dark-city} | #fiction
-
 The Predator 1, 2 | img{the-predator} | #fiction #thriller
-
 Minority Report | img{minority-report} | #fiction
-
 Upgrade 2018 | img{upgrade} | #fiction
-
-Quarantine 2008 | img{quarantine} | #horror
-
 Pitch Black | img{pitch-black} | #fiction
-
 Doom 2005 | img{doom} | #thriller
-
 Lost in Space 1998 | img{lost-in-space} | #fiction
-
 Resident Evil 2002 | img{resident-evil} | #fiction
-
 Screamers 1995 | img{screamers} | #fiction
-
 The 6th Day | img{the-6th-day} | #fiction
-
 Immortal 2004 | img{immortal} | #fiction
-
 Elysium 2013 | img{elysium} | #fiction
-
 The Island 2005 | img{the-island} | #fiction
-
 27 Weeks Later | img{27-weeks-later} | #thriller
-
-In the Mouth of Madness | img{in-the-mouth-of-madness} | #horror #thriller
-
 Source Code 2011 | img{source-code} | #fiction
-
 Вампиры Геоны 1991 | img{vampires-of-heon} | #fiction
-
 АМБА 1994 | img{amba} | #fiction
-
-Final Destination 1 2000 | img{final-destination} | #thriller
-
 City of Ember 2008 | img{city-of-ember} | #fiction
+
+^table style: cards
+
+Thrillers ^section
+
+In the Mouth of Madness | img{in-the-mouth-of-madness} | #horror
+Quarantine 2008 | img{quarantine} | #horror
+Sleepy Hollow | img{sleepy-hollow} | #thriller
+From Hell | img{from-hell} | #thriller
+The Ninth Gate | img{the-ninth-gate} | #thriller
+Final Destination 1 2000 | img{final-destination} | #thriller
 
 ^table style: cards
 
 Fantasy ^section
 
 The Brothers Grimm 2005 | img{the-brothers-grimm} | #fantasy
-
 Dracula 1992 | img{drakula} | #fantasy #thriller
-
 Hansel and Gretel 2013 | img{hansel-and-gretel} | #fantasy
-
 Van Helsing 2004 | img{van-helsing} | #fantasy
-
 300 2006 | img{300} | #fantasy #actionfight
 
 ^table style: cards
@@ -112,23 +71,14 @@ Van Helsing 2004 | img{van-helsing} | #fantasy
 Action ^section
 
 The Jackal 1997 | img{the-jackal} | #actionfight
-
 Hardcore Henry | img{hardcore-henry} | #actionfight
-
 Fight Club 1999 | img{fight-club} | #actionfight
-
 Lucky Number Slevin | img{lucky-number-slevin} | #actionfight
-
 The Bourne Legacy 2012 | img{bourne-legacy} | #actionfight
-
 Dobermann 1997 | img{dobermann} | #actionfight
-
 Sin City 2005 | img{sin-city} | #actionfight
-
 Nightcrawler 2014 | img{nightcrawler} | #actionfight #thriller
-
 Red Dragon 2002 | img{red-dragon} | #actionfight #thriller
-
 Face Off | img{face-off} | #actionfight
 
 ^table style: cards
@@ -136,35 +86,20 @@ Face Off | img{face-off} | #actionfight
 Comedy ^section
 
 Zombieland | img{zombieland} | #comedy #thriller
-
 Your Highness | img{your-highness} | #comedy
-
 Scarry Movies 1-4 | img{scary-movie} | #comedy
-
 City of Rott | img{city-of-rott} | #comedy #thriller
-
 Tucker & Dale vs. Evil | img{tucker-dale-vs-evil} | #comedy
-
 The Cabin in the Woods 2011 | img{the-cabin-in-the-woods} | #comedy #fantasy #thriller
-
 A Space Travesty 2001 | img{space-travesty} | #comedy #fiction
-
 Spaceballs 1997 | img{spaceballs} | #comedy #fiction
-
 American Pie 1, 2 | img{american-pie} | #comedy
-
 Dracula: Dead and Loving It | img{dracula-dead-and-loving-it} | #comedy
-
 The Silence of the Hams | img{the-silence-of-the-hams} | #comedy
-
 Fatal Instinct 1993 | img{fatal-instinct} | #comedy
-
 The Wolf of Wall Street | img{the-wolf-of-wall-street} | #comedy
-
 The Road to Wellville 1994 | img{the-road-to-wellville} | #comedy
-
 Human Traffic 1999 | img{human-traffic} | #comedy
-
 Young Frankenstein 1974 | img{young-frankenstein} | #comedy
 
 ^table style: cards
@@ -172,23 +107,18 @@ Young Frankenstein 1974 | img{young-frankenstein} | #comedy
 Drama ^section
 
 Knockin on Heaven's Door 1997 | img{knockin-on-heavens-door} | #drama
-
 Maleficent 2014 | img{maleficent} | #drama
-
 Angel Heart 1987 | img{angel-heart} | #thriller
-
 Once Upon a Time in America 1984 | img{once-upon-a-time-in-america} | #drama
-
 Click 2006 | img{click} | #drama
-
 Dogville 2003 | img{dogville} | #drama
+Silent Hill | img{silent-hill} | #thriller #drama
 
 ^table style: cards
 
 Serials ^section
 
 X-Files | img{x-files} | #fiction
-
 Lexx | img{lexx} | #fiction #comedy
 
 ^table style: cards
