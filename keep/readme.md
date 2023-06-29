@@ -1,5 +1,6 @@
 # Todo
 
+- Add time tag
 - Create search-playground
 - Turn alex/notes into space
 - Make video about parser FText
