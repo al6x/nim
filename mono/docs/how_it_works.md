@@ -49,11 +49,11 @@ proc process(s: Session, in_events: seq[InEvent]): seq[OutEvent] = # see session
   # Session has current UI tree, s.ui_tree. Actually 2 trees, Components tree, and HTML elements tree,
   # but for simplicity we pretent that there's just one tree.
 
-  # Updating state
+  # Updating State a) updating inputs (in-binding, inputs -> variables), and b) executing event listeners
   check if s.ui_tree has input/variable bindings that match in_events, and if so update variables
   check if s.ui_tree has action listener matching in_events, and if so execute it
 
-  # Rendering new UI based on the new State
+  # a) Rendering new UI based on the new State, and b) updating inputs (out-binding, variables -> inputs)
   let new_ui_tree = s.root_component.render # see component.nim
 
   # Calculating efficient set of diffs, that should be applied to old tree to turn it into new tree
