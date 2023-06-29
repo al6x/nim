@@ -42,8 +42,8 @@ Server, Nim:
   on_browser_event => session.inbox.add(in_event)
   every_100ms      => check session.outbox queue, and send it to Browser.
 
-  # UI processing
-  every_100ms      => session.outbox.add(session.process(session.inbox)) # see session.nim
+  # UI processing, see session.nim
+  every_100ms      => unless inbox.is_empty: session.outbox.add(session.process(session.inbox))
 
 proc process(s: Session, in_events: seq[InEvent]): seq[OutEvent] = # see session.nim
   session has s.ui_tree (actually 2 trees, Components tree, and HTML elements tree)
