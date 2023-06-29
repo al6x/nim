@@ -1,1 +1,1 @@
-- [mono](mono) Nim UI/Web/Desktop/Mobile Framework.
+- [mono](mono) Nim Web Framework.
