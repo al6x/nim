@@ -1,3 +1,4 @@
+# Display directory and file content
 import base, mono/[core, http]
 
 type Explorer = ref object of Component
