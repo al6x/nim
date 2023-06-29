@@ -2,18 +2,30 @@
 
 Browser listens to UI events and sends it to server as `InEvent`.
 
-Server session maintains UI tree, and listens for events, and when get event updates variables, executes listeners, calculates difference between new and old tree, and send set of diffs to Browser  `session.process(events: seq[InEvent]): seq[OutEvent]`
+Server session maintains UI tree, and listens for events. And when get event - updates variables, executes listeners, calculates difference between new and old tree, and send set of diffs to Browser. All happens in `session.process(events: seq[InEvent]): seq[OutEvent]`.
 
 Browser got set of diffs to patch existing UI and updates it
 
-In more details:
+# In details
+
+Browser has tiny JS client, that listen on UI events and executes commands send from server.
 
 ```Nim
-session.process(events: seq[InEvent]): seq[OutEvent]
+Browser, JS: # see mono.ts
+  document.on_any_ui_event     =>
+    encode it as InEvent and send to Nim Server
 
+  network.on_event_from_server =>
+    decode OutEvent and get set of diffs
+    apply diffs to current DOM to update it
+```
+
+Server maintains the actual UI, listens for events from Browser, executes UI actions, calculates set of diffs that
+should be sent to Browser to update old UI into new.
+
+```Nim
 type
   InEvent* = object # see component.nim
-    el*: seq[int]
     case kind*: InEventType
     of location: location*: Url
     of click:    click*: ClickEvent
@@ -24,14 +36,6 @@ type
   OutEvent* = object # see session.nim
     case kind*: OutEventKind
     of update:  diffs*: seq[Diff]
-
-Browser, JS: # see mono.ts
-  document.on_any_ui_event     =>
-    encode it as InEvent and send to Nim Server
-
-  network.on_event_from_server =>
-    decode OutEvent and get set of diffs
-    apply diffs to current DOM and update it
 
 Server, Nim:
   # IO layer
