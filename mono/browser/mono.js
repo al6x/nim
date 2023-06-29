@@ -359,18 +359,15 @@ class ApplyDiffImpl {
         this.flash_if_needed(el);
     }
     flash_if_needed(el) {
-        let flasheable = el; // Flashing self or parent element
-        while (flasheable) {
-            if (flasheable.hasAttribute("noflash")) {
-                flasheable = null;
+        while (el) {
+            if (el.hasAttribute("noflash"))
+                return;
+            if (el.hasAttribute("flash")) {
+                this.flash_els.add(el);
                 break;
             }
-            if (flasheable.hasAttribute("flash"))
-                break;
-            flasheable = flasheable.parentElement;
+            el = el.parentElement;
         }
-        if (flasheable)
-            this.flash_els.add(flasheable);
     }
 }
 // helpers -----------------------------------------------------------------------------------------
