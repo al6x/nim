@@ -2,9 +2,9 @@ Nim Web Framework
 
 Simple and clean code, fluid interactive UI, plain Nim C-runtime no need to compile to JS.
 
-Checkout [Twitter Example])(mono/examples/twitter.nim)
+Checkout [Twitter Example](mono/examples/twitter.nim)
 
-![](readme/twitter.png)
+![](readme/twitter-small.png)
 
 Run it as
 
