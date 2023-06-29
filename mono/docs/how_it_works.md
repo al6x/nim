@@ -1,10 +1,10 @@
 # How it works
 
-Browser listens to UI events and sends it to server as `InEvent`.
+Browser listens to UI events and forwards it to server as `InEvent`.
 
 Server session maintains UI tree, and listens for events. And when get event - updates variables, executes listeners, calculates difference between new and old tree, and send set of diffs to Browser. All happens in `session.process(events: seq[InEvent]): seq[OutEvent]`.
 
-Browser got set of diffs to patch existing UI and updates it
+Browser got set of diffs and patches existing UI to update it.
 
 # In details
 
@@ -63,5 +63,7 @@ proc process(s: Session, in_events: seq[InEvent]): seq[OutEvent] = # see session
   # Storing diffs in out queue, that will be sent back to Browser
   @[OutEvent(kind: update, diffs: diffs)]
 ```
+
+And there are couple of optimisations to make it more efficient, like skipping rendering in cases when we know there were no changes to UI state or DB state. Handlign DB state changes efficiently depends on concrete use case and usually requires some sort of versioning, to check quickly if DB data has changed.
 
 Take look at `session_test.nim` it tests this scenario.
