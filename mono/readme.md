@@ -6,14 +6,14 @@ Checkout [Twitter in 60 lines of Nim](mono/examples/twitter.nim) and [7min Video
 
 ![](readme/twitter-small.png)
 
-Run it as
+Run it
 
 ```
 nimble install https://github.com/al6x/nim?subdir=mono
 nim r --experimental:overloadable_enums --threads:off twitter.nim
 ```
 
-Or start with the Hello World, the form and greeting message will be updated dynamically:
+Or start with the [Hello Example](mono/examples/hello.nim), the form and greeting message will be updated dynamically:
 
 ```Nim
 import base, mono/[core, http]
@@ -36,7 +36,7 @@ Mono allows to structure UI code as atomic and reusable components. To see the d
 
 `nimble install https://github.com/al6x/nim?subdir=mono`
 
-Then run [Twitter Example](mono/examples/twitter.nim) and start experimenting.
+Then run [Hello Example](mono/examples/hello.nim) and start experimenting.
 
 Use `import base/log; log_emitters.len = 0` to silence the default console logger.
 
