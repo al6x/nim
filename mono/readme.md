@@ -50,27 +50,16 @@ Use `import base/log; log_emitters.len = 0` to silence the default console logge
 
 # Development and contributing
 
-Checkout [How it Works](docs/how_it_works.md).
+[How it Works](docs/how_it_works.md)
 
 Checkout the repo, then run
 
 - `nim r --experimental:overloadable_enums --threads:off mono/test.nim test` for tests.
 - `nim r --experimental:overloadable_enums --threads:off mono/examples/twitter.nim` for example.
 
-The whole library is just one function
+Transport Layer is replaceable, currently simple HTTP server used. It could be changed to different protocols, like WebSockets, with specific auth, load balancing and session management etc.
 
-```Nim
-let out: seq[OutEvent] = session.process(events: seq[InEvent])
-```
-
-Checkout [core](mono/core) and tests to see how it works.
-
-Other packages are adapters to connect that function to different environments like Browser or Server.
-And provide transport for messages, like HTTP. You could replace it with your own adapter and transport,
-like WebSocket.
-
-I use a simple HTTP server and not WebSocket, because I want to avoid dependencies and
-keep the code size small, to have fast Nim compilation. You can change that and rewrite server to use WebSocket.
+I use simple HTTP server and not WebSocket, because I want to avoid dependencies and keep the code size small, to have fast Nim compilation.
 
 # License
 
