@@ -66,6 +66,6 @@ proc process(s: Session, in_events: seq[InEvent]): seq[OutEvent] = # see session
   @[OutEvent(kind: update, diffs: diffs)]
 ```
 
-And there are couple of optimisations to make it more efficient, like throttling (batching actually) events and skipping rendering in cases when we know there were no changes to UI state or DB state. Handlign DB state depends on concrete use case and may require some sort of versioning, to check quickly if DB data has changed.
-
 Take look at `session_test.nim` it tests this scenario.
+
+And there are couple of optimisations to make it more efficient, like throttling (batching actually) events and skipping rendering in cases when we know there were no changes to UI state or DB state. Handlign DB state depends on concrete use case and may require some sort of versioning, to check quickly if DB data has changed.
