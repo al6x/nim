@@ -46,7 +46,8 @@ Server, Nim:
   every_100ms      => unless inbox.is_empty: session.outbox.add(session.process(session.inbox))
 
 proc process(s: Session, in_events: seq[InEvent]): seq[OutEvent] = # see session.nim
-  # session has s.ui_tree (actually 2 trees, Components tree, and HTML elements tree)
+  # Session has current UI tree, s.ui_tree. Actually 2 trees, Components tree, and HTML elements tree,
+  # but for simplicity we pretent that there's just one tree.
 
   # Updating state
   check if s.ui_tree has input/variable bindings that match in_events, and if so update variables
