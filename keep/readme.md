@@ -1,13 +1,14 @@
 # Todo
 
-- Add time tag
-- Create search-playground
 - Turn alex/notes into space
-- Make video about parser FText
-- Search with blackjack and hookers, tags facets with stats, show query and chunk trigrams, don't do separate app, use with notes
 
 # Lodo
 
+- Make video about parser FText
+- Add time tag
+- Search with blackjack and hookers, tags facets with stats, show query and chunk trigrams, don't do separate app, use with notes https://github.com/searchkit/searchkit/tree/main/sample-data
+- Display search for section/subsection as section/subsection with the next text item
+- on_timer executed every minute, needed for action
 - Add facets to search, display tags with 0 count as disabled, and for every tag display count, use larger size for
   tags with larger count. Split whole tags into 3 groups 0..max_count/3..max_count*2/3..max_count.
 - Add home icon at the right of the white page

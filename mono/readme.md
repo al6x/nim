@@ -57,9 +57,7 @@ Checkout the repo, then run
 - `nim r --experimental:overloadable_enums --threads:off mono/test.nim test` for tests.
 - `nim r --experimental:overloadable_enums --threads:off mono/examples/twitter.nim` for example.
 
-Transport Layer is replaceable, currently simple HTTP server used. It could be changed to different protocols, like WebSockets, with specific auth, and session management strategies, etc.
-
-I use simple HTTP server and not WebSocket, because I want to avoid dependencies and keep the code size small, to have fast Nim compilation.
+Transport Layer is replaceable, currently simple HTTP server used, I want to keep Mono core simple. It could be changed to different protocol, like WebSockets, with specific auth, and session management strategies, etc.
 
 # License
 
