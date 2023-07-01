@@ -2,6 +2,12 @@
 
 - Turn alex/notes into space
 
+# Bugs
+
+- External link doesn't work
+- Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
+- Search doesn't work for utf, russian chars
+
 # Lodo
 
 - Make video about parser FText
@@ -12,7 +18,6 @@
 - Add facets to search, display tags with 0 count as disabled, and for every tag display count, use larger size for
   tags with larger count. Split whole tags into 3 groups 0..max_count/3..max_count*2/3..max_count.
 - Add home icon at the right of the white page
-- Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
 - Categories - urgent, high, lindy, archive.
 - Display doc id and block id with gray color
 - Home page with readme
