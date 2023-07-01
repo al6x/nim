@@ -119,7 +119,7 @@ rm -rf ./nodem
 mv tmp/releases/nodem .
 
 git add .
-git commit -m "version $version"
+git commit -m "version $version $1"
 git push
 
 # Mergin to v3 -------------------------------------------------------------------------------------
