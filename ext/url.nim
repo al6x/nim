@@ -36,7 +36,7 @@ proc init*(_: type[Url], nuri: nurim.Uri): Url =
     if not k.is_empty and not v.is_empty:
       query[k] = v
   let is_full = nuri.hostname != ""
-  let path = nuri.path.split("/").reject((v) => v.is_empty)
+  let path = nurim.decode_url(nuri.path).split("/").reject((v) => v.is_empty)
   if is_full:
     let port_s = if nuri.port == "": "80" else: nuri.port
     Url.init(scheme = nuri.scheme, host = nuri.hostname, port = port_s.parse_int,
