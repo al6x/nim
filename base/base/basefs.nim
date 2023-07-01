@@ -36,18 +36,6 @@ proc open_file[T](path: string, ensure_parents: bool, mode: FileMode, cb: (proc 
   else:
     raise new_exception(IOError, "cannot open: " & path)
 
-
-proc move*(fs: FS, source, dest: string, ensure_parents = true): void =
-  try:
-    move_file(source, dest)
-  except Exception as e:
-    if ensure_parents and not dest.parent_dir.dir_exists:
-      dest.parent_dir.create_dir
-      move_file(source, dest)
-    else:
-      raise new_exception(IOError, fmt"cannot move: {source} to {dest}, {e.msg}")
-
-
 proc read*(fs: FS, path: string): string =
   open_file(path, false, fm_read, (file) => file.read_all)
 
@@ -150,16 +138,52 @@ proc delete*(fs: FS, path: string, recursive = false, delete_empty_parents = fal
   if delete_empty_parents and fs.is_empty_dir(path.parent_dir):
     fs.delete(path.parent_dir, recursive = false, delete_empty_parents = true)
 
+proc move*(fs: FS, source, dest: string, ensure_parents = true): void =
+  let move_fn = case fs.kind(source)
+  of file: move_file
+  of dir:  move_dir
+  try:
+    move_fn(source, dest)
+  except Exception as e:
+    if ensure_parents and not dest.parent_dir.dir_exists:
+      dest.parent_dir.create_dir
+      move_fn(source, dest)
+    else:
+      raise new_exception(IOError, fmt"cannot move: {source} to {dest}, {e.msg}")
+
+proc copy*(fs: FS, source, dest: string, ensure_parents = true): void =
+  let copy_fn = case fs.kind(source)
+  of file:
+    proc(source, dest: string) = copy_file(source, dest)
+  of dir:
+    proc(source, dest: string) = copy_dir(source, dest)
+  try:
+    copy_fn(source, dest)
+  except Exception as e:
+    if ensure_parents and not dest.parent_dir.dir_exists:
+      dest.parent_dir.create_dir
+      copy_fn(source, dest)
+    else:
+      raise new_exception(IOError, fmt"cannot copy: {source} to {dest}, {e.msg}")
 
 # Test ---------------------------------------------------------------------------------------------
 if is_main_module:
+  fs.delete("./tmp/fs", recursive = true)
+
   fs.write("./tmp/fs/some.txt", "some text")
   fs.append_line("./tmp/fs/some.txt", "line 1")
   fs.append_line("./tmp/fs/some.txt", "line 2")
+
   echo fs.read("./tmp/fs/some.txt")
   echo fs.read_dir("./tmp")
-  fs.move("./tmp/fs/some.txt", "./tmp/fs/some_dir/some.text")
-  fs.delete("./tmp/some_dir/some.text", delete_empty_parents = true)
+
+  fs.move("./tmp/fs/some.txt", "./tmp/fs/some_dir/some.txt")
+  fs.move("./tmp/fs/some_dir", "./tmp/fs/moved_dir")
+
+  fs.write("./tmp/fs/some_dir/some.txt", "some text")
+  fs.copy("./tmp/fs/some_dir/some.txt", "./tmp/fs/some_copy.txt")
+  fs.copy("./tmp/fs/some_dir", "./tmp/fs/copied_dir")
+
   echo "./tmp/fs/some.txt".file_name_ext
   echo "some.txt.zip".file_name_ext
 
