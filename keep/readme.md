@@ -1,6 +1,10 @@
 # Todo
 
+- Remove home from config
+- on_event actions stored as raw json
 - Turn alex/notes into space
+- Remove space, space is a tag
+- Introduce Obj, books,  for example
 
 # Bugs
 
@@ -48,6 +52,8 @@
 - Spaces have different colors of favicon, favicon set on top level compponent as window_icon
 - Hierarchical tags
 - Mozaic images gallery
+- Tricky problem, try renaming `seqm.paginate` to `seqm.page` and the keep would break because nim won't recognise
+  the `app_view.page` proc.
 
 # Notes
 
