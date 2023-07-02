@@ -126,11 +126,12 @@ function listen_to_dom_events() {
   let changed_inputs: { [k: string]: InEvent } = {} // Keeping track of changed inputs
 
   // Watching back and forward buttons
-  window.addEventListener('popstate', function(event) {
+  function on_popstate() {
     let { mono_root, mono_id } = get_main_mono_root()
     mono_root.setAttribute("skip_flash", "true") // Skipping flash on redirect, it's annoying
     post_event(mono_id, { kind: 'location', location: get_window_location(), el: [] })
-  })
+  }
+  window.addEventListener('popstate', on_popstate)
 
   async function on_click(raw_event: MouseEvent) {
     let el = raw_event.target as HTMLElement
@@ -145,15 +146,15 @@ function listen_to_dom_events() {
       history.pushState({}, "", location)
 
       get_mono_root(found.mono_id).setAttribute("skip_flash", "true") // Skipping flash on redirect, it's annoying
-      await post_event(found.mono_id, { kind: 'location', location, el: [] })
+      post_event(found.mono_id, { kind: 'location', location, el: [] })
     } else {
       // Click without redirect
       let found = find_el_with_listener(el, "on_click")
       if (!found) return
       raw_event.preventDefault()
-      await post_event(found.mono_id, { kind: 'click', el: found.path,
+      post_event(found.mono_id, { kind: 'click', el: found.path,
         event: { special_keys: get_keys(raw_event) }
-      })
+      }, found.immediate)
     }
   }
   document.body.addEventListener("click", on_click)
@@ -163,7 +164,7 @@ function listen_to_dom_events() {
     if (!found) return
     post_event(found.mono_id, { kind: 'dblclick', el: found.path,
       event: { special_keys: get_keys(raw_event) }
-    })
+    }, found.immediate)
   }
   document.body.addEventListener("dblclick", on_dblclick)
 
@@ -176,33 +177,32 @@ function listen_to_dom_events() {
 
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_keydown")
     if (!found) return
-    post_event(found.mono_id, { kind: 'keydown', el: found.path, event: keydown })
+    post_event(found.mono_id, { kind: 'keydown', el: found.path, event: keydown }, found.immediate)
   }
   document.body.addEventListener("keydown", on_keydown)
 
   async function on_change(raw_event: Event) {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_change")
     if (!found) return
-    post_event(found.mono_id, { kind: 'change', el: found.path, event: { stub: "" } })
+    post_event(found.mono_id, { kind: 'change', el: found.path, event: { stub: "" } }, found.immediate)
   }
   document.body.addEventListener("change", on_change)
 
   async function on_blur(raw_event: FocusEvent) {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_blur")
     if (!found) return
-    post_event(found.mono_id, { kind: 'blur', el: found.path, event: { stub: "" } })
+    post_event(found.mono_id, { kind: 'blur', el: found.path, event: { stub: "" } }, found.immediate)
   }
   document.body.addEventListener("blur", on_blur)
 
   async function on_input(raw_event: Event) {
-    let found = find_el_with_listener(raw_event.target as HTMLElement)
+    let found = find_el_with_listener(raw_event.target as HTMLElement, "on_input")
     if (!found) throw new Error("can't find element for input event")
 
     let input = raw_event.target! as HTMLInputElement
     let input_key = found.path.join(",")
     let in_event: InEvent = { kind: 'input', el: found.path, event: { value: get_value(input) } }
-
-    if (input.getAttribute("on_input") == "delay") {
+    if (!found.immediate) {
       // Performance optimisation, avoinding sending every change, and keeping only the last value
       changed_inputs[input_key] = in_event
     } else {
@@ -223,11 +223,13 @@ function listen_to_dom_events() {
 
   let post_batches: { [mono_id: string]: InEvent[] } = {} // Batching events to avoid multiple sends
   let batch_timeout: number | undefined = undefined
-  function post_event(mono_id: string, event: InEvent) {
+  function post_event(mono_id: string, event: InEvent, immediate = true) {
     if (!(mono_id in post_batches)) post_batches[mono_id] = []
     post_batches[mono_id].push(event)
-    if (batch_timeout != undefined) clearTimeout(batch_timeout)
-    batch_timeout = setTimeout(post_events, 1)
+    if (immediate) {
+      if (batch_timeout != undefined) clearTimeout(batch_timeout)
+      batch_timeout = setTimeout(post_events, 1)
+    }
   }
 
   async function post_events(): Promise<void> {
@@ -254,13 +256,17 @@ function listen_to_dom_events() {
 
 function find_el_with_listener(
   target: HTMLElement, listener: string | undefined = undefined
-): { mono_id: string, path: number[] } | undefined {
+): { mono_id: string, path: number[], immediate: boolean } | undefined {
   // Finds if there's element with specific listener
-  let path: number[] = [], current = target, el_with_listener_found = false
+  let path: number[] = [], current = target, el_with_listener_found = false, immediate = true
   while (true) {
-    el_with_listener_found = el_with_listener_found || (listener === undefined) || current.hasAttribute(listener)
+    if (!el_with_listener_found && ((listener === undefined) || current.hasAttribute(listener))) {
+      el_with_listener_found = true
+      if (listener !== undefined) immediate = current.getAttribute(listener) == "true"
+    }
+
     if (el_with_listener_found && current.hasAttribute("mono_id")) {
-      return { mono_id: current.getAttribute("mono_id")!, path }
+      return { mono_id: current.getAttribute("mono_id")!, path, immediate }
     }
     let parent = current.parentElement
     if (!parent) break
