@@ -101,7 +101,7 @@ function listen_to_dom_events() {
                 return;
             raw_event.preventDefault();
             await post_event(found.mono_id, { kind: 'click', el: found.path,
-                click: { special_keys: get_keys(raw_event) }
+                event: { special_keys: get_keys(raw_event) }
             });
         }
     }
@@ -111,7 +111,7 @@ function listen_to_dom_events() {
         if (!found)
             return;
         post_event(found.mono_id, { kind: 'dblclick', el: found.path,
-            dblclick: { special_keys: get_keys(raw_event) }
+            event: { special_keys: get_keys(raw_event) }
         });
     }
     document.body.addEventListener("dblclick", on_dblclick);
@@ -124,21 +124,21 @@ function listen_to_dom_events() {
         let found = find_el_with_listener(raw_event.target, "on_keydown");
         if (!found)
             return;
-        post_event(found.mono_id, { kind: 'keydown', el: found.path, keydown });
+        post_event(found.mono_id, { kind: 'keydown', el: found.path, event: keydown });
     }
     document.body.addEventListener("keydown", on_keydown);
     async function on_change(raw_event) {
         let found = find_el_with_listener(raw_event.target, "on_change");
         if (!found)
             return;
-        post_event(found.mono_id, { kind: 'change', el: found.path, change: { stub: "" } });
+        post_event(found.mono_id, { kind: 'change', el: found.path, event: { stub: "" } });
     }
     document.body.addEventListener("change", on_change);
     async function on_blur(raw_event) {
         let found = find_el_with_listener(raw_event.target, "on_blur");
         if (!found)
             return;
-        post_event(found.mono_id, { kind: 'blur', el: found.path, blur: { stub: "" } });
+        post_event(found.mono_id, { kind: 'blur', el: found.path, event: { stub: "" } });
     }
     document.body.addEventListener("blur", on_blur);
     async function on_input(raw_event) {
@@ -147,7 +147,7 @@ function listen_to_dom_events() {
             throw new Error("can't find element for input event");
         let input = raw_event.target;
         let input_key = found.path.join(",");
-        let in_event = { kind: 'input', el: found.path, input: { value: get_value(input) } };
+        let in_event = { kind: 'input', el: found.path, event: { value: get_value(input) } };
         if (input.getAttribute("on_input") == "delay") {
             // Performance optimisation, avoinding sending every change, and keeping only the last value
             changed_inputs[input_key] = in_event;

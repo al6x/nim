@@ -93,7 +93,7 @@ proc render*(self: TodoView): El =
       it.window_title fmt"Todo, {active_count} left" # Feature: setting window title
       el("h1", (text: "todos"))
       el("input.new-todo autofocus", (placeholder: "What needs to be done?")):
-        it.bind_to(self.new_todo, true)
+        it.bind_to(self.new_todo, false)
         it.on_keydown(create_new)
 
       if not self.todo.items.is_empty:

@@ -14,12 +14,12 @@ interface InputEvent   { value: string }
 
 type InEvent =
   { kind: 'location', el: number[], location: string } | // el not needed for location but Nim requires it.
-  { kind: 'click',    el: number[], click:    ClickEvent } |
-  { kind: 'dblclick', el: number[], dblclick: ClickEvent } |
-  { kind: 'keydown',  el: number[], keydown:  KeydownEvent } |
-  { kind: 'change',   el: number[], change:   ChangeEvent } |
-  { kind: 'blur',     el: number[], blur:     BlurEvent } |
-  { kind: 'input',    el: number[], input:    InputEvent }
+  { kind: 'click',    el: number[], event: ClickEvent } |
+  { kind: 'dblclick', el: number[], event: ClickEvent } |
+  { kind: 'keydown',  el: number[], event: KeydownEvent } |
+  { kind: 'change',   el: number[], event: ChangeEvent } |
+  { kind: 'blur',     el: number[], event: BlurEvent } |
+  { kind: 'input',    el: number[], event: InputEvent }
 
 type OutEvent =
   { kind: 'eval',   code: string } |
@@ -152,7 +152,7 @@ function listen_to_dom_events() {
       if (!found) return
       raw_event.preventDefault()
       await post_event(found.mono_id, { kind: 'click', el: found.path,
-        click: { special_keys: get_keys(raw_event) }
+        event: { special_keys: get_keys(raw_event) }
       })
     }
   }
@@ -162,7 +162,7 @@ function listen_to_dom_events() {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_dblclick")
     if (!found) return
     post_event(found.mono_id, { kind: 'dblclick', el: found.path,
-      dblclick: { special_keys: get_keys(raw_event) }
+      event: { special_keys: get_keys(raw_event) }
     })
   }
   document.body.addEventListener("dblclick", on_dblclick)
@@ -176,21 +176,21 @@ function listen_to_dom_events() {
 
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_keydown")
     if (!found) return
-    post_event(found.mono_id, { kind: 'keydown', el: found.path, keydown })
+    post_event(found.mono_id, { kind: 'keydown', el: found.path, event: keydown })
   }
   document.body.addEventListener("keydown", on_keydown)
 
   async function on_change(raw_event: Event) {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_change")
     if (!found) return
-    post_event(found.mono_id, { kind: 'change', el: found.path, change: { stub: "" } })
+    post_event(found.mono_id, { kind: 'change', el: found.path, event: { stub: "" } })
   }
   document.body.addEventListener("change", on_change)
 
   async function on_blur(raw_event: FocusEvent) {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_blur")
     if (!found) return
-    post_event(found.mono_id, { kind: 'blur', el: found.path, blur: { stub: "" } })
+    post_event(found.mono_id, { kind: 'blur', el: found.path, event: { stub: "" } })
   }
   document.body.addEventListener("blur", on_blur)
 
@@ -200,7 +200,7 @@ function listen_to_dom_events() {
 
     let input = raw_event.target! as HTMLInputElement
     let input_key = found.path.join(",")
-    let in_event: InEvent = { kind: 'input', el: found.path, input: { value: get_value(input) } }
+    let in_event: InEvent = { kind: 'input', el: found.path, event: { value: get_value(input) } }
 
     if (input.getAttribute("on_input") == "delay") {
       // Performance optimisation, avoinding sending every change, and keeping only the last value

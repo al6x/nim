@@ -17,6 +17,10 @@
 - Browser Adapter with multiple widgets in the page and interactive charts.
 - Better Async/Actor/Networking code.
 - Slots for templates
+- Add on_focus, on_drag, on_drop, on_keypress, on_keyup
+- In bind_to, use JSON instead of string serialisation
+- Move normalisation and `value` setting to JS, remove SEO friendliness.
+- If evnet hanlders has render=false, optimise networking and don't sent event from browser, instead accumulate it and send all on next event.
 
 # Ideas
 
