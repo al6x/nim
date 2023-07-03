@@ -48,6 +48,10 @@ Use `import base/log; log_emitters.len = 0` to silence the default console logge
 - Works on Nim Server, or (in next version) Compile to JS in Browser.
 - Support for Browser Title, Location, Favicon, Back/Forward Buttons.
 
+# Docs
+
+- [Templates](mono/docs/templates.md)
+
 # Development and contributing
 
 [How it Works](docs/how_it_works.md)

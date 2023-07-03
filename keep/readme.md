@@ -14,6 +14,7 @@
 
 # Lodo
 
+- Change block.to_html, return El, not html_string
 - Make video about parser FText
 - Add time tag
 - Search with blackjack and hookers, tags facets with stats, show query and chunk trigrams, don't do separate app, use with notes https://github.com/searchkit/searchkit/tree/main/sample-data
