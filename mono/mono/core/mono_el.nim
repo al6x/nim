@@ -60,7 +60,7 @@ proc extras_get*(self: El): MonoElExtras =
 
 proc on*(self: El, event: string, handler: proc(event: JsonNode), render = true) =
   if self.extras.is_none: self.extras = MonoElExtras().ElExtras.some
-  self.attr("on_" & event, render)
+  self.attr("on_" & event, if render: "immediate" else: "defer")
   let handlers = self.extras.get.MonoElExtras.handlers
   self.extras.get.MonoElExtras.handlers[event] = handlers.get(event, @[]) & @[(handler, render).MonoHandler]
 

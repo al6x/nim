@@ -82,7 +82,7 @@ function listen_to_dom_events() {
     async function on_click(raw_event) {
         let el = raw_event.target;
         // The `getAttribute` should be used, not `el.href` as in case of `#` it would return current url with `#`.
-        let location = "" + el.getAttribute("href");
+        let location = el.getAttribute("href") || "";
         if (location == get_window_location())
             return;
         if (el.tagName.toLowerCase() == "a" && location != "" && location != "#") {
@@ -213,7 +213,7 @@ function find_el_with_listener(target, listener = undefined) {
         if (!el_with_listener_found && ((listener === undefined) || current.hasAttribute(listener))) {
             el_with_listener_found = true;
             if (listener !== undefined)
-                immediate = current.getAttribute(listener) == "true";
+                immediate = current.getAttribute(listener) == "immediate";
         }
         if (el_with_listener_found && current.hasAttribute("mono_id")) {
             return { mono_id: current.getAttribute("mono_id"), path, immediate };

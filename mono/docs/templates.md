@@ -26,7 +26,7 @@ test "el, basics":
 Stateful Component, same `el` template also used for high-level Components
 
 ```Nim
-test "el stateful component":
+test "el, stateful component":
   type Panel = ref object of Component
     color: string
   proc render(self: Panel, content: seq[El]): El = # Feature: render can have optional arg `content`
@@ -51,10 +51,10 @@ test "el stateful component":
   """.dedent.trim
 ```
 
-Stateless Component, there's simple version of omponent, when you don't need the state, proc could be used, but it will be stateless:
+Stateless Component, there's simple version of component, when you don't need the state, proc could be used, but it will be stateless:
 
 ```Nim
-test "el proc component":
+test "el, proc component":
   proc Button(color: string): El =
     el(fmt"button .{color}")
 

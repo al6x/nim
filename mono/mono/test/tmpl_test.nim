@@ -14,7 +14,7 @@ test "el html":
     </ul>
   """.dedent.trim
 
-test "el stateful component":
+test "el, stateful component":
   type Panel = ref object of Component
     color: string
   proc render(self: Panel, content: seq[El]): El = # Feature: render can have optional arg `content`
@@ -38,7 +38,7 @@ test "el stateful component":
     </app>
   """.dedent.trim
 
-test "el proc component":
+test "el, proc component":
   proc Button(color: string): El =
     el(fmt"button .{color}")
 
