@@ -1,4 +1,4 @@
-The `el` template used to build HTML:
+Basic HTML elements:
 
 ```Nim
 test "el, basics":
@@ -23,7 +23,7 @@ test "el, basics":
     </div>""".dedent
 ```
 
-Same `el` template also used for high-level Components
+Stateful Component, same `el` template also used for high-level Components
 
 ```Nim
 test "el stateful component":
@@ -51,8 +51,7 @@ test "el stateful component":
   """.dedent.trim
 ```
 
-There's simple version of Component, when you don't need the State, to simplify the code the
-proc could be used as Component, but it will be stateless:
+Stateless Component, there's simple version of omponent, when you don't need the state, proc could be used, but it will be stateless:
 
 ```Nim
 test "el proc component":
