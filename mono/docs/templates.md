@@ -1,19 +1,31 @@
-import base, ../core/[component, mono_el, tmpl]
+The `el` template used to build HTML:
 
-test "el html":
-  let tmpl = el"ul.c1":
-    for text in @["t1"]:
-      el"li.c2":
-        it.class "c3" # Feature: setting attribute using `it`
-        it.text text
-        it.on_click(proc (e: auto) = discard)
+```Nim
+test "el, basics":
+  check:
+    el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
+    el("ul.todos", (class: "editing")).to_html  == """<ul class="todos editing"></ul>"""
+    el("ul.todos", (class: "a"), it.class("b")).to_html == """<ul class="todos a b"></ul>"""
+    el("", (style: (bg_color: "block"))).to_html == """<div style="bg-color: block;"></div>"""
+
+  let tmpl =
+    el".parent":
+      el".counter":
+        el("input type=text", (value: "some"))
+        el("button", (text: "+"))
 
   check tmpl.to_html == """
-    <ul class="c1">
-      <li class="c2 c3" on_click="true">t1</li>
-    </ul>
-  """.dedent.trim
+    <div class="parent">
+      <div class="counter">
+        <input type="text" value="some"></input>
+        <button>+</button>
+      </div>
+    </div>""".dedent
+```
 
+Same `el` template also used for high-level Components
+
+```Nim
 test "el stateful component":
   type Panel = ref object of Component
     color: string
@@ -37,7 +49,12 @@ test "el stateful component":
       </panel>
     </app>
   """.dedent.trim
+```
 
+There's simple version of Component, when you don't need the State, to simplify the code the
+proc could be used as Component, but it will be stateless:
+
+```Nim
 test "el proc component":
   proc Button(color: string): El =
     el(fmt"button .{color}")
@@ -77,22 +94,4 @@ test "el proc component":
       </layout>
     </app>
   """.dedent.trim
-
-test "nesting, from error":
-  proc Panel1(content: seq[El]): El =
-    el"panel":
-      it.add content
-
-  proc App1(): El =
-    el(Panel1, ()):
-      el"list":
-        el"list-item"
-
-  let root_el = el(App1, ())
-  check root_el.to_html == """
-    <panel>
-      <list>
-        <list-item></list-item>
-      </list>
-    </panel>
-  """.dedent.trim
+```

@@ -35,7 +35,7 @@ proc render(self: TwitterView): El =
       capt i, message:
         if self.edit.is_some and i == self.edit.get[0]:
           el"form.edit_form":
-            el("textarea", it.bind_to(self.edit.get[1]))
+            el("textarea", it.bind_to(self.edit.get[1], false))
             el("button", (text: "Cancel"), it.on_click(proc = self.edit.clear))
             el("button.primary", (text: "Update"), it.on_click(update))
         else:
@@ -44,7 +44,7 @@ proc render(self: TwitterView): El =
             el("button", (text: "Delete"), it.on_click(delete(i)))
             el("button", (text: "Edit"), it.on_click(proc = self.edit = (i, message.text).some))
     el"form.add_form":
-      el("textarea", (placeholder: "Write something..."), it.bind_to(self.add))
+      el("textarea", (placeholder: "Write something..."), it.bind_to(self.add, false))
       el("button.primary", (text: "Add"), it.on_click(add))
 
 # Deployment ---------------------------------------------------------------------------------------

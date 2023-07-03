@@ -13,7 +13,7 @@ proc init(_: type[Counter]): Counter =
 proc render(self: Counter): El =
   el".counter":
     el"input type=text":
-      it.bind_to(self.a, true) # skipping render on input change
+      it.bind_to(self.a, false) # skipping render on input change
     el"input type=text":
       it.bind_to(self.b)
     el("button", (text: "+")):
@@ -31,14 +31,14 @@ test "counter":
   session.id = "mid"
 
   block: # Rendering initial HTML
-    session.inbox = @[InEvent(kind: location, location: Url.init("/"))]
+    session.inbox = @[(kind: "location", location: Url.init("/")).LocationInEvent.to_json]
     check:
       session.process == true
       session.el.get.to_html == """
         <div class="parent" mono_id="mid">
           <div class="counter">
-            <input type="text" value="a1"></input>
-            <input type="text" value="b1"></input>
+            <input on_input="false" type="text" value="a1"></input>
+            <input on_input="true" type="text" value="b1"></input>
             <button on_click="true">+</button>
             <div>a1 b1 0</div>
           </div>
@@ -46,14 +46,14 @@ test "counter":
       """.dedent.trim
 
   block: # Changing input, without render
-    session.inbox = @[InEvent(kind: input, el: @[0, 0], input: InputEvent(value: "a2"))]
+    session.inbox = @[(kind: "input", el: @[0, 0], event: InputEvent(value: "a2").to_json).OtherInEvent.to_json]
     session.outbox.clear
     check:
       session.process == false # the input changed, but the render will be skipped
       session.app.children["Counter/counter"].Counter.a == "a2" # binded variable shold be updated
 
   block: # Changing input, with render
-    session.inbox = @[InEvent(kind: input, el: @[0, 1], input: InputEvent(value: "b2"))]
+    session.inbox = @[(kind: "input", el: @[0, 1], event: InputEvent(value: "b2").to_json).OtherInEvent.to_json]
     session.outbox.clear
     check:
       session.process == true
@@ -63,7 +63,7 @@ test "counter":
       ]}]
 
   block: # Clicking on button, with render
-    session.inbox = @[InEvent(kind: click, el: @[0, 2], click: ClickEvent())]
+    session.inbox = @[(kind: "click", el: @[0, 2], event: ClickEvent().to_json).OtherInEvent.to_json]
     session.outbox.clear
     check:
       session.process == true

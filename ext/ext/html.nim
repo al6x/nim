@@ -335,26 +335,28 @@ template el*(html: string): auto =
   add_or_return_el build_el(html)
 
 test "el, basics":
-  check el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
-  check el("ul.todos", (class: "editing")).to_html  == """<ul class="todos editing"></ul>"""
-  check el("ul.todos", (class: "a"), it.class("b")).to_html == """<ul class="todos a b"></ul>"""
-  check el("", (style: (bg_color: "block"))).to_html == """<div style="bg-color: block;"></div>"""
+  check:
+    el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
+    el("ul.todos", (class: "editing")).to_html  == """<ul class="todos editing"></ul>"""
+    el("ul.todos", (class: "a"), it.class("b")).to_html == """<ul class="todos a b"></ul>"""
+    el("", (style: (bg_color: "block"))).to_html == """<div style="bg-color: block;"></div>"""
 
-  discard els(el("a", el("b"))) # should work
-
-  let h =
+  let tmpl =
     el".parent":
       el".counter":
         el("input type=text", (value: "some"))
         el("button", (text: "+"))
-  let html = """
+
+  check tmpl.to_html == """
     <div class="parent">
       <div class="counter">
         <input type="text" value="some"></input>
         <button>+</button>
       </div>
     </div>""".dedent
-  check h.to_html == html
+
+test "els":
+  discard els(el("a", el("b"))) # should work
 
 # normalize ----------------------------------------------------------------------------------------
 proc normalize*(el: El, update: bool): (El, OrderedTable[string, ElAttrVal]) =

@@ -25,7 +25,7 @@ proc handle_app_load[T](req: Request, sessions: Sessions[T], url: Url, build_app
   session.log.info "created"
 
   # Location event
-  let location = InEvent(kind: location, location: url)
+  let location = (kind: "location", location: url).LocationInEvent.to_json
   session.inbox.add location
   session.log.with((location: url)).info "<<"
 

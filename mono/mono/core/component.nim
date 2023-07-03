@@ -4,23 +4,14 @@ import ./mono_el, ./macro_helpers
 export macro_helpers
 
 type
-  InEventType* = enum location, click, dblclick, keydown, change, blur, input, timer
-
-  InEvent* = object
-    el*: seq[int]
-    case kind*: InEventType
-    of location: location*: Url
-    of click:    click*: ClickEvent
-    of dblclick: dblclick*: ClickEvent
-    of keydown:  keydown*: KeydownEvent
-    of change:   change*: ChangeEvent
-    of blur:     blur*: BlurEvent
-    of input:    input*: InputEvent
-    of timer:    discard # Triggered periodically, to check and pick any background changes in state
-
   Component* = ref object of RootObj
     children*:      Table[string, Component]
     children_built: HashSet[string] # Needed to track and destroy old children
+
+  InEvent* = JsonNode
+  LocationInEvent* = tuple[kind: string, location: Url]
+  TimerInEvent*    = tuple[kind: string]
+  OtherInEvent*    = tuple[kind: string, el: seq[int], event: JsonNode]
 
 method before_destroy*(self: Component) {.base.} =
   discard
@@ -39,56 +30,26 @@ proc set_location[T: Component](component: T, location: Url): bool =
   else:
     false
 
-template process_in_event[T: Component](self: T, current_tree: Option[El], event: InEvent): bool =
-  template if_handler_found(handler_name, code: untyped): bool =
-    assert current_tree.is_some, "UI tree should be present at this stage"
-    let el = current_tree.get.get event.el
-    if el.extras.is_some and el.extras_get.`handler_name`.is_some:
-      let handler {.inject.} = el.extras_get.`handler_name`.get
-      code
-      true
-    else:
-      false
-
-  let state_changed_maybe = case event.kind
-  of location:
-    set_location(self, event.location)
-  of click:
-    if_handler_found on_click, handler(event.click)
-  of dblclick:
-    if_handler_found on_dblclick, handler(event.dblclick)
-  of keydown:
-    if_handler_found on_keydown, handler(event.keydown)
-  of change:
-    if_handler_found on_change, handler(event.change)
-  of blur:
-    if_handler_found on_blur, handler(event.blur)
-  of input:
-    # Setting value on binded variable
-    let render_for_input_change = block:
-      assert current_tree.is_some, "UI tree should be present at this stage"
-      let el = current_tree.get.get event.el
-      if el.extras.is_some and el.extras_get.set_value.is_some:
-        let set_value = el.extras_get.set_value.get
-        set_value.handler event.input.value
-        not set_value.delay
-      else:
-        false
-
-    let render_for_input_handler = if_handler_found on_input:
-      handler event.input
-
-    render_for_input_change or render_for_input_handler
-  of timer:
+proc process_in_event[T: Component](self: T, current_tree: Option[El], raw_event: InEvent): bool =
+  let kind = raw_event["kind"].get_str
+  case kind
+  of "location":
+    set_location(self, raw_event.json_to(LocationInEvent).location)
+  of "timer":
     when compiles(self.on_timer): self.on_timer
     else:                         true
+  else:
+    let event = raw_event.json_to OtherInEvent
+    let el = current_tree.ensure("UI tree should be present at this stage").get event.el
+    let el_handlers = el.extras.ensure("element expected to have handlers").MonoElExtras.handlers
+    let handlers: seq[MonoHandler] = el_handlers.ensure(kind, "element expected to have handler " & kind)
+    for (handler, _) in handlers: handler(event.event)
+    handlers.anyit(it.render)
 
-  when compiles(self.after_in_event(event)):
-    # Could be needed to update location that depends on input, after the input event.
-    # For example, search input, also changes location, and location used in router during rendering.
-    if state_changed_maybe: self.after_in_event(event)
-
-  state_changed_maybe
+  # when compiles(self.after_in_event(event)):
+  #   # Could be needed to update location that depends on input, after the input event.
+  #   # For example, search input, also changes location, and location used in router during rendering.
+  #   if state_changed_maybe: self.after_in_event(event)
 
 proc process*[T: Component](self: T, current_el: Option[El], events: openarray[InEvent]): Option[El] =
   let state_changed_maybe = events.mapit(self.process_in_event(current_el, it)).any

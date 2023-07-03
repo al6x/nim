@@ -73,11 +73,12 @@ async function pull(mono_id) {
 function listen_to_dom_events() {
     let changed_inputs = {}; // Keeping track of changed inputs
     // Watching back and forward buttons
-    window.addEventListener('popstate', function (event) {
+    function on_popstate() {
         let { mono_root, mono_id } = get_main_mono_root();
         mono_root.setAttribute("skip_flash", "true"); // Skipping flash on redirect, it's annoying
         post_event(mono_id, { kind: 'location', location: get_window_location(), el: [] });
-    });
+    }
+    window.addEventListener('popstate', on_popstate);
     async function on_click(raw_event) {
         let el = raw_event.target;
         // The `getAttribute` should be used, not `el.href` as in case of `#` it would return current url with `#`.
@@ -92,7 +93,7 @@ function listen_to_dom_events() {
             raw_event.preventDefault();
             history.pushState({}, "", location);
             get_mono_root(found.mono_id).setAttribute("skip_flash", "true"); // Skipping flash on redirect, it's annoying
-            await post_event(found.mono_id, { kind: 'location', location, el: [] });
+            post_event(found.mono_id, { kind: 'location', location, el: [] });
         }
         else {
             // Click without redirect
@@ -100,9 +101,9 @@ function listen_to_dom_events() {
             if (!found)
                 return;
             raw_event.preventDefault();
-            await post_event(found.mono_id, { kind: 'click', el: found.path,
-                click: { special_keys: get_keys(raw_event) }
-            });
+            post_event(found.mono_id, { kind: 'click', el: found.path,
+                event: { special_keys: get_keys(raw_event) }
+            }, found.immediate);
         }
     }
     document.body.addEventListener("click", on_click);
@@ -111,8 +112,8 @@ function listen_to_dom_events() {
         if (!found)
             return;
         post_event(found.mono_id, { kind: 'dblclick', el: found.path,
-            dblclick: { special_keys: get_keys(raw_event) }
-        });
+            event: { special_keys: get_keys(raw_event) }
+        }, found.immediate);
     }
     document.body.addEventListener("dblclick", on_dblclick);
     async function on_keydown(raw_event) {
@@ -124,31 +125,31 @@ function listen_to_dom_events() {
         let found = find_el_with_listener(raw_event.target, "on_keydown");
         if (!found)
             return;
-        post_event(found.mono_id, { kind: 'keydown', el: found.path, keydown });
+        post_event(found.mono_id, { kind: 'keydown', el: found.path, event: keydown }, found.immediate);
     }
     document.body.addEventListener("keydown", on_keydown);
     async function on_change(raw_event) {
         let found = find_el_with_listener(raw_event.target, "on_change");
         if (!found)
             return;
-        post_event(found.mono_id, { kind: 'change', el: found.path, change: { stub: "" } });
+        post_event(found.mono_id, { kind: 'change', el: found.path, event: { stub: "" } }, found.immediate);
     }
     document.body.addEventListener("change", on_change);
     async function on_blur(raw_event) {
         let found = find_el_with_listener(raw_event.target, "on_blur");
         if (!found)
             return;
-        post_event(found.mono_id, { kind: 'blur', el: found.path, blur: { stub: "" } });
+        post_event(found.mono_id, { kind: 'blur', el: found.path, event: { stub: "" } }, found.immediate);
     }
     document.body.addEventListener("blur", on_blur);
     async function on_input(raw_event) {
-        let found = find_el_with_listener(raw_event.target);
+        let found = find_el_with_listener(raw_event.target, "on_input");
         if (!found)
             throw new Error("can't find element for input event");
         let input = raw_event.target;
         let input_key = found.path.join(",");
-        let in_event = { kind: 'input', el: found.path, input: { value: get_value(input) } };
-        if (input.getAttribute("on_input") == "delay") {
+        let in_event = { kind: 'input', el: found.path, event: { value: get_value(input) } };
+        if (!found.immediate) {
             // Performance optimisation, avoinding sending every change, and keeping only the last value
             changed_inputs[input_key] = in_event;
         }
@@ -172,13 +173,15 @@ function listen_to_dom_events() {
     }
     let post_batches = {}; // Batching events to avoid multiple sends
     let batch_timeout = undefined;
-    function post_event(mono_id, event) {
+    function post_event(mono_id, event, immediate = true) {
         if (!(mono_id in post_batches))
             post_batches[mono_id] = [];
         post_batches[mono_id].push(event);
-        if (batch_timeout != undefined)
-            clearTimeout(batch_timeout);
-        batch_timeout = setTimeout(post_events, 1);
+        if (immediate) {
+            if (batch_timeout != undefined)
+                clearTimeout(batch_timeout);
+            batch_timeout = setTimeout(post_events, 1);
+        }
     }
     async function post_events() {
         // Sending changed input events with event
@@ -205,11 +208,15 @@ function listen_to_dom_events() {
 }
 function find_el_with_listener(target, listener = undefined) {
     // Finds if there's element with specific listener
-    let path = [], current = target, el_with_listener_found = false;
+    let path = [], current = target, el_with_listener_found = false, immediate = true;
     while (true) {
-        el_with_listener_found = el_with_listener_found || (listener === undefined) || current.hasAttribute(listener);
+        if (!el_with_listener_found && ((listener === undefined) || current.hasAttribute(listener))) {
+            el_with_listener_found = true;
+            if (listener !== undefined)
+                immediate = current.getAttribute(listener) == "true";
+        }
         if (el_with_listener_found && current.hasAttribute("mono_id")) {
-            return { mono_id: current.getAttribute("mono_id"), path };
+            return { mono_id: current.getAttribute("mono_id"), path, immediate };
         }
         let parent = current.parentElement;
         if (!parent)

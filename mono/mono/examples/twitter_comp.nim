@@ -30,7 +30,7 @@ proc render(self: MessageView): El =
 
   if self.edit.is_some:
     el"form.edit_form": # Class shortcut, the `.edit_form` will be set as class.
-      el("textarea", it.bind_to(self.edit)) # bidirecectional binding inputs and variables
+      el("textarea", it.bind_to(self.edit, false)) # bidirecectional binding inputs and variables
       el("button", (text: "Cancel"), it.on_click(proc = self.edit.clear))
       el("button.primary", (text: "Update"), it.on_click(update))
   else:
@@ -49,7 +49,7 @@ proc render(self: AddForm): El =
     self.add = "";
 
   el"form.add_form":
-    el("textarea", (placeholder: "Write something..."), it.bind_to(self.add))
+    el("textarea", (placeholder: "Write something..."), it.bind_to(self.add, false))
     el("button.primary", (text: "Add"), it.on_click(add))
 
 type TwitterView = ref object of Component

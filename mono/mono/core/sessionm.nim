@@ -69,4 +69,4 @@ proc collect_garbage*[T](self: Sessions[T], session_timeout_ms: int) =
   for session in deleted.values: session.log.info("closed")
 
 proc add_timer_event*[T](self: Sessions[T]) =
-  for id, session in self: session.inbox.add(InEvent(kind: timer))
+  for id, session in self: session.inbox.add((kind: "timer").TimerInEvent.to_json)
