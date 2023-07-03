@@ -18,10 +18,9 @@ type SquareView = ref object of Component
   x, y: int
 
 proc render(self: SquareView): El =
-  proc click =
+  proc click (e: ClickEvent) =
     if game.board[self.x][self.y] == Square.Empty:
-      # Here you need to implement your game's logic to decide who's turn it is
-      game.board[self.x][self.y] = Square.X
+      game.board[self.x][self.y] = if shift in e.special_keys: Square.O else: Square.X
       game.save
 
   let text = case game.board[self.x][self.y]
@@ -29,22 +28,24 @@ proc render(self: SquareView): El =
     of Square.X: "X"
     of Square.O: "O"
 
-  el"square":
-    el("button", (text: text), it.on_click(click))
+  el("button", (text: text, style: (display: "block", float: "left", width: "25px", height: "25px"))):
+    it.on_click click
 
 type BoardView = ref object of Component
 
 proc render(self: BoardView): El =
-  el"board":
+  el("board", (style: (display: "block", width: "75px"))):
     for x, row in game.board:
       for y, square in row:
-        self.el(SquareView, (x: x, y: y))
+        self.el(SquareView, fmt"{x} {y}", (x: x, y: y))
 
 # Deployment --------------------------------------------------------------------------------------
 when is_main_module:
-  game = Game.read_from("./tmp/tictactoe.json").get(() => Game(board: [[Square.Empty, Square.Empty, Square.Empty],
-                                                                       [Square.Empty, Square.Empty, Square.Empty],
-                                                                       [Square.Empty, Square.Empty, Square.Empty]]))
+  game = Game.read_from("./tmp/tictactoe.json").get(() => Game(board: [
+    [Square.Empty, Square.Empty, Square.Empty],
+    [Square.Empty, Square.Empty, Square.Empty],
+    [Square.Empty, Square.Empty, Square.Empty]
+  ]))
 
   let asset_path = current_source_path().parent_dir.absolute_path
   run_http_server((() => BoardView()), asset_paths = @[asset_path], styles = @["/assets/tictactoe.css"])
