@@ -82,7 +82,7 @@ function listen_to_dom_events() {
     async function on_click(raw_event) {
         let el = raw_event.target;
         // The `getAttribute` should be used, not `el.href` as in case of `#` it would return current url with `#`.
-        let location = "" + el.getAttribute("href");
+        let location = el.getAttribute("href") || "";
         if (location == get_window_location())
             return;
         if (el.tagName.toLowerCase() == "a" && location != "" && location != "#") {
