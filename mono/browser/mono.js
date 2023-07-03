@@ -213,7 +213,7 @@ function find_el_with_listener(target, listener = undefined) {
         if (!el_with_listener_found && ((listener === undefined) || current.hasAttribute(listener))) {
             el_with_listener_found = true;
             if (listener !== undefined)
-                immediate = current.getAttribute(listener) == "true";
+                immediate = current.getAttribute(listener) == "immediate";
         }
         if (el_with_listener_found && current.hasAttribute("mono_id")) {
             return { mono_id: current.getAttribute("mono_id"), path, immediate };
