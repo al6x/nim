@@ -1,4 +1,4 @@
-import std/[sugar, options]
+import std/[options]
 import ./json, ./enumm, ./option, ./tuplem, ./table
 
 type LogLevel* = enum debug, info, warn, error

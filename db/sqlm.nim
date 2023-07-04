@@ -1,5 +1,5 @@
-import base/[basem, jsonm]
-import std/[macros, parseutils, unicode]
+import base
+import std/[macros, parseutils]
 import std/strutils except format
 
 # SQL ----------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ proc sql*(query: string, args: ref object, validate_unused_keys = true): SQL =
   sql(query, args[], validate_unused_keys)
 
 test "sql":
-  assert sql(
+  check sql(
     "insert into users (name, age) values (:name, :age)",
     (name: "Jim", age: 33)
   ) == (
@@ -46,7 +46,7 @@ test "sql":
   )
 
   # `db_postgres` doesn't support null values, so they have to be set explicitly in SQL
-  assert sql(
+  check sql(
     "insert into users (name, age) values (:name, :age)",
     (name: "Jim", age: int.none)
   ) == (
@@ -81,9 +81,9 @@ proc format_sql_value*[T](sql: var string, params: var seq[JsonNode], values: se
 
 proc sql_format_mpl*(pattern: NimNode; openChar, closeChar: char): NimNode =
   if pattern.kind notin {nnkStrLit..nnkTripleStrLit}:
-    error "string formatting (sql(), &) only works with string literals", pattern
+    macros.error "string formatting (sql(), &) only works with string literals", pattern
   if openChar == ':' or closeChar == ':':
-    error "openChar and closeChar must not be ':'"
+    macros.error "openChar and closeChar must not be ':'"
   let f = pattern.strVal
   var i = 0
   let sql = genSym(nskVar, "sql")
@@ -170,19 +170,19 @@ macro sql*(code: untyped): SQL =
 #   discard sql"""insert into users (name, age) values ({"Jim"}, {33})"""
 
 test "sql":
-  assert sql"""insert into users (name, age) values ({"Jim"}, {33})""" == (
+  check sql"""insert into users (name, age) values ({"Jim"}, {33})""" == (
     "insert into users (name, age) values (?, ?)",
     @["Jim".to_json, 33.to_json]
   )
 
   # `db_postgres` doesn't support null values, so they have to be set explicitly in SQL
-  assert sql"""insert into users (name, age) values ({"Jim"}, {int.none})""" == (
+  check sql"""insert into users (name, age) values ({"Jim"}, {int.none})""" == (
     "insert into users (name, age) values (?, ?)",
     @["Jim".to_json, int.none.to_json]
   )
 
   # Should expand list
-  assert sql"""select count(*) from users where name in {@["Jim".some, "John".some, string.none]}""" == (
+  check sql"""select count(*) from users where name in {@["Jim".some, "John".some, string.none]}""" == (
     "select count(*) from users where name in (?, ?, ?)",
     @["Jim".to_json, "John".to_json, string.none.to_json]
   )

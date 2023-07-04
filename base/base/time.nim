@@ -1,5 +1,4 @@
 from std/times as times import nil
-import std/[sequtils, sugar, re as stdre]
 import ./stringm, ./json, ./support, ./hash, ./math, ./test
 
 # helpers ------------------------------------------------------------------------------------------

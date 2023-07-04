@@ -1,5 +1,12 @@
 import base, ext/[vcache, grams], ./docm, ./configm
 
+type Space* = ref object
+  id*:           string
+  version*:      int
+  docs*:         Table[string, Doc]
+  tags*:         seq[string]
+  warnings*:     seq[string]
+
 proc log*(self: Space): Log =
   Log.init("Space", self.id)
 

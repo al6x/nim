@@ -1,34 +1,40 @@
 import base
 
 type
-  # doc, block -------------------------------------------------------------------------------------
-  Link* = tuple[sid, did, bid: string]
+  # record, space ----------------------------------------------------------------------------------
+  Link* = tuple[sid, did, rid: string]
 
+  TagCode*  = distinct int16
+  RecordId* = distinct int16
+
+  Record* = ref object of RootObj
+    id*:      RecordId
+    hash*:    int
+    tags*:    seq[TagCode]
+    links*:   seq[RecordId]
+    warns*:   seq[string]
+    updated*: Epoch
+
+  Space* = ref object
+    id*:           string
+    version*:      int
+    records*:      Table[int, Record]
+    tags*:         seq[TagCode]
+    warnings*:     seq[string]
+
+  # doc, block -------------------------------------------------------------------------------------
   BlockSource* = ref object of RootObj
     kind*: string
 
   DocSource* = ref object of RootObj
     kind*: string
 
-  Block* = ref object of RootObj
-    id*:      string
-    hash*:    int
-    tags*:    seq[string]
-    links*:   seq[Link]
+  Block* = ref object of Record
     assets*:  seq[string]
     glinks*:  seq[string]
     text*:    string
-    warns*:   seq[string]
     source*:  BlockSource
-    updated*: Time
     doc*:     Doc
-
-    # Special fields, performance optimisation
-    ntags*:       seq[int] # normalized, merged
-    bigrams*:     seq[int]
-    bigrams_us*:  seq[int] # unique and sorted bigrams
-    trigrams*:    seq[int]
-    trigrams_us*: seq[int] # unique and sorted trigrams
 
   Doc* = ref object of RootObj
     id*:          string
@@ -41,28 +47,6 @@ type
     warns*:       seq[string]
     source*:      DocSource
     updated*:     Time
-    space*:       Space
-
-    # Special fields, performance optimisation
-    ntags*:       seq[int] # normalized, merged
-    bigrams_us*:  seq[int] # unique and sorted bigrams
-    trigrams_us*: seq[int] # unique and sorted trigrams
-
-  Space* = ref object
-    id*:           string
-    version*:      int
-    docs*:         Table[string, Doc]
-    tags*:         seq[string]
-    warnings*:     seq[string]
-    # processors*:   seq[proc()
-    # cache*:        Table[string, JsonNode]
-
-    # Special fields, performance optimisation
-    ntags*:        seq[int] # normalized but not merged
-
-  Filter* = object
-    incl*, excl*: seq[int] # tags, sorted, unique
-    query*:       string
 
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block
@@ -117,7 +101,6 @@ type
   CodeEmbed* = ref object of Embed
     code*: string
 
-
   # text -------------------------------------------------------------------------------------------
   TextItemKind* = enum text, link, glink, tag, embed
   TextItem* = object
@@ -148,7 +131,6 @@ type
     location*:    string
     tags_line_n*: (int, int)  # tags position in text
 
-
 proc doc_asset_path*(doc_asset_path, relative_asset_path: string): string =
   assert not relative_asset_path.starts_with '/'
   doc_asset_path & "/" & relative_asset_path
@@ -164,18 +146,3 @@ proc nwarns*(doc: Doc): seq[string] =
   result.add doc.warns
   for blk in doc.blocks: result.add blk.warns
   result.unique.sort
-
-# tags ---------------------------------------------------------------------------------------------
-var ntag_codes: Table[string, int]
-var ntag_rcodes: Table[int, string]
-proc encode_tag*(tag: string): int =
-  let ntag = tag.to_lower
-  result = ntag_codes.mget_or_put(ntag, ntag_codes.len)
-  if result notin ntag_rcodes: ntag_rcodes[result] = tag
-
-proc decode_tag*(code: int): string =
-  ntag_rcodes[code]
-
-# filter -------------------------------------------------------------------------------------------
-proc init*(_: type[Filter], incl = seq[int].init, excl = seq[int].init, query = ""): Filter =
-  Filter(incl: incl.unique.sort, excl: excl.unique.sort, query: query)
