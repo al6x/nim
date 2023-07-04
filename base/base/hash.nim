@@ -1,4 +1,4 @@
-import ./hashes
+import std/hashes
 
 export hashes
 

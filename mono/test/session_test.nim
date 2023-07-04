@@ -37,9 +37,9 @@ test "counter":
       session.el.get.to_html == """
         <div class="parent" mono_id="mid">
           <div class="counter">
-            <input on_input="false" type="text" value="a1"></input>
-            <input on_input="true" type="text" value="b1"></input>
-            <button on_click="true">+</button>
+            <input on_input="defer" type="text" value="a1"></input>
+            <input on_input="immediate" type="text" value="b1"></input>
+            <button on_click="immediate">+</button>
             <div>a1 b1 0</div>
           </div>
         </div>
