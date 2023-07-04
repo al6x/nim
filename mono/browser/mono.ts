@@ -1,7 +1,7 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
 import { p, el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal,
   sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url,
-  get_window_location } from "./helpers.js"
+  get_window_location, dcopy, escape_html } from "./helpers.js"
 
 // Types -------------------------------------------------------------------------------------------
 // In events
@@ -10,7 +10,7 @@ interface ClickEvent   { special_keys: SpecialInputKeys[] }
 interface KeydownEvent { key: string, special_keys: SpecialInputKeys[] }
 interface ChangeEvent  { stub: string }
 interface BlurEvent    { stub: string }
-interface InputEvent   { value: string }
+interface InputEvent   { value: any }
 
 type InEvent =
   { kind: 'location', el: number[], location: string } | // el not needed for location but Nim requires it.
@@ -34,18 +34,19 @@ type InEventEnvelope =
 
 // Diff
 type SafeHtml = string
-type ElAttrKind = "string_prop" | "string_attr" | "bool_prop"
-type ElAttrVal = [string, ElAttrKind] | string
-type ElAttrDel = [string, ElAttrKind] | string
+type NormalEl = { kind: "el",   tag: string, attrs: Record<string, any>, children?: El[] }
+type TextEl   = { kind: "text", text: string }
+type HtmlEl   = { kind: "html", html: SafeHtml }
+type El = NormalEl | TextEl | HtmlEl
 
 type Diff = any[]
 
 interface ApplyDiff {
-  replace(id: number[], html: SafeHtml): void
-  add_children(id: number[], els: SafeHtml[]): void
+  replace(id: number[], el: El): void
+  add_children(id: number[], els: El[]): void
   set_children_len(id: number[], len: number): void
-  set_attrs(id: number[], attrs: Record<string, ElAttrVal>): void
-  del_attrs(id: number[], attrs: ElAttrDel[]): void
+  set_attrs(id: number[], attrs: Record<string, any>): void
+  del_attrs(id: number[], attrs: string[]): void
   set_text(id: number[], text: string): void
   set_html(id: number[], html: SafeHtml): void
 }
@@ -199,9 +200,10 @@ function listen_to_dom_events() {
     let found = find_el_with_listener(raw_event.target as HTMLElement, "on_input")
     if (!found) throw new Error("can't find element for input event")
 
-    let input = raw_event.target! as HTMLInputElement
+    let el = raw_event.target! as HTMLElement
+    let get_value = special_elements[el.tagName.toLowerCase()]?.get_value || ((el: HTMLInputElement) => el.value)
+    let in_event: InEvent = { kind: 'input', el: found.path, event: { value: get_value(el) } }
     let input_key = found.path.join(",")
-    let in_event: InEvent = { kind: 'input', el: found.path, event: { value: get_value(input) } }
     if (!found.immediate) {
       // Performance optimisation, avoinding sending every change, and keeping only the last value
       changed_inputs[input_key] = in_event
@@ -281,71 +283,7 @@ function find_el_with_listener(
   return undefined
 }
 
-// Different HTML inputs use different attributes for value
-function get_value(el: HTMLInputElement): string {
-  let tag = el.tagName.toLowerCase()
-  if (tag == "input" && el.type == "checkbox") {
-    return "" + el.checked
-  } else if (tag == "textarea") {
-    return "" + el.value
-  } else {
-    return "" + el.value
-  }
-}
-
 // diff --------------------------------------------------------------------------------------------
-function set_attr(el: HTMLElement, k: string, v: ElAttrVal) {
-  // Some attrs requiring special threatment
-  let [value, kind]: [string, ElAttrKind] = Array.isArray(v) ? v : [v, "string_attr"]
-
-  switch(k) {
-    case "window_title":    set_window_title(value); break
-    case "window_location": set_window_location(value); break
-    case "window_icon":     set_window_icon(value); break
-  }
-
-  switch(kind) {
-    case "bool_prop":
-      assert(["true", "false"].includes(value), "invalid bool_prop value: " + value)
-      ;(el as any)[k] = value == "true"
-      break
-    case "string_prop":
-      (el as any)[k] = value
-      break
-    case "string_attr":
-      el.setAttribute(k, value)
-      break
-    default:
-      throw new Error("unknown kind")
-  }
-}
-
-function del_attr(el: HTMLElement, attr: ElAttrVal) {
-  // Some attrs requiring special threatment
-  let [k, kind]: [string, ElAttrKind] = Array.isArray(attr) ? attr : [attr, "string_attr"]
-
-  switch(k) {
-    case "window_title":    set_window_title(""); break
-    case "window_location": break
-    case "window_icon":     set_window_icon(""); break
-  }
-
-  switch(kind) {
-    case "bool_prop":
-      ;(el as any)[k] = false
-      break
-    case "string_prop":
-      delete (el as any)[k]
-      el.removeAttribute(k)
-      break
-    case "string_attr":
-      el.removeAttribute(k)
-      break
-    default:
-      throw new Error("unknown kind")
-  }
-}
-
 function update(root: HTMLElement, diffs: Diff[]) {
   new ApplyDiffImpl(root).update(diffs)
 }
@@ -371,38 +309,61 @@ class ApplyDiffImpl implements ApplyDiff {
     this.root.removeAttribute("skip_flash")
   }
 
-  replace(id: number[], html: SafeHtml): void {
-    el_by_path(this.root, id).outerHTML = html
+  replace(id: number[], el: El): void {
+    el_by_path(this.root, id).outerHTML = to_html(el)
     this.flash_if_needed(el_by_path(this.root, id))
   }
-  add_children(id: number[], els: SafeHtml[]): void {
+
+  add_children(id: number[], els: El[]): void {
+    let parent = el_by_path(this.root, id)
     for (const el of els) {
-      let parent = el_by_path(this.root, id)
-      parent.appendChild(build_el(el))
+      parent.appendChild(build_el(to_html(el)))
       this.flash_if_needed(parent.lastChild as HTMLElement)
     }
   }
+
   set_children_len(id: number[], len: number): void {
     let parent = el_by_path(this.root, id)
     assert(parent.children.length >= len)
     while (parent.children.length > len) parent.removeChild(parent.lastChild as HTMLElement)
     this.flash_if_needed(parent) // flashing parent of deleted element
   }
+
   set_attrs(id: number[], attrs: Record<string, string>): void {
     let el = el_by_path(this.root, id)
-    for (const k in attrs) set_attr(el, k, attrs[k])
+    let set_attr = special_elements[el.tagName.toLowerCase()]?.set_attr || el_set_attr
+    for (const k in attrs) {
+      let v = attrs[k]
+      switch(k) {
+        case "window_title":    set_window_title("" + v); break
+        case "window_location": set_window_location("" + v); break
+        case "window_icon":     set_window_icon("" + v); break
+      }
+      set_attr(el, k, v)
+    }
     this.flash_if_needed(el)
   }
+
   del_attrs(id: number[], attrs: string[]): void {
     let el = el_by_path(this.root, id)
-    for (const attr of attrs) del_attr(el, attr)
+    let del_attr = special_elements[el.tagName.toLowerCase()]?.del_attr || el_del_attr
+    for (const k of attrs) {
+      switch(k) {
+        case "window_title":    set_window_title(""); break
+        case "window_location": break
+        case "window_icon":     set_window_icon(""); break
+      }
+      del_attr(el, k)
+    }
     this.flash_if_needed(el)
   }
+
   set_text(id: number[], text: string): void {
     let el = el_by_path(this.root, id)
     el.innerText = text
     this.flash_if_needed(el)
   }
+
   set_html(id: number[], html: SafeHtml): void {
     let el = el_by_path(this.root, id)
     el.innerHTML = html
@@ -448,4 +409,134 @@ function set_window_icon(mono_id: string, attr = "window_icon") {
 
 function set_window_icon_disabled(mono_id: string) {
   set_window_icon(mono_id, "window_icon_disabled")
+}
+
+// to_html -----------------------------------------------------------------------------------------
+function to_html(el: El, indent = "", comments = false) {
+  let html: string[] = []
+  to_html_impl(el, html, indent, comments)
+  return html.join("")
+}
+
+function to_html_impl(raw_el: El, html: string[], indent = "", comments = false) {
+  switch (raw_el.kind) {
+    case "el":
+      let { el, bool_attrs } = (special_elements[raw_el.tag]?.to_html ||
+        ((el: NormalEl) => ({ el, bool_attrs: [] })))(raw_el)
+      html.push(indent + "<" + el.tag)
+      for (let k in el.attrs) {
+        let v = el.attrs[k]
+        if (bool_attrs.includes(k)) {
+          assert(typeof v == "boolean", "bool_attr should be bool")
+          if (v) html.push(" " + k)
+        } else {
+          html.push(" " + k + "=\"" + escape_html("" + v) + "\"")
+        }
+      }
+      html.push(">")
+      let nchildren = el.children || []
+      if (nchildren.length > 0) {
+        if (nchildren.length == 1 && ["text", "html"].includes(nchildren[0].kind)) {
+          to_html_impl(nchildren[0], html, "", comments) // Single text or html content
+        } else {
+          html.push("\n")
+          let first_child = nchildren[0]
+          let newlines = first_child.kind == "el" && "c" in first_child.attrs
+          for (let child of nchildren) {
+            if (newlines) html.push("\n")
+            to_html_impl(child, html, indent + "  ", comments)
+            html.push("\n")
+          }
+          if (newlines) html.push("\n")
+          html.push(indent)
+        }
+      }
+      html.push("</" + el.tag + ">")
+      break
+    case "text":
+      html.push(escape_html(raw_el.text, false))
+      break
+    case "html":
+      html.push(raw_el.html)
+      break
+    default:
+      throw new Error("unknown el kind")
+  }
+}
+
+// Special Elements --------------------------------------------------------------------------------
+interface ElUpdater { // Some elements, like checkbox, require special attr update.
+  set_attr?(el: HTMLElement, k: string, v: any): void
+  del_attr?(el: HTMLElement, k: string): void
+  to_html?(el: NormalEl): { el: NormalEl, bool_attrs: string[] }
+  get_value?(el: HTMLElement): any
+}
+
+const special_elements: Record<string, ElUpdater> = {}
+function el_set_attr(el: HTMLElement, k: string, v: any): void { el.setAttribute(k, "" + v) }
+function el_del_attr(el: HTMLElement, k: string): void { el.removeAttribute(k) }
+
+special_elements["input"] = {
+  set_attr(el: HTMLInputElement, k: string, v: any): void {
+    if (k == "value") {
+      if (el.type == "checkbox") {
+        assert(typeof v == "boolean", "checked should be boolean")
+        el.checked = v
+      } else {
+        el.value = "" + v
+      }
+    } else {
+      el_set_attr(el, k, v)
+    }
+  },
+  del_attr(el: HTMLInputElement, k: string): void {
+    if (k == "value" && el.type == "checkbox") {
+      el.checked = false
+    } else {
+      el_del_attr(el, k)
+    }
+  },
+  to_html(el: NormalEl): { el: NormalEl, bool_attrs: string[] } {
+    assert(!("children" in el))
+    el = dcopy(el)
+    let bool_attrs: string[] = []
+    if ("type" in el.attrs && el.attrs["type"] == "checkbox") {
+      bool_attrs.push("checked")
+      if ("value" in el.attrs) {
+        assert(typeof el.attrs["value"] == "boolean", "value for checkbox should be bool")
+        el.attrs["checked"] = el.attrs["value"]
+        delete el.attrs["value"]
+      }
+    }
+    return { el, bool_attrs }
+  },
+  get_value(el: HTMLInputElement): any {
+    return el.type == "checkbox" ? el.checked : el.value
+  }
+}
+
+special_elements["textarea"] = {
+  set_attr(el: HTMLTextAreaElement, k: string, v: any): void {
+    if (k == "value") {
+      el.value = "" + v
+    } else {
+      el_set_attr(el, k, v)
+    }
+  },
+  del_attr(el: HTMLTextAreaElement, k: string): void {
+    if (k == "value") {
+      el.value = ""
+    } else {
+      el_del_attr(el, k)
+    }
+  },
+  to_html(el: NormalEl): { el: NormalEl, bool_attrs: string[] } {
+    assert(!("children" in el))
+    el = dcopy(el)
+    if ("value" in el.attrs) {
+      el.children = [{ kind: "html", html: "" + el.attrs["value"] }]
+      delete el.attrs["value"]
+    }
+    return { el, bool_attrs: [] }
+  }
 }

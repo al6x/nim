@@ -48,7 +48,7 @@ method process*[T](self: Session[T]): bool {.base.} =
   if oel.is_none: return
   let el = oel.get
 
-  el.attrs["mono_id"] = self.id
+  el.attr "mono_id", self.id
   if self.el.is_some:
     let diffs = diff(@[], self.el.get, el)
     unless diffs.is_empty: self.outbox.add OutEvent(kind: update, diffs: diffs)

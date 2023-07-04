@@ -143,3 +143,23 @@ export function set_favicon(href) {
 export function svg_to_base64_data_url(svg) {
     return "data:image/svg+xml;base64," + btoa(svg);
 }
+export function dcopy(v) {
+    return JSON.parse(JSON.stringify(v));
+}
+export function escape_js(js) {
+    if (js === undefined || js === null)
+        return '';
+    return JSON.stringify(js).replace(/^"|"$/g, '');
+}
+const ESCAPE_HTML_MAP = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+};
+const ESCAPE_HTML_MAP_WITHOUT_QUOTES = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+};
+export function escape_html(html, quotes = true) {
+    if (html === undefined || html === null)
+        return '';
+    let map = quotes ? ESCAPE_HTML_MAP : ESCAPE_HTML_MAP_WITHOUT_QUOTES;
+    return ('' + html).replace(/[&<>'"]/g, function (c) { return map[c]; });
+}

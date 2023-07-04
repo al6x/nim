@@ -8,28 +8,28 @@ test "diff, simple":
     el(".b d", (text: "t0")),
     el("#i.a r", (text: "t1")),
     %[
-      ["set_attrs",[], { class: "a", id: "i", r: "true" }],
+      ["set_attrs",[], { class: "a", id: "i", r: true }],
       ["del_attrs",[], ["d"]],
       ["set_text", [], "t1"]
     ]
 
 test "diff, children":
   check_diff [],
-    el("a", (el("b1");      el("b2")          )),
-    el("a", (el("b1 attr"); el("c2"); el("d2"))),
+    el("a", (el"b1";      el"b2"        )),
+    el("a", (el"b1 attr"; el"c2"; el"d2")),
     %[
-      ["set_attrs",   [0], { attr: "true" }],
-      ["replace",     [1], "<c2></c2>"],
-      ["add_children",[],  ["<d2></d2>"]]
+      ["set_attrs",   [0], { attr: true }],
+      ["replace",     [1], el"c2"],
+      ["add_children",[],  [el"d2"]]
     ]
 
 test "diff, del":
   check_diff [],
-    el("a", (el("b1");      el("b2"); el("b3"))),
-    el("a", (el("b1 attr"); el("c2")          )),
+    el("a", (el"b1";      el"b2"; el"b3")),
+    el("a", (el"b1 attr"; el"c2"          )),
     %[
-      ["set_attrs",        [0], { attr: "true" }],
-      ["replace",          [1], "<c2></c2>"],
+      ["set_attrs",        [0], { attr: true }],
+      ["replace",          [1], el"c2"],
       ["set_children_len", [],  2]
     ]
 
@@ -46,7 +46,7 @@ test "diff, html with structure change replaced with parent":
     el("", el""),
     el("", (html: "<img/>")),
     %[
-      ["replace", [], "<div><img/></div>"]
+      ["replace", [], el("", (html: "<img/>"))]
     ]
 
 test "diff, nested":
@@ -65,22 +65,7 @@ test "diff, nested":
     ["del_attrs", [0], ["bb1"]],
     ["set_text",  [0], "bbb2"],
 
-    ["replace", [1], """<div class="c2"></div>"""],
+    ["replace", [1], el".c2"],
 
     ["set_children_len", [], 2]
   ]
-
-test "diff, bool_prop":
-  check_diff [],
-    el("input type=checkbox", (value: false)),
-    el("input type=checkbox some", (value: true)),
-    %[
-      ["set_attrs", [], { checked: ["true", "bool_prop"], some: "true" }]
-    ]
-
-  check_diff [],
-    el("input type=checkbox some", (value: true)),
-    el("input type=checkbox", (value: false)),
-    %[
-      ["del_attrs", [], [["checked", "bool_prop"], "some"]]
-    ]

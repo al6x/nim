@@ -1,3 +1,205 @@
+test "diff, bool_prop":
+  check_diff [],
+    el("input type=checkbox", (value: false)),
+    el("input type=checkbox some", (value: true)),
+    %[
+      ["set_attrs", [], { checked: ["true", "bool_prop"], some: "true" }]
+    ]
+
+  check_diff [],
+    el("input type=checkbox some", (value: true)),
+    el("input type=checkbox", (value: false)),
+    %[
+      ["del_attrs", [], [["checked", "bool_prop"], "some"]]
+    ]
+
+ElAttrDel* = (string, ElAttrKind)
+
+Helpers ------------------------------------------------------------------------------------------
+proc to_json_hook*(el: ElAttrVal | ElAttrDel): JsonNode =
+  if el[1] == string_attr: el[0].to_json else: %[el[0], el[1]]
+
+proc to_json_hook*(table: Table[string, ElAttrVal]): JsonNode =
+  table.map((v) => v.to_json_hook).sort.to_json
+
+proc to_json_hook*(delete_attrs: seq[ElAttrDel]): JsonNode =
+  delete_attrs.sort((v) => v[0]).map((v) => v.to_json_hook).to_json
+
+
+
+# Normalising inconsistencies in HTML attrs, some should be set as `el.setAttribute(k, v)` some as `el.k = v`.
+  ElAttrKind* = enum string_prop, string_attr, bool_prop
+  ElAttrVal* = (string, ElAttrKind)
+
+proc normalize*(el: El, update: bool): (El, OrderedTable[string, ElAttrVal]) =
+  # Some fields needs to be rendered differently for initial render and for update, for example
+  # textarea should be rendered as <textarea>html</textarea>, but updated as `textare.value = html`
+
+  assert el.kind == ElKind.el
+  var el = el
+  var attrs: Table[string, ElAttrVal]
+  for k, v in el.attrs:
+    if k != "c": attrs[k] = (v, string_attr)
+
+  if el.tag == "input" and "value" in attrs: # input
+    if "type" in el and el["type"] == "checkbox":
+      # Normalising value for checkbox
+      assert el.children.is_empty
+      case attrs["value"][0]
+      of "true":  attrs["checked"] = ("true", bool_prop)
+      of "false": discard
+      else:       throw "unknown input value"
+      attrs.del "value"
+    else:
+      attrs["value"] = (attrs["value"][0], string_prop)
+  elif el.tag == "textarea" and "value" in attrs: # textarea
+    if update:
+      attrs["value"] = (attrs["value"][0], string_prop)
+    else:
+      el = el.dcopy
+      el.html attrs["value"][0].SafeHtml
+      attrs.del "value"
+
+  (el, attrs.sort)
+
+proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
+  assert oel.kind == ElKind.el and nel.kind == ElKind.el, "root element should be of kind el"
+
+  if oel.tag != nel.tag: # tag
+    diffs.add replace(id, nel)
+    return
+
+  var oel = oel; var nel = nel
+  if oel.attrs != nel.attrs: # attrs
+    # Normalization needed only if attrs has been changed
+    # Normalization may change content, for example replace attr value into html content for textarea,
+    # so oel and nel needs to be replaced with normalized versions.
+    let oel_norm = oel.normalize true # (oel_norm, oattrs) could be cached
+    oel = oel_norm[0]; let oattrs = oel_norm[1]
+
+    let nel_norm = nel.normalize true
+    nel = nel_norm[0]; let nattrs = nel_norm[1]
+
+    var set_attrs: Table[string, ElAttrVal]
+    for k, v in nattrs:
+      if k notin oattrs or v != oattrs[k]: set_attrs[k] = v
+    unless set_attrs.is_empty: diffs.add set_attrs(id, set_attrs)
+
+    var del_attrs: seq[ElAttrDel]
+    for k, v in oattrs:
+      if k notin nattrs:
+        del_attrs.add (k, v[1])
+    unless del_attrs.is_empty: diffs.add del_attrs(id, del_attrs)
+
+  # children
+  if oel.has_single_content_child or nel.has_single_content_child:
+    # text, html children
+    if same_len_and_kind(oel.children, nel.children):
+      # Updating text, html
+      let ocontent = oel.get_single_content_child; let ncontent = nel.get_single_content_child
+      case ncontent.kind
+      of ElKind.text:
+        assert ocontent.kind == ElKind.text
+        if ocontent.text_data != ncontent.text_data:
+          diffs.add set_text(id, ncontent.text_data)
+      of ElKind.html:
+        assert ocontent.kind == ElKind.html
+        if ocontent.html_data != ncontent.html_data:
+          diffs.add set_html(id, ncontent.html_data)
+      else:
+        throw"invalid el kind"
+    else:
+      # Structure changed, replacing with parent
+      diffs.add replace(id, nel)
+  else:
+    # el children
+    var add_children: seq[El]
+    # Expanding list kind elements in children
+    let (nchildren, ochildren) = (nel.children.flatten, oel.children.flatten)
+    for i, nchild in nchildren:
+      assert nchild.kind == ElKind.el, "mixed children content not supported"
+      if i < ochildren.len:
+        let ochild = ochildren[i]
+        assert ochild.kind == ElKind.el, "mixed children content not supported"
+        diff(id & [i], ochild, nchild, diffs)
+      else:
+        add_children.add nchild
+    unless add_children.is_empty: diffs.add add_children(id, add_children)
+
+    if nchildren.len < ochildren.len:
+      for ochild in ochildren: assert ochild.kind == ElKind.el, "mixed children content not supported"
+      diffs.add set_children_len(id, nchildren.len)
+
+proc diff*(id: openarray[int], oel, nel: El): seq[Diff] =
+  diff(id.to_seq, oel, nel, result)
+
+
+# filter -------------------------------------------------------------------------------------------
+Filter* = object
+    incl*, excl*: seq[int] # tags, sorted, unique
+    query*:       string
+
+proc init*(_: type[Filter], incl = seq[int].init, excl = seq[int].init, query = ""): Filter =
+  Filter(incl: incl.unique.sort, excl: excl.unique.sort, query: query)
+
+# tags ---------------------------------------------------------------------------------------------
+var ntag_codes: Table[string, int]
+var ntag_rcodes: Table[int, string]
+proc encode_tag*(tag: string): int =
+  let ntag = tag.to_lower
+  result = ntag_codes.mget_or_put(ntag, ntag_codes.len)
+  if result notin ntag_rcodes: ntag_rcodes[result] = tag
+
+proc decode_tag*(code: int): string =
+  ntag_rcodes[code]
+
+
+Block* = ref object of RootObj
+    id*:      string
+    hash*:    int
+    tags*:    seq[string]
+    links*:   seq[Link]
+    assets*:  seq[string]
+    glinks*:  seq[string]
+    text*:    string
+    warns*:   seq[string]
+    source*:  BlockSource
+    updated*: Time
+    doc*:     Doc
+
+    # Special fields, performance optimisation
+    ntags*:       seq[int] # normalized, merged
+    bigrams*:     seq[int]
+    bigrams_us*:  seq[int] # unique and sorted bigrams
+    trigrams*:    seq[int]
+    trigrams_us*: seq[int] # unique and sorted trigrams
+
+Doc* = ref object of RootObj
+    id*:          string
+    hash*:        int
+    asset_path*:  Option[string]
+    title*:       string
+    blocks*:      seq[Block]
+    blockids*:    Table[string, Block] # for quick access by id
+    tags*:        seq[string]
+    warns*:       seq[string]
+    source*:      DocSource
+    updated*:     Time
+
+Space* = ref object
+    id*:           string
+    version*:      int
+    docs*:         Table[string, Doc]
+    tags*:         seq[string]
+    warnings*:     seq[string]
+    # processors*:   seq[proc()
+    # cache*:        Table[string, JsonNode]
+
+    # Special fields, performance optimisation
+    ntags*:        seq[int] # normalized but not merged
+
+
+
 proc is_tag(pr: Parser): bool =
   (
     (pr.get == '#' and pr.get(1) != ' ') or

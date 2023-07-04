@@ -152,3 +152,24 @@ export function set_favicon(href: string) {
 export function svg_to_base64_data_url(svg: string): string {
   return "data:image/svg+xml;base64," + btoa(svg)
 }
+
+export function dcopy<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v))
+}
+
+export function escape_js(js: unknown): string {
+  if (js === undefined || js === null) return ''
+  return JSON.stringify(js).replace(/^"|"$/g, '')
+}
+
+const ESCAPE_HTML_MAP: { [key: string]: string } = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}
+const ESCAPE_HTML_MAP_WITHOUT_QUOTES: { [key: string]: string } = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}
+export function escape_html(html: unknown, quotes = true): string {
+  if (html === undefined || html === null) return ''
+  let map = quotes ? ESCAPE_HTML_MAP : ESCAPE_HTML_MAP_WITHOUT_QUOTES
+  return ('' + html).replace(/[&<>'"]/g, function(c) { return map[c] })
+}

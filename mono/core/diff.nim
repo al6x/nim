@@ -2,26 +2,15 @@ import base, ./mono_el
 
 type
   Diff* = JsonNode
-  ElAttrDel* = (string, ElAttrKind)
-
-# Helpers ------------------------------------------------------------------------------------------
-proc to_json_hook*(el: ElAttrVal | ElAttrDel): JsonNode =
-  if el[1] == string_attr: el[0].to_json else: %[el[0], el[1]]
-
-proc to_json_hook*(table: Table[string, ElAttrVal]): JsonNode =
-  table.map((v) => v.to_json_hook).sort.to_json
-
-proc to_json_hook*(delete_attrs: seq[ElAttrDel]): JsonNode =
-  delete_attrs.sort((v) => v[0]).map((v) => v.to_json_hook).to_json
 
 # types --------------------------------------------------------------------------------------------
-proc replace          *(id: seq[int], el: El                         ): Diff = %["replace", id, el.to_html]
-proc add_children     *(id: seq[int], els: seq[El]                   ): Diff = %["add_children", id, els.mapit(it.to_html)]
-proc set_children_len *(id: seq[int], len: int                       ): Diff = %["set_children_len", id, len]
-proc set_attrs        *(id: seq[int], attrs: Table[string, ElAttrVal]): Diff = %["set_attrs", id, attrs.to_json]
-proc del_attrs        *(id: seq[int], attrs: seq[ElAttrDel]          ): Diff = %["del_attrs", id, attrs.to_json]
-proc set_text         *(id: seq[int], text: string                   ): Diff = %["set_text", id, text]
-proc set_html         *(id: seq[int], html: string                   ): Diff = %["set_html", id, html]
+proc replace          *(id: seq[int], el: El            ): Diff = %["replace", id, el]
+proc add_children     *(id: seq[int], els: seq[El]      ): Diff = %["add_children", id, els]
+proc set_children_len *(id: seq[int], len: int          ): Diff = %["set_children_len", id, len]
+proc set_attrs        *(id: seq[int], attrs: JsonNode   ): Diff = %["set_attrs", id, attrs.to_json]
+proc del_attrs        *(id: seq[int], attrs: seq[string]): Diff = %["del_attrs", id, attrs.to_json]
+proc set_text         *(id: seq[int], text: string      ): Diff = %["set_text", id, text]
+proc set_html         *(id: seq[int], html: string      ): Diff = %["set_html", id, html]
 
 # diff ---------------------------------------------------------------------------------------------
 proc has_single_content_child(el: El): bool =
@@ -40,32 +29,22 @@ proc same_len_and_kind(a, b: seq[El]): bool =
   true
 
 proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
-  assert oel.kind == ElKind.el and nel.kind == ElKind.el, "root should be el"
+  assert oel.kind == ElKind.el and nel.kind == ElKind.el, "root element should be of kind el"
 
   if oel.tag != nel.tag: # tag
     diffs.add replace(id, nel)
     return
 
-  var oel = oel; var nel = nel
   if oel.attrs != nel.attrs: # attrs
-    # Normalization needed only if attrs has been changed
-    # Normalization may change content, for example replace attr value into html content for textarea,
-    # so oel and nel needs to be replaced with normalized versions.
-    let oel_norm = oel.normalize true # (oel_norm, oattrs) could be cached
-    oel = oel_norm[0]; let oattrs = oel_norm[1]
-
-    let nel_norm = nel.normalize true
-    nel = nel_norm[0]; let nattrs = nel_norm[1]
-
-    var set_attrs: Table[string, ElAttrVal]
-    for k, v in nattrs:
-      if k notin oattrs or v != oattrs[k]: set_attrs[k] = v
+    var set_attrs = newJObject()
+    for k, v in nel.attrs:
+      if k notin oel.attrs or v != oel.attrs[k]: set_attrs[k] = v
     unless set_attrs.is_empty: diffs.add set_attrs(id, set_attrs)
 
-    var del_attrs: seq[ElAttrDel]
-    for k, v in oattrs:
-      if k notin nattrs:
-        del_attrs.add (k, v[1])
+    var del_attrs: seq[string]
+    for k, _ in oel.attrs:
+      if k notin nel.attrs:
+        del_attrs.add k
     unless del_attrs.is_empty: diffs.add del_attrs(id, del_attrs)
 
   # children
@@ -92,7 +71,7 @@ proc diff(id: seq[int], oel, nel: El, diffs: var seq[Diff]) =
     # el children
     var add_children: seq[El]
     # Expanding list kind elements in children
-    let (nchildren, ochildren) = (nel.children.expand_children, oel.children.expand_children)
+    let (nchildren, ochildren) = (nel.children.flatten, oel.children.flatten)
     for i, nchild in nchildren:
       assert nchild.kind == ElKind.el, "mixed children content not supported"
       if i < ochildren.len:

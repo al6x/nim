@@ -1,119 +1,17 @@
 import base
 
-# exape_html, exape_js -----------------------------------------------------------------------------
-type SafeHtml* = string
-# type SafeHtml* = distinct string # not working, Nim crashes https://github.com/nim-lang/Nim/issues/21800
-
-proc escape_html*(html: string, quotes = true): SafeHtml =
-  let escape_map {.global.} = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }.to_table
-  let escape_re {.global.} = re"""([&<>'"])"""
-  let partial_map {.global.} = { "&": "&amp;", "<": "&lt;", ">": "&gt;" }.to_table
-  let partial_re {.global.} = re"""([&<>])"""
-
-  if quotes: html.replace(escape_re, (c) => escape_map[c])
-  else:      html.replace(partial_re, (c) => partial_map[c])
-
-test "escape_html":
-  check escape_html("""<div attr="val">""").to_s == "&lt;div attr=&quot;val&quot;&gt;"
-
-proc escape_js*(js: string): SafeHtml =
-  js.to_json.to_s.replace(re"""^"|"$""", "")
-
-test "escape_js":
-  assert escape_js("""); alert("hi there""") == """); alert(\"hi there"""
-
-proc svg_to_url_data*(svg: string): SafeHtml =
-  ("data:image/svg+xml,").escape_html(quotes = false)
-    .replace("\"", "'") # not necessary, but makes it more nice and shorter
-
-# parse_tag ----------------------------------------------------------------------------------------
-proc parse_tag*(s: string): tuple[tag: string, attrs: Table[string, string]] =
-  const special = {'#', '.', '$'}
-  const delimiters = special + {' '}
-
-  # Parses `"span#id.c1.c2 type=checkbox required"`
-  var tag = "div"; var attrs: Table[string, string]
-
-  proc consume_token(i: var int): string =
-    var token = ""
-    while i < s.len and s[i] notin delimiters:
-      token.add s[i]
-      i.inc
-    token
-
-  # skipping space
-  var i = 0
-  proc skip_space =
-    while i < s.len and s[i] == ' ': i.inc
-  skip_space()
-
-  # tag
-  if i < s.len and s[i] notin delimiters:
-    tag = consume_token i
-  skip_space()
-
-  # component, id, class
-  var classes: seq[string]
-  while i < s.len and s[i] in special:
-    i.inc
-
-    case s[i-1]
-    of '$': attrs["c"] = consume_token i  # component
-    of '#': attrs["id"] = consume_token i # id
-    of '.': classes.add consume_token(i)   # class
-    else:   throw "internal error"
-    skip_space()
-
-  if not classes.is_empty: attrs["class"] = classes.join(" ")
-
-  # attrs
-  var attr_tokens: seq[string]
-  while true:
-    skip_space()
-    if i == s.len: break
-    let token = consume_token(i)
-    if token.is_empty: break
-    attr_tokens.add token
-
-  if not attr_tokens.is_empty:
-    for token in attr_tokens:
-      let tokens = token.split "="
-      if tokens.len > 2: throw fmt"invalid attribute '{token}'"
-      attrs[tokens[0]] = if tokens.len > 1: tokens[1] else: "true"
-
-  (tag, attrs)
-
-test "parse_tag":
-  template check_attrs(tag: string, expected) =
-    check parse_tag(tag) == (expected[0], expected[1].to_table)
-  let empty_attrs = seq[(string, string)].init
-
-  check_attrs "span#id.c-1.c2 .c3  .c-4 type=checkbox required", (
-    "span", { "id": "id", "class": "c-1 c2 c3 c-4", "type": "checkbox", "required": "true" })
-
-  check_attrs "span",     ("span", empty_attrs)
-  check_attrs "#id",      ("div",  { "id": "id" })
-  check_attrs ".c-1",     ("div",  { "class": "c-1" })
-  check_attrs "div  a=b", ("div",  { "a": "b" })
-  check_attrs " .a  a=b", ("div",  { "class": "a", "a": "b" })
-  check_attrs " .a",      ("div",  { "class": "a" })
-
-  check_attrs "$controls .a",     ("div",    { "c": "controls", "class": "a" })
-  check_attrs "$controls.a",      ("div",    { "c": "controls", "class": "a" })
-  check_attrs "button$button.a",  ("button", { "c": "button", "class": "a" })
-  check_attrs "block-ft .a",      ("block-ft", { "class": "a" })
-
-# el -----------------------------------------------------------------------------------------------
 type
-  ElAttrs*  = Table[string, string]
+  SafeHtml* = string
+
+  ElAttrs* = JsonNode
   ElExtras* = ref object of RootObj
   ElKind* = enum el, text, html, list
   El* = ref object
     children*: seq[El]
     case kind*: ElKind
     of el:
-      tag*:      string
-      attrs*:    ElAttrs
+      tag*:   string
+      attrs*: ElAttrs
     of text:
       text_data*: string
     of html:
@@ -122,9 +20,9 @@ type
       discard
     extras*: Option[ElExtras] # Integration with other frameworks
 
-  # Normalising inconsistencies in HTML attrs, some should be set as `el.setAttribute(k, v)` some as `el.k = v`.
-  ElAttrKind* = enum string_prop, string_attr, bool_prop
-  ElAttrVal* = (string, ElAttrKind)
+proc parse_tag*(s: string): tuple[tag: string, attrs: ElAttrs]
+proc escape_html*(html: string, quotes = true): SafeHtml
+proc escape_js*(js: string): SafeHtml
 
 proc init*(_: type[El], tag = ""): El =
   let (tag, attrs) = parse_tag(tag)
@@ -145,100 +43,25 @@ proc `==`*(self, other: El): bool {.no_side_effect.} =
   of html: self.html_data == other.html_data
   of list: self.children == other.children
 
-proc dcopy*(self: El): El =
+proc scopy*(self: El): El =
+  # el.extras won't be copied
   case self.kind
-  of el:   El(kind: el, tag: self.tag, attrs: self.attrs, children: self.children, extras: self.extras)
+  of el:   El(kind: el, tag: self.tag, attrs: self.attrs.scopy, children: self.children, extras: self.extras)
   of text: El(kind: text, text_data: self.text_data, extras: self.extras)
   of html: El(kind: html, html_data: self.html_data, extras: self.extras)
   of list: El(kind: list, children: self.children, extras: self.extras)
 
-proc contains*(el: El, k: string): bool =
-  k in el.attrs
-
-proc `[]`*(el: El, k: string): string =
-  el.attrs[k]
-
-proc `[]=`*(el: El, k: string, v: string | int | bool) =
-  el.attrs[k] = v.to_s
-
-proc normalize*(el: El, update: bool): (El, OrderedTable[string, ElAttrVal])
-
-proc expand_children*(list: seq[El], result: var seq[El]) =
+proc flatten*(list: seq[El], result: var seq[El]) =
   for el in list:
-    if el.kind == ElKind.list: expand_children(el.children, result)
+    if el.kind == ElKind.list: flatten(el.children, result)
     else:                      result.add el
 
-proc expand_children*(list: seq[El]): seq[El] =
-  list.expand_children(result)
+proc flatten*(list: seq[El]): seq[El] =
+  list.flatten(result)
 
-proc to_json_hook*(el: El): JsonNode =
-  case el.kind
-  of ElKind.el:
-    let (nel, nattrs) = el.normalize false
-    if nel.children.is_empty: %{ kind: el.kind, tag: el.tag, attrs: nattrs }
-    else:                     %{ kind: el.kind, tag: el.tag, attrs: nattrs, children: nel.children }
-  of ElKind.text:             %{ kind: el.kind, text: el.text_data }
-  of ElKind.html:             %{ kind: el.kind, html: el.html_data }
-  of ElKind.list:            throw "json for el.list is not implemented"
-
-proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false, parent_tag = string.none) =
-  case el.kind
-  of ElKind.el:
-    # if newlines: html.add "\n"
-    let (nel, nattrs) = el.normalize false
-
-    if nel.tag == "tr" and parent_tag.is_some and parent_tag.get notin ["tbody", "thead"]:
-      # Checking correct HTML structure for tables, it's important for dynamic updates with diff
-      throw "tr must have tbody or thead parent, not: " & parent_tag.get
-
-    html.add indent & "<" & nel.tag
-    for k, (v, attr_kind) in nattrs:
-      if attr_kind == bool_prop:
-        case v
-        of "true":  html.add " " & k
-        of "false": discard
-        else:       throw "unknown input value"
-      else:
-        html.add " " & k & "=\"" & v.escape_html & "\""
-
-    # if nel.tag.is_self_closing_tag:
-    #   result.add "/>"
-    # else:
-    html.add ">"
-    let nchildren = nel.children.expand_children
-    unless nchildren.is_empty:
-      if nchildren.len == 1 and nchildren[0].kind in [ElKind.text, ElKind.html]:
-        # Single text or html content
-        nchildren[0].to_html(html, comments = comments)
-      else:
-        html.add "\n"
-        let newlines = "c" in nchildren[0]
-        for child in nchildren:
-          if newlines: html.add "\n"
-          child.to_html(html, indent = indent & "  ", comments = comments, parent_tag = el.tag.some)
-          html.add "\n"
-        if newlines: html.add "\n"
-        html.add indent
-    html.add "</" & nel.tag & ">"
-    # if newlines: html.add "\n"
-  of ElKind.text:
-    html.add el.text_data.escape_html(quotes = false)
-  of ElKind.html:
-    html.add el.html_data
-  of ElKind.list:
-    for i, item in el.children:
-      item.to_html(html, indent = indent, comments = comments)
-      if i < el.children.high: html.add "\n"
-
-proc to_html*(el: El, indent = "", comments = false): SafeHtml =
-  el.to_html(result, indent = indent, comments = comments)
-
-proc to_html*(els: openarray[El], indent = "", comments = false): string =
-  els.map((el) => el.to_html(indent = indent, comments = comments)).join("\n")
-
-# attrs --------------------------------------------------------------------------------------------
+# helpers ------------------------------------------------------------------------------------------
 proc attr*[T](self: El, k: string, v: T) =
-  self.attrs[k] = v.to_s
+  self.attrs[k] = v.to_json
 
 proc value*[T](self: El, v: T) =
   self.attr("value", v)
@@ -262,7 +85,7 @@ proc style*(self: El, style: string | tuple) =
 
 proc class*(self: El, class: string) =
   var class = class.replace(".", " ")
-  class = if "class" in self: self["class"] & " " & class else: class
+  class = if "class" in self.attrs: self.attrs["class"].get_str & " " & class else: class
   self.attr "class", class
 
 template set_attrs*(self: El, attrs: tuple) =
@@ -299,7 +122,7 @@ template build_el*(expr: string, attrs_or_code: untyped): El =
     it
 
 template build_el*(html: string): El =
-  El.init(html) # El.init(fmt(html, '{', '}'))
+  El.init(html)
 
 template els*(code): seq[El] =
   block:
@@ -322,9 +145,6 @@ template add_or_return_el*(e_arg: El): auto =
     else:                       e
   else:                         e
 
-# template el*(html: string, attrs: tuple, code): auto =
-#   add_or_return_el build_el(html, attrs, code)
-
 template el*(html: string, attrs, code): auto =
   add_or_return_el build_el(html, attrs, code)
 
@@ -334,6 +154,174 @@ template el*(html: string, attrs_or_code): auto =
 template el*(html: string): auto =
   add_or_return_el build_el(html)
 
+# to_json, to_html ---------------------------------------------------------------------------------
+proc to_json_hook*(el: El): JsonNode =
+  case el.kind
+  of ElKind.el:
+    if el.children.is_empty: %{ kind: el.kind, tag: el.tag, attrs: el.attrs }
+    else:                    %{ kind: el.kind, tag: el.tag, attrs: el.attrs, children: el.children.flatten }
+  of ElKind.text:            %{ kind: el.kind, text: el.text_data }
+  of ElKind.html:            %{ kind: el.kind, html: el.html_data }
+  of ElKind.list:            throw "json for el.list is not implemented"
+
+proc validate*(el: El, parent = El.none) =
+  case el.kind
+  of ElKind.el:
+    if el.tag == "tr" and parent.is_some and parent.get.tag notin ["tbody", "thead"]:
+      # Correct table HTML important for dynamic updates, for diff to work correctly
+      throw "tr must have tbody or thead parent, not: " & parent.get.tag
+    for child in el.children: child.validate(el.some)
+  of ElKind.text: discard
+  of ElKind.html: discard
+  of ElKind.list:
+    for child in el.children: child.validate(el.some)
+
+proc normalize*(el: El): tuple[el: El, bool_attrs: seq[string]] =
+  assert el.kind == ElKind.el
+  # value attribute should be rendered differently for different elements, as `value` attribute for `input`, but
+  # as `inner_html` for `textarea`.
+  # var el = el.dcopy; var bool_attrs: seq[string]
+  if el.tag == "input" and "type" in el.attrs and el.attrs["type"].get_str == "checkbox": # checkbox
+    var el = el.scopy
+    if "value" in el.attrs:
+      assert el.attrs["value"].kind in [JBool, JNull], "value for checkbox should be bool"
+      assert el.children.is_empty
+      el.attrs["checked"] = el.attrs["value"]
+      el.attrs.delete "value"
+    (el, @["checked"])
+  elif el.tag == "textarea": # textarea
+    var el = el.scopy
+    if "value" in el.attrs:
+      assert el.children.is_empty, "textarea should use value to set its content"
+      let v = el.attrs["value"]
+      el.html if v.kind in [JString, JNull]: v.get_str("") else: v.to_s
+      el.attrs.delete "value"
+    (el, @["checked"])
+  else:
+    (el, seq[string].init)
+
+proc encode_attr_value*(v: JsonNode): string =
+  case v.kind
+  of   [JString, JNull]: v.get_str("").escape_html
+  else:                  v.to_s.escape_html
+
+proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
+  case el.kind
+  of ElKind.el:
+    let (el, bool_attrs) = el.normalize
+    html.add indent & "<" & el.tag
+    for k, v in el.attrs:
+      if k in bool_attrs:
+        assert v.kind in [JBool, JNull], "bool_attr should be bool"
+        if v.get_bool(false): html.add " " & k
+      else:
+        # html.add " " & k & "=\"" & v.escape_html & "\""
+        html.add " " & k & "=\"" & v.encode_attr_value & "\""
+    html.add ">"
+    let nchildren = el.children.flatten
+    unless nchildren.is_empty:
+      if nchildren.len == 1 and nchildren[0].kind in [ElKind.text, ElKind.html]:
+        nchildren[0].to_html(html, comments = comments) # Single text or html content
+      else:
+        html.add "\n"
+        let newlines = "c" in nchildren[0].attrs
+        for child in nchildren:
+          if newlines: html.add "\n"
+          child.to_html(html, indent = indent & "  ", comments = comments)
+          html.add "\n"
+        if newlines: html.add "\n"
+        html.add indent
+    html.add "</" & el.tag & ">"
+  of ElKind.text:
+    html.add el.text_data.escape_html(quotes = false)
+  of ElKind.html:
+    html.add el.html_data
+  of ElKind.list:
+    for i, item in el.children.flatten:
+      item.to_html(html, indent = indent, comments = comments)
+      if i < el.children.high: html.add "\n"
+
+proc to_html*(el: El, indent = "", comments = false): SafeHtml =
+  el.to_html(result, indent = indent, comments = comments)
+
+proc to_html*(els: openarray[El], indent = "", comments = false): string =
+  els.map((el) => el.to_html(indent = indent, comments = comments)).join("\n")
+
+# parse_tag ----------------------------------------------------------------------------------------
+proc parse_tag*(s: string): tuple[tag: string, attrs: ElAttrs] =
+  const special = {'#', '.', '$'}
+  const delimiters = special + {' '}
+
+  # Parses `"span#id.c1.c2 type=checkbox required"`
+  var tag = "div"; var attrs = newJObject()
+
+  proc consume_token(i: var int): string =
+    var token = ""
+    while i < s.len and s[i] notin delimiters:
+      token.add s[i]
+      i.inc
+    token
+
+  # skipping space
+  var i = 0
+  proc skip_space =
+    while i < s.len and s[i] == ' ': i.inc
+  skip_space()
+
+  # tag
+  if i < s.len and s[i] notin delimiters:
+    tag = consume_token i
+  skip_space()
+
+  # component, id, class
+  var classes: seq[string]
+  while i < s.len and s[i] in special:
+    i.inc
+
+    case s[i-1]
+    of '$': attrs["c"] = consume_token(i).to_json  # component
+    of '#': attrs["id"] = consume_token(i).to_json # id
+    of '.': classes.add consume_token(i)   # class
+    else:   throw "internal error"
+    skip_space()
+
+  if not classes.is_empty: attrs["class"] = classes.join(" ").to_json
+
+  # attrs
+  var attr_tokens: seq[string]
+  while true:
+    skip_space()
+    if i == s.len: break
+    let token = consume_token(i)
+    if token.is_empty: break
+    attr_tokens.add token
+
+  if not attr_tokens.is_empty:
+    for token in attr_tokens:
+      let tokens = token.split "="
+      if tokens.len > 2: throw fmt"invalid attribute '{token}'"
+      attrs[tokens[0]] = if tokens.len > 1: tokens[1].to_json else: true.to_json
+
+  (tag, attrs)
+
+# exape_html, exape_js -----------------------------------------------------------------------------
+proc escape_html*(html: string, quotes = true): SafeHtml =
+  let escape_map {.global.} = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }.to_table
+  let escape_re {.global.} = re"""([&<>'"])"""
+  let partial_map {.global.} = { "&": "&amp;", "<": "&lt;", ">": "&gt;" }.to_table
+  let partial_re {.global.} = re"""([&<>])"""
+
+  if quotes: html.replace(escape_re, (c) => escape_map[c])
+  else:      html.replace(partial_re, (c) => partial_map[c])
+
+proc escape_js*(js: string): SafeHtml =
+  js.to_json.to_s.replace(re"""^"|"$""", "")
+
+proc svg_to_url_data*(svg: string): SafeHtml =
+  ("data:image/svg+xml,").escape_html(quotes = false)
+    .replace("\"", "'") # not necessary, but makes it more nice and shorter
+
+# test ---------------------------------------------------------------------------------------------
 test "el, basics":
   check:
     el("ul.todos", it.class("editing")).to_html == """<ul class="todos editing"></ul>"""
@@ -358,34 +346,25 @@ test "el, basics":
 test "els":
   discard els(el("a", el("b"))) # should work
 
-# normalize ----------------------------------------------------------------------------------------
-proc normalize*(el: El, update: bool): (El, OrderedTable[string, ElAttrVal]) =
-  # Some fields needs to be rendered differently for initial render and for update, for example
-  # textarea should be rendered as <textarea>html</textarea>, but updated as `textare.value = html`
+test "parse_tag":
+  check:
+    parse_tag("span#id.c-1.c2 .c3  .c-4 type=checkbox required") == (
+      "span", %{ id: "id", class: "c-1 c2 c3 c-4", type: "checkbox", required: true })
 
-  assert el.kind == ElKind.el
-  var el = el
-  var attrs: Table[string, ElAttrVal]
-  for k, v in el.attrs:
-    if k != "c": attrs[k] = (v, string_attr)
+    parse_tag("span")     == ("span", %{})
+    parse_tag("#id")      == ("div",  %{ id: "id" })
+    parse_tag(".c-1")     == ("div",  %{ class: "c-1" })
+    parse_tag("div  a=b") == ("div",  %{ a: "b" })
+    parse_tag(" .a  a=b") == ("div",  %{ class: "a", a: "b" })
+    parse_tag(" .a")      == ("div",  %{ class: "a" })
 
-  if el.tag == "input" and "value" in attrs: # input
-    if "type" in el and el["type"] == "checkbox":
-      # Normalising value for checkbox
-      assert el.children.is_empty
-      case attrs["value"][0]
-      of "true":  attrs["checked"] = ("true", bool_prop)
-      of "false": discard
-      else:       throw "unknown input value"
-      attrs.del "value"
-    else:
-      attrs["value"] = (attrs["value"][0], string_prop)
-  elif el.tag == "textarea" and "value" in attrs: # textarea
-    if update:
-      attrs["value"] = (attrs["value"][0], string_prop)
-    else:
-      el = el.dcopy
-      el.html attrs["value"][0].SafeHtml
-      attrs.del "value"
+    parse_tag("$controls .a")    == ("div",      %{ c: "controls", class: "a" })
+    parse_tag("$controls.a")     == ("div",      %{ c: "controls", class: "a" })
+    parse_tag("button$button.a") == ("button",   %{ c: "button", class: "a" })
+    parse_tag("block-ft .a")     == ("block-ft", %{ class: "a" })
 
-  (el, attrs.sort)
+test "escape_html":
+  check escape_html("""<div attr="val">""").to_s == "&lt;div attr=&quot;val&quot;&gt;"
+
+test "escape_js":
+  check escape_js("""); alert("hi there""") == """); alert(\"hi there"""

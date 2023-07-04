@@ -46,14 +46,14 @@ test "counter":
       """.dedent.trim
 
   block: # Changing input, without render
-    session.inbox = @[(kind: "input", el: @[0, 0], event: InputEvent(value: "a2").to_json).OtherInEvent.to_json]
+    session.inbox = @[(kind: "input", el: @[0, 0], event: InputEvent(value: "a2".to_json).to_json).OtherInEvent.to_json]
     session.outbox.clear
     check:
       session.process == false # the input changed, but the render will be skipped
       session.app.children["Counter/counter"].Counter.a == "a2" # binded variable shold be updated
 
   block: # Changing input, with render
-    session.inbox = @[(kind: "input", el: @[0, 1], event: InputEvent(value: "b2").to_json).OtherInEvent.to_json]
+    session.inbox = @[(kind: "input", el: @[0, 1], event: InputEvent(value: "b2".to_json).to_json).OtherInEvent.to_json]
     session.outbox.clear
     check:
       session.process == true
