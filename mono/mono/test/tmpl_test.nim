@@ -10,7 +10,7 @@ test "el html":
 
   check tmpl.to_html == """
     <ul class="c1">
-      <li class="c2 c3" on_click="true">t1</li>
+      <li class="c2 c3" on_click="immediate">t1</li>
     </ul>
   """.dedent.trim
 
