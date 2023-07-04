@@ -9,7 +9,7 @@ git checkout dev
 rm -rf tmp/releases
 mkdir -p tmp/releases
 
-nim_version="1.6"
+nim_version="1.6.12"
 version="3.3.6"
 
 # readme -------------------------------------------------------------------------------------------
