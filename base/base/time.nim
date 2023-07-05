@@ -18,8 +18,8 @@ proc `-`*(a, b: Epoch): int {.borrow.}
 proc `<`*(a, b: Epoch): bool {.borrow.}
 proc `<=`*(a, b: Epoch): bool {.borrow.}
 proc `==`*(a, b: Epoch): bool {.borrow.}
-proc `-`*(e: Epoch, shift: int): Epoch = (e.int - shift).Epoch
-proc `+`*(e: Epoch, shift: int): Epoch = (e.int + shift).Epoch
+proc `-`*(e: Epoch, dec: int): Epoch = (e.int - dec).Epoch
+proc `+`*(e: Epoch, inc: int): Epoch = (e.int + inc).Epoch
 
 proc epoch_days(y: int, m: int, d: int): int =
   var y = y

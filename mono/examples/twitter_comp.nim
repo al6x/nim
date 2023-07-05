@@ -57,8 +57,8 @@ type TwitterView = ref object of Component
 proc render(self: TwitterView): El =
   el("app", (window_title: fmt"{db.messages.len} messages")):
     for i, message in db.messages:
-      self.el(MessageView, i, (i: i, message: message)) # Using components
-    self.el(AddForm, ())
+      el(self, MessageView, i, (i: i, message: message))
+    el(self, AddForm, ())
 
 # Deployment ---------------------------------------------------------------------------------------
 when is_main_module:

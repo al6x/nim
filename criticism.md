@@ -253,3 +253,27 @@ Bad standard library, Nim tries to achieve top performance, and so many function
 library are more complicated than it could be if imlemented with overhead.
 
 No good and simple way to multicore, it can't share global variables like C, nor can it use alternative ways like Erlang actors. Also, even in its limited form it's not easy to use and requires to know things like `move` etc.
+
+Poor proc type infer, and the refusal of core team to recognise it as a problem.
+
+```Nim
+type Event = object
+proc on_click(fn: proc()) = discard
+proc on_click(fn: proc(e: Event)) = discard
+
+on_click => echo "click"     # doesn't work
+on_click proc = echo "click" # works
+on_click do:                 # doesn't work
+  echo "click"
+
+on_click (e) => echo e       # cdoesn't work, complains about some GenericParam
+on_click proc (e) = echo e   # doesn't work
+on_click do e:               # doesn't work
+  echo e
+```
+
+No interactive repl, long compile time, makes it hard to make fast alteration, for example when working with UI
+and making changes, you can't instantly see the result.
+
+No interfaces and Concept is unfinished and unusable. Makes it hard to structure code, as you need to use concrete class instead of abstract interface, it makes it hard to write dependencies for files. And forces to write duplicate
+code, for example for Table and OrderedTable, lots of functions are duplicated.

@@ -210,7 +210,7 @@ proc to_html*(el: El, html: var SafeHtml, indent = "", comments = false) =
   of ElKind.el:
     let (el, bool_attrs) = el.normalize
     html.add indent & "<" & el.tag
-    for k, v in el.attrs:
+    for k, v in el.attrs.sort:
       if k in bool_attrs:
         assert v.kind in [JBool, JNull], "bool_attr should be bool"
         if v.get_bool(false): html.add " " & k
