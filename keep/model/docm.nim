@@ -1,52 +1,16 @@
-import base
+import base, ./schema
 
 type
-  # record, space ----------------------------------------------------------------------------------
-  Link* = tuple[sid, did, rid: string]
-
-  TagCode*  = distinct int16
-  RecordId* = distinct int16
-
-  Record* = ref object of RootObj
-    id*:      RecordId
-    hash*:    int
-    tags*:    seq[TagCode]
-    links*:   seq[RecordId]
-    warns*:   seq[string]
-    updated*: Epoch
-
-  Space* = ref object
-    id*:           string
-    version*:      int
-    records*:      Table[int, Record]
-    tags*:         seq[TagCode]
-    warnings*:     seq[string]
-
-  # doc, block -------------------------------------------------------------------------------------
-  BlockSource* = ref object of RootObj
-    kind*: string
-
-  DocSource* = ref object of RootObj
-    kind*: string
-
   Block* = ref object of Record
-    assets*:  seq[string]
-    glinks*:  seq[string]
-    text*:    string
-    source*:  BlockSource
-    doc*:     Doc
+    assets*: seq[string]
+    glinks*: seq[string]
+    doc*:    Doc
 
-  Doc* = ref object of RootObj
-    id*:          string
-    hash*:        int
-    asset_path*:  Option[string]
-    title*:       string
-    blocks*:      seq[Block]
-    blockids*:    Table[string, Block] # for quick access by id
-    tags*:        seq[string]
-    warns*:       seq[string]
-    source*:      DocSource
-    updated*:     Time
+  Doc* = ref object of Container
+    asset_path*: Option[string]
+    title*:      string
+    blocks*:     seq[Block]
+    blockids*:   Table[string, Block] # for quick access by id
 
   # blocks -----------------------------------------------------------------------------------------
   ListBlock* = ref object of Block
@@ -108,7 +72,7 @@ type
     em*:   Option[bool]
     case kind*: TextItemKind
     of text:  discard
-    of link:  link*: Link
+    of link:  link*: RecordId
     of glink: glink*: string
     of tag:   discard
     of embed: embed*: Embed
@@ -124,10 +88,10 @@ type
     ftext*: seq[Paragraph]
 
   # sources ----------------------------------------------------------------------------------------
-  BlockTextSource* = ref object of BlockSource
+  BlockTextSource* = ref object of RecordSource
     line_n*: (int, int)  # block position in text
 
-  DocTextSource* = ref object of DocSource
+  DocTextSource* = ref object of RecordSource
     location*:    string
     tags_line_n*: (int, int)  # tags position in text
 
@@ -138,9 +102,6 @@ proc doc_asset_path*(doc_asset_path, relative_asset_path: string): string =
 proc asset_path*(doc: Doc, asset_path: string): string =
   if doc.asset_path.is_none: throw fmt"Doc doesn't have assets: {doc.id}"
   doc_asset_path(doc.asset_path.get, asset_path)
-
-proc `$`*(link: Link): string =
-  "/" & link.sid & "/" & link.did & (if link.bid.is_empty: "" else: "/" & link.bid)
 
 proc nwarns*(doc: Doc): seq[string] =
   result.add doc.warns

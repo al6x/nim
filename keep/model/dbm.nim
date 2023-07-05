@@ -1,4 +1,4 @@
-import base, ext/[vcache, grams, search], ./docm, ./spacem, ./configm
+import base, ext/[vcache, grams, search], ./schema, ./configm
 
 type Db* = ref object
   version*:     int
@@ -7,6 +7,7 @@ type Db* = ref object
   cache*:       VCache
   # space_cache*: Table[(string, string), VCacheContainer]
   bgjobs*:      seq[proc()]
+  warns*:       seq[string]
 
 var db* {.threadvar.}: Db
 
@@ -16,101 +17,91 @@ proc log*(db: Db): Log =
 proc init*(_: type[Db], config = Config.init): Db =
   Db(config: config)
 
-proc non_processed_version*(db: Db): int =
+proc unprocessed_version(db: Db): int =
   var h: Hash = db.config.version.hash
   for sid, space in db.spaces:
-    h = h !& sid.hash !& space.version.hash
+    h = h !& (sid, space.version).hash
   !$h
 
-iterator blocks*(db: Db): Block =
+template process_if_needed(db: Db, code) =
+  db.cache.process("process(db)", db.unprocessed_version):
+    db.log.info "process"
+    code
+    db.version = db.unprocessed_version # Processing may change content of the database
+
+# helpers ------------------------------------------------------------------------------------------
+proc contains*(db: Db, sid: string): bool =
+  sid in db.spaces
+
+proc `[]`*(db: Db, sid: string): Space =
+  db.spaces[sid]
+
+proc get*(db: Db, sid: string): Option[Space] =
+  if sid in db.spaces: return db.spaces[sid].some
+
+proc contains*(db: Db, id: RecordId): bool =
+  id[0] in db.spaces and id[1] in db.spaces[id[0]]
+
+proc `[]`*(db: Db, id: RecordId): Record =
+  db.spaces[id[0]].records[id[1]]
+
+proc get*(db: Db, id: RecordId): Option[Record] =
+  if id[0] in db.spaces:
+    let space = db.spaces[id[0]]
+    if id[1] in space.records:
+      return space.records[id[1]].some
+
+iterator items*(db: Db): Record =
   for _, space in db.spaces:
-    for _, doc in space.docs:
-      for blk in doc.blocks:
-        yield blk
+    for record in space:
+      yield record
 
-iterator docs*(db: Db): Doc =
-  for _, space in db.spaces:
-    for _, doc in space.docs:
-      yield doc
+# Validations --------------------------------------------------------------------------------------
+proc validate_tags*(db: Db) =
+  if not db.config.allowed_tags.is_empty:
+    for record in db:
+      for tag in record.tags:
+        if tag notin db.config.allowed_tags:
+          record.warns.add fmt"Invalid tag: {tag}"
 
-proc validate_tags*(space: Space, config: Config) =
-  if not config.allowed_tags.is_empty:
-    for blk in space.blocks:
-      for tag in blk.tags:
-        if tag notin config.allowed_tags:
-          blk.warns.add fmt"Invalid tag: {tag}"
+proc validate_links*(db: Db) =
+  for record in db:
+    for id in record.links:
+      if id notin db:
+        record.warns.add fmt"Invalid link: {id}"
 
-proc validate_links*(space: Space, db: Db) =
-  for blk in space.blocks:
-    for link in blk.links:
-      let (sid, did, bid) = link
-      try:
-        let doc = (if sid == ".": space else: db.spaces[sid]).docs[did]
-        unless bid.is_empty: discard doc.blockids[bid]
-      except:
-        blk.warns.add fmt"Invalid link: {link.to_s}"
+# Stats --------------------------------------------------------------------------------------------
+proc tags*(db: Db): Table[string, int] =
+  for record in db:
+    record.tags.eachit(result.inc it)
 
-proc ntags*(db: Db): Table[int, int] =
-  for blk in db.blocks:
-    for ntag in blk.ntags:
-      result.inc ntag
+proc tags_cached*(db: Db): Table[string, int] =
+  db.cache.get_into("tags", db.version, result, db.tags)
 
-proc ntags_cached*(db: Db): Table[int, int] =
-  db.cache.get_into("ntags", db.version, result, db.ntags)
+proc records_with_warns*(db: Db): seq[Record] =
+  for record in db:
+    if not record.warns.is_empty: result.add record
+  result = result.sortit(it.id)
 
-proc docs_with_warns*(db: Db): seq[tuple[sid, did: string]] =
-  for sid, space in db.spaces:
-    for did, doc in space.docs:
-      unless doc.warns.is_empty:
-        result.add (sid, did)
-        continue
-      block blocks_loop:
-        for blk in doc.blocks:
-          unless blk.warns.is_empty:
-            result.add (sid, did)
-            break blocks_loop
-  result = result.sortit(it[1])
+proc records_with_warns_cached*(db: Db): seq[Record] =
+  db.cache.get_into("records_with_warns", db.version, result, db.records_with_warns)
 
-proc docs_with_warns_cached*(db: Db): seq[tuple[sid, did: string]] =
-  db.cache.get_into("docs_with_warns", db.version, result, db.docs_with_warns)
+iterator filter*(db: Db, incl, excl: seq[string]): Record =
+  for record in db:
+    if incl.is_all_in(record.tags) and excl.is_none_in(record.tags):
+      yield record
 
-proc get*(db: Db, sid, did: string): Option[Doc] =
-  for sid, space in db.spaces:
-    if did in space.docs:
-      return space.docs[did].some
-
-proc get_doc*(db: Db, did: string): Option[Doc] =
-  for sid, space in db.spaces:
-    if did in space.docs:
-      return space.docs[did].some
-
-iterator filter_blocks*(db: Db, incl, excl: seq[int]): Block =
-  for _, space in db.spaces:
-    for _, doc in space.docs:
-      for blk in doc.blocks:
-        if incl.is_all_in(blk.ntags) and excl.is_none_in(blk.ntags):
-          yield blk
-
-proc search_blocks*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Block]] =
-  let score_fn = build_score[Block](query)
-  for blk in db.filter_blocks(incl, excl):
-    score_fn(blk, result)
-  result = result.sortit(-it.score)
+# proc search*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Record]] =
+#   let score_fn = build_score[Record](query)
+#   for record in db.filter(incl, excl):
+#     score_fn(record, result)
+#   result = result.sortit(-it.score)
 
 # processing ---------------------------------------------------------------------------------------
 proc process*(db: Db) =
-  db.cache.process("process(db)", db.non_processed_version):
-    db.log.info "process"
-    for sid, space in db.spaces:
-      space.validate_tags db.config
-      space.validate_links db
-      # for fn in space.processors: fn()
-    # Processing changes version of the database, so the db.version should be used for calculations
-    # that depends on processing.
-    db.version = db.non_processed_version
-
-# proc get*[T](db: Db, fn: (proc(db: Db): T)): T =
-#   db.cache.get("proc/" & fn.repr)
+  db.process_if_needed:
+    db.validate_tags
+    db.validate_links
 
 proc process_bgjobs*(db: Db) =
   for fn in db.bgjobs: fn()

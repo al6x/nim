@@ -1,22 +1,12 @@
 import base, ext/[vcache, grams], ./docm, ./configm
 
-type Space* = ref object
-  id*:           string
-  version*:      int
-  docs*:         Table[string, Doc]
-  tags*:         seq[string]
-  warnings*:     seq[string]
+proc apdate*(space: Space, doc: Doc) =
+  space.post_process doc
+  space.docs[doc.id] = doc
 
-proc log*(self: Space): Log =
-  Log.init("Space", self.id)
+proc del*(space: Space, doc_id: string) =
+  space.docs.del doc_id
 
-proc init*(_: type[Space], id: string, version = 0): Space =
-  Space(id: id, version: version)
-
-iterator blocks*(space: Space): Block =
-  for _, doc in space.docs:
-    for blk in doc.blocks:
-      yield blk
 
 proc post_process*(space: Space, doc: Doc) =
   block: # Refs
@@ -59,15 +49,3 @@ proc post_process*(space: Space, doc: Doc) =
 iterator docs*(space: Space): Doc =
   for _, doc in space.docs: yield doc
 
-proc `[]`*(space: Space, doc_id: string): Doc =
-  space.docs[doc_id]
-
-proc contains*(space: Space, doc_id: string): bool =
-  doc_id in space.docs
-
-proc apdate*(space: Space, doc: Doc) =
-  space.post_process doc
-  space.docs[doc.id] = doc
-
-proc del*(space: Space, doc_id: string) =
-  space.docs.del doc_id
