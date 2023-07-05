@@ -1,4 +1,4 @@
-import std/[sugar, strutils, macros, math]
+import std/[sugar, macros, math]
 from std/times as nt import nil
 
 # import std/[strformat, sugar, strutils, unicode, tables, macros]
@@ -10,8 +10,8 @@ from std/times as nt import nil
 # export envm
 
 
-type None = object # For optional arguments `proc somefn(v: int | None = none)`
-const none = None()
+# type None = object # For optional arguments `proc somefn(v: int | None = none)`
+# const none = None()
 
 template alterit*[T](self: T, expr): T =
   block:

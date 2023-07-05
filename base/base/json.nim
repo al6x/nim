@@ -107,6 +107,10 @@ proc sort*(node: JsonNode): JsonNode =
     copy = node.copy
   copy
 
+proc scopy*(node: JsonNode): JsonNode =
+  # Shallow Copy
+  node.copy
+
 # CountTable ---------------------------------------------------------------------------------------
 # proc to_json_hook*[K](t: CountTable[K]): JsonNode =
 #   var t2: Table[K, int]; for k, v in t: t2[k] = v

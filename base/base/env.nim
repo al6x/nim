@@ -1,5 +1,4 @@
-import std/[strformat, macros, sugar, strutils, os, tables, options]
-from ./terminal as terminal import nil
+import std/[strutils, os, tables]
 
 # Checking required language features --------------------------------------------------------------
 template try_define_overloadable_enums = # Checking if `--experimental:overloadable_enums` enabled
@@ -12,11 +11,6 @@ when not compiles(try_define_overloadable_enums()):
   static:
     echo "Error: nim experimental feature required, run nim with `--experimental:overloadable_enums` flag."
     quit(1)
-
-# Helper -------------------------------------------------------------------------------------------
-template throw(message: string) =
-  raise newException(Exception, message)
-
 
 # Env ----------------------------------------------------------------------------------------------
 type Env* = Table[string, string]

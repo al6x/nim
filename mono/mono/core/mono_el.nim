@@ -26,7 +26,7 @@ type
   BlurHandler* = proc(e: BlurEvent)
 
   InputEvent* = object
-    value*: string
+    value*: JsonNode
   InputHandler* = proc(e: InputEvent)
 
 proc get*(self: El, el_path: seq[int]): El =
@@ -42,10 +42,10 @@ proc window_location*(self: El, location: string | Url) =
   self.attr("window_location", location.to_s)
 
 proc window_location*(self: El): Option[Url] =
-  if "window_location" in self: return Url.parse(self["window_location"]).some
+  if "window_location" in self.attrs: return Url.parse(self.attrs["window_location"].get_str).some
 
 proc window_title*(el: El): string =
-  if "window_title" in el: el["window_title"] else: ""
+  if "window_title" in el.attrs: el.attrs["window_title"].get_str else: ""
 
 proc window_icon*(self: El, icon_href: string) =
   self.attr("window_icon", icon_href)
@@ -96,14 +96,23 @@ proc on_input*(self: El, fn: proc(), render = true) =
 
 template bind_to*(element: El, variable: untyped, render: bool) =
   let el = element
-  block:
-    let value_s = variable.serialize
-    el.value value_s
+  el.value variable
 
   el.on_input((proc(e: InputEvent) =
-    variable = typeof(variable).parse e.value
-    el.value e.value # updating value on the element, to avoid it being detected by diff
+    variable = e.value.json_to(typeof(variable))
+    el.value variable # updating value on the element, to avoid it being detected by diff
   ), render)
 
 template bind_to*(element: El, variable: untyped) =
   bind_to(element, variable, true)
+
+# template bind_to*(element: El, variable: untyped, render: bool) =
+#   let el = element
+#   block:
+#     let value_s = variable.serialize
+#     el.value value_s
+
+#   el.on_input((proc(e: InputEvent) =
+#     variable = typeof(variable).parse e.value
+#     el.value e.value # updating value on the element, to avoid it being detected by diff
+#   ), render)

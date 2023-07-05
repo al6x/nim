@@ -1,5 +1,5 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
-import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url, get_window_location } from "./helpers.js";
+import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url, get_window_location, dcopy, escape_html } from "./helpers.js";
 // run ---------------------------------------------------------------------------------------------
 function get_main_mono_root() {
     // Theoretically, mono supports multiple mono_root elements on the page, but currently only one
@@ -146,9 +146,10 @@ function listen_to_dom_events() {
         let found = find_el_with_listener(raw_event.target, "on_input");
         if (!found)
             throw new Error("can't find element for input event");
-        let input = raw_event.target;
+        let el = raw_event.target;
+        let get_value = special_elements[el.tagName.toLowerCase()]?.get_value || ((el) => el.value);
+        let in_event = { kind: 'input', el: found.path, event: { value: get_value(el) } };
         let input_key = found.path.join(",");
-        let in_event = { kind: 'input', el: found.path, event: { value: get_value(input) } };
         if (!found.immediate) {
             // Performance optimisation, avoinding sending every change, and keeping only the last value
             changed_inputs[input_key] = in_event;
@@ -232,77 +233,7 @@ function find_el_with_listener(target, listener = undefined) {
     }
     return undefined;
 }
-// Different HTML inputs use different attributes for value
-function get_value(el) {
-    let tag = el.tagName.toLowerCase();
-    if (tag == "input" && el.type == "checkbox") {
-        return "" + el.checked;
-    }
-    else if (tag == "textarea") {
-        return "" + el.value;
-    }
-    else {
-        return "" + el.value;
-    }
-}
 // diff --------------------------------------------------------------------------------------------
-function set_attr(el, k, v) {
-    // Some attrs requiring special threatment
-    let [value, kind] = Array.isArray(v) ? v : [v, "string_attr"];
-    switch (k) {
-        case "window_title":
-            set_window_title(value);
-            break;
-        case "window_location":
-            set_window_location(value);
-            break;
-        case "window_icon":
-            set_window_icon(value);
-            break;
-    }
-    switch (kind) {
-        case "bool_prop":
-            assert(["true", "false"].includes(value), "invalid bool_prop value: " + value);
-            el[k] = value == "true";
-            break;
-        case "string_prop":
-            el[k] = value;
-            break;
-        case "string_attr":
-            el.setAttribute(k, value);
-            break;
-        default:
-            throw new Error("unknown kind");
-    }
-}
-function del_attr(el, attr) {
-    // Some attrs requiring special threatment
-    let [k, kind] = Array.isArray(attr) ? attr : [attr, "string_attr"];
-    switch (k) {
-        case "window_title":
-            set_window_title("");
-            break;
-        case "window_location": break;
-        case "window_icon":
-            set_window_icon("");
-            break;
-    }
-    switch (kind) {
-        case "bool_prop":
-            ;
-            el[k] = false;
-            break;
-        case "string_prop":
-            delete el[k];
-            el.removeAttribute(k);
-            break;
-        case "string_attr":
-            el.removeAttribute(k);
-            break;
-        default:
-            throw new Error("unknown kind");
-    }
-}
 function update(root, diffs) {
     new ApplyDiffImpl(root).update(diffs);
 }
@@ -325,14 +256,14 @@ class ApplyDiffImpl {
                 flash(el); // Flashing
         this.root.removeAttribute("skip_flash");
     }
-    replace(id, html) {
-        el_by_path(this.root, id).outerHTML = html;
+    replace(id, el) {
+        el_by_path(this.root, id).outerHTML = to_html(el);
         this.flash_if_needed(el_by_path(this.root, id));
     }
     add_children(id, els) {
+        let parent = el_by_path(this.root, id);
         for (const el of els) {
-            let parent = el_by_path(this.root, id);
-            parent.appendChild(build_el(el));
+            parent.appendChild(build_el(to_html(el)));
             this.flash_if_needed(parent.lastChild);
         }
     }
@@ -345,14 +276,39 @@ class ApplyDiffImpl {
     }
     set_attrs(id, attrs) {
         let el = el_by_path(this.root, id);
-        for (const k in attrs)
-            set_attr(el, k, attrs[k]);
+        let set_attr = special_elements[el.tagName.toLowerCase()]?.set_attr || el_set_attr;
+        for (const k in attrs) {
+            let v = attrs[k];
+            switch (k) {
+                case "window_title":
+                    set_window_title("" + v);
+                    break;
+                case "window_location":
+                    set_window_location("" + v);
+                    break;
+                case "window_icon":
+                    set_window_icon("" + v);
+                    break;
+            }
+            set_attr(el, k, v);
+        }
         this.flash_if_needed(el);
     }
     del_attrs(id, attrs) {
         let el = el_by_path(this.root, id);
-        for (const attr of attrs)
-            del_attr(el, attr);
+        let del_attr = special_elements[el.tagName.toLowerCase()]?.del_attr || el_del_attr;
+        for (const k of attrs) {
+            switch (k) {
+                case "window_title":
+                    set_window_title("");
+                    break;
+                case "window_location": break;
+                case "window_icon":
+                    set_window_icon("");
+                    break;
+            }
+            del_attr(el, k);
+        }
         this.flash_if_needed(el);
     }
     set_text(id, text) {
@@ -406,3 +362,130 @@ function set_window_icon(mono_id, attr = "window_icon") {
 function set_window_icon_disabled(mono_id) {
     set_window_icon(mono_id, "window_icon_disabled");
 }
+// to_html -----------------------------------------------------------------------------------------
+function to_html(el, indent = "", comments = false) {
+    let html = [];
+    to_html_impl(el, html, indent, comments);
+    return html.join("");
+}
+function to_html_impl(raw_el, html, indent = "", comments = false) {
+    switch (raw_el.kind) {
+        case "el":
+            let { el, bool_attrs } = (special_elements[raw_el.tag]?.to_html ||
+                ((el) => ({ el, bool_attrs: [] })))(raw_el);
+            html.push(indent + "<" + el.tag);
+            for (let k in el.attrs) {
+                let v = el.attrs[k];
+                if (bool_attrs.includes(k)) {
+                    assert(typeof v == "boolean", "bool_attr should be bool");
+                    if (v)
+                        html.push(" " + k);
+                }
+                else {
+                    html.push(" " + k + "=\"" + escape_html("" + v) + "\"");
+                }
+            }
+            html.push(">");
+            let nchildren = el.children || [];
+            if (nchildren.length > 0) {
+                if (nchildren.length == 1 && ["text", "html"].includes(nchildren[0].kind)) {
+                    to_html_impl(nchildren[0], html, "", comments); // Single text or html content
+                }
+                else {
+                    html.push("\n");
+                    let first_child = nchildren[0];
+                    let newlines = first_child.kind == "el" && "c" in first_child.attrs;
+                    for (let child of nchildren) {
+                        if (newlines)
+                            html.push("\n");
+                        to_html_impl(child, html, indent + "  ", comments);
+                        html.push("\n");
+                    }
+                    if (newlines)
+                        html.push("\n");
+                    html.push(indent);
+                }
+            }
+            html.push("</" + el.tag + ">");
+            break;
+        case "text":
+            html.push(escape_html(raw_el.text, false));
+            break;
+        case "html":
+            html.push(raw_el.html);
+            break;
+        default:
+            throw new Error("unknown el kind");
+    }
+}
+const special_elements = {};
+function el_set_attr(el, k, v) { el.setAttribute(k, "" + v); }
+function el_del_attr(el, k) { el.removeAttribute(k); }
+special_elements["input"] = {
+    set_attr(el, k, v) {
+        if (k == "value") {
+            if (el.type == "checkbox") {
+                assert(typeof v == "boolean", "checked should be boolean");
+                el.checked = v;
+            }
+            else {
+                el.value = "" + v;
+            }
+        }
+        else {
+            el_set_attr(el, k, v);
+        }
+    },
+    del_attr(el, k) {
+        if (k == "value" && el.type == "checkbox") {
+            el.checked = false;
+        }
+        else {
+            el_del_attr(el, k);
+        }
+    },
+    to_html(el) {
+        assert(!("children" in el));
+        el = dcopy(el);
+        let bool_attrs = [];
+        if ("type" in el.attrs && el.attrs["type"] == "checkbox") {
+            bool_attrs.push("checked");
+            if ("value" in el.attrs) {
+                assert(typeof el.attrs["value"] == "boolean", "value for checkbox should be bool");
+                el.attrs["checked"] = el.attrs["value"];
+                delete el.attrs["value"];
+            }
+        }
+        return { el, bool_attrs };
+    },
+    get_value(el) {
+        return el.type == "checkbox" ? el.checked : el.value;
+    }
+};
+special_elements["textarea"] = {
+    set_attr(el, k, v) {
+        if (k == "value") {
+            el.value = "" + v;
+        }
+        else {
+            el_set_attr(el, k, v);
+        }
+    },
+    del_attr(el, k) {
+        if (k == "value") {
+            el.value = "";
+        }
+        else {
+            el_del_attr(el, k);
+        }
+    },
+    to_html(el) {
+        assert(!("children" in el));
+        el = dcopy(el);
+        if ("value" in el.attrs) {
+            el.children = [{ kind: "html", html: "" + el.attrs["value"] }];
+            delete el.attrs["value"];
+        }
+        return { el, bool_attrs: [] };
+    }
+};

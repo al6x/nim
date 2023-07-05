@@ -27,7 +27,9 @@ proc svg_dot*(color: string): SafeHtml =
   """.dedent.trim.replace(re"\s*\n\s*", "")
 
 proc default_html_page*(app_el: El, styles = seq[string].init, scripts = seq[string].init): SafeHtml =
+  let app_el = app_el.scopy
   app_el.attr("c", true) # adding white space around, for prettier html
+
   let styles  = ["/assets/mono.css"] & styles
   let scripts = ["import { run } from '/assets/mono.js'; run()".dedent.trim] & scripts
   proc is_style_link(s: string): bool = re"^(/|https?:)" =~ s

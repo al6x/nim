@@ -9,6 +9,8 @@ proc init*[K, V](_: type[Table[K, V]]): Table[K, V] =
 proc init*[K, V](_: type[ref Table[K, V]]): ref Table[K, V] =
   result.new
 
+proc contains*[K, V](table: Table[K, V], entry: (K, V)): bool =
+  entry[0] in table and table[entry[0]] == entry[1]
 
 # map ----------------------------------------------------------------------------------------------
 proc delete*[K, V](table: var Table[K, V], cond: (K, V) -> bool): Table[K, V] =

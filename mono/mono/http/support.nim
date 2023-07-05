@@ -1,5 +1,5 @@
 import base, ext/[url, async], ../core
-import std/[deques, httpcore, asynchttpserver, asyncnet, os]
+import std/[deques, httpcore, asynchttpserver, os]
 
 type Mime* = ref Table[string, string]
 let mime* = Mime()
