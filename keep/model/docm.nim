@@ -107,3 +107,25 @@ proc nwarns*(doc: Doc): seq[string] =
   result.add doc.warns
   for blk in doc.blocks: result.add blk.warns
   result.unique.sort
+
+# add ----------------------------------------------------------------------------------------------
+proc post_process(space: Space, doc: Doc) =
+  block: # Setting doc and space refs
+    doc.space = space
+    for blk in doc.blocks:
+      blk.doc = doc
+      blk.space = space
+
+  block: # Merging parent tags
+    let parent_tags = (doc.tags & space.tags).sort
+    for blk in doc.blocks:
+      blk.tags = (blk.source.tags & parent_tags).unique.sort
+      doc.tags.add blk.tags
+    doc.tags = doc.tags.unique.sort
+
+proc apdate*(space: Space, doc: Doc) =
+  space.post_process doc
+  space.records[doc.id] = doc
+
+proc del*(space: Space, doc_id: string) =
+  space.records.del doc_id

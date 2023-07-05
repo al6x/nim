@@ -1,4 +1,4 @@
-import base, ext/watch_dir, ./docm, ./spacem, ./dbm
+import base, ext/watch_dir, ./schema, ./docm, ./dbm
 
 type DocFileParser* = proc (path: string): Doc
 type DocFileParsers* = ref Table[string, DocFileParser]
@@ -16,7 +16,7 @@ proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string)
         let doc = parser(entry.path)
         assert doc.id == name, "doc id shall be same as file name"
         if doc.id in space.docs:
-          space.warnings.add fmt"Name conflict: {doc.id}"
+          space.warns.add fmt"Name conflict: {doc.id}"
         else:
           space.apdate doc
 
