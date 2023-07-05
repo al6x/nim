@@ -51,6 +51,7 @@ Use `import base/log; log_emitters.len = 0` to silence the default console logge
 # Docs
 
 - [Templates](docs/templates.md)
+- [Inputs](docs/inputs.md)
 
 # Development and contributing
 
