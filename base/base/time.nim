@@ -12,14 +12,7 @@ const hour_sec*   = 60 * 60
 const minute_sec* = 60
 
 # Epoch --------------------------------------------------------------------------------------------
-type Epoch* = distinct int # in seconds, could be negative
-proc `$`*(e: Epoch): string {.borrow.}
-proc `-`*(a, b: Epoch): int {.borrow.}
-proc `<`*(a, b: Epoch): bool {.borrow.}
-proc `<=`*(a, b: Epoch): bool {.borrow.}
-proc `==`*(a, b: Epoch): bool {.borrow.}
-proc `-`*(e: Epoch, shift: int): Epoch = (e.int - shift).Epoch
-proc `+`*(e: Epoch, shift: int): Epoch = (e.int + shift).Epoch
+type Epoch* = int # in seconds, could be negative
 
 proc epoch_days(y: int, m: int, d: int): int =
   var y = y

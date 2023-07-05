@@ -24,7 +24,7 @@ type CounterParent = ref object of Component
 
 proc render(self: CounterParent): El =
   el".parent":
-    self.el(Counter, "counter", ())
+    el(self, Counter, "counter", ())
 
 test "counter":
   let session = Session.init(CounterParent())

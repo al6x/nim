@@ -27,7 +27,7 @@ test "el, stateful component":
   type App = ref object of Component
   proc render(self: App): El =
     el"app":
-      self.el(Panel, "panel", (color: "blue")):
+      el(self, Panel, "panel", (color: "blue")):
         el(Button, (color: "blue"))
 
   check App().render.to_html == """
@@ -64,7 +64,7 @@ test "el, proc component":
       el(Panel, (color: "blue")):
         el(Button, (color: "blue"))
     el"app":
-      self.el(LRLayout, (left: left))
+      el(self, LRLayout, (left: left))
 
   check App().render.to_html == """
     <app>

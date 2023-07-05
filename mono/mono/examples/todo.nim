@@ -106,7 +106,7 @@ proc render*(self: TodoView): El =
             for item in filtered:
               # Feature: statefull componenets, attr names and values are typesafe
               let item = item
-              self.el(TodoItemView, item.id, (on_delete: on_delete, item: item))
+              el(self, TodoItemView, item.id, (on_delete: on_delete, item: item))
 
           el"footer.footer":
             el"span.todo-count":

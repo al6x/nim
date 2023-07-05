@@ -228,6 +228,9 @@ proc filter_map*[V, R](list: openarray[V], convert: (V, int) -> Option[R]): seq[
 proc each*[T](list: openarray[T], cb: (proc (v: T))) =
   for v in list: cb(v)
 
+template eachit*[T](list: openarray[T], code) =
+  for it {.inject.} in list: code
+
 
 proc shuffle*[T](list: openarray[T], seed = 1): seq[T] =
   var rand = random.init_rand(seed)
