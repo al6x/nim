@@ -15,10 +15,8 @@ proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string)
         let parser = parsers[ext]
         let doc = parser(entry.path)
         assert doc.id == name, "doc id shall be same as file name"
-        if doc.id in space.docs:
-          space.warns.add fmt"Name conflict: {doc.id}"
-        else:
-          space.apdate doc
+        if doc.id in space.records: space.warns.add fmt"Name conflict: {doc.id}"
+        else:                       space.apdate doc
 
   # Watching files for chages
   let get_changed = watch_dir space_path
@@ -37,13 +35,15 @@ proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string)
               assert doc.id == name, "doc id shall be same as file name"
               space.apdate doc
             of deleted:
-              space.del name
+              if name in space.records and space[name] of Doc:
+                let doc = space[name].Doc
+                space.del doc
             space.version.inc
             space.log.with((doc: entry.path.file_name)).info entry.change.to_s
         elif parts.len > 1: # file in space subdir
-          let subdir = parts[0]
-          if subdir in space.docs: # doc asset changed
-            var doc = space.docs[subdir]
+          let id = parts[0]
+          if id in space.records and space[id] of Doc: # doc asset changed
+            var doc = space.records[id].Doc
             let location = doc.source.DocTextSource.location
             let (name, ext) = location.file_name_ext
             if ext in parsers:

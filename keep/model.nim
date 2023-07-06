@@ -1,2 +1,2 @@
-import ./model/[dbm, spacem, docm, helpers]
-export dbm, docm, helpers
+import ./model/[schema, dbm, docm, helpers, configm]
+export schema, dbm, docm, helpers, configm

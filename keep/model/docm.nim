@@ -109,11 +109,16 @@ proc nwarns*(doc: Doc): seq[string] =
   result.unique.sort
 
 # add ----------------------------------------------------------------------------------------------
-proc post_process(space: Space, doc: Doc) =
+proc validate(blk: Block, doc: Doc) =
+  assert blk.doc == doc
+  assert not blk.kind.is_empty
+  assert blk.id.starts_with doc.id
+
+proc post_process(doc: Doc, space: Space) =
   block: # Setting doc and space refs
     doc.space = space
     for blk in doc.blocks:
-      blk.doc = doc
+      blk.validate doc
       blk.space = space
 
   block: # Merging parent tags
@@ -123,9 +128,12 @@ proc post_process(space: Space, doc: Doc) =
       doc.tags.add blk.tags
     doc.tags = doc.tags.unique.sort
 
-proc apdate*(space: Space, doc: Doc) =
-  space.post_process doc
-  space.records[doc.id] = doc
+proc del*(space: Space, doc: Doc) =
+  space.records.del doc.id
+  for blk in doc.blocks: space.records.del blk.id
 
-proc del*(space: Space, doc_id: string) =
-  space.records.del doc_id
+proc apdate*(space: Space, doc: Doc) =
+  space.del doc
+  doc.post_process space
+  space.records[doc.id] = doc
+  for blk in doc.blocks: space.records[blk.id] = blk
