@@ -1,18 +1,22 @@
 import base, ext/[parser, yaml], std/os
-import ./model
-
-export model
+import keep/model/[schema, docm]
 
 type # Config
-  FBlockParser* = proc (source: FBlockSource, doc: Doc, config: FParseConfig): Block
+  RawBlock* = ref object
+    kind*, id*, args*, text*: string
+    line_n*: (int, int) # block position in text
+
+  BlockParser* = proc (raw: RawBlock, doc: Doc, context: ParseContext): Block
 
   # Embed are things like `text image{some.png} text`
-  FEmbedParser* = proc (raw: string, blk: Block, doc: Doc, config: FParseConfig): Embed
+  EmbedParser* = proc (raw: string, blk: Block, doc: Doc, context: ParseContext): Embed
 
-  FParseConfig* = ref object
-    can_have_implicittext*: seq[string] # Blocks that may contain implicit text block before
-    block_parsers*:         Table[string, FBlockParser]
-    embed_parsers*:         Table[string, FEmbedParser]
+  ParseConfig* = ref object
+    can_have_implicit_text*: seq[string] # Blocks that may contain implicit text block before
+    block_parsers*:          Table[string, BlockParser]
+    embed_parsers*:          Table[string, EmbedParser]
+
+  ParseContext* = tuple[sid: string, config: ParseConfig]
 
 # helpers ------------------------------------------------------------------------------------------
 let special_chars        = """`~!@#$%^&*()-_=+[{]}\|;:'",<.>/?""".to_bitset
@@ -210,7 +214,7 @@ proc parse_block_with_implicittext(text: string): (string, (int, int), string, (
   assert blk_i > text_blk.len, "internal error, can't get second block start"
   (text_blk, (0, text_blk.high), blk, (blk_i, blk_i + blk.high))
 
-proc consume_block*(pr: Parser, blocks: var seq[FBlockSource], can_have_implicittext: seq[string]) =
+proc consume_block*(pr: Parser, blocks: var seq[RawBlock], can_have_implicittext: seq[string]) =
   let start = pr.i
   let non_empty_start = pr.i + pr.find(not_space_chars)
   var body = pr.consume(proc (c: auto): bool =
@@ -249,24 +253,24 @@ proc consume_block*(pr: Parser, blocks: var seq[FBlockSource], can_have_implicit
     if kind in can_have_implicittext and body.has_implicittext:
       let (atext, alines, btext, blines) = body.parse_block_with_implicittext
 
-      blocks.add FBlockSource(text: atext.trim, kind: "text", line_n: (
+      blocks.add RawBlock(text: atext.trim, kind: "text", line_n: (
         pr.text.line_n(non_empty_start + alines[0]),
         pr.text.line_n(non_empty_start + alines[1])
       ))
 
-      blocks.add FBlockSource(text: btext.trim, kind: kind.trim, id: id, args: args.trim, line_n: (
+      blocks.add RawBlock(text: btext.trim, kind: kind.trim, id: id, args: args.trim, line_n: (
         pr.text.line_n(non_empty_start + blines[0]),
         pr.text.line_n(non_empty_start + blines[1])
       ))
     else:
-      blocks.add FBlockSource(text: body.trim, kind: kind.trim, id: id, args: args.trim, line_n: (
+      blocks.add RawBlock(text: body.trim, kind: kind.trim, id: id, args: args.trim, line_n: (
         pr.text.line_n(non_empty_start),
         pr.text.line_n(non_empty_start + body.trim.len)
       ))
   else:
     pr.i = start # rolling back
 
-proc consume_blocks*(pr: Parser, can_have_implicittext: seq[string] = @[]): seq[FBlockSource] =
+proc consume_blocks*(pr: Parser, can_have_implicittext: seq[string] = @[]): seq[RawBlock] =
   var prev_i = -1
   while true:
     pr.consume_block(result, can_have_implicittext)
@@ -282,21 +286,21 @@ proc is_local_link(link: string): bool =
   assert not link.is_empty
   "://" notin link
 
-proc parse_local_link(link: string, pr: Parser): Link =
+proc parse_local_link(link, sid: string, pr: Parser): RecordId =
   let parts = link.split("/").reject(is_empty)
   case parts.len
   of 1:
-    (".", parts[0], "")
+    (sid, parts[0])
   of 2:
-    (parts[0], parts[1], "")
+    (parts[0], parts[1])
   of 3:
-    (parts[0], parts[1], parts[2])
+    (parts[0], parts[1] & "/" & parts[2])
   else:
     pr.warns.add fmt"Invalid link, too many parts: '{link}'"
-    (parts[0], parts[1], parts[2])
+    (parts[0], parts[1] & "/" & parts[2])
 
 let link_chars = {']', ')', '\n'}.complement
-proc consume_text_link*(pr: Parser, items: var Text) =
+proc consume_text_link*(pr: Parser, sid: string, items: var Text) =
   assert pr.get == '['
   pr.inc
   let name = pr.consume link_chars
@@ -310,7 +314,7 @@ proc consume_text_link*(pr: Parser, items: var Text) =
 
   if not link.is_empty:
     if link.is_local_link:
-      let link = parse_local_link(link, pr)
+      let link = parse_local_link(link, sid, pr)
       items.add TextItem(kind: TextItemKind.link, text: name, link: link)
     else:
       items.add TextItem(kind: TextItemKind.glink, text: name, glink: link)
@@ -328,7 +332,7 @@ proc consume_em(pr: Parser) =
   pr.inc
 
 # inline_text --------------------------------------------------------------------------------------
-proc consume_inline_text*(pr: Parser, stop: (proc: bool), trim = false): Text =
+proc consume_inline_text*(pr: Parser, sid: string, stop: (proc: bool), trim = false): Text =
   var text = ""; var em_started_i: int = -1
 
   template finish_text =
@@ -356,7 +360,7 @@ proc consume_inline_text*(pr: Parser, stop: (proc: bool), trim = false): Text =
         em_started_i = result.len
     elif pr.is_text_link:
       finish_text()
-      pr.consume_text_link(result)
+      pr.consume_text_link(sid, result)
     elif pr.is_tag:
       finish_text()
       let tag = pr.consume_tag
@@ -372,9 +376,9 @@ proc consume_inline_text*(pr: Parser, stop: (proc: bool), trim = false): Text =
     result[^1].text = result[^1].text.strip(leading = false, trailing = true)
     if result.last.text.is_empty: discard result.pop
 
-proc consume_inline_text*(text: string): Text =
+proc consume_inline_text*(text, sid: string): Text =
   let pr = Parser.init(text)
-  result = pr.consume_inline_text(() => false)
+  result = pr.consume_inline_text(sid, () => false)
   assert pr.warns.is_empty, "parsing ftext, unexpected warnings"
 
 # text_paragraph -----------------------------------------------------------------------------------
@@ -395,22 +399,22 @@ proc is_text_list*(pr: Parser): bool =
 proc is_text_list_item*(pr: Parser): bool =
   (pr.i == 0 or pr.get == '\n') and pr.fget(not_space_chars, limit = lookahead_limit) == '-'
 
-proc consume_list_item*(pr: Parser): Text =
+proc consume_list_item*(pr: Parser, sid: string): Text =
   pr.skip space_chars
   assert pr.get == '-'
   pr.inc
   pr.skip space_chars
   proc stop: bool = pr.is_text_paragraph or pr.is_text_list or pr.is_text_list_item
-  pr.consume_inline_text(stop)
+  pr.consume_inline_text(sid, stop)
 
-proc consume_text_list*(pr: Parser): seq[Text] =
+proc consume_text_list*(pr: Parser, sid: string): seq[Text] =
   while pr.is_text_list_item:
-    let inline_text = pr.consume_list_item
+    let inline_text = pr.consume_list_item(sid)
     if not inline_text.is_empty:
       result.add inline_text
 
 # text ---------------------------------------------------------------------------------------------
-proc parse_text_as_items*(pr: Parser): seq[Paragraph] =
+proc parse_text_as_items*(pr: Parser, sid: string): seq[Paragraph] =
   var paragraph: Text
 
   template finish_paragraph =
@@ -422,20 +426,19 @@ proc parse_text_as_items*(pr: Parser): seq[Paragraph] =
 
   while pr.has:
     if   pr.is_text_list:
-      let items = pr.consume_text_list
+      let items = pr.consume_text_list(sid)
       if not items.is_empty:
         result.add Paragraph(kind: list, list: items)
     elif pr.is_text_paragraph:
       pr.skip_text_paragraph
       pr.skip space_chars
     else:
-      let inline_text = pr.consume_inline_text(stop)
+      let inline_text = pr.consume_inline_text(sid, stop)
       if not inline_text.is_empty:
         result.add Paragraph(kind: ParagraphKind.text, text: inline_text)
 
-proc link_to_text(link: Link): string =
-  result = if link[0] == ".": link[1] else: link[0] & "/" & link[1]
-  unless link[2].is_empty: result.add " " & link[2]
+proc link_to_text(link: RecordId): string =
+  if link[0] == ".": link[1] else: "/" & link[0] & "/" & link[1]
 
 proc add_text_item_data(blk: Block, item: TextItem): void =
   case item.kind
@@ -455,30 +458,30 @@ proc add_text_item_data(blk: Block, item: TextItem): void =
   of embed:
     discard
 
-proc post_process*(item: TextItem, blk: Block, doc: Doc, config: FParseConfig): TextItem =
+proc post_process*(item: TextItem, blk: Block, doc: Doc, context: ParseContext): TextItem =
   var item = item
   blk.add_text_item_data item # Extracting text
   if item.kind == embed: # Post processing embed items
     let (kind, body) = (item.embed.kind, item.embed.body)
-    if kind in config.embed_parsers:
-      let eparser: FEmbedParser = config.embed_parsers[kind]
-      item.embed = eparser(body, blk, doc, config)
+    if kind in context.config.embed_parsers:
+      let eparser: EmbedParser = context.config.embed_parsers[kind]
+      item.embed = eparser(body, blk, doc, context)
       item.embed.kind = kind; item.embed.body = body
     else:
       blk.warns.add fmt"Unknown embed: " & kind
   item
 
-proc args_should_be_empty(source: FBlockSource, warns: var seq[string]) =
-  unless source.args.is_empty:
-    warns.add "Unknown args: " & source.args
+proc args_should_be_empty(raw: RawBlock, warns: var seq[string]) =
+  unless raw.args.is_empty:
+    warns.add "Unknown args: " & raw.args
 
-proc parse_text*(source: FBlockSource, doc: Doc, config: FParseConfig): TextBlock =
-  assert source.kind == "text"
-  let pr = Parser.init source.text
-  let ftext = pr.parse_text_as_items
+proc parse_text*(raw: RawBlock, doc: Doc, context: ParseContext): TextBlock =
+  assert raw.kind == "text"
+  let pr = Parser.init raw.text
+  let ftext = pr.parse_text_as_items context.sid
   let blk = TextBlock(warns: pr.warns)
-  source.args_should_be_empty blk.warns
-  proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, config)
+  raw.args_should_be_empty blk.warns
+  proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, context)
   blk.ftext = map(ftext, post_process)
   blk
 
@@ -507,14 +510,14 @@ proc parse_tags_on_last_line_if_present(raw: string, not_tags: (proc(lines: seq[
       return lines.join("\n").trim
   raw
 
-proc parse_list_as_items*(raw: string, blk: ListBlock) =
+proc parse_list_as_items*(raw: string, sid: string, blk: ListBlock) =
   let pr = Parser.init raw
   if pr.fget(not_space_chars, limit = lookahead_limit) == '-': # List imems start with '-' character
     proc not_tags(lines: seq[string]): bool =
       lines.last.trim.starts_with('-')
     let raw_without_tags = parse_tags_on_last_line_if_present(raw, not_tags, blk)
     let pr = Parser.init raw_without_tags
-    blk.list = pr.consume_text_list
+    blk.list = pr.consume_text_list(sid)
     pr.skip space_chars
     if pr.has:
       blk.warns.add "Unknown content in list: '" & pr.remainder & "'"
@@ -525,7 +528,7 @@ proc parse_list_as_items*(raw: string, blk: ListBlock) =
     let raw_without_tags = parse_tags_on_last_line_if_present(raw, not_tags, blk)
     let pr = Parser.init raw_without_tags
     while pr.has:
-      let inline_text = pr.consume_inline_text(() => pr.is_text_paragraph)
+      let inline_text = pr.consume_inline_text(sid, () => pr.is_text_paragraph)
       if not inline_text.is_empty:
         blk.list.add inline_text
       elif pr.is_text_paragraph:
@@ -539,35 +542,35 @@ proc check_keys_in(data: JsonNode, keys: openarray[string], warns: var seq[strin
   for k in data.keys:
     if k notin keys: warns.add "Invalid arg: " & k
 
-proc parse_list*(source: FBlockSource, doc: Doc, config: FParseConfig): ListBlock =
-  assert source.kind == "list"
+proc parse_list*(raw: RawBlock, doc: Doc, context: ParseContext): ListBlock =
+  assert raw.kind == "list"
   let blk = ListBlock()
 
-  unless source.args.is_empty: # parsing args
+  unless raw.args.is_empty: # parsing args
     try:
-      let data = parse_yaml source.args
+      let data = parse_yaml raw.args
       data.check_keys_in(["ph"], blk.warns)
       if "ph" in data: blk.ph = data["ph"].get_bool
     except:
       blk.warns.add "Invalid args"
 
-  parse_list_as_items(source.text, blk)
-  proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, config)
+  parse_list_as_items(raw.text, context.sid, blk)
+  proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, context)
   blk.list = map(blk.list, post_process)
   blk
 
 # data ---------------------------------------------------------------------------------------------
-proc parse_data*(source: FBlockSource): DataBlock =
-  assert source.kind == "data"
-  let json = parse_yaml source.text
-  let blk = DataBlock(data: json, text: source.text)
-  source.args_should_be_empty blk.warns
+proc parse_data*(raw: RawBlock): DataBlock =
+  assert raw.kind == "data"
+  let json = parse_yaml raw.text
+  let blk = DataBlock(data: json, text: raw.text)
+  raw.args_should_be_empty blk.warns
   blk
 
 # section ------------------------------------------------------------------------------------------
-proc parse_section[T](source: FBlockSource, section: T) =
-  let pr = Parser.init source.text; let kind: string = source.kind
-  let ftext = pr.consume_inline_text () => false
+proc parse_section[T](raw: RawBlock, sid: string, section: T) =
+  let pr = Parser.init raw.text; let kind: string = raw.kind
+  let ftext = pr.consume_inline_text(sid, () => false)
   if pr.has_next: section.warns.add fmt"Invalid text in {kind}: '{pr.remainder}'"
   var texts: seq[string]
   for item in ftext:
@@ -581,35 +584,35 @@ proc parse_section[T](source: FBlockSource, section: T) =
   section.title = texts.join " "
   if section.title.is_empty: section.warns.add fmt"Empty {kind} title"
 
-proc parse_section*(source: FBlockSource): SectionBlock =
-  assert source.kind == "section"
+proc parse_section*(raw: RawBlock, sid: string): SectionBlock =
+  assert raw.kind == "section"
   let blk = SectionBlock()
-  source.args_should_be_empty blk.warns
-  parse_section(source, blk)
+  raw.args_should_be_empty blk.warns
+  parse_section(raw, sid, blk)
   blk
 
-proc parse_subsection*(source: FBlockSource): SubsectionBlock =
-  assert source.kind == "subsection"
+proc parse_subsection*(raw: RawBlock, sid: string): SubsectionBlock =
+  assert raw.kind == "subsection"
   let blk = SubsectionBlock()
-  source.args_should_be_empty blk.warns
-  parse_section(source, blk)
+  raw.args_should_be_empty blk.warns
+  parse_section(raw, sid, blk)
   unless blk.tags.is_empty: result.warns.add "tags not supported for subsection"
   blk
 
 # title --------------------------------------------------------------------------------------------
-proc parse_title*(source: FBlockSource): string =
-  assert source.kind == "title"
-  assert source.args == ""
-  source.text
+# proc parse_title*(raw: RawBlock): string =
+#   assert raw.kind == "title"
+#   assert raw.args == ""
+#   raw.text
 
 # proc extract_title_from_location(location: string): string =
 #   location.split("/").last.replace(re"\.[a-zA-Z0-9]+", "")
 
 # code ---------------------------------------------------------------------------------------------
-proc parse_code*(source: FBlockSource): CodeBlock =
-  assert source.kind == "code"
-  let blk = CodeBlock(code: source.text.trim, text: source.text.trim)
-  source.args_should_be_empty blk.warns
+proc parse_code*(raw: RawBlock): CodeBlock =
+  assert raw.kind == "code"
+  let blk = CodeBlock(code: raw.text.trim, text: raw.text.trim)
+  raw.args_should_be_empty blk.warns
   blk
 
 # image, images ------------------------------------------------------------------------------------
@@ -624,24 +627,24 @@ proc parse_path_and_tags(text: string, warns: var seq[string], doc: Doc): tuple[
       warns.add "Unknown content in image: '" & pr.remainder & "'"
   (path, tags)
 
-proc parse_image*(source: FBlockSource, doc: Doc): ImageBlock =
+proc parse_image*(raw: RawBlock, doc: Doc): ImageBlock =
   var warns: seq[string]
-  let (path, tags) = parse_path_and_tags(source.text, warns, doc)
+  let (path, tags) = parse_path_and_tags(raw.text, warns, doc)
   var assets: seq[string]
   unless path.is_empty: assets.add path
-  let blk = ImageBlock(image: path, tags: tags, warns: warns, text: source.text, assets: assets)
-  source.args_should_be_empty blk.warns
+  let blk = ImageBlock(image: path, tags: tags, warns: warns, text: raw.text, assets: assets)
+  raw.args_should_be_empty blk.warns
   blk
 
-proc parse_images*(source: FBlockSource, doc: Doc): ImagesBlock =
-  assert source.kind == "images"
+proc parse_images*(raw: RawBlock, doc: Doc): ImagesBlock =
+  assert raw.kind == "images"
   var warns: seq[string]
-  let (path, tags) = parse_path_and_tags(source.text, warns, doc)
-  let blk = ImagesBlock(images_dir: path, tags: tags, warns: warns, text: source.text)
+  let (path, tags) = parse_path_and_tags(raw.text, warns, doc)
+  let blk = ImagesBlock(images_dir: path, tags: tags, warns: warns, text: raw.text)
 
-  unless source.args.is_empty: # parsing args
+  unless raw.args.is_empty: # parsing args
     try:
-      let data = parse_yaml source.args
+      let data = parse_yaml raw.args
       data.check_keys_in(["cols"], blk.warns)
       if "cols" in data: data["cols"].json_to blk.cols # blk.cols = data["cols"].get_int.some
     except:
@@ -658,14 +661,14 @@ proc parse_images*(source: FBlockSource, doc: Doc): ImagesBlock =
   blk
 
 # table --------------------------------------------------------------------------------------------
-proc parse_table_as_table(pr: Parser, col_delimiter: char, has_header: bool, blk: TableBlock) =
+proc parse_table_as_table(pr: Parser, sid: string, col_delimiter: char, has_header: bool, blk: TableBlock) =
   let is_row_delimiter = block:
     let pr = pr.deep_copy
     # Default delimiter is newline, but if there's double newline happens anywhere in table text, then
     # the double newline used as delimiter.
     pr.skip space_chars
     proc is_double_newline: bool = pr.get == '\n' and pr.get(1) == '\n'
-    discard pr.consume_inline_text(is_double_newline) # need to skip text embed that may have newlines
+    discard pr.consume_inline_text(sid, is_double_newline) # need to skip text embed that may have newlines
     if is_double_newline():
       proc(pr: Parser): bool = pr.get == '\n' and pr.get(1) == '\n'
     else:
@@ -693,7 +696,7 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, has_header: bool, blk
 
   while pr.has:
     pr.skip space_chars
-    let token = pr.consume_inline_text(stop)
+    let token = pr.consume_inline_text(sid, stop)
     # if   is_header(): # header
     #   finish_row:
     #     blk.header = row.some
@@ -709,14 +712,14 @@ proc parse_table_as_table(pr: Parser, col_delimiter: char, has_header: bool, blk
     pr.inc
   blk.warns.add pr.warns
 
-proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBlock =
-  assert source.kind == "table"
+proc parse_table*(raw: RawBlock, doc: Doc, context: ParseContext): TableBlock =
+  assert raw.kind == "table"
   let blk = TableBlock()
 
   var has_header = false
-  unless source.args.is_empty: # parsing args
+  unless raw.args.is_empty: # parsing args
     try:
-      let data = parse_yaml "{ " & source.args & " }"
+      let data = parse_yaml "{ " & raw.args & " }"
       data.check_keys_in(["style", "header", "cards"], blk.warns)
       if "style"  in data: data["style"].json_to blk.style
       if "header" in data: data["header"].json_to has_header
@@ -727,7 +730,7 @@ proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBl
       blk.warns.add "cards option could be used only with style: card"
 
   let col_delimiter: char = block:
-    let pr = Parser.init source.text
+    let pr = Parser.init raw.text
     if pr.find_without_embed((c) => c == '|') >= 0: '|' else: ','
 
   proc not_tags(lines: seq[string]): bool =
@@ -739,10 +742,10 @@ proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBl
       lines[^2].trim.ends_with(col_delimiter)
     last_line_has_col_delimiter or before_last_line_ending_with_col_delimiter
 
-  let text_without_tags = parse_tags_on_last_line_if_present(source.text, not_tags, blk)
+  let text_without_tags = parse_tags_on_last_line_if_present(raw.text, not_tags, blk)
 
   let pr = Parser.init(text_without_tags)
-  pr.parse_table_as_table(col_delimiter, has_header, blk)
+  pr.parse_table_as_table(context.sid, col_delimiter, has_header, blk)
 
   block: # normalizing cols count
     var cols = 0
@@ -760,45 +763,45 @@ proc parse_table*(source: FBlockSource, doc: Doc, config: FParseConfig): TableBl
         while blk.rows[i].len < cols: blk.rows[i].add @[]
     blk.cols = cols
 
-  proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, config)
+  proc post_process(item: TextItem): TextItem = post_process(item, blk, doc, context)
   if blk.header.is_some: blk.header = map(blk.header.get, post_process).some
   for i, row in blk.rows: blk.rows[i] = map(row, post_process)
   blk
 
-# FParseConfig --------------------------------------------------------------------------------------
-proc init*(_: type[FParseConfig]): FParseConfig =
-  var block_parsers: Table[string, FBlockParser]
-  block_parsers["text"]   = (blk, doc, config) => parse_text(blk, doc, config)
-  block_parsers["list"]   = (blk, doc, config) => parse_list(blk, doc, config)
-  block_parsers["data"]   = (blk, doc, config) => parse_data(blk)
-  block_parsers["code"]   = (blk, doc, config) => parse_code(blk)
-  block_parsers["image"]  = (blk, doc, config) => parse_image(blk, doc)
+# ParseConfig --------------------------------------------------------------------------------------
+proc init*(_: type[ParseConfig]): ParseConfig =
+  var block_parsers: Table[string, BlockParser]
+  block_parsers["text"]   = (blk, doc, context) => parse_text(blk, doc, context)
+  block_parsers["list"]   = (blk, doc, context) => parse_list(blk, doc, context)
+  block_parsers["data"]   = (blk, doc, context) => parse_data(blk)
+  block_parsers["code"]   = (blk, doc, context) => parse_code(blk)
+  block_parsers["image"]  = (blk, doc, context) => parse_image(blk, doc)
   block_parsers["img"] = block_parsers["image"]
-  block_parsers["images"] = (blk, doc, config) => parse_images(blk, doc)
-  block_parsers["table"]  = (blk, doc, config) => parse_table(blk, doc, config)
+  block_parsers["images"] = (blk, doc, context) => parse_images(blk, doc)
+  block_parsers["table"]  = (blk, doc, context) => parse_table(blk, doc, context)
 
-  block_parsers["section"]    = (blk, doc, config) => parse_section(blk)
-  block_parsers["subsection"] = (blk, doc, config) => parse_subsection(blk)
+  block_parsers["section"]    = (blk, doc, context) => parse_section(blk, context.sid)
+  block_parsers["subsection"] = (blk, doc, context) => parse_subsection(blk, context.sid)
 
-  var embed_parsers: Table[string, FEmbedParser]
-  embed_parsers["image"] = (raw, blk, doc, config) => parse_embed_image(raw, blk, doc).Embed
+  var embed_parsers: Table[string, EmbedParser]
+  embed_parsers["image"] = (raw, blk, doc, context) => parse_embed_image(raw, blk, doc).Embed
   embed_parsers["img"] = embed_parsers["image"]
-  embed_parsers["code"]  = (raw, blk, doc, config) => parse_embed_code(raw, blk).Embed
+  embed_parsers["code"]  = (raw, blk, doc, context) => parse_embed_code(raw, blk).Embed
 
   let can_have_implicittext = @["image", "images", "section", "subsection"]
 
-  FParseConfig(block_parsers: block_parsers, embed_parsers: embed_parsers,
+  ParseConfig(block_parsers: block_parsers, embed_parsers: embed_parsers,
     can_have_implicittext: can_have_implicittext)
 
 # consume_doc_tags ---------------------------------------------------------------------------------
-proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[string], line_n: (int, int)] =
+proc consume_doc_tags*(pr: Parser): tuple[blk: Option[RawBlock], tags: seq[string], line_n: (int, int)] =
   # Doc tags may have implicittext
   pr.skip space_chars
   let tags_text = pr.remainder
   if pr.find_without_embed((_) => pr.is_tag) < 0 and pr.find_without_embed((c) => c notin space_chars) >= 0:
     # No tags only text block
     let text = pr.remainder.trim
-    let blk = FBlockSource(text: text, kind: "text", line_n: (
+    let blk = RawBlock(text: text, kind: "text", line_n: (
       pr.text.line_n(pr.i),
       pr.text.line_n(pr.i + text.high)
     ))
@@ -806,7 +809,7 @@ proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[s
   elif tags_text.has_implicittext:
     let (atext, alines, btext, blines) = tags_text.parse_block_with_implicittext
 
-    let blk = FBlockSource(text: atext.trim, kind: "text", line_n: (
+    let blk = RawBlock(text: atext.trim, kind: "text", line_n: (
       pr.text.line_n(pr.i + alines[0]),
       pr.text.line_n(pr.i + alines[1])
     ))
@@ -821,68 +824,70 @@ proc consume_doc_tags*(pr: Parser): tuple[blk: Option[FBlockSource], tags: seq[s
     ))
   else:
     let (tags, lines, _) = pr.consume_tags
-    (FBlockSource.none, tags, lines)
+    (RawBlock.none, tags, lines)
 
 # parse --------------------------------------------------------------------------------------------
-proc post_process_block(blk: Block, doc: Doc, config: FParseConfig) =
-  template normalizeit(term: untyped) = blk.term = blk.term.unique.sort
-  normalizeit assets
-  normalizeit links
-  normalizeit glinks
-  normalizeit warns
-  normalizeit tags
+proc post_process(doc: Doc) =
+  template unique_sort(term: untyped) = blk.term = blk.term.unique.sort
+  for blk in doc.blocks:
+    unique_sort assets
+    unique_sort links
+    unique_sort glinks
+    unique_sort warns
 
-  # for rpath in blk.assets:
-  #   assert not rpath.is_empty, "asset can't be empty"
-  #   unless fs.exist(asset_path(doc, rpath)):
-  #     blk.warns.add fmt"Asset don't exist {doc.id}/{rpath}"
+  # Merging and normalizing tags tags
+  let doc_original_tags = doc.tags.sort
+  for blk in doc.blocks:
+    blk.tags = (blk.tags & doc_original_tags).unique.sort
+    doc.tags.add blk.tags
+  doc.tags = doc.tags.unique.sort
+
+  doc.blockids = doc.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
 
 proc init_fdoc*(location: string): Doc =
   assert location.ends_with ".ft"
   let id = location.file_name.file_name_ext.name
-  Doc(id: id, asset_path: location[0..^4].some)
+  Doc(id: id, text: id, asset_path: location[0..^4].some)
 
-proc add_title_block*(doc: Doc) =
-  let source = FBlockSource(id: doc.id, text: "", kind: "text", line_n: (1, 1))
-  let tblock = TitleBlock(id: doc.id, title: doc.title, source: source)
-  tblock.text.add_spaced doc.title
-  tblock.text.add_spaced doc.id
-  doc.blocks.insert tblock
+proc parse_title*(raw: RawBlock): TitleBlock =
+  let title = raw.text.trim
+  let source = BlockTextSource(line_n: (1, 1))
+  TitleBlock(id: "title", title: title, text: title, source: source)
 
-proc parse*(_: type[Doc], text, location: string, updated = Time.now, config = FParseConfig.init): Doc =
+proc parse*(_: type[Doc], text, location: string, updated = Time.now.epoch, sid = "default", config = ParseConfig.init): Doc =
+  let context = (sid, config)
   let pr = Parser.init(text)
-  var source_blocks = pr.consume_blocks(config.can_have_implicittext)
+  var raw_blocks = pr.consume_blocks(config.can_have_implicittext)
   let (blk, tags, tags_line_n) = pr.consume_doc_tags
-  if blk.is_some: source_blocks.add blk.get
+  if blk.is_some: raw_blocks.add blk.get
 
   let doc = init_fdoc location
-  doc.add_title_block
   doc.updated = updated
   doc.warns.add pr.warns
-  let doc_source = DocTextSource(kind: "ftext", location: location, tags_line_n: tags_line_n)
+  let doc_source = DocTextSource(location: location, tags: doc.tags, tags_line_n: tags_line_n)
   doc.hash = text.hash.int; doc.tags = tags; doc.source = doc_source
-  for source in source_blocks:
-    if   source.kind == "title":
-      doc.title = parse_title source
-    # elif source.kind == "section":
-    #   let section = parse_section source
-    #   doc.sections.add section
-    else:
-      # if doc.sections.is_empty:
-      #   let source = FBlockSource(line_n: (-1, -1))
-      #   doc.sections.add Section(source: source)
-      # doc.sections[^1].blocks.add:
-      let blk = if source.kind in config.block_parsers:
-        config.block_parsers[source.kind](source, doc, config)
+
+  for i, raw in raw_blocks:
+    let blk =
+      if   raw.kind == "title":
+        let blk = parse_title raw
+        doc.title = blk.title.some
+        doc.text.add_spaced blk.title
+        blk
+      elif raw.kind in config.block_parsers:
+        config.block_parsers[raw.kind](raw, doc, context)
       else:
-        doc.warns.add fmt"Unknown block kind '{source.kind}'"
+        doc.warns.add fmt"Unknown block kind '{raw.kind}'"
         UnknownBlock()
-      blk.id = source.id; blk.hash = source.text.hash.int; blk.source = source; blk.updated = updated
-      post_process_block(blk, doc, config)
-      doc.blocks.add blk
-  doc.blockids = doc.blocks.filterit(not it.id.is_empty).to_table((b) => b.id)
+
+    blk.id = doc.id & "/" & raw.id.if_empty(i.to_s)
+    blk.source = BlockTextSource(tags: blk.tags, line_n: raw.line_n)
+    blk.kind = raw.kind; blk.hash = raw.text.hash.int; blk.updated = updated
+    doc.blocks.add blk
+
+  doc.post_process
   doc
 
-proc read*(_: type[Doc], location: string, config = FParseConfig.init): Doc =
-  let updated = Time.init get_file_info(location).last_write_time
-  Doc.parse(text = fs.read(location), location = location, updated = updated, config = config)
+proc read*(_: type[Doc], location: string, sid = "default", config = ParseConfig.init): Doc =
+  let updated = Time.init(get_file_info(location).last_write_time).epoch
+  Doc.parse(text = fs.read(location), location = location, updated = updated, sid = sid, config = config)

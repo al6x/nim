@@ -1,5 +1,6 @@
 # Todo
 
+- add title: seq[string] to doc block
 - Remove home from config
 - on_event actions stored as raw json
 - Turn alex/notes into space

@@ -277,3 +277,5 @@ and making changes, you can't instantly see the result.
 
 No interfaces and Concept is unfinished and unusable. Makes it hard to structure code, as you need to use concrete class instead of abstract interface, it makes it hard to write dependencies for files. And forces to write duplicate
 code, for example for Table and OrderedTable, lots of functions are duplicated.
+
+Still surprises me after 2 years and more than 10k lines of code. What's worse, Nim community thing it's ok to have such overcomplicated language.

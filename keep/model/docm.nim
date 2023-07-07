@@ -8,7 +8,7 @@ type
 
   Doc* = ref object of Container
     asset_path*: Option[string]
-    title*:      string
+    title*:      Option[string]
     blocks*:     seq[Block]
     blockids*:   Table[string, Block] # for quick access by id
 
@@ -115,18 +115,16 @@ proc validate(blk: Block, doc: Doc) =
   assert blk.id.starts_with doc.id
 
 proc post_process(doc: Doc, space: Space) =
-  block: # Setting doc and space refs
-    doc.space = space
-    for blk in doc.blocks:
-      blk.validate doc
-      blk.space = space
+  # Setting doc and space refs
+  doc.space = space
+  for blk in doc.blocks:
+    blk.validate doc
+    blk.space = space
 
-  block: # Merging parent tags
-    let parent_tags = (doc.tags & space.tags).sort
-    for blk in doc.blocks:
-      blk.tags = (blk.source.tags & parent_tags).unique.sort
-      doc.tags.add blk.tags
-    doc.tags = doc.tags.unique.sort
+  # Merging parent space tags
+  for blk in doc.blocks:
+    blk.tags = (blk.tags & space.tags).unique.sort
+  doc.tags = (doc.tags & space.tags).unique.sort
 
 proc del*(space: Space, doc: Doc) =
   space.records.del doc.id

@@ -1,8 +1,8 @@
 import base, ext/parser, std/os
-import ../model, ../parse
+import keep/model/[schema, docm], ../parse
 
-proc block_source(kind, text: string, args = ""): FBlockSource =
-  FBlockSource(text: text, kind: kind, args: args)
+proc block_source(kind, text: string, args = ""): RawBlock =
+  RawBlock(text: text, kind: kind, args: args)
 
 proc test_space_location(): string =
   current_source_path().parent_dir.absolute_path
@@ -135,11 +135,11 @@ test "text_embed":
   check not Parser.init("2{some}").is_text_embed  # but can't start with number
 
 test "consume_inline_text, space":
-  check consume_inline_text("**a**b ").mapit(it.text) == @["a", "b"]
-  check consume_inline_text("**a** b\n").mapit(it.text) == @["a", " b"]
+  check consume_inline_text("**a**b ", "notes").mapit(it.text) == @["a", "b"]
+  check consume_inline_text("**a** b\n", "notes").mapit(it.text) == @["a", " b"]
 
 test "parse_text":
-  let config = FParseConfig.init
+  let context = ("notes", ParseConfig.init)
 
   let ftext = """
     Some text [some link](http://site.com) another **text,
@@ -152,7 +152,7 @@ test "parse_text":
     And #tag2 another
   """.dedent
 
-  let blk = parse_text(block_source("text", ftext), test_fdoc(), config)
+  let blk = parse_text(block_source("text", ftext), test_fdoc(), context)
   check blk.warns == @["Unknown embed: some", "Asset doesn't exist: none.png"]
 
   let parsed = blk.ftext
@@ -167,7 +167,7 @@ test "parse_text":
     check_i it, 1,  (kind: "glink", text: "some link", glink: "http://site.com")
     check_i it, 2,  (kind: "text", text:  " another ")
     check_i it, 3,  (kind: "text", text: "text, and ", em: true)
-    check_i it, 4,  (kind: "link", text: "link 2", link: (sid: ".", did: "link 2", bid: ""), em: true)
+    check_i it, 4,  (kind: "link", text: "link 2", link: (sid: "notes", rid: "link 2"), em: true)
     check_i it, 5,  (kind: "text", text: " more ")
     check_i it, 6,  (kind: "tag", text: "tag1")
     check_i it, 7,  (kind: "text", text: " ")
@@ -199,9 +199,9 @@ test "parse_text":
     check_i it, 2, (kind: "text", text: " another")
 
 proc parse_list(text: string): ListBlock =
-  let config = FParseConfig.init
+  let context = ("notes", ParseConfig.init)
 
-  parse_list(block_source("list", text), test_fdoc(), config)
+  parse_list(block_source("list", text), test_fdoc(), context)
 
 test "parse list":
   let parsed = parse_list("""
@@ -326,9 +326,8 @@ test "parse":
     """.dedent
 
     let doc = Doc.parse(text, "some.ft")
-    doc.blocks.delete 0 # removing title block
     check doc.blocks.len == 3
-    check doc.tags == @["t", "t2"]
+    check doc.tags == @["t", "t2", "tag"]
     check doc.source.DocTextSource.tags_line_n == (8, 8)
 
   block:
@@ -352,8 +351,7 @@ test "parse":
 
     let doc = Doc.parse(text, "some.ft")
     check doc.title == "Some title"
-    doc.blocks.delete 0 # removing title block
-    check doc.blocks.len == 5
+    check doc.blocks.len == 6
 
 test "should check for missing assets":
   let text = """
@@ -365,7 +363,6 @@ test "should check for missing assets":
   """.dedent
 
   let doc = Doc.parse(text, fmt"{test_space_location()}/some.ft")
-  doc.blocks.delete 0 # removing title block
   let blocks = doc.blocks
   check blocks.len == 3
   check blocks[0].warns == @["Asset doesn't exist: missing1.png"]
@@ -382,7 +379,6 @@ test "should guess asset extensions":
   """.dedent
 
   let doc = Doc.parse(text, fmt"{test_space_location()}/some.ft")
-  doc.blocks.delete 0 # removing title block
   let blocks = doc.blocks
   check blocks.len == 3
   check (blocks[0].assets, blocks[0].warns) == (@["img.png"], @[])
@@ -390,9 +386,9 @@ test "should guess asset extensions":
   check (blocks[2].assets, blocks[2].warns) == (@["missing"], @["Asset doesn't exist: missing"])
 
 proc parse_table(has_header: bool, text: string): TableBlock =
-  let config = FParseConfig.init
+  let context = ("notes", ParseConfig.init)
   let args = if has_header: "header: true" else: ""
-  parse_table(block_source("table", text, args), test_fdoc(), config)
+  parse_table(block_source("table", text, args), test_fdoc(), context)
 
 test "parse_table":
   proc test_table(text: string) =
@@ -540,7 +536,7 @@ test "doc, from error":
 
     Another
   """.dedent.trim, "some.ft")
-  doc.blocks.delete 0 # removing title block
-  check doc.blocks.len == 1
-  check doc.blocks[0].text == "Some Another"
+  check doc.blocks.len == 2
+  check doc.blocks[0].text == "Algorithms"
+  check doc.blocks[1].text == "Some Another"
   check doc.warns.is_empty
