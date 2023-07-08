@@ -1,13 +1,15 @@
-import base, ext/[vcache, grams, search], ./schema, ./configm
+import base, ext/[vcache], ./schema, ./configm, ./filter
+from ext/search import is_all_in, is_none_in
 
-type Db* = ref object
-  version*:     int
-  config*:      Config
-  spaces*:      Table[string, Space]
-  cache*:       VCache
-  # space_cache*: Table[(string, string), VCacheContainer]
-  bgjobs*:      seq[proc()]
-  warns*:       seq[string]
+type
+  Db* = ref object
+    version*:     int
+    config*:      Config
+    spaces*:      Table[string, Space]
+    cache*:       VCache
+    # space_cache*: Table[(string, string), VCacheContainer]
+    bgjobs*:      seq[proc()]
+    warns*:       seq[string]
 
 var db* {.threadvar.}: Db
 
@@ -71,12 +73,14 @@ proc validate_links*(db: Db) =
         record.warns.add fmt"Invalid link: {id}"
 
 # Stats --------------------------------------------------------------------------------------------
-proc tags*(db: Db): Table[string, int] =
-  for record in db:
+template tag_stats*(records_iterable: untyped): Table[string, int] =
+  var result = Table[string, int].init
+  for record in records_iterable:
     record.tags.eachit(result.inc it)
+  result
 
-proc tags_cached*(db: Db): Table[string, int] =
-  db.cache.get_into("tags", db.version, result, db.tags)
+proc tags_stats_cached*(db: Db): Table[string, int] =
+  db.cache.get_into("tags", db.version, result, db.tag_stats)
 
 proc records_with_warns*(db: Db): seq[Record] =
   for record in db:
@@ -91,11 +95,11 @@ iterator filter*(db: Db, incl, excl: seq[string]): Record =
     if incl.is_all_in(record.tags) and excl.is_none_in(record.tags):
       yield record
 
-# proc search*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Record]] =
-#   let score_fn = build_score[Record](query)
-#   for record in db.filter(incl, excl):
-#     score_fn(record, result)
-#   result = result.sortit(-it.score)
+iterator search_substring*(db: Db, incl, excl: seq[string], query: string): Matches =
+  for record in db.filter(incl, excl):
+    if query in record.text:
+      let matches = record.text.find_all(query).mapit((1.0, it).Match)
+      yield (1.0, record, matches)
 
 # processing ---------------------------------------------------------------------------------------
 proc process*(db: Db) =
@@ -112,3 +116,12 @@ template build_db_process_cb*(db): auto =
   proc =
     db_process()
     db_bgjobs()
+
+
+# proc search*(db: Db, incl, excl: seq[int], query: string): seq[Matches[Record]] =
+#   # Match* = tuple[score: float, l, h: int]
+#   # Matches* = tuple[score: float, record: Record, matches: seq[Match]]
+#   let score_fn = build_score[Record](query)
+#   for record in db.filter(incl, excl):
+#     score_fn(record, result)
+#   result = result.sortit(-it.score)

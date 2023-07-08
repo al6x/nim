@@ -115,14 +115,22 @@ iterator find_iter*(s: string, r: Regex): string =
 test "find_iter":
   check to_seq("abcde".find_iter(re"[bcd]")) == @["b", "c", "d"]
 
-
-proc find_all*(s: string, r: Regex): seq[string] =
-  to_seq(find_iter(s, r))
+proc find_all*(s: string, r: Regex): seq[HSlice[int, int]] =
+  for match in nre.find_iter(s, r):
+    result.add nre.match_bounds(match)
 
 test "find_all":
   check:
-    "abcde".find_all(re"[bcd]") == @["b", "c", "d"]
-    "abcde".find_all(re"[x]")   == new_seq[string]()
+    "abcde".find_all(re"[bcd]") == @[1..1, 2..2, 3..3]
+    "abcde".find_all(re"[x]").len == 0
+
+proc get_all*(s: string, r: Regex): seq[string] =
+  to_seq(find_iter(s, r))
+
+test "get_all":
+  check:
+    "abcde".get_all(re"[bcd]") == @["b", "c", "d"]
+    "abcde".get_all(re"[x]").len == 0
 
 
 proc parse1*(r: Regex, s: string): string =

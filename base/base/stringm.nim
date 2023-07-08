@@ -118,3 +118,14 @@ proc reverse*(s: string): string =
   while i >= 0:
     result.add s[i]
     i.dec
+
+proc find_all*(s, sub: string): seq[HSlice[int, int]] =
+  var i = 0
+  while i < s.len:
+    let found_i = s.find(sub, i)
+    if found_i == -1: break
+    i = found_i + sub.len
+    result.add(found_i ..< i)
+
+test "find_all":
+  check " v v ".find_all("v") == @[1 .. 1, 3 .. 3]

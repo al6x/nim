@@ -1,8 +1,13 @@
 import base, ext/parser
+import ./schema
 
-type Filter* = object
-  incl*, excl*: seq[string] # tags, sorted, unique
-  query*:       string
+type
+  Filter* = object
+    incl*, excl*: seq[string] # tags, sorted, unique
+    query*:       string
+
+  Match* = tuple[score: float, bounds: HSlice[int, int]]
+  Matches* = tuple[score: float, record: Record, matches: seq[Match]]
 
 proc init*(_: type[Filter], incl = seq[string].init, excl = seq[string].init, query = ""): Filter =
   Filter(incl: incl.unique.sort, excl: excl.unique.sort, query: query)
