@@ -1,13 +1,13 @@
 import base, mono/[core, http]
-import ../../model, ../../render/blocks, ../helpers, ../palette as pl, ../location, ../partials/query_input
+import ../../model, ../../render/blocks, ../helpers, ../support, ../palette as pl, ../location, ../partials/query_input
 
 type DocView* = ref object of Component
   doc*:          Doc
   set_location*: proc(l: Location)
 
 proc render*(self: DocView): El =
-  let (doc, space) = (self.doc, self.doc.space)
-  let context = RenderContext.init(doc, space.id)
+  let doc = self.doc
+  let context = RenderContext.init(doc.sid, mono_id)
 
   let right = els:
     el(QueryInputWithRedirect, (set_location: self.set_location))
@@ -25,13 +25,13 @@ proc render*(self: DocView): El =
     )):
       for blk in doc.blocks: # Blocks
         if blk of TitleBlock: continue
-        el(PBlock, (blk: blk, context: context, controls: edit_btn(blk).to_seq))
+        el(PBlock, (blk: blk, context: context, controls: edit_btn(blk, doc).to_seq))
 
-  view.window_title doc.title
+  view.window_title doc.title.get(doc.id)
   view
 
 method render_doc*(doc: Doc, parent: Component, set_location: proc(l: Location)): El {.base.} =
-  parent.get(DocView, fmt"{doc.space.id}/{doc.id}", (doc: doc, set_location: set_location)).render
+  parent.get(DocView, fmt"{doc.sid}/{doc.id}", (doc: doc, set_location: set_location)).render
 
 method serve_asset*(doc: Doc, asset_rpath: string): BinaryResponse {.base.} =
   file_response asset_path(doc, asset_rpath)

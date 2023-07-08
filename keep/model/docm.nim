@@ -4,7 +4,7 @@ type
   Block* = ref object of Record
     assets*: seq[string]
     glinks*: seq[string]
-    doc*:    Doc
+    did*:    string
 
   Doc* = ref object of Container
     asset_path*: Option[string]
@@ -95,6 +95,7 @@ type
     location*:    string
     tags_line_n*: (int, int)  # tags position in text
 
+# Procs --------------------------------------------------------------------------------------------
 proc doc_asset_path*(doc_asset_path, relative_asset_path: string): string =
   assert not relative_asset_path.starts_with '/'
   doc_asset_path & "/" & relative_asset_path
@@ -109,17 +110,20 @@ proc nwarns*(doc: Doc): seq[string] =
   result.unique.sort
 
 # add ----------------------------------------------------------------------------------------------
-proc validate(blk: Block, doc: Doc) =
-  assert blk.doc == doc
+proc validate(doc: Doc, space: Space) =
+  assert not doc.kind.is_empty
+  assert doc.sid == space.id
+
+proc validate(blk: Block, doc: Doc, space: Space) =
   assert not blk.kind.is_empty
+  assert blk.sid == space.id
+  assert blk.did == doc.id
   assert blk.id.starts_with doc.id
 
 proc post_process(doc: Doc, space: Space) =
-  # Setting doc and space refs
-  doc.space = space
+  doc.validate space
   for blk in doc.blocks:
-    blk.validate doc
-    blk.space = space
+    blk.validate doc, space
 
   # Merging parent space tags
   for blk in doc.blocks:

@@ -9,20 +9,23 @@ type AppView* = ref object of Component
 proc on_location*(self: AppView, url: Url) =
   self.location = Location.parse url
 
-proc render_doc(self: AppView, sid, did: string): El =
-  let doc = db.get(sid, did)
-  if doc.is_none: return el(PMessage, (text: "Not found", top: true))
+proc render_record(self: AppView, sid, rid: string): El =
+  let record = db.get (sid, rid)
+  if record.is_none: return el(PMessage, (text: "Not found", top: true))
   proc set_location(l: Location) = self.location = l
-  doc.get.render_doc(parent = self, set_location = set_location)
+  if record.get of Doc:
+    record.get.Doc.render_doc(parent = self, set_location = set_location)
+  else:
+    throw "record not implemented"
 
-proc render_doc(self: AppView, did: string): El =
-  let doc = db.get_doc(did)
-  if doc.is_none: return el(PMessage, (text: "Not found", top: true))
-  self.render_doc(doc.get.space.id, doc.get.id)
+proc render_record(self: AppView, rid: string): El =
+  let record = db.get_by_rid(rid)
+  if record.is_none: return el(PMessage, (text: "Not found", top: true))
+  self.render_record(record.get.sid, record.get.id)
 
 proc render_home(self: AppView): El =
   if db.config.home.is_some:
-    self.render_doc(db.config.home.get)
+    self.render_record(db.config.home.get)
   else:
     let text = "config.home not defined, set it to id of a page you want to be used as a home page"
     el(PMessage, (text: text, top: true))
@@ -40,8 +43,8 @@ proc render*(self: AppView): El =
   let l = self.location
   let el = case l.kind
   of LocationKind.home:   self.render_home
-  of doc:                 self.render_doc(l.sid, l.did)
-  of shortcut:            self.render_doc(l.did)
+  of record:              self.render_record(l.sid, l.rid)
+  of shortcut:            self.render_record(l.rid)
   of LocationKind.filter: self.render_filter(self.location.filter, self.location.page)
   of warns:               self.el(WarnsView, ())
   of unknown:             self.render_unknown
@@ -63,11 +66,14 @@ proc on_timer*(self: AppView): bool =
 proc on_binary*(self: AppView, url: Url): BinaryResponse =
   let l = Location.parse url
   if l.kind == asset:
-    let doc = db.get(l.sid, l.did)
-    if doc.is_none:
+    let record = db.get (l.sid, l.rid)
+    if record.is_none:
       http_response(content = "Asset not found", code = 404)
     else:
-      doc.get.serve_asset(l.asset)
+      if record.get of Doc:
+        record.get.Doc.serve_asset(l.asset)
+      else:
+        throw "record not implemented"
   else:
     http_response "Invalid asset path", 400
 

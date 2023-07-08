@@ -1,13 +1,6 @@
 import base, mono/core, std/osproc
 import ./support, ../model, ../render/blocks, ./palette, ./location
 
-proc init*(_: type[RenderContext], doc: Doc, space_id: string): RenderContext =
-  proc asset_path_with_mono_id(path: string, context: RenderContext): string =
-    Url.init(blocks.asset_path(path, context), { "mono_id": mono_id }).to_s
-  let config = RenderConfig(link_path: blocks.link_path, tag_path: blocks.tag_path, render_tag: render_tag,
-    asset_path: asset_path_with_mono_id)
-  (doc, space_id, config)
-
 proc open_editor*(location: string, line = 1) =
   let cmd = fmt"code -g {location}:{line}"
   session_log().with((cmd: cmd)).info "edit"
@@ -18,12 +11,12 @@ proc edit_text_source_btn*(location: string, line_n = 1): El =
   alter_el(el(PIconButton, (icon: "edit", title: "Edit"))):
     it.on_click proc = open_editor(location, line_n)
 
-template if_doc_with_text_source(source: DocSource, code) =
+template if_doc_with_text_source(source: RecordSource, code) =
   if source of DocTextSource:
     let dsource {.inject.} = source.DocTextSource
     code
 
-template if_block_with_text_source(source: BlockSource, code) =
+template if_block_with_text_source(source: RecordSource, code) =
   if source of BlockTextSource:
     let bsource {.inject.} = source.BlockTextSource
     code
@@ -40,13 +33,13 @@ proc edit_tags_btn*(doc: Doc): Option[El] =
   if_doc_with_text_source doc.source:
     return edit_text_source_btn(dsource.location, dsource.tags_line_n[0]).some
 
-proc edit_btn*(blk: Block): Option[El] =
-  if_doc_with_text_source blk.doc.source:
+proc edit_btn*(blk: Block, doc: Doc): Option[El] =
+  if_doc_with_text_source doc.source:
     if_block_with_text_source blk.source:
       return edit_text_source_btn(dsource.location, bsource.line_n[0]).some
 
 proc Warns*(): El =
-  let warns_count = db.docs_with_warns_cached.len
+  let warns_count = db.records_with_warns_cached.len
   list_el:
     if warns_count > 0:
       let message = fmt"""{warns_count} {warns_count.pluralize("doc")} with warns"""
@@ -54,7 +47,7 @@ proc Warns*(): El =
         el(PWarnings, (warns: @[(message, warns_url())]))
 
 proc Tags*(): El =
-  let tags = db.ntags_cached.keys.map(decode_tag).sortit(it.to_lower)
+  let tags = db.tags_stats_cached.keys.sortit(it.to_lower)
   el(PTags, ()):
     for tag in tags:
       alter_el(el(PTag, (text: tag))):

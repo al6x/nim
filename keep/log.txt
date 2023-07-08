@@ -1,3 +1,37 @@
+iterator docs*(db: Db): Doc =
+  for _, space in db.spaces:
+    for _, doc in space.docs:
+      yield doc
+
+
+type Space* = ref object
+  id*:           string
+  version*:      int
+  docs*:         Table[string, Doc]
+  tags*:         seq[string]
+  warnings*:     seq[string]
+
+iterator blocks*(space: Space): Block =
+  for _, doc in space.docs:
+    for blk in doc.blocks:
+      yield blk
+
+
+proc get*(db: Db, sid, rid: string): Option[Record] =
+  if sid in db.spaces:
+    let space = db.spaces[sid]
+    if rid in space.records
+  for _, space in db.spaces:
+    if did in space.docs:
+      return space.docs[did].some
+
+proc get_doc*(db: Db, did: string): Option[Doc] =
+  for sid, space in db.spaces:
+    if did in space.docs:
+      return space.docs[did].some
+
+
+
 block: # Grams
   for blk in doc.blocks:
     let ltext = blk.text.to_lower

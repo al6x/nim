@@ -15,7 +15,7 @@ type
     links*:   seq[RecordId]
     warns*:   seq[string]
     updated*: Epoch
-    space*:   Space
+    sid*:     string
     source*:  RecordSource
 
   Container* = ref object of Record

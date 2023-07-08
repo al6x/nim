@@ -193,7 +193,7 @@ proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)
 
 proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[], hover = true): El =
   let html = render_block(blk, context).to_html
-  let tname = fmt"pblock-f{blk.source.kind}"
+  let tname = fmt"pblock-f{blk.kind}"
   let tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
   pblock_layout(tname, blk.warns, controls, tags, hover):
     el(".ftext", (html: html))
@@ -246,7 +246,7 @@ proc papp_layout*(left, right, right_down: seq[El]): El =
         it.add right_down
 
 proc PApp*(
-  title: string, title_hint = "", title_controls = seq[El].init,
+  title: Option[string], title_hint = "", title_controls = seq[El].init,
   warns = seq[string].init,
   tags: seq[(string, string)] = @[], tags_controls = seq[El].init, tags_warns = seq[string].init,
   right: seq[El] = @[], right_down: seq[El] = @[],
@@ -260,9 +260,9 @@ proc PApp*(
       #   it.class "top-3.5"
       #   it.text "#"
       #   it.location "#"
-      unless title.is_empty:
+      unless title.is_empty and title.get.is_empty:
         pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
-          el(".text-2xl", (text: title, title: title_hint))
+          el(".text-2xl", (text: title.get, title: title_hint))
 
       it.add content
 
@@ -307,7 +307,7 @@ proc render_mockup: seq[El] =
     el(PIconButton, (icon: "controls"))
   ]
 
-  let context: RenderContext = (doc, "sample", RenderConfig.init)
+  let context: RenderContext = ("sample", "mono_id", RenderConfig.init)
 
   mockup_section("Search"):
     let tags_el = block:
@@ -339,7 +339,7 @@ proc render_mockup: seq[El] =
       after: " is one lot equal to 100k$. If you"
     )]
 
-    el(PApp, (title: "Found", title_controls: search_controls, show_block_separator: true, right: right)):
+    el(PApp, (title: "Found".some, title_controls: search_controls, show_block_separator: true, right: right)):
       for i in 1..6:
         el(PFoundBlock, (title: "About Forex", matches: matches))
 
@@ -371,7 +371,7 @@ proc render_mockup: seq[El] =
         el(PBlock, (blk: blk, context: context, controls: controls_stub))
 
   mockup_section("Misc"):
-    el(PApp, (title: "Misc")):
+    el(PApp, (title: "Misc".some)):
       pblock_layout("pblock-misc"):
         el(PMessage, (text: "Some message"))
 
@@ -406,7 +406,7 @@ when is_main_module:
 
   block: # Forest
     let doc = Doc.read(fmt"{keep_dir()}/ui/assets/sample/forest.ft")
-    let context: RenderContext = (doc, "sample", RenderConfig.init)
+    let context: RenderContext = ("sample", "mono_id", RenderConfig.init)
     let app = el(PApp, (
       title: doc.title, warns: doc.warns, tags: doc.tags.with_path(context)
     )):

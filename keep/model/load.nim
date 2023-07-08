@@ -1,6 +1,6 @@
 import base, ext/watch_dir, ./schema, ./docm, ./dbm
 
-type DocFileParser* = proc (path: string): Doc
+type DocFileParser* = proc (path: string, sid: string): Doc
 type DocFileParsers* = ref Table[string, DocFileParser]
 
 proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string) =
@@ -13,7 +13,7 @@ proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string)
       let (name, ext) = entry.name.file_name_ext
       if ext in parsers:
         let parser = parsers[ext]
-        let doc = parser(entry.path)
+        let doc = parser(entry.path, space.id)
         assert doc.id == name, "doc id shall be same as file name"
         if doc.id in space.records: space.warns.add fmt"Name conflict: {doc.id}"
         else:                       space.apdate doc
@@ -31,7 +31,7 @@ proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string)
             let parser = parsers[ext]
             case entry.change
             of created, updated:
-              let doc = parser(entry.path)
+              let doc = parser(entry.path, space.id)
               assert doc.id == name, "doc id shall be same as file name"
               space.apdate doc
             of deleted:
@@ -48,7 +48,7 @@ proc add_dir*(db: Db, space: Space, parsers: DocFileParsers, space_path: string)
             let (name, ext) = location.file_name_ext
             if ext in parsers:
               let parser = parsers[ext]
-              doc = parser(location)
+              doc = parser(location, space.id)
               assert doc.id == name, "doc id shall be same as file name"
               space.apdate doc
               space.version.inc

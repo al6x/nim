@@ -5,15 +5,14 @@ type WarnsView* = ref object of Component
 
 proc render*(self: WarnsView): El =
   var rows: seq[seq[El]]
-  for (sid, did) in db.docs_with_warns:
-    let doc = db.get(sid, did).get
+  for record in db.records_with_warns_cached:
     rows.add @[
-      el(PLink, (text: doc.title.if_empty(doc.id), link: doc_url(sid, did))),
-      el(PWarnings, (warns: doc.nwarns.mapit((it, ""))))
+      el(PLink, (text: record.id, link: record.url)),
+      el(PWarnings, (warns: record.warns.mapit((it, ""))))
     ]
 
   let view =
-    el(PApp, (title: "Warns")):
+    el(PApp, (title: "Warns".some)):
       pblock_layout "message":
         if rows.is_empty:
           el(PMessage, (text: "No warns"))

@@ -53,6 +53,10 @@ proc get*(db: Db, id: RecordId): Option[Record] =
     if id[1] in space.records:
       return space.records[id[1]].some
 
+proc get_by_rid*(db: Db, rid: string): Option[Record] =
+  for _, space in db.spaces:
+    if rid in space.records: return space.records[rid].some
+
 iterator items*(db: Db): Record =
   for _, space in db.spaces:
     for record in space:
@@ -73,14 +77,14 @@ proc validate_links*(db: Db) =
         record.warns.add fmt"Invalid link: {id}"
 
 # Stats --------------------------------------------------------------------------------------------
-template tag_stats*(records_iterable: untyped): Table[string, int] =
+template tags_stats*(records_iterable: untyped): Table[string, int] =
   var result = Table[string, int].init
   for record in records_iterable:
     record.tags.eachit(result.inc it)
   result
 
 proc tags_stats_cached*(db: Db): Table[string, int] =
-  db.cache.get_into("tags", db.version, result, db.tag_stats)
+  db.cache.get_into("tags", db.version, result, db.tags_stats)
 
 proc records_with_warns*(db: Db): seq[Record] =
   for record in db:

@@ -34,7 +34,6 @@ proc if_nil*[T](value, otherwise: T): T =
 template throw*(message: string) = raise Exception.new_exception(message)
 template throw*(exception: Exception | ref Exception) = raise exception
 
-
 func message*(e: Exception | ref Exception): string = e.msg
 
 

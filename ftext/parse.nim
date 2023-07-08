@@ -862,7 +862,7 @@ proc parse*(_: type[Doc], text, location: string, updated = Time.now.epoch, sid 
   if blk.is_some: raw_blocks.add blk.get
 
   let doc = init_fdoc location
-  doc.updated = updated
+  doc.kind = "doc"; doc.sid = sid; doc.updated = updated
   doc.warns.add pr.warns
   let doc_source = DocTextSource(location: location, tags: doc.tags, tags_line_n: tags_line_n)
   doc.hash = text.hash.int; doc.tags = tags; doc.source = doc_source
@@ -881,6 +881,7 @@ proc parse*(_: type[Doc], text, location: string, updated = Time.now.epoch, sid 
         UnknownBlock()
 
     blk.id = doc.id & "/" & raw.id.if_empty(i.to_s)
+    blk.did = doc.id; blk.sid = sid
     blk.source = BlockTextSource(tags: blk.tags, line_n: raw.line_n)
     blk.kind = raw.kind; blk.hash = raw.text.hash.int; blk.updated = updated
     doc.blocks.add blk

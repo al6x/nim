@@ -1,25 +1,26 @@
-import base, ext/html, ../model
+import base, ext/[html, url], ../model
 
 type
-  RenderContext* = tuple[doc: Doc, space_id: string, config: RenderConfig]
+  RenderContext* = tuple[sid, mono_id: string, config: RenderConfig]
 
   RenderConfig* = ref object
-    link_path*:  proc (link: Link, context: RenderContext): string
+    link_path*:  proc (link: RecordId, context: RenderContext): string
     tag_path*:   proc (tag: string, context: RenderContext): string
-    asset_path*: proc (path: string, context: RenderContext): string
+    # asset_path*: proc (path: string, context: RenderContext): string
     render_tag*: proc (tag: string, context: RenderContext): SafeHtml
 
 # config -------------------------------------------------------------------------------------------
-proc link_path*(link: Link, context: RenderContext): string =
-  ("/" & (if link.sid == ".": context.space_id else: link.sid)) &
-  ("/" & link.did) &
-  (if link.bid.is_empty: "" else: "/" & link.bid)
+proc link_path*(link: RecordId, context: RenderContext): string =
+  # ("/" & (if link.sid == ".": context.sid else: link.sid)) &
+  # ("/" & link.did) &
+  # (if link.bid.is_empty: "" else: "/" & link.bid)
+  "/" & (if link.sid == ".": context.sid else: link.sid) & "/" & link.rid
 
 proc tag_path*(tag: string, context: RenderContext): string =
   fmt"/tags/{tag}"
 
-proc asset_path*(path: string, context: RenderContext): string =
-  "/" & context.space_id & "/" & context.doc.id & "/" & path
+# proc asset_path*(path: string, context: RenderContext): string =
+#   "/" & context.space_id & "/" & context.doc.id & "/" & path
 
 proc render_tag*(tag: string, context: RenderContext): SafeHtml =
   let ntag = tag.to_lower
@@ -27,17 +28,28 @@ proc render_tag*(tag: string, context: RenderContext): SafeHtml =
   fmt"""<a class="tag" href="{path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
 
 proc init*(_: type[RenderConfig]): RenderConfig =
-  RenderConfig(link_path: link_path, tag_path: tag_path, asset_path: asset_path, render_tag: render_tag)
+  RenderConfig(link_path: link_path, tag_path: tag_path, render_tag: render_tag)
+
+proc init*(_: type[RenderContext], sid, mono_id: string): RenderContext =
+  # proc asset_path_with_mono_id(path: string, context: RenderContext): string =
+  #   Url.init(blocks.asset_path(path, context), { "mono_id": mono_id }).to_s
+  # let config = RenderConfig(link_path: blocks.link_path, tag_path: blocks.tag_path, render_tag: render_tag,
+  #   asset_path: asset_path_with_mono_id)
+  (sid, mono_id, RenderConfig.init)
+
+# Helpers ------------------------------------------------------------------------------------------
+proc asset_path*(path, rid: string, context: RenderContext): string =
+  Url.init(@[context.sid, rid, path], { "mono_id": context.mono_id }).to_s
 
 # render_embed -------------------------------------------------------------------------------------
-method render_embed*(embed: Embed, context: RenderContext): SafeHtml {.base.} =
+method render_embed*(embed: Embed, blk: Block, context: RenderContext): SafeHtml {.base.} =
   "<code>" & embed.kind.escape_html(quotes = false) & "{" & embed.body.escape_html(quotes = false) & "}</code>"
 
-method render_embed*(embed: ImageEmbed, context: RenderContext): SafeHtml =
-  let path = context.config.asset_path(embed.path, context)
+method render_embed*(embed: ImageEmbed, blk: Block, context: RenderContext): SafeHtml =
+  let path = asset_path(embed.path, blk.did, context)
   fmt"""<img src="{path.escape_html}"/>"""
 
-method render_embed*(embed: CodeEmbed, context: RenderContext): SafeHtml =
+method render_embed*(embed: CodeEmbed, blk: Block, context: RenderContext): SafeHtml =
   fmt"""<code>{embed.code.escape_html}</code>"""
 
 # show_tags ----------------------------------------------------------------------------------------
@@ -49,7 +61,7 @@ method show_tags*(blk: TableBlock): bool = false
 # base block
 method render_block*(blk: Block, context: RenderContext): El {.base.} =
   el".border-l-4.border-orange-800 .text-orange-800":
-    el(".text-orange-800 .ml-2", (text: fmt"render_block not defined for {blk.source.kind}"))
+    el(".text-orange-800 .ml-2", (text: fmt"render_block not defined for: {blk.kind}"))
 
 # section
 method render_block*(section: SectionBlock, context: RenderContext): El =
@@ -60,7 +72,7 @@ method render_block*(blk: SubsectionBlock, context: RenderContext): El =
   el(".text-xl", (text: blk.title))
 
 # text items
-proc render_text*(text: Text, context: RenderContext): SafeHtml =
+proc render_text*(text: Text, blk: Block, context: RenderContext): SafeHtml =
   var html = ""; let config = context.config
 
   var em = false
@@ -81,7 +93,7 @@ proc render_text*(text: Text, context: RenderContext): SafeHtml =
     of TextItemKind.tag:
       html.add config.render_tag(item.text, context)
     of TextItemKind.embed:
-      html.add: render_embed(item.embed, context)
+      html.add: render_embed(item.embed, blk, context)
 
   if em:
     html.add "</b>"
@@ -93,22 +105,22 @@ method render_block*(blk: TextBlock, context: RenderContext): El =
     for i, pr in blk.ftext:
       case pr.kind
       of ParagraphKind.text:
-        el("p", (html: pr.text.render_text(context)))
+        el("p", (html: pr.text.render_text(blk, context)))
       of ParagraphKind.list:
         el "ul":
           for list_item in pr.list:
-            el("li", (html: list_item.render_text(context)))
+            el("li", (html: list_item.render_text(blk, context)))
 
 # list
 method render_block*(blk: ListBlock, context: RenderContext): El =
   if blk.ph:
     list_el:
       for list_item in blk.list:
-        el("p", (html: list_item.render_text(context)))
+        el("p", (html: list_item.render_text(blk, context)))
   else:
     el "ul":
       for list_item in blk.list:
-        el("li", (html: list_item.render_text(context)))
+        el("li", (html: list_item.render_text(blk, context)))
 
 # code
 method render_block*(blk: CodeBlock, context: RenderContext): El =
@@ -116,14 +128,14 @@ method render_block*(blk: CodeBlock, context: RenderContext): El =
 
 # image
 method render_block*(blk: ImageBlock, context: RenderContext): El =
-  let path = context.config.asset_path(blk.image, context)
+  let path = asset_path(blk.image, blk.did, context)
   el("a.block", (href: path, target: "_blank")):
     el("img", (src: path))
 
 # images
 method render_block*(blk: ImagesBlock, context: RenderContext): El =
   let cols = blk.cols.get(4)
-  let images = blk.images.map((path) => context.config.asset_path(path, context))
+  let images = blk.images.map((path) => asset_path(path, blk.did, context))
   let image_width = (100 - cols).float / cols.float
 
   template render_td =
@@ -180,11 +192,11 @@ proc render_table_as_cards*(blk: TableBlock, single_image_cols: seq[bool], conte
                 # The aspect ratio style had to be set on both image and container
                 let style = "aspect-ratio: " & img_aspect_ratio.to_s & ";"
                 el(".card_fixed_height_image", (style: style)):
-                  it.html cell.render_text(context).replace("<img", "<img style=\"" & style & "\"")
+                  it.html cell.render_text(blk, context).replace("<img", "<img style=\"" & style & "\"")
               else:
                 el".px-2.whitespace-nowrap":
                   if j == 0: it.class "font-bold"
-                  it.html cell.render_text(context)
+                  it.html cell.render_text(blk, context)
         i.inc
 
   el"": # It has to be nested in div otherwise `table-layout: fixed` doesn't work
@@ -206,7 +218,7 @@ proc render_table_as_table*(blk: TableBlock, single_image_cols: seq[bool], conte
         el"tr .border-b.border-gray-200":
           let hrow = blk.header.get
           for i, hcell in hrow:
-            el("th .py-1", (html: hcell.render_text(context))):
+            el("th .py-1", (html: hcell.render_text(blk, context))):
               if i < hrow.high: it.class "pr-4"
               if single_image_cols[i]: # image header
                 it.style "width: 25%; text-align: center; vertical-align: middle;"
@@ -222,10 +234,10 @@ proc render_table_as_table*(blk: TableBlock, single_image_cols: seq[bool], conte
               if single_image_cols[i]: # cell with image
                 it.style "width: 25%; text-align: center; vertical-align: middle;"
                 el".image_container.overflow-hidden .rounded":
-                  it.html cell.render_text(context)
+                  it.html cell.render_text(blk, context)
               else: # non image cell
                 it.style "vertical-align: middle;"
-                it.html cell.render_text(context)
+                it.html cell.render_text(blk, context)
 
 method render_block*(blk: TableBlock, context: RenderContext): El =
   # If columns has only images or embeds, making it no more than 25%
@@ -270,8 +282,8 @@ method render_block*(blk: TableBlock, context: RenderContext): El =
 #     code
 #     inline_tags(tags, context)
 
-# proc to_html*(doc: FDoc, space_id: string, config = RenderConfig.init): El =
-#   let context = (doc, space_id, config).RenderContext
+# proc to_html*(doc: FDoc, sid: string, config = RenderConfig.init): El =
+#   let context = (doc, sid, config).RenderContext
 #   el"fdoc.flex.flex-col .space-y-2":
 #     block_layout("ftitle", doc.warns, @[], context): # Title and warns
 #       el".text-xl":
@@ -300,8 +312,8 @@ method render_block*(blk: TableBlock, context: RenderContext): El =
 #   # result.add "</style>"
 #   result.add """<link rel="stylesheet" href="/render/static_page_build.css">"""
 
-# proc to_html_page*(doc: FDoc, space_id: string, config = RenderConfig.init): string =
-#   let doc_html = doc.to_html(space_id, config).to_html
+# proc to_html_page*(doc: FDoc, sid: string, config = RenderConfig.init): string =
+#   let doc_html = doc.to_html(sid, config).to_html
 #   let title    = doc.title.escape_html
 
 #   fmt"""

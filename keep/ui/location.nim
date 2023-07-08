@@ -1,18 +1,18 @@
 import base, mono/core, ext/parser
 import ./support, ../model
 
-type LocationKind* = enum home, doc, shortcut, filter, warns, asset, unknown
+type LocationKind* = enum home, record, shortcut, filter, warns, asset, unknown
 type Location* = object
-  sid*, did*: string
+  sid*, rid*: string
   case kind*:  LocationKind
   of home:     discard
-  of doc:      discard # sid, did
+  of record:   discard # sid, rid
   of shortcut: discard # sid
   of filter:
     filter*: Filter
     page*:   int
   of warns:    discard
-  of asset:    asset*: string # sid, did
+  of asset:    asset*: string # sid, rid
   of unknown:  url*: Url
 
 proc to_url(f: Filter): Url
@@ -22,14 +22,14 @@ proc from_url(_: type[Filter], u: Url): Filter
 proc to_url*(l: Location): Url =
   case l.kind
   of home:     [].to_url
-  of doc:      [l.sid, l.did].to_url
-  of shortcut: [l.did].to_url
+  of record:   [l.sid, l.rid].to_url
+  of shortcut: [l.rid].to_url
   of filter:
     var url = l.filter.to_url
     if l.page > 1: url.params["page"] = l.page.to_s
     url
   of warns:    ["warns"].to_url
-  of asset:    ([l.sid, l.did] & l.asset.split("/")).to_url
+  of asset:    ([l.sid, l.rid] & l.asset.split("/")).to_url
   of unknown:  l.url
 
 proc to_s*(l: Location): string =
@@ -43,11 +43,11 @@ proc parse*(_: type[Location], u: Url): Location =
   elif u.path.len == 1 and u.path[0] == "warns":
     Location(kind: warns)
   elif u.path.len == 1:
-    Location(kind: shortcut, did: u.path[0])
+    Location(kind: shortcut, rid: u.path[0])
   elif u.path.len == 2:
-    Location(kind: doc, sid: u.path[0], did: u.path[1])
+    Location(kind: record, sid: u.path[0], rid: u.path[1])
   elif u.path.len > 2:
-    Location(kind: asset, sid: u.path[0], did: u.path[1], asset: u.path[2..^1].join("/"))
+    Location(kind: asset, sid: u.path[0], rid: u.path[1], asset: u.path[2..^1].join("/"))
   else:
     Location(kind: unknown, url: u)
 
@@ -57,26 +57,23 @@ proc warns_url*(): string =
 proc home_url*(): string =
   Location(kind: home).to_s
 
-proc doc_url*(sid, did: string): string =
-  Location(kind: LocationKind.doc, sid: sid, did: did).to_s
+proc full_url*(record: Record): string =
+  Location(kind: LocationKind.record, sid: record.sid, rid: record.id).to_s
 
-proc url*(doc: Doc): string =
-  doc_url doc.space.id, doc.id
-
-proc short_url*(doc: Doc): string =
+proc short_url*(record: Record): string =
   for id, space in db.spaces:
-    if id != doc.space.id and doc.id in space.docs: return doc.url
-  [doc.id].to_url.to_s
+    if id != record.sid and record.id in space.records: return full_url(record)
+  [record.id].to_url.to_s
 
-proc url*(blk: Block, short = false): string =
-  result = if short: blk.doc.short_url else: blk.doc.url
-  unless blk.id.is_empty: result.add "#" & blk.id
+proc url*(record: Record, short = true): string =
+  result = if short: record.short_url else: record.full_url
+  # unless blk.id.is_empty: result.add "#" & blk.id
 
 proc short_url*(blk: Block): string =
   blk.url(short = true)
 
-proc asset_url*(sid, did, asset: string): string =
-  var url = Location(kind: LocationKind.asset, sid: sid, did: did, asset: asset).to_url
+proc asset_url*(sid, rid, asset: string): string =
+  var url = Location(kind: LocationKind.asset, sid: sid, rid: rid, asset: asset).to_url
   url.params["mono_id"] = mono_id
   url.to_s
 
@@ -88,8 +85,9 @@ proc tag_url*(tag: string): string =
 
 # filter -------------------------------------------------------------------------------------------
 proc to_url(f: Filter): Url =
-  template encode(tag: int): string = tag.decode_tag.replace(' ', '-').to_lower
-  let etags = (f.incl.mapit(encode(it)).sort & f.excl.mapit("-" & encode(it)).sort).join(",")
+  # template encode(tag: int): string = tag.decode_tag.replace(' ', '-').to_lower
+  # let etags = (f.incl.mapit(encode(it)).sort & f.excl.mapit("-" & encode(it)).sort).join(",")
+  let etags = (f.incl.sort & f.excl.mapit("-" & it).sort).join(",")
 
   var path: seq[string]
   unless etags.is_empty:   path.add ["tags", etags]
@@ -101,10 +99,10 @@ proc is_filter_url(u: Url): bool =
   u.path.len >= 1 and u.path[0] in ["tags", "query"]
 
 proc from_url(_: type[Filter], u: Url): Filter =
-  var incl, excl: seq[int]
+  var incl, excl: seq[string]
   let tags = u.get("tags", "")
   unless tags.is_empty:
     for tag in tags.split(","):
-      if tag.starts_with '-': excl.add tag[1..^1].replace('-', ' ').encode_tag
-      else:                   incl.add tag.replace('-', ' ').encode_tag
+      if tag.starts_with '-': excl.add tag[1..^1].replace('-', ' ')
+      else:                   incl.add tag.replace('-', ' ')
   Filter.init(incl = incl, excl = excl, query = u.get("query", ""))

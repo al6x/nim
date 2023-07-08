@@ -1,5 +1,9 @@
 # Todo
 
+- remove space and doc from rec
+- move docs model and blocks ui into keep/docs/[model, ui]
+- rename blocks to records
+- Allow "." for ftext
 - add title: seq[string] to doc block
 - Remove home from config
 - on_event actions stored as raw json
@@ -15,6 +19,8 @@
 
 # Lodo
 
+- Implement `throw "record not implemented"`
+- Add method record.title for warns page
 - Change block.to_html, return El, not html_string
 - Make video about parser FText
 - Add time tag
@@ -56,6 +62,11 @@
 - Mozaic images gallery
 - Tricky problem, try renaming `seqm.paginate` to `seqm.page` and the keep would break because nim won't recognise
   the `app_view.page` proc.
+
+# Architecture
+
+- App split into layers, Model and UI, Model knows nothing about UI and could be used independently.
+- Error conventions, mutable part of error message should be added after `:`, like `Invalid doc: knots.ft`.
 
 # Notes
 
