@@ -29,13 +29,7 @@ proc FilterView*(query_input: QueryInput, page: int): El =
       right: right, right_down: right_down
     )):
       for record in records.paginate(page = page, per_page = per_page):
-        if record of Block:
-          let blk = record.Block
-          let context = RenderContext.init(blk.sid, mono_id)
-          let blk_link = build_el(PIconLink, (icon: "link", url: blk.short_url))
-          el(PBlock, (blk: blk, context: context, controls: @[blk_link], hover: false))
-        else:
-          throw "record not implemented"
+        it.add record.render_selected
 
       el(PPagination, (count: records.len, page: page, per_page: per_page, url: page_url))
 

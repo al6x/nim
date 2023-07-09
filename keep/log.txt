@@ -1,3 +1,7 @@
+proc asset_path*(path: string, context: RenderContext): string =
+  "/" & context.space_id & "/" & context.doc.id & "/" & path
+
+
 iterator docs*(db: Db): Doc =
   for _, space in db.spaces:
     for _, doc in space.docs:

@@ -1,15 +1,8 @@
 # Todo
 
-- remove space and doc from rec
-- move docs model and blocks ui into keep/docs/[model, ui]
-- rename blocks to records
-- Allow "." for ftext
-- add title: seq[string] to doc block
+- Too slow
 - Remove home from config
-- on_event actions stored as raw json
 - Turn alex/notes into space
-- Remove space, space is a tag
-- Introduce Obj, books,  for example
 
 # Bugs
 
@@ -19,6 +12,8 @@
 
 # Lodo
 
+- Allow "." for space in ftext/parse
+- move docs model and blocks ui into keep/docs/[model, ui]
 - Implement `throw "record not implemented"`
 - Add method record.title for warns page
 - Change block.to_html, return El, not html_string

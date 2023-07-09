@@ -1,6 +1,33 @@
 import base, mono/core, std/osproc
 import ./support, ../model, ../render/blocks, ./palette, ./location
 
+# Polymorphic methods ------------------------------------------------------------------------------
+method render_page*(record: Record, parent: Component, set_location: proc(l: Location)): El {.base.} =
+  el(PMessage, (text: "render_page not defined for: " & record.kind, top: true))
+
+method render_selected*(record: Record): El {.base.} =
+  let content = build_el("", (text: record.text))
+  let link = build_el(PIconLink, (icon: "link", url: record.url))
+  el(PBlock, (tag: fmt"pblock-{record.kind}", content: content, tags: record.tags, warns: record.warns, controls: @[link], hover: false))
+
+method render_selected*(blk: Block): El =
+  let context = RenderContext.init(blk.sid, mono_id)
+  let content = render_block(blk, context)
+  let link = build_el(PIconLink, (icon: "link", url: blk.url))
+  el(PBlock, (tag: fmt"pblock-{blk.kind}", content: content, tags: blk.tags, warns: blk.warns, controls: @[link], hover: false))
+
+method render_selected*(doc: Doc): El =
+  let content = build_el("", (text: doc.title.get(doc.id)))
+  let link = build_el(PIconLink, (icon: "link", url: doc.url))
+  el(PBlock, (tag: fmt"pblock-{doc.kind}", content: content, tags: doc.tags, warns: doc.warns, controls: @[link], hover: false))
+
+method record_title*(record: Record): string {.base.} =
+  record.id
+
+method record_title*(blk: Block): string =
+  blk.did
+
+# Helpers ------------------------------------------------------------------------------------------
 proc open_editor*(location: string, line = 1) =
   let cmd = fmt"code -g {location}:{line}"
   session_log().with((cmd: cmd)).info "edit"
@@ -47,8 +74,8 @@ proc Warns*(): El =
         el(PWarnings, (warns: @[(message, warns_url())]))
 
 proc Tags*(): El =
-  let tags = db.tags_stats_cached.keys.sortit(it.to_lower)
+  let tags = db.tags_stats_cached
   el(PTags, ()):
-    for tag in tags:
-      alter_el(el(PTag, (text: tag))):
+    for tag in tags.keys.to_seq.sort:
+      alter_el(el(PTag, (text: tag, title: tags[tag].to_s))):
         it.attr("href", tag_url(tag))

@@ -9,23 +9,20 @@ type AppView* = ref object of Component
 proc on_location*(self: AppView, url: Url) =
   self.location = Location.parse url
 
-proc render_record(self: AppView, sid, rid: string): El =
+proc render_page(self: AppView, sid, rid: string): El =
   let record = db.get (sid, rid)
   if record.is_none: return el(PMessage, (text: "Not found", top: true))
   proc set_location(l: Location) = self.location = l
-  if record.get of Doc:
-    record.get.Doc.render_doc(parent = self, set_location = set_location)
-  else:
-    throw "record not implemented"
+  record.get.render_page(parent = self, set_location = set_location)
 
-proc render_record(self: AppView, rid: string): El =
+proc render_page(self: AppView, rid: string): El =
   let record = db.get_by_rid(rid)
   if record.is_none: return el(PMessage, (text: "Not found", top: true))
-  self.render_record(record.get.sid, record.get.id)
+  self.render_page(record.get.sid, record.get.id)
 
 proc render_home(self: AppView): El =
   if db.config.home.is_some:
-    self.render_record(db.config.home.get)
+    self.render_page(db.config.home.get)
   else:
     let text = "config.home not defined, set it to id of a page you want to be used as a home page"
     el(PMessage, (text: text, top: true))
@@ -43,8 +40,8 @@ proc render*(self: AppView): El =
   let l = self.location
   let el = case l.kind
   of LocationKind.home:   self.render_home
-  of record:              self.render_record(l.sid, l.rid)
-  of shortcut:            self.render_record(l.rid)
+  of record:              self.render_page(l.sid, l.rid)
+  of shortcut:            self.render_page(l.rid)
   of LocationKind.filter: self.render_filter(self.location.filter, self.location.page)
   of warns:               self.el(WarnsView, ())
   of unknown:             self.render_unknown

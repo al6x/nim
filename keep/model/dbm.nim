@@ -53,6 +53,12 @@ proc get*(db: Db, id: RecordId): Option[Record] =
     if id[1] in space.records:
       return space.records[id[1]].some
 
+proc ids*(records: openarray[Record]): seq[RecordId] =
+  records.mapit((it.sid, it.id).RecordId)
+
+proc get*(db: Db, ids: seq[RecordId]): seq[Record] =
+  for id in ids: result.add db[id]
+
 proc get_by_rid*(db: Db, rid: string): Option[Record] =
   for _, space in db.spaces:
     if rid in space.records: return space.records[rid].some
@@ -92,14 +98,15 @@ proc records_with_warns*(db: Db): seq[Record] =
   result = result.sortit(it.id)
 
 proc records_with_warns_cached*(db: Db): seq[Record] =
-  db.cache.get_into("records_with_warns", db.version, result, db.records_with_warns)
+  db.get db.cache.get("records_with_warns", db.version, seq[RecordId], db.records_with_warns.ids)
 
 iterator filter*(db: Db, incl, excl: seq[string]): Record =
   for record in db:
-    if incl.is_all_in(record.tags) and excl.is_none_in(record.tags):
+    if incl.is_all_in(record.tags) and excl.is_none_in(record.tags) and not (record of Container):
       yield record
 
 iterator search_substring*(db: Db, incl, excl: seq[string], query: string): Matches =
+  let query = query.to_lower
   for record in db.filter(incl, excl):
     if query in record.text:
       let matches = record.text.find_all(query).mapit((1.0, it).Match)

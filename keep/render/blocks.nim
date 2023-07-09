@@ -5,36 +5,23 @@ type
 
   RenderConfig* = ref object
     link_path*:  proc (link: RecordId, context: RenderContext): string
-    tag_path*:   proc (tag: string, context: RenderContext): string
-    # asset_path*: proc (path: string, context: RenderContext): string
     render_tag*: proc (tag: string, context: RenderContext): SafeHtml
 
 # config -------------------------------------------------------------------------------------------
 proc link_path*(link: RecordId, context: RenderContext): string =
-  # ("/" & (if link.sid == ".": context.sid else: link.sid)) &
-  # ("/" & link.did) &
-  # (if link.bid.is_empty: "" else: "/" & link.bid)
   "/" & (if link.sid == ".": context.sid else: link.sid) & "/" & link.rid
 
-proc tag_path*(tag: string, context: RenderContext): string =
+proc tag_path*(tag: string): string =
   fmt"/tags/{tag}"
-
-# proc asset_path*(path: string, context: RenderContext): string =
-#   "/" & context.space_id & "/" & context.doc.id & "/" & path
 
 proc render_tag*(tag: string, context: RenderContext): SafeHtml =
   let ntag = tag.to_lower
-  let path = context.config.tag_path(ntag, context)
-  fmt"""<a class="tag" href="{path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
+  fmt"""<a class="tag" href="{tag.tag_path.escape_html}">{ntag.escape_html(quotes = false)}</a>"""
 
 proc init*(_: type[RenderConfig]): RenderConfig =
-  RenderConfig(link_path: link_path, tag_path: tag_path, render_tag: render_tag)
+  RenderConfig(link_path: link_path, render_tag: render_tag)
 
 proc init*(_: type[RenderContext], sid, mono_id: string): RenderContext =
-  # proc asset_path_with_mono_id(path: string, context: RenderContext): string =
-  #   Url.init(blocks.asset_path(path, context), { "mono_id": mono_id }).to_s
-  # let config = RenderConfig(link_path: blocks.link_path, tag_path: blocks.tag_path, render_tag: render_tag,
-  #   asset_path: asset_path_with_mono_id)
   (sid, mono_id, RenderConfig.init)
 
 # Helpers ------------------------------------------------------------------------------------------
@@ -62,6 +49,10 @@ method show_tags*(blk: TableBlock): bool = false
 method render_block*(blk: Block, context: RenderContext): El {.base.} =
   el".border-l-4.border-orange-800 .text-orange-800":
     el(".text-orange-800 .ml-2", (text: fmt"render_block not defined for: {blk.kind}"))
+
+# title
+method render_block*(title: TitleBlock, context: RenderContext): El =
+  el(".text-2xl", (text: title.title))
 
 # section
 method render_block*(section: SectionBlock, context: RenderContext): El =

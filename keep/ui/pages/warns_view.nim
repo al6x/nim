@@ -7,7 +7,7 @@ proc render*(self: WarnsView): El =
   var rows: seq[seq[El]]
   for record in db.records_with_warns_cached:
     rows.add @[
-      el(PLink, (text: record.id, link: record.url)),
+      el(PLink, (text: record.record_title, link: record.url)),
       el(PWarnings, (warns: record.warns.mapit((it, ""))))
     ]
 

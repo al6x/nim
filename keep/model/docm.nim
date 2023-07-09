@@ -121,14 +121,21 @@ proc validate(blk: Block, doc: Doc, space: Space) =
   assert blk.id.starts_with doc.id
 
 proc post_process(doc: Doc, space: Space) =
+  # Validting
   doc.validate space
-  for blk in doc.blocks:
-    blk.validate doc, space
+  for blk in doc.blocks: blk.validate doc, space
 
-  # Merging parent space tags
+  # Lower case text
+  doc.text = doc.text.to_lower
+  doc.tags = doc.tags.map(to_lower).sort
   for blk in doc.blocks:
-    blk.tags = (blk.tags & space.tags).unique.sort
-  doc.tags = (doc.tags & space.tags).unique.sort
+    blk.text = blk.text.to_lower
+    blk.tags = blk.tags.map(to_lower)
+
+  # Merging parent space tags and lower casing
+  for blk in doc.blocks:
+    blk.tags = (blk.tags & space.tags).map(to_lower).unique.sort
+  doc.tags = (doc.tags & space.tags).map(to_lower).unique.sort
 
 proc del*(space: Space, doc: Doc) =
   space.records.del doc.id

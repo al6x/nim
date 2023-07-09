@@ -35,11 +35,11 @@ proc log*[T](self: Session[T]): Log =
   Log.init("Session", self.id)
 
 method process*[T](self: Session[T]): bool {.base.} =
+  if self.inbox.is_empty: return
+
   when compiles(self.before_processing_session):
     self.before_processing_session
     defer: self.after_processing_session
-
-  if self.inbox.is_empty: return
 
   let inbox = self.inbox.copy
   self.inbox.clear

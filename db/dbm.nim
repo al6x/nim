@@ -27,7 +27,6 @@ proc init*(
   Db(id: id, url: PgUrl.parse(name_or_url), encoding: encoding,
     create_db_if_not_exist: create_db_if_not_exist)
 
-
 # Logging ------------------------------------------------------------------------------------------
 proc log(db: Db): Log =
   Log.init(db.id)

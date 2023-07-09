@@ -8,13 +8,13 @@ proc safe_substring(s: string, l, h: int): string =
 proc SearchView*(query_input: QueryInput, page: int): El =
   let tic = timer_ms()
   let filter = query_input.filter
-  let query_ready = filter.query.len >= 3
+  let query_ready = filter.query.len >= 2
   var records: seq[Matches]
   if query_ready: records = db.search_substring(filter.incl, filter.excl, filter.query).to_seq
   let message = if query_ready:
     fmt"""Found {records.len} in {tic()}ms"""
   else:
-    "Query should have at least 3 symbols"
+    "Query should have at least 2 symbols"
 
   let right = els:
     it.add query_input.render
@@ -36,12 +36,12 @@ proc SearchView*(query_input: QueryInput, page: int): El =
         var matches: seq[PFoundItem]
         for (score, bounds) in record_matches:
           let l = bounds.a; let h = bounds.b
-          let before = record.text.safe_substring(l - side_text_len, l - 1)
+          let before = if l > 0: record.text.safe_substring(l - side_text_len, l - 1) else: ""
           let match  = record.text.safe_substring(l, h)
-          let after  = record.text.safe_substring(h + 1, h + side_text_len)
+          let after  = if l < record.text.high: record.text.safe_substring(h + 1, h + side_text_len) else: ""
           matches.add (before, match, after)
         el(PFoundBlock, (
-          title:    record.id,
+          title:    record.record_title,
           matches:  matches,
           url:      record.url,
         ))

@@ -57,17 +57,22 @@ proc warns_url*(): string =
 proc home_url*(): string =
   Location(kind: home).to_s
 
-proc full_url*(record: Record): string =
-  Location(kind: LocationKind.record, sid: record.sid, rid: record.id).to_s
+proc full_url*(sid, rid: string): string =
+  Location(kind: LocationKind.record, sid: sid, rid: rid).to_s
 
-proc short_url*(record: Record): string =
+proc short_url*(sid, rid: string): string =
   for id, space in db.spaces:
-    if id != record.sid and record.id in space.records: return full_url(record)
-  [record.id].to_url.to_s
+    if id != sid and rid in space.records: return full_url(sid, rid)
+  [rid].to_url.to_s
 
-proc url*(record: Record, short = true): string =
-  result = if short: record.short_url else: record.full_url
-  # unless blk.id.is_empty: result.add "#" & blk.id
+proc url*(sid, rid: string, short = true): string =
+  if short: short_url(sid, rid) else: full_url(sid, rid)
+
+method url*(record: Record, short = true): string =
+  url(record.sid, record.id, short = short)
+
+method url*(blk: Block, short = true): string =
+  url(blk.sid, blk.did, short = short)
 
 proc short_url*(blk: Block): string =
   blk.url(short = true)

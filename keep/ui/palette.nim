@@ -83,13 +83,13 @@ proc PTags*(closed = false, content: seq[El]): El =
       it.add content
 
 type PTagStyle* = enum normal, included, excluded, ignored
-proc PTag*(text: string, style: PTagStyle = normal): El =
+proc PTag*(text: string, style: PTagStyle = normal, title = ""): El =
   let class = case style
   of normal:   ".text-blue-800.bg-blue-50.border-blue-50"
   of included: ".text-blue-800.bg-blue-50.border-blue-50"
   of excluded: ".text-pink-800.bg-pink-50.border-pink-50"
   of ignored:  ".text-gray-400.border-gray-200"
-  el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], class: class))
+  el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], class: class, title: title))
 
 proc PSearchField*(): El =
   el("textarea .border .rounded .border-gray-300 .placeholder-gray-400 .px-1 .w-full " &
@@ -156,13 +156,13 @@ template pblock_warns*(warns: seq[string]) =
       for warn in warnsv:
         el(".inline-block .text-orange-800 .ml-2", (text: warn))
 
-template pblock_tags*(tags: seq[(string, string)]) =
-  let tagsv: seq[(string, string)] = tags
+template pblock_tags*(tags: seq[string]) =
+  let tagsv: seq[string] = tags
   unless tagsv.is_empty:
     el"pblock-tags .block.-mr-1":
-      for (tag, link) in tagsv:
+      for tag in tagsv:
         el("a.mr-1 .rounded.px-1.border .text-blue-800.bg-blue-50.border-blue-50"):
-          it.attr("href", link)
+          it.attr("href", tag.tag_path)
           it.text(tag) # .to_lower
 
 template pblock_layout*(tname: string, code: untyped): auto =
@@ -170,7 +170,7 @@ template pblock_layout*(tname: string, code: untyped): auto =
     code
 
 template pblock_layout*(
-  tname: string, warns_arg: untyped, controls: seq[El], tags: seq[(string, string)], hover: bool, code
+  tname: string, warns_arg: untyped, controls: seq[El], tags: seq[string], hover: bool, code
 ): auto =
   let warns: seq[string] = warns_arg # otherwise it clashes with template overriding
   pblock_layout(tname):
@@ -182,8 +182,8 @@ template pblock_layout*(
     pblock_controls(controls, hover)
 
 # PBlocks ------------------------------------------------------------------------------------------
-proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)] =
-  tags.map((tag) => (tag, (context.config.tag_path)(tag, context)))
+# proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)] =
+#   tags.map((tag) => (tag, (context.config.tag_path)(tag, context)))
 
 # proc PSectionBlock*(section: SectionBlock, context: RenderContext, controls: seq[El] = @[]): El =
 #   let html = render.to_html(section.to_html(context))
@@ -191,12 +191,15 @@ proc with_path*(tags: seq[string], context: RenderContext): seq[(string, string)
 #     el".ftext flash":
 #       it.html html
 
-proc PBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[], hover = true): El =
-  let html = render_block(blk, context).to_html
-  let tname = fmt"pblock-f{blk.kind}"
-  let tags = if blk.show_tags: blk.tags.with_path(context) else: @[]
-  pblock_layout(tname, blk.warns, controls, tags, hover):
-    el(".ftext", (html: html))
+proc PBlock*(tag: string, controls = seq[El].init, content: El, tags = seq[string].init, warns = seq[string].init, hover = true): El =
+  pblock_layout(tag, warns, controls, tags, hover):
+    el(".ftext"):
+      it.add content
+
+proc PCommonBlock*(blk: Block, context: RenderContext, controls: seq[El] = @[], hover = true): El =
+  let content = render_block(blk, context)
+  let tags = if blk.show_tags: blk.source.tags else: @[]
+  el(PBlock, (tag: fmt"pblock-f{blk.kind}", content: content, tags: tags, warns: blk.warns, controls: controls, hover: hover))
 
 proc PPagination*(count, page, per_page: int, url: proc(n: int): string): El =
   if count <= per_page: return list_el()
@@ -216,7 +219,7 @@ type PFoundItem* = tuple[before, match, after: string]
 proc PFoundBlock*(title: string, matches: seq[PFoundItem], url = "#"): El =
   assert not matches.is_empty, "at least one match expected"
   let controls = @[el(PIconLink, (icon: "link", url: url))]
-  pblock_layout("pfound-block", seq[string].init, controls, seq[(string, string)].init, false):
+  pblock_layout("pfound-block", seq[string].init, controls, seq[string].init, false):
     el"found-items.block":
       el("a.text-blue-800", (text: title, href: url))
       for i, (before, match, after) in matches:
@@ -248,7 +251,7 @@ proc papp_layout*(left, right, right_down: seq[El]): El =
 proc PApp*(
   title: Option[string], title_hint = "", title_controls = seq[El].init,
   warns = seq[string].init,
-  tags: seq[(string, string)] = @[], tags_controls = seq[El].init, tags_warns = seq[string].init,
+  tags: seq[string] = @[], tags_controls = seq[El].init, tags_warns = seq[string].init,
   right: seq[El] = @[], right_down: seq[El] = @[],
   show_block_separator = false,
   content: seq[El]
@@ -260,7 +263,7 @@ proc PApp*(
       #   it.class "top-3.5"
       #   it.text "#"
       #   it.location "#"
-      unless title.is_empty and title.get.is_empty:
+      unless title.is_empty:
         pblock_layout("pblock-doc-title", warns, title_controls, @[], false): # Title
           el(".text-2xl", (text: title.get, title: title_hint))
 
@@ -364,11 +367,11 @@ proc render_mockup: seq[El] =
     el(PApp, (
       title: doc.title, title_controls: controls_stub,
       warns: doc.warns,
-      tags: doc.tags.with_path(context), tags_controls: controls_stub,
+      tags: doc.tags, tags_controls: controls_stub,
       right: right, right_down: right_down
     )):
       for blk in doc.blocks:
-        el(PBlock, (blk: blk, context: context, controls: controls_stub))
+        el(PCommonBlock, (blk: blk, context: context, controls: controls_stub))
 
   mockup_section("Misc"):
     el(PApp, (title: "Misc".some)):
@@ -408,10 +411,10 @@ when is_main_module:
     let doc = Doc.read(fmt"{keep_dir()}/ui/assets/sample/forest.ft")
     let context: RenderContext = ("sample", "mono_id", RenderConfig.init)
     let app = el(PApp, (
-      title: doc.title, warns: doc.warns, tags: doc.tags.with_path(context)
+      title: doc.title, warns: doc.warns, tags: doc.tags
     )):
       for blk in doc.blocks:
-        el(PBlock, (blk: blk, context: context))
+        el(PCommonBlock, (blk: blk, context: context))
     let fname = fmt"{keep_dir()}/ui/assets/palette/forest.html"
     fs.write fname, html_page("Forest, Palette", app.to_html)
     p fmt"{fname} generated"

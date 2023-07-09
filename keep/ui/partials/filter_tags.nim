@@ -2,7 +2,8 @@ import base, mono/core
 import ../../model, ../palette, ./query_input
 
 proc FilterTags*(query_input: QueryInput): El =
-  let tags = db.tags_stats_cached.keys.sortit(it.to_lower)
+  let counts = db.tags_stats_cached
+  let tags = counts.keys.to_seq.sort
   let filter = query_input.filter
 
   proc incl_or_excl_tag(tag: string): proc(e: ClickEvent) =
@@ -25,19 +26,20 @@ proc FilterTags*(query_input: QueryInput): El =
   el(PTags, ()):
     for tag in tags:
       capt tag:
+        let title = counts[tag].to_s
         if   tag in filter.incl:
-          alter_el(el(PTag, (text: tag, style: included))):
+          alter_el(el(PTag, (text: tag, style: included, title: title))):
             it.attr("href", "#")
             it.on_click deselect_tag(tag)
         elif tag in filter.excl:
-          alter_el(el(PTag, (text: tag, style: excluded))):
+          alter_el(el(PTag, (text: tag, style: excluded, title: title))):
             it.attr("href", "#")
             it.on_click deselect_tag(tag)
         elif no_selected:
-          alter_el(el(PTag, (text: tag, style: normal))):
+          alter_el(el(PTag, (text: tag, style: normal, title: title))):
             it.attr("href", "#")
             it.on_click incl_or_excl_tag(tag)
         else:
-          alter_el(el(PTag, (text: tag, style: ignored))):
+          alter_el(el(PTag, (text: tag, style: ignored, title: title))):
             it.attr("href", "#")
             it.on_click incl_or_excl_tag(tag)

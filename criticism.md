@@ -283,3 +283,13 @@ Still surprises me after 2 years and more than 10k lines of code. What's worse, 
 App structure (Keep) is too complicated. Very hard to model dependencies between different modules, much harder compared to Ruby duck typing or TypeScript/Kotlin interfaces. You can't express app structure with basic Nim elements, and need to use advanced things, and it's get much harder than say in ruby when all procs are polymorphic.
 
 Basically, I'm less productive with Nim than with Ruby, TypeScript or Kotlin, it takes longer to build Apps, and I have more bugs, and it's harder to support. It's just not worth it. Nim is good for simple, linear code structures, like data processing scripts, not good for complicated logic like UI App. I can build Products with Ruby, TypeScript and Kotlin faster and easier.
+
+to_json doesn't work with object inheritance, it's not polymorphic. You can't cache polymorphic objects, as there's no non-homogenous collections in Nim, and you can't store it as JSON too.
+
+Annoying not auto converted iterators
+
+```Nim
+var tags: Table[string, int]
+echo tags.keys.sort # <= Error
+echo tags.keys.to_seq.sort # to_seq should be used
+```
