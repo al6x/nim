@@ -21,8 +21,10 @@ proc render_page(self: AppView, rid: string): El =
   self.render_page(record.get.sid, record.get.id)
 
 proc render_home(self: AppView): El =
-  if db.config.home.is_some:
+  if   db.config.home.is_some:
     self.render_page(db.config.home.get)
+  elif db.get_by_rid("tutor").is_some:
+    self.render_page("tutor")
   else:
     let text = "config.home not defined, set it to id of a page you want to be used as a home page"
     el(PMessage, (text: text, top: true))

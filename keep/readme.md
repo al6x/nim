@@ -1,5 +1,6 @@
 # Todo
 
+- Write tutor
 - Turn alex/notes into space
 
 # Bugs
