@@ -163,3 +163,10 @@ export function escape_html(html, quotes = true) {
     let map = quotes ? ESCAPE_HTML_MAP : ESCAPE_HTML_MAP_WITHOUT_QUOTES;
     return ('' + html).replace(/[&<>'"]/g, function (c) { return map[c]; });
 }
+export function timer_ms() {
+    let start = performance.now();
+    return function () { return performance.now() - start; };
+}
+export function base_url() {
+    return location.protocol + "//" + location.hostname + (location.port ? ':' + location.port : '');
+}

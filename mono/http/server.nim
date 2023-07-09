@@ -30,10 +30,11 @@ proc handle_app_load[T](req: Request, sessions: Sessions[T], url: Url, build_app
   session.log.with((location: url)).info "<<"
 
   # Processing in another async process, it's inefficient but help to avoid messy async error stack traces.
+  let tic = timer_ms()
   while session.el.is_none: await sleep_async 1
   assert session.outbox.is_empty
 
-  session.log.info ">> initial html"
+  session.log.with((time_ms: tic())).info ">> initial html"
   let page = get_page(session, session.el.get, styles = styles, scripts = scripts)
   await req.respond(page, "text/html; charset=UTF-8")
 
@@ -50,9 +51,12 @@ proc handle_pull(req: Request, session: Session, pull_timeout_ms: int): Future[v
     if not session.outbox.is_empty:
       let events = session.outbox
       session.outbox.clear
-      if events.len == 1: session.log.with(events[0]).info ">>"
-      else:               session.log.with((events: events)).info ">>"
-      await req.respond_json events
+
+      # Printing events to log has terrible performance, investigate
+      session.log.with((time_ms: session.processing_time_ms, events: events.len)).info ">>"
+
+      session.processing_time_ms = 0
+      await req.respond(events.to_json.to_s(false), "application/json")
       break
     if timout_timer() > pull_timeout_ms:
       await req.respond_json OutEvent(kind: ignore)

@@ -7,6 +7,7 @@ proc FilterView*(query_input: QueryInput, page: int): El =
   let filter_ready = not (filter.incl.is_empty and filter.excl.is_empty)
   var records: seq[Record]
   if filter_ready: records = db.filter(filter.incl, filter.excl).to_seq
+  records = records.sortit(it.id)
   let message = if filter_ready:
     fmt"""Found {records.len} in {tic()}ms"""
   else:

@@ -89,7 +89,8 @@ proc PTag*(text: string, style: PTagStyle = normal, title = ""): El =
   of included: ".text-blue-800.bg-blue-50.border-blue-50"
   of excluded: ".text-pink-800.bg-pink-50.border-pink-50"
   of ignored:  ".text-gray-400.border-gray-200"
-  el("a.mr-1 .rounded.px-1.border", (text: text[0].to_s.to_upper & text[1..^1], class: class, title: title))
+  let tag = text[0].to_s.to_upper & text[1..^1]
+  el("a.mr-1 .rounded.px-1.border", (text: tag, class: class, title: title))
 
 proc PSearchField*(): El =
   el("textarea .border .rounded .border-gray-300 .placeholder-gray-400 .px-1 .w-full " &

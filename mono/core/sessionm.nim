@@ -30,6 +30,7 @@ type
     app*:    T
     el*:     Option[El] # UI tree from the last app render
     last_accessed_ms*: TimestampMs
+    processing_time_ms*: int # for performance tracking
 
 proc log*[T](self: Session[T]): Log =
   Log.init("Session", self.id)
@@ -62,7 +63,10 @@ proc init*[T](_: type[Session[T]], app: T): Session[T] =
 type Sessions*[T] = ref Table[string, Session[T]]
 
 proc process*[T](sessions: Sessions[T]) =
-  for _, s in sessions: discard s.process
+  for _, s in sessions:
+    let tic = timer_ms()
+    discard s.process
+    s.processing_time_ms.inc tic()
 
 proc collect_garbage*[T](self: Sessions[T], session_timeout_ms: int) =
   let deleted = self[].delete (_, s) => s.last_accessed_ms.now > session_timeout_ms

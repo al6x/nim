@@ -1,7 +1,5 @@
 # Todo
 
-- Too slow
-- Remove home from config
 - Turn alex/notes into space
 
 # Bugs
