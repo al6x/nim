@@ -1,4 +1,4 @@
-This is repository for Keep developers, please use Keep's [Public Docs](https://github.com/al6x/keep).
+This repository for Keep developers, please use [Keep Docs](https://github.com/al6x/keep).
 
 # Todo
 
@@ -97,28 +97,3 @@ Use two todos, first organised in Keep, and log like buffer on mobile.
 - Ftext format is almost the same as Nim ftext DSL
 - Hierarchical tags, colored
 - Auto asset extensions, the 'img{picture}' will be expanded into 'img{picture.png}' pr 'img{picture.jpg}'
-
-# Forward 80 to 8080 on Mac OS
-
-Enable
-
-```
-echo "
-rdr pass inet proto tcp from any to any port 80 -> 127.0.0.1 port 8080
-" | sudo pfctl -ef -
-```
-
-Disable
-
-```
-echo "
-" | sudo pfctl -ef -
-```
-
-sudo pfctl -F all -f /etc/pf.conf
-
-Show
-
-```
-sudo pfctl -s nat
-```

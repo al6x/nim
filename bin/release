@@ -62,8 +62,8 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= $nim_version"
-requires "https://github.com/al6x/nim?subdir=ext == $version"
 EOL
+# requires "https://github.com/al6x/nim?subdir=ext == $version"
 
 # mono ---------------------------------------------------------------------------------------------
 mkdir tmp/releases/mono
