@@ -1,5 +1,15 @@
 This repository for Keep developers, please use [Keep Docs](https://github.com/al6x/keep).
 
+# Talk
+
+- Tutor and Movies
+- Blocks: Sample, Text, List, Table, Images
+- Edit Images in VSCode
+- Search "knots", Tags "knots"
+- Address Bar and Navigation
+- Idea Content and Data vs UI
+- Future - Simple, Invisible, Hidden Panel, Extensibility, Palette
+
 # Todo
 
 - Turn alex/notes into space

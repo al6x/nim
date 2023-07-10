@@ -32,6 +32,10 @@ run_http_server(() => Hello())
 
 Mono allows to structure UI code as atomic and reusable components. To see the difference, compare [Twitter](mono/examples/twitter.nim) and version of [Twitter with Components](mono/examples/twitter_comp.nim). It has slightly more lines of code, but it pays for larger app.
 
+Mono also used to build [Keep](https://github.com/al6x/keep), Notes App.
+
+![](docs/keep1.png)
+
 # Install
 
 `nimble install https://github.com/al6x/nim?subdir=mono`
