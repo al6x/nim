@@ -77,7 +77,7 @@ proc on_binary*(self: AppView, url: Url): BinaryResponse =
     http_response "Invalid asset path", 400
 
 proc page*(self: AppView, app_el: El): SafeHtml =
-  default_html_page(app_el, styles = @["/assets/palette/build/palette.css"])
+  default_html_page(app_el, styles = @["/assets/palette/palette.build.css"])
 
 proc app_view_asset_paths*(): seq[string] =
   let keep_dir = current_source_path().parent_dir.parent_dir.parent_dir.absolute_path
