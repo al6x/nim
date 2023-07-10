@@ -1,0 +1,62 @@
+proc asset_path*(path: string, context: RenderContext): string =
+  "/" & context.space_id & "/" & context.doc.id & "/" & path
+
+
+iterator docs*(db: Db): Doc =
+  for _, space in db.spaces:
+    for _, doc in space.docs:
+      yield doc
+
+
+type Space* = ref object
+  id*:           string
+  version*:      int
+  docs*:         Table[string, Doc]
+  tags*:         seq[string]
+  warnings*:     seq[string]
+
+iterator blocks*(space: Space): Block =
+  for _, doc in space.docs:
+    for blk in doc.blocks:
+      yield blk
+
+
+proc get*(db: Db, sid, rid: string): Option[Record] =
+  if sid in db.spaces:
+    let space = db.spaces[sid]
+    if rid in space.records
+  for _, space in db.spaces:
+    if did in space.docs:
+      return space.docs[did].some
+
+proc get_doc*(db: Db, did: string): Option[Doc] =
+  for sid, space in db.spaces:
+    if did in space.docs:
+      return space.docs[did].some
+
+
+
+block: # Grams
+  for blk in doc.blocks:
+    let ltext = blk.text.to_lower
+    ltext.to_bigram_codes blk.bigrams
+    ltext.to_trigram_codes blk.trigrams
+
+    unless blk.id.is_empty:
+      let lid = blk.id.to_lower
+      lid.to_bigram_codes blk.trigrams
+      lid.to_trigram_codes blk.trigrams
+
+    for tag in blk.ntags:
+      let ltag = tag.decode_tag.to_lower
+      ltag.to_bigram_codes blk.bigrams
+      ltag.to_trigram_codes blk.trigrams
+
+    blk.bigrams_us = blk.bigrams.unique.sort
+    blk.trigrams_us = blk.trigrams.unique.sort
+
+    doc.bigrams_us.add blk.bigrams_us
+    doc.trigrams_us.add blk.trigrams_us
+
+  doc.bigrams_us = doc.bigrams_us.unique.sort
+  doc.trigrams_us = doc.trigrams_us.unique.sort

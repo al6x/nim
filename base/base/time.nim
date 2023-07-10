@@ -56,7 +56,7 @@ proc init*(_: type[Time], epoch: Epoch): Time =
   Time.init times.utc(times.fromUnix(epoch.int))
 
 proc init*(_: type[Time], t: times.Time): Time =
-  Time.init(times.local(t))
+  Time.init(times.utc(t))
 
 let time_format = times.init_time_format "yyyy-MM-dd HH:mm:ss"
 proc init*(_: type[Time], time: string): Time =
@@ -80,6 +80,12 @@ test "to_datetime":
   check Time.init(t.to_datetime) == t
 
 json_as_string Time
+
+proc local*(_: type[Time]): Time =
+  Time.init times.now()
+
+proc to_local*(time: Time): Time =
+  Time.init times.local(time.to_datetime)
 
 # TimeD --------------------------------------------------------------------------------------------
 type TimeD* = object
@@ -105,7 +111,6 @@ proc init*(_: type[TimeD], time: string): TimeD =
   TimeD(year: times.year(t), month: times.month(t).ord, day: times.monthday(t), epoch: epoch)
 
 proc now*(_: type[TimeD]): TimeD = Time.now.to TimeD
-
 
 proc `$`*(self: TimeD): string = self.year.align(4) & "-" & self.month.align(2) & "-" & self.day.align(2)
 

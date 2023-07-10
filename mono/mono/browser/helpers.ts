@@ -127,6 +127,7 @@ export function flash(
   }, delay)
 }
 
+
 export function set_window_title(title: string) {
   if (document.title != title) document.title = title
 }
@@ -172,4 +173,13 @@ export function escape_html(html: unknown, quotes = true): string {
   if (html === undefined || html === null) return ''
   let map = quotes ? ESCAPE_HTML_MAP : ESCAPE_HTML_MAP_WITHOUT_QUOTES
   return ('' + html).replace(/[&<>'"]/g, function(c) { return map[c] })
+}
+
+export function timer_ms(): (() => number) {
+  let start = performance.now()
+  return function(): number { return performance.now() - start }
+}
+
+export function base_url(): string {
+  return location.protocol + "//" + location.hostname + (location.port ? ':' + location.port : '')
 }

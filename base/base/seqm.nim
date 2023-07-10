@@ -4,7 +4,7 @@ from std/random as random import nil
 import ./option, ./test
 
 export sequtils except zip
-export algorithm
+export algorithm except sort
 
 template throw(message: string) = raise Exception.new_exception(message)
 

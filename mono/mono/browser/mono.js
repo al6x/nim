@@ -1,5 +1,5 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
-import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url, get_window_location, dcopy, escape_html } from "./helpers.js";
+import { el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal, sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url, get_window_location, dcopy, escape_html, base_url } from "./helpers.js";
 // run ---------------------------------------------------------------------------------------------
 function get_main_mono_root() {
     // Theoretically, mono supports multiple mono_root elements on the page, but currently only one
@@ -31,7 +31,7 @@ async function pull(mono_id) {
         let res;
         let last_call_was_retry = false;
         try {
-            res = await send("post", location.href, { kind: "pull", mono_id }, -1);
+            res = await send("post", base_url() + "/pull", { kind: "pull", mono_id }, -1);
             if (last_call_was_retry)
                 set_window_icon(mono_id);
             last_call_was_retry = false;
@@ -197,7 +197,7 @@ function listen_to_dom_events() {
             async function send_mono_x() {
                 let data = { kind: 'events', mono_id, events: [...input_events, ...events] };
                 try {
-                    await send("post", location.href, data);
+                    await send("post", base_url() + "/post_events", data);
                 }
                 catch {
                     Log("http").error("can't send event");

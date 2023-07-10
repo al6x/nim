@@ -1,7 +1,7 @@
 // deno bundle --config mono/browser/tsconfig.json mono/browser/mono.ts mono/browser/mono.js
 import { p, el_by_path, assert, build_el, flash, send, Log, find_all, find_one, arrays_equal,
   sleep, set_favicon, set_window_location, set_window_title, svg_to_base64_data_url,
-  get_window_location, dcopy, escape_html } from "./helpers.js"
+  get_window_location, dcopy, escape_html, base_url } from "./helpers.js"
 
 // Types -------------------------------------------------------------------------------------------
 // In events
@@ -85,7 +85,7 @@ async function pull(mono_id: string): Promise<void> {
     let last_call_was_retry = false
     try {
       res = await send<InEventEnvelope, OutEvent | OutEvent[]>(
-        "post", location.href, { kind: "pull", mono_id }, -1
+        "post", base_url() + "/pull", { kind: "pull", mono_id }, -1
       )
       if (last_call_was_retry) set_window_icon(mono_id)
       last_call_was_retry = false
@@ -248,7 +248,7 @@ function listen_to_dom_events() {
       Log("mono").info(">>", events)
       async function send_mono_x() {
         let data: InEventEnvelope = { kind: 'events', mono_id, events: [...input_events, ...events] }
-        try   { await send("post", location.href, data) }
+        try   { await send("post", base_url() + "/post_events", data) }
         catch { Log("http").error("can't send event") }
       }
       send_mono_x()

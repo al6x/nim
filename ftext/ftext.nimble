@@ -1,4 +1,4 @@
-version     = "3.4.2"
+version     = "3.5.0"
 author      = "Alex Craft https://github.com/al6x"
 description = "Formal Text, Text as Data"
 license     = "MIT"
@@ -6,4 +6,4 @@ license     = "MIT"
 srcDir = "."
 
 requires "nim >= 1.6.12"
-requires "https://github.com/al6x/nim?subdir=ext == 3.4.2"
+requires "https://github.com/al6x/nim?subdir=ext == 3.5.0"

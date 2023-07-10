@@ -74,7 +74,8 @@ proc `$`*(url: Url): string =
   # let path_s = "/" & url.path.map((v) => nurim.encode_url(v)).join("/")
   if url.is_full:
     let port   = if url.port == 80: "" else: fmt":{url.port}"
-    let scheme = if url.scheme.is_empty: "" else: fmt"{url.scheme}://"
+    if url.scheme.is_empty: throw "schema can't be empty in full url"
+    let scheme = fmt"{url.scheme}://"
     fmt"{scheme}{url.host}{port}{url.path_as_s}{query_s}"
   else:
     fmt"{url.path_as_s}{query_s}"
