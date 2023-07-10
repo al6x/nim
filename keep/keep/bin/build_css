@@ -3,4 +3,4 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
 # --minify
-tailwindcss -i $DIR/ui/assets/palette/palette.css -o $DIR/ui/assets/palette/build/palette.css -c $DIR/ui/assets/palette/tailwind.config.js --watch
+tailwindcss -i $DIR/ui/assets/palette/palette.css -o $DIR/ui/assets/palette/palette.build.css -c $DIR/ui/assets/palette/tailwind.config.js --watch

@@ -388,7 +388,7 @@ proc html_page(title, content: string): string =
     <html>
       <head>
         <title>{title}</title>
-        <link rel="stylesheet" href="build/palette.css"/>
+        <link rel="stylesheet" href="palette.build.css"/>
         <meta charset="utf-8"/>
       </head>
       <body>
