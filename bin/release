@@ -101,7 +101,6 @@ EOL
 mkdir tmp/releases/keep
 cp -r keep tmp/releases/keep
 mv tmp/releases/keep/keep/readme.md tmp/releases/keep
-mv tmp/releases/keep/keep/docs tmp/releases/keep
 
 cat >tmp/releases/keep/keep.nimble <<EOL
 version     = "${version}"
