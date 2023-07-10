@@ -139,15 +139,19 @@ function listen_to_dom_events() {
     // The `getAttribute` should be used, not `el.href` as in case of `#` it would return current url with `#`.
     let location: string = el.getAttribute("href") || ""
     if (location == get_window_location()) return
-    if (el.tagName.toLowerCase() == "a" && location != "" && location != "#") {
-      // Click with redirect
-      let found = find_el_with_listener(el)
-      if (!found) return
-      raw_event.preventDefault()
-      history.pushState({}, "", location)
+    if (el.tagName.toLowerCase() == "a" && !["", "#"].includes(location)) {
+      let link_hostname = (el as HTMLAnchorElement).hostname
+      let same_domain = !link_hostname || link_hostname == window.location.hostname
+      if (same_domain) {
+        // Click with redirect
+        let found = find_el_with_listener(el)
+        if (!found) return
+        raw_event.preventDefault()
+        history.pushState({}, "", location)
 
-      get_mono_root(found.mono_id).setAttribute("skip_flash", "true") // Skipping flash on redirect, it's annoying
-      post_event(found.mono_id, { kind: 'location', location, el: [] })
+        get_mono_root(found.mono_id).setAttribute("skip_flash", "true") // Skipping flash on redirect, it's annoying
+        post_event(found.mono_id, { kind: 'location', location, el: [] })
+      }
     } else {
       // Click without redirect
       let found = find_el_with_listener(el, "on_click")
