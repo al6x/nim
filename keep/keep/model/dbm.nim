@@ -112,6 +112,12 @@ iterator search_substring*(db: Db, incl, excl: seq[string], query: string): Matc
       let matches = record.text.find_all(query).mapit((1.0, it).Match)
       yield (1.0, record, matches)
 
+proc home*(db: Db): Option[Record] =
+  if   db.config.home.is_some:         db.get_by_rid db.config.home.get
+  elif db.get_by_rid("home").is_some:  db.get_by_rid("home")
+  elif db.get_by_rid("tutor").is_some: db.get_by_rid("tutor")
+  else:                                Record.none
+
 # processing ---------------------------------------------------------------------------------------
 proc process*(db: Db) =
   db.process_if_needed:

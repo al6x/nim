@@ -21,13 +21,8 @@ proc render_page(self: AppView, rid: string): El =
   self.render_page(record.get.sid, record.get.id)
 
 proc render_home(self: AppView): El =
-  if   db.config.home.is_some:
-    self.render_page(db.config.home.get)
-  elif db.get_by_rid("tutor").is_some:
-    self.render_page("tutor")
-  else:
-    let text = "config.home not defined, set it to id of a page you want to be used as a home page"
-    el(PMessage, (text: text, top: true))
+  if    db.home.is_some: self.render_page(db.home.get.id)
+  else:                  el(PMessage, (text: "Home page not defined, create `home.ft`", top: true))
 
 proc render_filter(self: AppView, filter: Filter, page: int): El =
   proc set_location(l: Location) = self.location = l
