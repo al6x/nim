@@ -1,14 +1,14 @@
 Sample Page ^title
 
-There are multiple reasons to About Forex. Every single of those reasons is big enough to stay away
-from such investment. Forex has all of them. ^text
+There are multiple reasons to avoid PlaceX. Every single of those reasons is big enough to stay away
+from such investment. PlaceX has all of them. ^text
 
 Trends are down #Finance #Trading ^section
 
 **Negative trend**. Odds are against you. Stock market on average goes up, but the currencies on
 average going down.
 
-**Leverage**. Insane leverage. The minimal transaction on Forex is one lot equal to 100k$. If you
+**Leverage**. Insane leverage. The minimal transaction on PlaceX is one lot equal to 100k$. If you
 don't have such [money](/money) - you will be using leverage, sometimes very huge leverage. Small market
 fluctuation - and the margin call would wipe you out.
 
@@ -22,22 +22,22 @@ knots #bushcraft #knots ^images
 Additional consequences, subsection ^subsection
 
 - No right for a mistake. If you made a mistake on the stock market, if you can wait, there's a
-chance that over time stock will grow back. Not true for Forex.
+chance that over time stock will grow back. Not true for PlaceX.
 - Currency is a depreciating asset, it looses the value over time. The time plays against you.
 - Fees. With stock you can buy and hold over long period, paying little transaction fees. With
-Forex keeping currencies doesn't make sense because it's a depreciating asset, so there will be
+PlaceX keeping currencies doesn't make sense because it's a depreciating asset, so there will be
 probably lots of transactions and lots of fees. ^text
 
 palette = Palette.init(mockup_mode = true)
 mockup_section("Text"):
   el(App, ()):
     it.left = els:
-      el(Note, (title: "About Forex", tags: data.note_tags)):
+      el(Note, (title: "About PlaceX", tags: data.note_tags)):
         el(Section, ()):
           el(TextBlock, (html: data.text_block_with_image_html)) ^code
 
-There are multiple reasons to About Forex. Every single of those reasons is big enough to stay away
-from such investment. Forex has all of them. ^text
+There are multiple reasons to About PlaceX. Every single of those reasons is big enough to stay away
+from such investment. PlaceX has all of them. ^text
 
 knots/losa.jpg #knots ^image
 
@@ -48,7 +48,7 @@ Tables ^section
 **Negative trend**. Odds are against you. Stock market on average goes up, but the currencies on
 average going down. | image{knots/begushii.jpg}
 
-**Leverage**. Insane leverage. The minimal transaction on Forex is one lot equal to 100k$. If you
+**Leverage**. Insane leverage. The minimal transaction on PlaceX is one lot equal to 100k$. If you
 don't have such [money](/money) - you will be using leverage, sometimes very huge leverage. Small market
 fluctuation - and the margin call would wipe you out. | image{knots/bulin.jpg}
 
@@ -83,4 +83,4 @@ Insane leverage. | Odds are against you. Stock market on average goes up. | imag
 
 #medkit #antibiotics ^table style: cards
 
-#Forex #Margin #Fake
+#Margin #Fake
