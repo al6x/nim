@@ -1,6 +1,7 @@
+This is repository for Keep developers, please use Keep's [Public Docs](https://github.com/al6x/keep).
+
 # Todo
 
-- Write tutor
 - Turn alex/notes into space
 
 # Bugs
@@ -11,6 +12,9 @@
 
 # Lodo
 
+- Warns duplicated after doc edit.
+- Allow any links, this link [warnings](/warnings) would be incorrectly resolved as `/notes/warnings`.
+- Introduce `cards` block, a wrapper around table.
 - Allow "." for space in ftext/parse
 - move docs model and blocks ui into keep/docs/[model, ui]
 - Implement `throw "record not implemented"`

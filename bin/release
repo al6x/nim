@@ -10,7 +10,7 @@ rm -rf tmp/releases
 mkdir -p tmp/releases
 
 nim_version="1.6.12"
-version="3.4.2"
+version="3.5.0"
 
 # readme -------------------------------------------------------------------------------------------
 cp -r readme.md tmp/releases
@@ -97,6 +97,25 @@ srcDir = "."
 requires "nim >= 1.4.2"
 EOL
 
+# keep ---------------------------------------------------------------------------------------------
+mkdir tmp/releases/keep
+cp -r keep tmp/releases/keep
+mv tmp/releases/keep/keep/readme.md tmp/releases/keep
+mv tmp/releases/keep/keep/docs tmp/releases/keep
+
+cat >tmp/releases/keep/keep.nimble <<EOL
+version     = "${version}"
+author      = "Alex Craft https://github.com/al6x"
+description = "Keep helps you manage Notes"
+license     = "Custom"
+
+srcDir = "."
+
+requires "nim >= $nim_version"
+requires "https://github.com/al6x/nim?subdir=mono == $version"
+requires "https://github.com/al6x/nim?subdir=ftext == $version"
+EOL
+
 # Mergin to main -----------------------------------------------------------------------------------
 git checkout main
 
@@ -111,6 +130,9 @@ mv tmp/releases/ext .
 
 rm -rf ./ftext
 mv tmp/releases/ftext .
+
+rm -rf ./keep
+mv tmp/releases/keep .
 
 rm -rf ./mono
 mv tmp/releases/mono .
