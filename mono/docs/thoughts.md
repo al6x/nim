@@ -12,6 +12,7 @@
 
 # Todo
 
+- Split el into el/build_el
 - Change el normalization, do it in JS, also in diff instead of replace(html_string) use replace(el_json), have minimal normalization in Nim, only for built-in HTML components to render initial page for SEO.
 - Maybe use buit_el
 - Flash doesn't work on todo and hello and twitter properly

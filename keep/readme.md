@@ -9,9 +9,11 @@ This repository for Keep developers, please use [Keep Docs](https://github.com/a
 - Address Bar and Navigation
 - Idea Content and Data vs UI
 - Future - Simple, Invisible, Hidden Panel, Extensibility, Palette
+- Quick Start, show Tutor
 
 # Todo
 
+- Split el into el/build_el
 - Turn alex/notes into space
 
 # Bugs
