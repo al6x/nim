@@ -326,7 +326,7 @@ proc render_mockup: seq[El] =
 
     let right = els:
       alter_el(el(PSearchField, ())):
-        it.text "finance/ About Forex"
+        it.text "finance/ About PlaceX"
       el(PSearchInfo, (message: "Found 300 blocks in 20ms"))
       it.add tags_el
 
@@ -334,18 +334,18 @@ proc render_mockup: seq[El] =
 
     let matches: seq[PFoundItem] = @[(
       before: "there are multiple reasons about ",
-      match: "Forex",
+      match: "PlaceX",
       after: " every single of those reasons is big enough to stay away from " &
-        "such investment. Forex has all of them"
+        "such investment. PlaceX has all of them"
     ), (
       before: "Insane leverage. The minimal transaction Super",
-      match: "Forex",
+      match: "PlaceX",
       after: " is one lot equal to 100k$. If you"
     )]
 
     el(PApp, (title: "Found".some, title_controls: search_controls, show_block_separator: true, right: right)):
       for i in 1..6:
-        el(PFoundBlock, (title: "About Forex", matches: matches))
+        el(PFoundBlock, (title: "About PlaceX", matches: matches))
 
       el(PPagination, (count: 200, page: 2, per_page: 30, url: (proc (page: int): string = page.to_s)))
 
@@ -433,4 +433,4 @@ proc stub_data: StubData =
 
   result.tags = result.tags_cloud.mapit(it[0])
 
-  result.doc = Doc.read(fmt"{keep_dir()}/ui/assets/sample/about-forex.ft")
+  result.doc = Doc.read(fmt"{keep_dir()}/ui/assets/sample/sample.ft")

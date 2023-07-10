@@ -44,10 +44,10 @@ Installation `nimble install https://github.com/al6x/nim?subdir=ftext`
 Example of FormalText
 
 ```
-About Forex ^title
+About PlaceX ^title
 
-There are multiple reasons to About Forex. Every single of those reasons is big enough to stay away
-from such investment. Forex has all of them. ^text
+There are multiple reasons to About PlaceX. Every single of those reasons is big enough to stay away
+from such investment. PlaceX has all of them. ^text
 
 Trends are down #Finance #Trading ^section
 
@@ -114,5 +114,5 @@ nim r --experimental:overloadable_enums ftext/render/example.nim
 # npm install -g node-static
 ftext/bin/serve_example_assets
 
-open http://localhost:3000/finance/about-forex.html
+open http://localhost:3000/finance/about.html
 ```
