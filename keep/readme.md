@@ -1,5 +1,7 @@
 This repository for Keep developers, please use [Keep Docs](https://github.com/al6x/keep).
 
+If you interested in development, start with the [Model Layer](keep/model).
+
 # Todo
 
 - Split el into el/build_el
