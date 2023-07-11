@@ -15,7 +15,7 @@ block:
 
 # UI
 import mono/[core, http], ext/async
-import ./ui/support, ./ui/pages/app_view, ui/palette as _
+import ./ui/support, ./ui/pages/app_view, ./ui/palette as _
 
 palette = Palette.init
 
