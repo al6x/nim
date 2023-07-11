@@ -293,3 +293,5 @@ var tags: Table[string, int]
 echo tags.keys.sort # <= Error
 echo tags.keys.to_seq.sort # to_seq should be used
 ```
+
+Basically the problem is that after 2 years of Nim, I'm still more productive with TypeScript, Kotlin, Ruby. I would build apps faster, with less bugs, and the code would be simpler. Nim problem is that it's a) too complicated, has too many concepts and moving parts, and b) but that would be ok what makes it much, much worse is that those parts are not universal and not composable, in some cases they work, in some don't, in some you need to tweak it. Verdict Nim is ok for simple apps like command line utils, ok for strict and specific apps like DB, not ok for complex apps with flexible arhitecture. As for me, Nim just doesn't match with my coding style, I usually use flexible concepts and architecture. The style that blends with the way human brain works, Nim is not good as thinking tool, it doesn't support well the way humans think.

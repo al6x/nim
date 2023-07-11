@@ -1,16 +1,5 @@
 This repository for Keep developers, please use [Keep Docs](https://github.com/al6x/keep).
 
-# Talk
-
-- Tutor and Movies
-- Blocks: Sample, Text, List, Table, Images
-- Edit Images in VSCode
-- Search "knots", Tags "knots"
-- Address Bar and Navigation
-- Idea Content and Data vs UI
-- Future - Simple, Invisible, Hidden Panel, Extensibility, Palette
-- Quick Start, show Tutor
-
 # Todo
 
 - Split el into el/build_el
@@ -18,6 +7,7 @@ This repository for Keep developers, please use [Keep Docs](https://github.com/a
 
 # Bugs
 
+- Changing cols in movie page from 4 to 2 causes errors
 - External link doesn't work
 - Fix parsing for "Invalid link: known/The Algorithm Design Manual.pdf" it should be turned into local link, with dot first
 - Search doesn't work for utf, russian chars
@@ -80,7 +70,8 @@ This repository for Keep developers, please use [Keep Docs](https://github.com/a
 
 # Notes
 
-Use two todos, first organised in Keep, and log like buffer on mobile.
+- Use https://www.spacedrive.com for file management on phone
+- Use two todos, first organised in Keep, and log like buffer on mobile.
 
 # Features
 
