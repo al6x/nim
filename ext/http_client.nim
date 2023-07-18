@@ -1,6 +1,6 @@
-import std/[sugar, httpclient, strformat]
-import ./support, ./json, ./url, ./seqm, ./fallible, ./table, ./log
-from std/uri import nil
+import std/[httpclient]
+import base
+import ./url
 
 let default_timeout_sec = 5
 let http_pool_size_warn = 100
@@ -68,18 +68,21 @@ proc post_batch*[Req, Res](
       result.add item.json_to(Fallible[Res])
 
 
-# build_url ----------------------------------------------------------------------------------------
-proc build_url*(url: string, query: varargs[(string, string)]): string =
-  if query.len > 0: url & "?" & uri.encode_query(query)
-  else:            url
+# # build_url ----------------------------------------------------------------------------------------
+# proc build_url*(url: string, query: varargs[(string, string)]): string =
+#   if query.len > 0: url & "?" & uri.encode_query(query)
+#   else:            url
 
-proc build_url*(url: string, query: tuple): string =
-  var squery: seq[(string, string)] = @[]
-  for k, v in query.field_pairs: squery.add((k, $v))
-  build_url(url, squery)
+# proc build_url*(url: string, query: tuple): string =
+#   var squery: seq[(string, string)] = @[]
+#   for k, v in query.field_pairs: squery.add((k, $v))
+#   build_url(url, squery)
 
-test "build_url":
-  assert build_url("http://some.com") == "http://some.com"
-  assert build_url("http://some.com", { "a": "1", "b": "two" }) == "http://some.com?a=1&b=two"
+# test "build_url":
+#   assert build_url("http://some.com") == "http://some.com"
+#   assert build_url("http://some.com", { "a": "1", "b": "two" }) == "http://some.com?a=1&b=two"
 
-  assert build_url("http://some.com", (a: 1, b: "two")) == "http://some.com?a=1&b=two"
+#   assert build_url("http://some.com", (a: 1, b: "two")) == "http://some.com?a=1&b=two"
+
+when is_main_module:
+  p http_get("https://nim-lang.org")

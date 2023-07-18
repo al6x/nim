@@ -70,10 +70,23 @@ If you interested in development, start with the [Model Layer](keep/model).
 - App split into layers, Model and UI, Model knows nothing about UI and could be used independently.
 - Error conventions, mutable part of error message should be added after `:`, like `Invalid doc: knots.ft`.
 
-# Notes
+# Ideas
 
-- Use https://www.spacedrive.com for file management on phone
+- https://www.spacedrive.com for file management on phone
 - Use two todos, first organised in Keep, and log like buffer on mobile.
+- Simple JS DB https://github.com/pubkey/rxdb
+
+# Libraries
+
+- Editor https://ckeditor.com/ckeditor-5/demo/#classic https://github.com/froala/wysiwyg-editor https://github.com/codex-team/editor.js https://github.com/ianstormtaylor/slate
+- Rucksack UI - http://jamesu.github.io/rucksack/
+- Database, like MS Access https://github.com/rowyio/rowy
+- Excel https://github.com/myliang/x-spreadsheet
+
+# Similar
+
+- Notable https://github.com/notable/notable
+- Outline https://github.com/outline/outline
 
 # Features
 
